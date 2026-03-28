@@ -47,12 +47,36 @@ function Modal({ title, onClose, children, width = 500 }) {
 // MOCK DATA
 // (Also exported via api.js for future backend swap)
 // ---------------------------------------------
+// calcLoanBalance: amortization formula — returns current remaining balance
+function calcLoanBalance(loanAmount, annualRate, termYears, startDate) {
+  const P = parseFloat(loanAmount), r0 = parseFloat(annualRate), n = parseFloat(termYears) * 12;
+  if (!P || !r0 || !n || !startDate) return null;
+  const r = r0 / 100 / 12;
+  const start = new Date(startDate);
+  const now = new Date();
+  const k = Math.max(0, Math.round((now - start) / (1000 * 60 * 60 * 24 * 30.4375)));
+  if (k >= n) return 0;
+  const M = P * r * Math.pow(1 + r, n) / (Math.pow(1 + r, n) - 1);
+  const balance = P * Math.pow(1 + r, k) - M * (Math.pow(1 + r, k) - 1) / r;
+  return Math.max(0, Math.round(balance));
+}
+
+function daysAgo(dateStr) {
+  if (!dateStr) return null;
+  const d = Math.floor((Date.now() - new Date(dateStr)) / 86400000);
+  if (d === 0) return "today";
+  if (d === 1) return "1 day ago";
+  if (d < 30) return `${d} days ago`;
+  const m = Math.round(d / 30);
+  return m === 1 ? "1 month ago" : `${m} months ago`;
+}
+
 const PROPERTIES = [
-  { id: 1, name: "Maple Ridge Duplex", address: "2847 Maple Ridge Dr, Austin, TX 78701", type: "Multi-Family", units: 2, purchasePrice: 385000, currentValue: 462000, mortgage: 298000, monthlyRent: 3800, monthlyExpenses: 1640, purchaseDate: "2021-03-15", status: "Occupied", image: "MR", capRate: 7.2, cashOnCash: 9.1, color: "#3b82f6" },
-  { id: 2, name: "Lakeview SFR", address: "518 Lakeview Terrace, Denver, CO 80203", type: "Single Family", units: 1, purchasePrice: 520000, currentValue: 598000, mortgage: 410000, monthlyRent: 2950, monthlyExpenses: 1120, purchaseDate: "2020-07-22", status: "Occupied", image: "LV", capRate: 5.6, cashOnCash: 7.4, color: "#10b981" },
-  { id: 3, name: "Midtown Condo #4B", address: "1200 Peachtree St NE #4B, Atlanta, GA 30309", type: "Condo", units: 1, purchasePrice: 280000, currentValue: 315000, mortgage: 194000, monthlyRent: 2100, monthlyExpenses: 860, purchaseDate: "2022-01-10", status: "Occupied", image: "MC", capRate: 6.9, cashOnCash: 8.3, color: "#8b5cf6" },
-  { id: 4, name: "Riverside Triplex", address: "744 Riverside Blvd, Portland, OR 97201", type: "Multi-Family", units: 3, purchasePrice: 670000, currentValue: 745000, mortgage: 520000, monthlyRent: 5700, monthlyExpenses: 2380, purchaseDate: "2019-11-05", status: "Partial Vacancy", image: "RT", capRate: 8.1, cashOnCash: 10.2, color: "#f59e0b" },
-  { id: 5, name: "Sunset Strip Commercial", address: "9220 Sunset Blvd, West Hollywood, CA 90069", type: "Commercial", units: 1, purchasePrice: 1200000, currentValue: 1380000, mortgage: 920000, monthlyRent: 8500, monthlyExpenses: 3200, purchaseDate: "2018-06-30", status: "Occupied", image: "SS", capRate: 7.0, cashOnCash: 6.8, color: "#ef4444" },
+  { id: 1, name: "Maple Ridge Duplex", address: "2847 Maple Ridge Dr, Austin, TX 78701", type: "Multi-Family", units: 2, purchasePrice: 385000, currentValue: 462000, valueUpdatedAt: "2025-10-01", loanAmount: 308000, loanRate: 3.25, loanTermYears: 30, loanStartDate: "2021-03-15", monthlyRent: 3800, monthlyExpenses: 1640, purchaseDate: "2021-03-15", status: "Occupied", image: "MR", capRate: 7.2, cashOnCash: 9.1, color: "#3b82f6" },
+  { id: 2, name: "Lakeview SFR", address: "518 Lakeview Terrace, Denver, CO 80203", type: "Single Family", units: 1, purchasePrice: 520000, currentValue: 598000, valueUpdatedAt: "2025-11-15", loanAmount: 416000, loanRate: 2.875, loanTermYears: 30, loanStartDate: "2020-07-22", monthlyRent: 2950, monthlyExpenses: 1120, purchaseDate: "2020-07-22", status: "Occupied", image: "LV", capRate: 5.6, cashOnCash: 7.4, color: "#10b981" },
+  { id: 3, name: "Midtown Condo #4B", address: "1200 Peachtree St NE #4B, Atlanta, GA 30309", type: "Condo", units: 1, purchasePrice: 280000, currentValue: 315000, valueUpdatedAt: "2026-01-20", loanAmount: 224000, loanRate: 3.75, loanTermYears: 30, loanStartDate: "2022-01-10", monthlyRent: 2100, monthlyExpenses: 860, purchaseDate: "2022-01-10", status: "Occupied", image: "MC", capRate: 6.9, cashOnCash: 8.3, color: "#8b5cf6" },
+  { id: 4, name: "Riverside Triplex", address: "744 Riverside Blvd, Portland, OR 97201", type: "Multi-Family", units: 3, purchasePrice: 670000, currentValue: 745000, valueUpdatedAt: "2025-08-30", loanAmount: 536000, loanRate: 4.0, loanTermYears: 30, loanStartDate: "2019-11-05", monthlyRent: 5700, monthlyExpenses: 2380, purchaseDate: "2019-11-05", status: "Partial Vacancy", image: "RT", capRate: 8.1, cashOnCash: 10.2, color: "#f59e0b" },
+  { id: 5, name: "Sunset Strip Commercial", address: "9220 Sunset Blvd, West Hollywood, CA 90069", type: "Commercial", units: 1, purchasePrice: 1200000, currentValue: 1380000, valueUpdatedAt: "2025-12-05", loanAmount: 900000, loanRate: 4.5, loanTermYears: 25, loanStartDate: "2018-06-30", monthlyRent: 8500, monthlyExpenses: 3200, purchaseDate: "2018-06-30", status: "Occupied", image: "SS", capRate: 7.0, cashOnCash: 6.8, color: "#ef4444" },
 ];
 
 const TRANSACTIONS = [
@@ -289,7 +313,7 @@ function Badge({ status }) {
 
 function Dashboard() {
   const totalValue = PROPERTIES.reduce((s, p) => s + p.currentValue, 0);
-  const totalEquity = PROPERTIES.reduce((s, p) => s + (p.currentValue - p.mortgage), 0);
+  const totalEquity = PROPERTIES.reduce((s, p) => s + (p.currentValue - (calcLoanBalance(p.loanAmount, p.loanRate, p.loanTermYears, p.loanStartDate) ?? p.loanAmount ?? 0)), 0);
   const monthlyIncome = PROPERTIES.reduce((s, p) => s + p.monthlyRent, 0);
   const monthlyExpenses = PROPERTIES.reduce((s, p) => s + p.monthlyExpenses, 0);
   const netCashFlow = monthlyIncome - monthlyExpenses;
@@ -420,7 +444,7 @@ function Properties({ onSelect }) {
   const [search, setSearch] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [editId, setEditId] = useState(null); // null = add, id = edit
-  const emptyP = { name: "", address: "", type: "Single Family", units: "1", purchasePrice: "", currentValue: "", mortgage: "", monthlyRent: "", monthlyExpenses: "", status: "Occupied", purchaseDate: "" };
+  const emptyP = { name: "", address: "", type: "Single Family", units: "1", purchasePrice: "", currentValue: "", loanAmount: "", loanRate: "", loanTermYears: "30", loanStartDate: "", monthlyRent: "", monthlyExpenses: "", status: "Occupied", purchaseDate: "" };
   const [form, setForm] = useState(emptyP);
   const sf = k => e => setForm(f => ({ ...f, [k]: e.target.value }));
 
@@ -428,14 +452,15 @@ function Properties({ onSelect }) {
   const openEdit = (e, p) => {
     e.stopPropagation();
     setEditId(p.id);
-    setForm({ name: p.name, address: p.address, type: p.type, units: String(p.units), purchasePrice: String(p.purchasePrice), currentValue: String(p.currentValue), mortgage: String(p.mortgage), monthlyRent: String(p.monthlyRent), monthlyExpenses: String(p.monthlyExpenses), status: p.status, purchaseDate: p.purchaseDate || "" });
+    setForm({ name: p.name, address: p.address, type: p.type, units: String(p.units), purchasePrice: String(p.purchasePrice), currentValue: String(p.currentValue), loanAmount: String(p.loanAmount || ""), loanRate: String(p.loanRate || ""), loanTermYears: String(p.loanTermYears || "30"), loanStartDate: p.loanStartDate || "", monthlyRent: String(p.monthlyRent), monthlyExpenses: String(p.monthlyExpenses), status: p.status, purchaseDate: p.purchaseDate || "" });
     setShowModal(true);
   };
 
-  const calcMetrics = (rent, exp, val, mortgage) => {
+  const calcMetrics = (rent, exp, val, loanAmt, loanRate, loanTerm, loanStart) => {
+    const currentBalance = calcLoanBalance(loanAmt, loanRate, loanTerm, loanStart) ?? parseFloat(loanAmt) ?? 0;
     const capRate = val > 0 ? parseFloat(((rent - exp) * 12 / val * 100).toFixed(1)) : 0;
-    const down = val - mortgage;
-    const cashOnCash = down > 0 ? parseFloat(((rent - exp) * 12 / down * 100).toFixed(1)) : 0;
+    const equity = val - currentBalance;
+    const cashOnCash = equity > 0 ? parseFloat(((rent - exp) * 12 / equity * 100).toFixed(1)) : 0;
     return { capRate, cashOnCash };
   };
 
@@ -444,18 +469,24 @@ function Properties({ onSelect }) {
     const rent = parseFloat(form.monthlyRent) || 0;
     const exp  = parseFloat(form.monthlyExpenses) || 0;
     const val  = parseFloat(form.currentValue) || 0;
-    const mort = parseFloat(form.mortgage) || 0;
-    const { capRate, cashOnCash } = calcMetrics(rent, exp, val, mort);
+    const loanAmt  = parseFloat(form.loanAmount) || 0;
+    const loanRate = parseFloat(form.loanRate) || 0;
+    const loanTerm = parseFloat(form.loanTermYears) || 30;
+    const loanStart = form.loanStartDate || "";
+    const { capRate, cashOnCash } = calcMetrics(rent, exp, val, loanAmt, loanRate, loanTerm, loanStart);
+    const today = new Date().toISOString().slice(0, 10);
 
     if (editId !== null) {
-      setPropData(prev => prev.map(p => p.id === editId
-        ? { ...p, name: form.name, address: form.address, type: form.type, units: parseInt(form.units) || 1, purchasePrice: parseFloat(form.purchasePrice) || 0, currentValue: val, mortgage: mort, monthlyRent: rent, monthlyExpenses: exp, purchaseDate: form.purchaseDate, status: form.status, capRate, cashOnCash }
-        : p
-      ));
+      setPropData(prev => prev.map(p => {
+        if (p.id !== editId) return p;
+        // only update valueUpdatedAt if the user changed the value
+        const valChanged = val !== p.currentValue;
+        return { ...p, name: form.name, address: form.address, type: form.type, units: parseInt(form.units) || 1, purchasePrice: parseFloat(form.purchasePrice) || 0, currentValue: val, valueUpdatedAt: valChanged ? today : (p.valueUpdatedAt || today), loanAmount: loanAmt, loanRate, loanTermYears: loanTerm, loanStartDate: loanStart, monthlyRent: rent, monthlyExpenses: exp, purchaseDate: form.purchaseDate, status: form.status, capRate, cashOnCash };
+      }));
     } else {
       const usedColors = propData.map(p => p.color);
       const color = PROP_COLORS.find(c => !usedColors.includes(c)) || PROP_COLORS[propData.length % PROP_COLORS.length];
-      setPropData(prev => [...prev, { id: newId(), name: form.name, address: form.address, type: form.type, units: parseInt(form.units) || 1, purchasePrice: parseFloat(form.purchasePrice) || 0, currentValue: val, mortgage: mort, monthlyRent: rent, monthlyExpenses: exp, purchaseDate: form.purchaseDate, status: form.status, image: form.name.slice(0, 2).toUpperCase(), capRate, cashOnCash, color }]);
+      setPropData(prev => [...prev, { id: newId(), name: form.name, address: form.address, type: form.type, units: parseInt(form.units) || 1, purchasePrice: parseFloat(form.purchasePrice) || 0, currentValue: val, valueUpdatedAt: today, loanAmount: loanAmt, loanRate, loanTermYears: loanTerm, loanStartDate: loanStart, monthlyRent: rent, monthlyExpenses: exp, purchaseDate: form.purchaseDate, status: form.status, image: form.name.slice(0, 2).toUpperCase(), capRate, cashOnCash, color }]);
     }
     setForm(emptyP);
     setShowModal(false);
@@ -494,7 +525,9 @@ function Properties({ onSelect }) {
       {view === "grid" ? (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 20 }}>
           {filtered.map(p => {
-            const equity = p.currentValue - p.mortgage;
+            const calcBal = calcLoanBalance(p.loanAmount, p.loanRate, p.loanTermYears, p.loanStartDate);
+            const effectiveMortgage = calcBal !== null ? calcBal : (p.mortgage || 0);
+            const equity = p.currentValue - effectiveMortgage;
             const monthlyNet = p.monthlyRent - p.monthlyExpenses;
             return (
               <div key={p.id} onClick={() => onSelect(p)} style={{ background: "#fff", borderRadius: 16, overflow: "hidden", boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9", cursor: "pointer", transition: "transform 0.15s, box-shadow 0.15s" }}
@@ -519,10 +552,12 @@ function Properties({ onSelect }) {
                     <div style={{ background: "#f8fafc", borderRadius: 10, padding: "10px 12px" }}>
                       <p style={{ color: "#94a3b8", fontSize: 11, fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.04em" }}>Value</p>
                       <p style={{ color: "#0f172a", fontSize: 15, fontWeight: 700 }}>{fmtK(p.currentValue)}</p>
+                      {p.valueUpdatedAt && <p style={{ color: "#cbd5e1", fontSize: 10, marginTop: 1 }}>Updated {daysAgo(p.valueUpdatedAt)}</p>}
                     </div>
                     <div style={{ background: "#f8fafc", borderRadius: 10, padding: "10px 12px" }}>
                       <p style={{ color: "#94a3b8", fontSize: 11, fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.04em" }}>Equity</p>
                       <p style={{ color: "#10b981", fontSize: 15, fontWeight: 700 }}>{fmtK(equity)}</p>
+                      {calcBal !== null && <p style={{ color: "#cbd5e1", fontSize: 10, marginTop: 1 }}>Balance {fmtK(effectiveMortgage)}</p>}
                     </div>
                     <div style={{ background: "#f8fafc", borderRadius: 10, padding: "10px 12px" }}>
                       <p style={{ color: "#94a3b8", fontSize: 11, fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.04em" }}>Monthly CF</p>
@@ -550,7 +585,10 @@ function Properties({ onSelect }) {
               </tr>
             </thead>
             <tbody>
-              {filtered.map((p, i) => (
+              {filtered.map((p, i) => {
+                const lBal = calcLoanBalance(p.loanAmount, p.loanRate, p.loanTermYears, p.loanStartDate);
+                const effMort = lBal !== null ? lBal : (p.mortgage || 0);
+                return (
                 <tr key={p.id} onClick={() => onSelect(p)} style={{ borderTop: "1px solid #f1f5f9", cursor: "pointer", background: i % 2 === 0 ? "#fff" : "#fafafa" }}
                   onMouseEnter={e => e.currentTarget.style.background = "#f0f9ff"}
                   onMouseLeave={e => e.currentTarget.style.background = i % 2 === 0 ? "#fff" : "#fafafa"}>
@@ -564,8 +602,14 @@ function Properties({ onSelect }) {
                     </div>
                   </td>
                   <td style={{ padding: "16px 20px", fontSize: 13, color: "#475569" }}>{p.type}</td>
-                  <td style={{ padding: "16px 20px", fontSize: 14, fontWeight: 600, color: "#0f172a" }}>{fmtK(p.currentValue)}</td>
-                  <td style={{ padding: "16px 20px", fontSize: 14, fontWeight: 600, color: "#10b981" }}>{fmtK(p.currentValue - p.mortgage)}</td>
+                  <td style={{ padding: "16px 20px" }}>
+                    <p style={{ fontSize: 14, fontWeight: 600, color: "#0f172a" }}>{fmtK(p.currentValue)}</p>
+                    {p.valueUpdatedAt && <p style={{ fontSize: 11, color: "#cbd5e1" }}>Updated {daysAgo(p.valueUpdatedAt)}</p>}
+                  </td>
+                  <td style={{ padding: "16px 20px" }}>
+                    <p style={{ fontSize: 14, fontWeight: 600, color: "#10b981" }}>{fmtK(p.currentValue - effMort)}</p>
+                    {lBal !== null && <p style={{ fontSize: 11, color: "#cbd5e1" }}>Balance {fmtK(effMort)}</p>}
+                  </td>
                   <td style={{ padding: "16px 20px", fontSize: 14, fontWeight: 600, color: "#0f172a" }}>{fmt(p.monthlyRent)}</td>
                   <td style={{ padding: "16px 20px", fontSize: 14, fontWeight: 700, color: "#3b82f6" }}>{fmt(p.monthlyRent - p.monthlyExpenses)}</td>
                   <td style={{ padding: "16px 20px" }}>
@@ -578,20 +622,21 @@ function Properties({ onSelect }) {
                     </button>
                   </td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         </div>
       )}
       {showModal && (
-        <Modal title={editId ? "Edit Property" : "Add Property"} onClose={() => setShowModal(false)} width={560}>
+        <Modal title={editId ? "Edit Property" : "Add Property"} onClose={() => setShowModal(false)} width={580}>
+          {/* Basic Info */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
             {[
               { label: "Property Name", key: "name", type: "text", placeholder: "e.g. Maple Ridge Duplex", full: true },
               { label: "Address", key: "address", type: "text", placeholder: "Street, City, State ZIP", full: true },
               { label: "Purchase Price ($)", key: "purchasePrice", type: "number", placeholder: "0" },
               { label: "Current Value ($)", key: "currentValue", type: "number", placeholder: "0" },
-              { label: "Mortgage Balance ($)", key: "mortgage", type: "number", placeholder: "0" },
               { label: "Monthly Rent ($)", key: "monthlyRent", type: "number", placeholder: "0" },
               { label: "Monthly Expenses ($)", key: "monthlyExpenses", type: "number", placeholder: "0" },
               { label: "Units", key: "units", type: "number", placeholder: "1" },
@@ -615,7 +660,42 @@ function Properties({ onSelect }) {
               </select>
             </div>
           </div>
-          <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
+
+          {/* Loan Details Section */}
+          <div style={{ margin: "20px 0 14px", padding: "14px 16px", background: "#f0f9ff", borderRadius: 12, border: "1px solid #bae6fd" }}>
+            <p style={{ color: "#0369a1", fontSize: 13, fontWeight: 700, marginBottom: 12, display: "flex", alignItems: "center", gap: 6 }}>
+              🏦 Loan Details — balance calculated automatically from these
+            </p>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <div style={{ gridColumn: "1 / -1" }}>
+                <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Original Loan Amount ($)</label>
+                <input type="number" placeholder="e.g. 308000" value={form.loanAmount} onChange={sf("loanAmount")} style={iS} />
+              </div>
+              <div>
+                <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Interest Rate (%)</label>
+                <input type="number" step="0.01" placeholder="e.g. 3.25" value={form.loanRate} onChange={sf("loanRate")} style={iS} />
+              </div>
+              <div>
+                <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Loan Term (years)</label>
+                <input type="number" placeholder="30" value={form.loanTermYears} onChange={sf("loanTermYears")} style={iS} />
+              </div>
+              <div style={{ gridColumn: "1 / -1" }}>
+                <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Loan Start Date</label>
+                <input type="date" value={form.loanStartDate} onChange={sf("loanStartDate")} style={iS} />
+              </div>
+              {form.loanAmount && form.loanRate && form.loanTermYears && form.loanStartDate && (() => {
+                const b = calcLoanBalance(form.loanAmount, form.loanRate, form.loanTermYears, form.loanStartDate);
+                return b !== null ? (
+                  <div style={{ gridColumn: "1 / -1", background: "#fff", borderRadius: 8, padding: "10px 14px", border: "1px solid #bae6fd", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span style={{ color: "#64748b", fontSize: 13 }}>Estimated current balance:</span>
+                    <span style={{ color: "#0f172a", fontSize: 15, fontWeight: 700 }}>{fmt(b)}</span>
+                  </div>
+                ) : null;
+              })()}
+            </div>
+          </div>
+
+          <div style={{ display: "flex", gap: 10, marginTop: 4 }}>
             <button onClick={() => setShowModal(false)} style={{ flex: 1, padding: "12px", border: "1px solid #e2e8f0", borderRadius: 10, background: "#fff", color: "#475569", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
             <button onClick={handleSaveProp} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "#3b82f6", color: "#fff", fontWeight: 600, cursor: "pointer" }}>
               {editId ? "Save Changes" : "Add Property"}
@@ -628,7 +708,9 @@ function Properties({ onSelect }) {
 }
 
 function PropertyDetail({ property, onBack }) {
-  const equity = property.currentValue - property.mortgage;
+  const calcBal = calcLoanBalance(property.loanAmount, property.loanRate, property.loanTermYears, property.loanStartDate);
+  const effectiveMortgage = calcBal !== null ? calcBal : (property.mortgage || 0);
+  const equity = property.currentValue - effectiveMortgage;
   const appreciation = property.currentValue - property.purchasePrice;
   const annualNOI = (property.monthlyRent - property.monthlyExpenses) * 12;
   const propTransactions = TRANSACTIONS.filter(t => t.property === property.name);
@@ -656,6 +738,7 @@ function PropertyDetail({ property, onBack }) {
             <p style={{ color: "#64748b", fontSize: 13 }}>Current Value</p>
             <p style={{ color: "#0f172a", fontSize: 32, fontWeight: 800 }}>{fmt(property.currentValue)}</p>
             <p style={{ color: "#10b981", fontSize: 14, fontWeight: 600 }}>+{fmt(appreciation)} since purchase</p>
+            {property.valueUpdatedAt && <p style={{ color: "#94a3b8", fontSize: 12, marginTop: 2 }}>Value updated {daysAgo(property.valueUpdatedAt)}</p>}
           </div>
         </div>
       </div>
@@ -666,13 +749,14 @@ function PropertyDetail({ property, onBack }) {
           { label: "Net Cash Flow", value: fmt(property.monthlyRent - property.monthlyExpenses), color: "#3b82f6" },
           { label: "Total Equity", value: fmt(equity), color: "#8b5cf6" },
           { label: "Purchase Price", value: fmt(property.purchasePrice), color: "#0f172a" },
-          { label: "Mortgage Balance", value: fmt(property.mortgage), color: "#f59e0b" },
+          { label: calcBal !== null ? "Est. Mortgage Balance" : "Mortgage Balance", value: fmt(effectiveMortgage), color: "#f59e0b", sub: calcBal !== null ? "Auto-calculated" : null },
           { label: "Cap Rate", value: `${property.capRate}%`, color: "#8b5cf6" },
           { label: "Cash-on-Cash", value: `${property.cashOnCash}%`, color: "#10b981" },
         ].map((m, i) => (
           <div key={i} style={{ background: "#fff", borderRadius: 12, padding: "16px 18px", boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" }}>
             <p style={{ color: "#94a3b8", fontSize: 12, fontWeight: 500, marginBottom: 4 }}>{m.label}</p>
             <p style={{ color: m.color, fontSize: 18, fontWeight: 700 }}>{m.value}</p>
+            {m.sub && <p style={{ color: "#cbd5e1", fontSize: 10, marginTop: 2 }}>{m.sub}</p>}
           </div>
         ))}
       </div>
@@ -1046,6 +1130,8 @@ function Reports() {
                   const annRent = p.monthlyRent * 12;
                   const annExp = p.monthlyExpenses * 12;
                   const depr = Math.round(p.purchasePrice * 0.8 / 27.5);
+                  const pBal = calcLoanBalance(p.loanAmount, p.loanRate, p.loanTermYears, p.loanStartDate) ?? (p.loanAmount || 0);
+                  const pIntEst = Math.round(pBal * (p.loanRate || 4) / 100);
                   const netIncome = annRent - annExp - depr;
                   return (
                     <div key={p.id} style={{ border: "1px solid #f1f5f9", borderRadius: 12, padding: 16, marginBottom: 12 }}>
@@ -1061,7 +1147,7 @@ function Reports() {
                           { label: "Rents Received", value: fmt(annRent), color: "#15803d" },
                           { label: "Operating Expenses", value: `-${fmt(annExp)}`, color: "#b91c1c" },
                           { label: "Depreciation", value: `-${fmt(depr)}`, color: "#b91c1c" },
-                          { label: "Mortgage Interest (est.)", value: `-${fmt(Math.round(p.mortgage * 0.04))}`, color: "#b91c1c" },
+                          { label: "Mortgage Interest (est.)", value: `-${fmt(pIntEst)}`, color: "#b91c1c" },
                           { label: "Net Rental Income", value: fmt(netIncome), color: netIncome >= 0 ? "#15803d" : "#b91c1c" },
                         ].map((m, i) => (
                           <div key={i} style={{ background: "#f8fafc", borderRadius: 8, padding: "10px 12px" }}>
@@ -1081,7 +1167,7 @@ function Reports() {
                     { label: "Total Gross Rents", value: fmt(annualIncome), color: "#15803d" },
                     { label: "Total Expenses", value: `-${fmt(annualExpenses)}`, color: "#b91c1c" },
                     { label: "Depreciation Deduction", value: `-${fmt(depreciation)}`, color: "#b91c1c" },
-                    { label: "Mortgage Interest (est.)", value: `-${fmt(Math.round(PROPERTIES.reduce((s, p) => s + p.mortgage * 0.04, 0)))}`, color: "#b91c1c" },
+                    { label: "Mortgage Interest (est.)", value: `-${fmt(Math.round(PROPERTIES.reduce((s, p) => { const bal = calcLoanBalance(p.loanAmount, p.loanRate, p.loanTermYears, p.loanStartDate) ?? (p.loanAmount || 0); return s + bal * (p.loanRate || 4) / 100; }, 0)))}`, color: "#b91c1c" },
                     { label: "Net Taxable Rental Income", value: fmt(taxableIncome), color: taxableIncome >= 0 ? "#15803d" : "#b91c1c" },
                     { label: "Estimated Tax @ 28%", value: `-${fmt(taxableIncome * 0.28)}`, color: "#b91c1c" },
                   ].map((m, i) => (
