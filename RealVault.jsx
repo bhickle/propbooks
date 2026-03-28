@@ -845,6 +845,9 @@ function Transactions() {
   const [txData, setTxData] = useState(TRANSACTIONS);
   const [filter, setFilter] = useState("all");
   const [search, setSearch] = useState("");
+  const [propFilter, setPropFilter] = useState("all");
+  const [catFilter, setCatFilter] = useState("all");
+  const [dateFilter, setDateFilter] = useState("all");
   const [showModal, setShowModal] = useState(false);
   const [editId, setEditId] = useState(null);
   const INCOME_CATS = [
@@ -894,10 +897,32 @@ function Transactions() {
     setShowModal(true);
   };
 
+  // Unique categories in the current data
+  const allCategories = [...new Set(txData.map(t => t.category))].sort();
+
+  // Date filter helpers
+  const now = new Date();
+  const thisYear = now.getFullYear();
+  const thisMonth = now.getMonth(); // 0-indexed
+  const matchesDate = t => {
+    if (dateFilter === "all") return true;
+    const d = new Date(t.date);
+    if (dateFilter === "thisMonth") return d.getFullYear() === thisYear && d.getMonth() === thisMonth;
+    if (dateFilter === "lastMonth") {
+      const lm = thisMonth === 0 ? 11 : thisMonth - 1;
+      const ly = thisMonth === 0 ? thisYear - 1 : thisYear;
+      return d.getFullYear() === ly && d.getMonth() === lm;
+    }
+    if (dateFilter === "thisYear") return d.getFullYear() === thisYear;
+    return true;
+  };
+
   const filtered = txData.filter(t => {
     const matchType = filter === "all" || t.type === filter;
+    const matchProp = propFilter === "all" || t.property === propFilter;
+    const matchCat = catFilter === "all" || t.category === catFilter;
     const matchSearch = t.description.toLowerCase().includes(search.toLowerCase()) || t.property.toLowerCase().includes(search.toLowerCase()) || t.category.toLowerCase().includes(search.toLowerCase());
-    return matchType && matchSearch;
+    return matchType && matchProp && matchCat && matchSearch && matchesDate(t);
   });
 
   const totalIncome = filtered.filter(t => t.type === "income").reduce((s, t) => s + t.amount, 0);
@@ -946,17 +971,50 @@ function Transactions() {
           <p style={{ color: totalIncome - totalExpenses >= 0 ? "#15803d" : "#b91c1c", fontSize: 24, fontWeight: 800, marginTop: 4 }}>{fmt(totalIncome - totalExpenses)}</p>
         </div>
       </div>
-      <div style={{ display: "flex", gap: 12, marginBottom: 20 }}>
-        <div style={{ position: "relative", flex: 1 }}>
-          <Search size={16} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "#94a3b8" }} />
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search transactions..." style={{ width: "100%", paddingLeft: 38, paddingRight: 16, paddingTop: 10, paddingBottom: 10, border: "1px solid #e2e8f0", borderRadius: 10, fontSize: 14, color: "#0f172a", background: "#fff", outline: "none", boxSizing: "border-box" }} />
+      {/* Filter bar */}
+      <div style={{ display: "flex", gap: 10, marginBottom: 20, flexWrap: "wrap", alignItems: "center" }}>
+        {/* Search */}
+        <div style={{ position: "relative", flex: "1 1 200px", minWidth: 180 }}>
+          <Search size={15} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "#94a3b8" }} />
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search..." style={{ width: "100%", paddingLeft: 36, paddingRight: 12, paddingTop: 9, paddingBottom: 9, border: "1px solid #e2e8f0", borderRadius: 10, fontSize: 13, color: "#0f172a", background: "#fff", outline: "none", boxSizing: "border-box" }} />
         </div>
-        {["all", "income", "expense"].map(f => (
-          <button key={f} onClick={() => setFilter(f)} style={{ padding: "10px 18px", borderRadius: 10, border: filter === f ? "none" : "1px solid #e2e8f0", background: filter === f ? (f === "income" ? "#dcfce7" : f === "expense" ? "#fee2e2" : "#3b82f6") : "#fff", color: filter === f ? (f === "income" ? "#15803d" : f === "expense" ? "#b91c1c" : "#fff") : "#475569", fontWeight: 600, fontSize: 14, cursor: "pointer", textTransform: "capitalize" }}>
-            {f === "all" ? "All" : f === "income" ? "Income" : "Expenses"}
-          </button>
-        ))}
+        {/* Property */}
+        <select value={propFilter} onChange={e => setPropFilter(e.target.value)} style={{ ...iS, width: "auto", minWidth: 160, fontSize: 13, padding: "9px 12px" }}>
+          <option value="all">All Properties</option>
+          {PROPERTIES.map(p => <option key={p.id} value={p.name}>{p.name}</option>)}
+        </select>
+        {/* Category */}
+        <select value={catFilter} onChange={e => setCatFilter(e.target.value)} style={{ ...iS, width: "auto", minWidth: 160, fontSize: 13, padding: "9px 12px" }}>
+          <option value="all">All Categories</option>
+          {allCategories.map(c => <option key={c} value={c}>{c}</option>)}
+        </select>
+        {/* Date range */}
+        <select value={dateFilter} onChange={e => setDateFilter(e.target.value)} style={{ ...iS, width: "auto", minWidth: 140, fontSize: 13, padding: "9px 12px" }}>
+          <option value="all">All Time</option>
+          <option value="thisMonth">This Month</option>
+          <option value="lastMonth">Last Month</option>
+          <option value="thisYear">This Year</option>
+        </select>
+        {/* Income / Expense toggle */}
+        <div style={{ display: "flex", gap: 6, marginLeft: "auto" }}>
+          {[["all", "All"], ["income", "Income"], ["expense", "Expenses"]].map(([f, label]) => (
+            <button key={f} onClick={() => setFilter(f)} style={{ padding: "9px 16px", borderRadius: 10, border: filter === f ? "none" : "1px solid #e2e8f0", background: filter === f ? (f === "income" ? "#dcfce7" : f === "expense" ? "#fee2e2" : "#3b82f6") : "#fff", color: filter === f ? (f === "income" ? "#15803d" : f === "expense" ? "#b91c1c" : "#fff") : "#475569", fontWeight: 600, fontSize: 13, cursor: "pointer", whiteSpace: "nowrap" }}>
+              {label}
+            </button>
+          ))}
+        </div>
       </div>
+      {/* Active filter chips + clear */}
+      {(propFilter !== "all" || catFilter !== "all" || dateFilter !== "all" || search) && (
+        <div style={{ display: "flex", gap: 8, marginBottom: 14, flexWrap: "wrap", alignItems: "center" }}>
+          <span style={{ fontSize: 12, color: "#94a3b8", fontWeight: 600 }}>Filtered:</span>
+          {propFilter !== "all" && <span style={{ background: "#eff6ff", color: "#3b82f6", borderRadius: 20, padding: "3px 10px", fontSize: 12, fontWeight: 600 }}>{propFilter.split(" ").slice(0, 2).join(" ")}</span>}
+          {catFilter !== "all" && <span style={{ background: "#f0fdf4", color: "#15803d", borderRadius: 20, padding: "3px 10px", fontSize: 12, fontWeight: 600 }}>{catFilter}</span>}
+          {dateFilter !== "all" && <span style={{ background: "#fef9c3", color: "#854d0e", borderRadius: 20, padding: "3px 10px", fontSize: 12, fontWeight: 600 }}>{{ thisMonth: "This Month", lastMonth: "Last Month", thisYear: "This Year" }[dateFilter]}</span>}
+          {search && <span style={{ background: "#f1f5f9", color: "#475569", borderRadius: 20, padding: "3px 10px", fontSize: 12, fontWeight: 600 }}>"{search}"</span>}
+          <button onClick={() => { setPropFilter("all"); setCatFilter("all"); setDateFilter("all"); setSearch(""); }} style={{ background: "none", border: "none", color: "#94a3b8", fontSize: 12, cursor: "pointer", textDecoration: "underline", padding: 0 }}>Clear all</button>
+        </div>
+      )}
       <div style={{ background: "#fff", borderRadius: 16, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9", overflow: "hidden" }}>
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
@@ -967,6 +1025,9 @@ function Transactions() {
             </tr>
           </thead>
           <tbody>
+            {filtered.length === 0 && (
+              <tr><td colSpan={7} style={{ padding: "48px 20px", textAlign: "center", color: "#94a3b8", fontSize: 14 }}>No transactions match your filters. <button onClick={() => { setPropFilter("all"); setCatFilter("all"); setDateFilter("all"); setSearch(""); setFilter("all"); }} style={{ background: "none", border: "none", color: "#3b82f6", fontSize: 14, cursor: "pointer", textDecoration: "underline", padding: 0 }}>Clear filters</button></td></tr>
+            )}
             {filtered.map((t, i) => (
               <tr key={t.id} style={{ borderTop: "1px solid #f1f5f9", background: i % 2 === 0 ? "#fff" : "#fafafa" }}>
                 <td style={{ padding: "14px 20px", fontSize: 13, color: "#64748b" }}>{t.date}</td>
