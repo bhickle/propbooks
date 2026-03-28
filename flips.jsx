@@ -1,0 +1,832 @@
+// =============================================================================
+// RealVault – Fix & Flip Modules
+// FlipDashboard | RehabTracker | FlipExpenses | FlipContractors | FlipAnalytics
+// =============================================================================
+
+import { useState, useMemo } from "react";
+import {
+  BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid,
+  Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend,
+} from "recharts";
+import {
+  Hammer, DollarSign, TrendingUp, Star, Plus, Search, Filter,
+  CheckCircle, Clock, AlertCircle, ChevronRight, X, Trash2,
+  Wrench, Users, Receipt, BarChart3, Target, Calendar, Flag,
+  ArrowUp, ArrowDown, Truck, Building2,
+} from "lucide-react";
+import {
+  fmt, fmtK, newId, STAGE_ORDER, STAGE_COLORS,
+} from "./api.js";
+
+// Shared mock data refs (passed as props or imported directly)
+// Using module-level state so all modules stay in sync within a session
+import { FLIPS as _FLIPS, FLIP_EXPENSES as _FE, CONTRACTORS as _CON } from "./api.js";
+
+// ---------------------------------------------------------------------------
+// Shared helpers
+// ---------------------------------------------------------------------------
+const iS = { width: "100%", padding: "10px 12px", border: "1px solid #e2e8f0", borderRadius: 10, fontSize: 14, color: "#0f172a", background: "#fff", outline: "none", boxSizing: "border-box" };
+
+function StageDot({ stage }) {
+  const c = STAGE_COLORS[stage] || STAGE_COLORS["Active Rehab"];
+  return (
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 5, background: c.bg, color: c.text, borderRadius: 20, padding: "3px 10px", fontSize: 12, fontWeight: 600 }}>
+      <span style={{ width: 6, height: 6, borderRadius: "50%", background: c.dot, display: "inline-block" }} />
+      {stage}
+    </span>
+  );
+}
+
+function StatCard({ icon: Icon, label, value, sub, color = "#3b82f6", trend, trendVal }) {
+  const up = trend === "up";
+  return (
+    <div style={{ background: "#fff", borderRadius: 16, padding: "20px 22px", boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+        <div>
+          <p style={{ color: "#94a3b8", fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 6 }}>{label}</p>
+          <p style={{ color: "#0f172a", fontSize: 26, fontWeight: 800, lineHeight: 1 }}>{value}</p>
+          {sub && <p style={{ color: "#64748b", fontSize: 12, marginTop: 4 }}>{sub}</p>}
+        </div>
+        <div style={{ background: color + "18", borderRadius: 12, padding: 10 }}>
+          <Icon size={20} color={color} />
+        </div>
+      </div>
+      {trendVal && (
+        <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 14, paddingTop: 14, borderTop: "1px solid #f1f5f9" }}>
+          {up ? <ArrowUp size={13} color="#10b981" /> : <ArrowDown size={13} color="#ef4444" />}
+          <span style={{ fontSize: 12, fontWeight: 600, color: up ? "#10b981" : "#ef4444" }}>{trendVal}</span>
+          <span style={{ fontSize: 12, color: "#94a3b8" }}>vs last quarter</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PageHeader({ title, sub, action }) {
+  return (
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
+      <div>
+        <h1 style={{ color: "#0f172a", fontSize: 26, fontWeight: 700, marginBottom: 4 }}>{title}</h1>
+        <p style={{ color: "#64748b", fontSize: 15 }}>{sub}</p>
+      </div>
+      {action}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// 1. FLIP DASHBOARD
+// ---------------------------------------------------------------------------
+export function FlipDashboard({ onSelect }) {
+  const flips = _FLIPS;
+  const active = flips.filter(f => f.stage !== "Sold");
+  const sold   = flips.filter(f => f.stage === "Sold");
+
+  const totalDeployed   = active.reduce((s, f) => s + f.purchasePrice + f.rehabSpent, 0);
+  const totalRehabBudget = active.reduce((s, f) => s + f.rehabBudget, 0);
+  const totalRehabSpent  = active.reduce((s, f) => s + f.rehabSpent, 0);
+  const realizedProfit  = sold.reduce((s, f) => s + (f.netProfit || 0), 0);
+  const projectedProfit = active.reduce((s, f) => {
+    const cost = f.purchasePrice + f.rehabBudget + (f.holdingCostsPerMonth * ((f.daysOwned || 0) / 30));
+    return s + (f.arv - cost - f.arv * 0.06);
+  }, 0);
+
+  const stageBreakdown = STAGE_ORDER.map(s => ({
+    stage: s, count: flips.filter(f => f.stage === s).length,
+    color: STAGE_COLORS[s]?.dot || "#94a3b8",
+  }));
+
+  const recentActivity = [
+    { text: "Oakdale Craftsman – flooring install started",  date: "Mar 22", icon: Wrench,   color: "#f59e0b" },
+    { text: "Pine Street Ranch – offer accepted",             date: "Mar 20", icon: CheckCircle, color: "#10b981" },
+    { text: "Hawthorne Heights – inspection complete",        date: "Mar 12", icon: Flag,     color: "#8b5cf6" },
+    { text: "Birchwood Colonial – closed at $361,500",        date: "Aug 29", icon: Star,     color: "#6b7280" },
+  ];
+
+  return (
+    <div>
+      <PageHeader title="Flip Dashboard" sub="Portfolio overview across all fix & flip deals" />
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 28 }}>
+        <StatCard icon={Hammer}     label="Active Deals"     value={active.length}              sub="In pipeline"        color="#f59e0b" trend="up" trendVal="+1 this quarter" />
+        <StatCard icon={DollarSign} label="Capital Deployed" value={fmtK(totalDeployed)}        sub="Purchase + rehab"   color="#3b82f6" />
+        <StatCard icon={TrendingUp} label="Projected Profit" value={fmtK(Math.round(projectedProfit))} sub="Active deals"  color="#10b981" />
+        <StatCard icon={Star}       label="Realized Profit"  value={fmt(realizedProfit)}        sub="Closed deals YTD"   color="#8b5cf6" trend="up" trendVal="+$61K YTD" />
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 20, marginBottom: 20 }}>
+        {/* Active Flips Table */}
+        <div style={{ background: "#fff", borderRadius: 16, padding: 22, border: "1px solid #f1f5f9" }}>
+          <p style={{ color: "#0f172a", fontSize: 16, fontWeight: 700, marginBottom: 16 }}>Active Deals</p>
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <thead>
+              <tr>
+                {["Deal", "Stage", "Days Owned", "Budget Left", "Proj. Profit"].map(h => (
+                  <th key={h} style={{ textAlign: "left", color: "#94a3b8", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", paddingBottom: 10, borderBottom: "1px solid #f1f5f9" }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {active.map((f, i) => {
+                const budgetLeft = f.rehabBudget - f.rehabSpent;
+                const cost = f.purchasePrice + f.rehabBudget + (f.holdingCostsPerMonth * (f.daysOwned / 30));
+                const proj = f.arv - cost - (f.arv * 0.06);
+                return (
+                  <tr key={f.id} style={{ borderBottom: i < active.length - 1 ? "1px solid #f8fafc" : "none" }}>
+                    <td style={{ padding: "12px 0" }}>
+                      <button onClick={() => onSelect && onSelect(f)} style={{ background: "none", border: "none", cursor: "pointer", textAlign: "left", padding: 0 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                          <div style={{ width: 32, height: 32, borderRadius: 8, background: f.color + "20", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, color: f.color }}>{f.image}</div>
+                          <div>
+                            <p style={{ color: "#0f172a", fontSize: 13, fontWeight: 600 }}>{f.name}</p>
+                            <p style={{ color: "#94a3b8", fontSize: 11 }}>{f.address.split(",")[1]?.trim()}</p>
+                          </div>
+                        </div>
+                      </button>
+                    </td>
+                    <td style={{ padding: "12px 0" }}><StageDot stage={f.stage} /></td>
+                    <td style={{ padding: "12px 0", color: "#0f172a", fontSize: 13, fontWeight: 500 }}>{f.daysOwned}d</td>
+                    <td style={{ padding: "12px 0" }}>
+                      <span style={{ color: budgetLeft < 0 ? "#ef4444" : "#0f172a", fontSize: 13, fontWeight: 600 }}>{fmt(budgetLeft)}</span>
+                    </td>
+                    <td style={{ padding: "12px 0" }}>
+                      <span style={{ color: proj > 0 ? "#10b981" : "#ef4444", fontSize: 13, fontWeight: 600 }}>{fmt(Math.round(proj))}</span>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Stage Breakdown + Recent Activity */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          <div style={{ background: "#fff", borderRadius: 16, padding: 22, border: "1px solid #f1f5f9" }}>
+            <p style={{ color: "#0f172a", fontSize: 15, fontWeight: 700, marginBottom: 14 }}>By Stage</p>
+            {stageBreakdown.map(s => (
+              <div key={s.stage} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+                <div style={{ width: 10, height: 10, borderRadius: "50%", background: s.color, flexShrink: 0 }} />
+                <span style={{ color: "#374151", fontSize: 13, flex: 1 }}>{s.stage}</span>
+                <span style={{ color: "#0f172a", fontWeight: 700, fontSize: 13 }}>{s.count}</span>
+              </div>
+            ))}
+          </div>
+
+          <div style={{ background: "#fff", borderRadius: 16, padding: 22, border: "1px solid #f1f5f9", flex: 1 }}>
+            <p style={{ color: "#0f172a", fontSize: 15, fontWeight: 700, marginBottom: 14 }}>Recent Activity</p>
+            {recentActivity.map((a, i) => (
+              <div key={i} style={{ display: "flex", gap: 10, marginBottom: 12 }}>
+                <div style={{ width: 28, height: 28, borderRadius: 8, background: a.color + "18", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                  <a.icon size={13} color={a.color} />
+                </div>
+                <div>
+                  <p style={{ color: "#374151", fontSize: 12, lineHeight: 1.4 }}>{a.text}</p>
+                  <p style={{ color: "#94a3b8", fontSize: 11, marginTop: 2 }}>{a.date}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Rehab Budget Overview Bar */}
+      <div style={{ background: "#fff", borderRadius: 16, padding: 22, border: "1px solid #f1f5f9" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+          <p style={{ color: "#0f172a", fontSize: 16, fontWeight: 700 }}>Rehab Budget Overview</p>
+          <div style={{ display: "flex", gap: 16 }}>
+            <span style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "#64748b" }}><span style={{ width: 10, height: 10, borderRadius: 2, background: "#3b82f6", display: "inline-block" }} />Budgeted</span>
+            <span style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "#64748b" }}><span style={{ width: 10, height: 10, borderRadius: 2, background: "#10b981", display: "inline-block" }} />Spent</span>
+          </div>
+        </div>
+        <ResponsiveContainer width="100%" height={180}>
+          <BarChart data={active.map(f => ({ name: f.image, budget: f.rehabBudget, spent: f.rehabSpent }))}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+            <XAxis dataKey="name" tick={{ fontSize: 12, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
+            <YAxis tick={{ fontSize: 12, fill: "#94a3b8" }} axisLine={false} tickLine={false} tickFormatter={v => `$${(v/1000).toFixed(0)}K`} />
+            <Tooltip formatter={v => fmt(v)} contentStyle={{ borderRadius: 10, border: "1px solid #e2e8f0", fontSize: 13 }} />
+            <Bar dataKey="budget" fill="#3b82f6" radius={[4, 4, 0, 0]} name="Budgeted" />
+            <Bar dataKey="spent"  fill="#10b981" radius={[4, 4, 0, 0]} name="Spent" />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// 2. REHAB TRACKER
+// ---------------------------------------------------------------------------
+export function RehabTracker() {
+  const [filterFlip, setFilterFlip]   = useState("all");
+  const [filterStatus, setFilterStatus] = useState("all");
+
+  const flips = _FLIPS.filter(f => f.stage !== "Sold");
+
+  const allItems = flips.flatMap(f =>
+    (f.rehabItems || []).map(item => ({ ...item, flipId: f.id, flipName: f.name, flipColor: f.color, flipImage: f.image }))
+  );
+
+  const filtered = allItems.filter(item => {
+    if (filterFlip !== "all" && item.flipId !== parseInt(filterFlip)) return false;
+    if (filterStatus !== "all" && item.status !== filterStatus) return false;
+    return true;
+  });
+
+  const totalBudget = filtered.reduce((s, i) => s + i.budgeted, 0);
+  const totalSpent  = filtered.reduce((s, i) => s + i.spent, 0);
+  const totalLeft   = totalBudget - totalSpent;
+  const complete    = allItems.filter(i => i.status === "complete").length;
+  const inProgress  = allItems.filter(i => i.status === "in-progress").length;
+  const pending     = allItems.filter(i => i.status === "pending").length;
+
+  const statusStyle = {
+    "complete":    { bg: "#dcfce7", text: "#15803d", label: "Complete"    },
+    "in-progress": { bg: "#fef9c3", text: "#a16207", label: "In Progress" },
+    "pending":     { bg: "#f1f5f9", text: "#64748b", label: "Pending"     },
+  };
+
+  return (
+    <div>
+      <PageHeader title="Rehab Tracker" sub="All rehab line items across active flips" />
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 24 }}>
+        <StatCard icon={Target}      label="Total Budget"  value={fmtK(totalBudget)} sub="Active flips"   color="#3b82f6" />
+        <StatCard icon={Receipt}     label="Total Spent"   value={fmt(totalSpent)}   sub="To date"        color="#f59e0b" />
+        <StatCard icon={DollarSign}  label="Budget Left"   value={fmt(totalLeft)}    sub={totalLeft < 0 ? "OVER BUDGET" : "Remaining"} color={totalLeft < 0 ? "#ef4444" : "#10b981"} />
+        <StatCard icon={CheckCircle} label="Tasks Done"    value={`${complete}/${allItems.length}`} sub={`${inProgress} in progress`} color="#8b5cf6" />
+      </div>
+
+      {/* Filters */}
+      <div style={{ display: "flex", gap: 12, marginBottom: 20 }}>
+        <select value={filterFlip} onChange={e => setFilterFlip(e.target.value)}
+          style={{ ...iS, width: "auto", padding: "8px 12px", fontSize: 13 }}>
+          <option value="all">All Flips</option>
+          {flips.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
+        </select>
+        <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
+          style={{ ...iS, width: "auto", padding: "8px 12px", fontSize: 13 }}>
+          <option value="all">All Statuses</option>
+          <option value="complete">Complete</option>
+          <option value="in-progress">In Progress</option>
+          <option value="pending">Pending</option>
+        </select>
+        <div style={{ marginLeft: "auto", background: "#f1f5f9", borderRadius: 10, padding: "8px 14px", display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: "#64748b" }}>
+          <Search size={13} /> {filtered.length} items
+        </div>
+      </div>
+
+      {/* Items by flip */}
+      {flips
+        .filter(f => filterFlip === "all" || f.id === parseInt(filterFlip))
+        .map(f => {
+          const items = filtered.filter(i => i.flipId === f.id);
+          if (!items.length) return null;
+          const flipBudget = items.reduce((s, i) => s + i.budgeted, 0);
+          const flipSpent  = items.reduce((s, i) => s + i.spent,    0);
+          const pct = flipBudget > 0 ? Math.min((flipSpent / flipBudget) * 100, 100) : 0;
+          return (
+            <div key={f.id} style={{ background: "#fff", borderRadius: 16, padding: 22, border: "1px solid #f1f5f9", marginBottom: 16 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <div style={{ width: 36, height: 36, borderRadius: 9, background: f.color + "20", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, color: f.color }}>{f.image}</div>
+                  <div>
+                    <p style={{ color: "#0f172a", fontWeight: 700, fontSize: 15 }}>{f.name}</p>
+                    <p style={{ color: "#94a3b8", fontSize: 12 }}>{fmt(flipSpent)} spent of {fmt(flipBudget)}</p>
+                  </div>
+                </div>
+                <StageDot stage={f.stage} />
+              </div>
+              {/* Progress bar */}
+              <div style={{ background: "#f1f5f9", borderRadius: 4, height: 6, marginBottom: 16, overflow: "hidden" }}>
+                <div style={{ height: "100%", width: `${pct}%`, background: pct > 95 ? "#ef4444" : "#10b981", borderRadius: 4, transition: "width 0.3s" }} />
+              </div>
+              {/* Line items */}
+              <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                <thead>
+                  <tr>
+                    {["Category", "Status", "Budgeted", "Spent", "Variance"].map(h => (
+                      <th key={h} style={{ textAlign: "left", color: "#94a3b8", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", paddingBottom: 8, borderBottom: "1px solid #f1f5f9" }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {items.map((item, i) => {
+                    const variance = item.budgeted - item.spent;
+                    const ss = statusStyle[item.status];
+                    return (
+                      <tr key={i} style={{ borderBottom: i < items.length - 1 ? "1px solid #f8fafc" : "none" }}>
+                        <td style={{ padding: "10px 0", color: "#0f172a", fontSize: 13, fontWeight: 500 }}>{item.category}</td>
+                        <td style={{ padding: "10px 0" }}>
+                          <span style={{ background: ss.bg, color: ss.text, borderRadius: 20, padding: "2px 10px", fontSize: 11, fontWeight: 600 }}>{ss.label}</span>
+                        </td>
+                        <td style={{ padding: "10px 0", color: "#0f172a", fontSize: 13 }}>{fmt(item.budgeted)}</td>
+                        <td style={{ padding: "10px 0", color: "#0f172a", fontSize: 13 }}>{fmt(item.spent)}</td>
+                        <td style={{ padding: "10px 0" }}>
+                          <span style={{ color: variance < 0 ? "#ef4444" : "#10b981", fontSize: 13, fontWeight: 600 }}>
+                            {variance < 0 ? "-" : "+"}{fmt(Math.abs(variance))}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          );
+        })}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// 3. FLIP EXPENSES
+// ---------------------------------------------------------------------------
+const EXPENSE_CATS = ["Materials/Supplies", "Subcontractor", "Permits & Inspections", "Appliances", "Dump Fees", "Holding Costs", "Closing Costs", "Other"];
+
+export function FlipExpenses() {
+  const [expenses, setExpenses] = useState([..._FE]);
+  const [filterFlip, setFilterFlip]     = useState("all");
+  const [filterCat, setFilterCat]       = useState("all");
+  const [showModal, setShowModal]       = useState(false);
+  const [search, setSearch]             = useState("");
+
+  const emptyForm = { flipId: "", date: "", vendor: "", category: "Materials/Supplies", description: "", amount: "" };
+  const [form, setForm]   = useState(emptyForm);
+  const sf = k => e => setForm(f => ({ ...f, [k]: e.target.value }));
+
+  const filtered = expenses.filter(e => {
+    if (filterFlip !== "all" && e.flipId !== parseInt(filterFlip)) return false;
+    if (filterCat  !== "all" && e.category !== filterCat) return false;
+    if (search && !e.description.toLowerCase().includes(search.toLowerCase()) && !e.vendor.toLowerCase().includes(search.toLowerCase())) return false;
+    return true;
+  });
+
+  const total     = filtered.reduce((s, e) => s + e.amount, 0);
+  const thisMonth = filtered.filter(e => e.date >= "2026-03-01").reduce((s, e) => s + e.amount, 0);
+
+  const catTotals = EXPENSE_CATS.map(cat => ({
+    cat, total: expenses.filter(e => e.category === cat).reduce((s, e) => s + e.amount, 0),
+  })).filter(c => c.total > 0).sort((a, b) => b.total - a.total);
+
+  const handleSave = () => {
+    if (!form.amount || !form.flipId) return;
+    const flip = _FLIPS.find(f => f.id === parseInt(form.flipId));
+    setExpenses(prev => [{ id: newId(), flipId: parseInt(form.flipId), flipName: flip?.name, date: form.date || new Date().toISOString().split("T")[0], vendor: form.vendor || "Unknown", category: form.category, description: form.description, amount: parseFloat(form.amount) }, ...prev]);
+    setForm(emptyForm); setShowModal(false);
+  };
+
+  return (
+    <div>
+      <PageHeader
+        title="Flip Expenses"
+        sub="All costs across every fix & flip project"
+        action={
+          <button onClick={() => setShowModal(true)} style={{ background: "#f59e0b", color: "#fff", border: "none", borderRadius: 10, padding: "10px 18px", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
+            <Plus size={16} /> Add Expense
+          </button>
+        }
+      />
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, marginBottom: 24 }}>
+        <StatCard icon={Receipt}    label="Total Expenses"    value={fmt(total)}     sub={`${filtered.length} transactions`} color="#f59e0b" />
+        <StatCard icon={Calendar}   label="This Month"        value={fmt(thisMonth)} sub="March 2026"                        color="#3b82f6" />
+        <StatCard icon={Hammer}     label="Largest Category"  value={catTotals[0]?.cat || "—"} sub={catTotals[0] ? fmt(catTotals[0].total) : ""}  color="#8b5cf6" />
+      </div>
+
+      {/* Filters */}
+      <div style={{ display: "flex", gap: 10, marginBottom: 18, flexWrap: "wrap" }}>
+        <div style={{ background: "#f1f5f9", borderRadius: 10, padding: "8px 14px", display: "flex", alignItems: "center", gap: 8, flex: 1, minWidth: 200 }}>
+          <Search size={13} color="#94a3b8" />
+          <input placeholder="Search vendor or description..." value={search} onChange={e => setSearch(e.target.value)}
+            style={{ border: "none", background: "transparent", fontSize: 13, color: "#475569", outline: "none", width: "100%" }} />
+        </div>
+        <select value={filterFlip} onChange={e => setFilterFlip(e.target.value)} style={{ ...iS, width: "auto", padding: "8px 12px", fontSize: 13 }}>
+          <option value="all">All Flips</option>
+          {_FLIPS.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
+        </select>
+        <select value={filterCat} onChange={e => setFilterCat(e.target.value)} style={{ ...iS, width: "auto", padding: "8px 12px", fontSize: 13 }}>
+          <option value="all">All Categories</option>
+          {EXPENSE_CATS.map(c => <option key={c} value={c}>{c}</option>)}
+        </select>
+      </div>
+
+      {/* Table */}
+      <div style={{ background: "#fff", borderRadius: 16, border: "1px solid #f1f5f9", overflow: "hidden" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <thead>
+            <tr style={{ background: "#f8fafc" }}>
+              {["Date", "Flip", "Vendor", "Category", "Description", "Amount"].map(h => (
+                <th key={h} style={{ textAlign: "left", color: "#94a3b8", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", padding: "12px 16px" }}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {filtered.map((e, i) => {
+              const flip = _FLIPS.find(f => f.id === e.flipId);
+              return (
+                <tr key={e.id} style={{ borderTop: "1px solid #f1f5f9" }}>
+                  <td style={{ padding: "12px 16px", color: "#64748b", fontSize: 13 }}>{e.date}</td>
+                  <td style={{ padding: "12px 16px" }}>
+                    {flip && (
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                        <span style={{ width: 8, height: 8, borderRadius: "50%", background: flip.color }} />
+                        <span style={{ fontSize: 13, color: "#374151", fontWeight: 500 }}>{flip.name}</span>
+                      </span>
+                    )}
+                  </td>
+                  <td style={{ padding: "12px 16px", color: "#0f172a", fontSize: 13, fontWeight: 500 }}>{e.vendor}</td>
+                  <td style={{ padding: "12px 16px" }}>
+                    <span style={{ background: "#f1f5f9", color: "#475569", borderRadius: 6, padding: "2px 8px", fontSize: 11, fontWeight: 600 }}>{e.category}</span>
+                  </td>
+                  <td style={{ padding: "12px 16px", color: "#64748b", fontSize: 13 }}>{e.description}</td>
+                  <td style={{ padding: "12px 16px", color: "#0f172a", fontSize: 13, fontWeight: 700 }}>{fmt(e.amount)}</td>
+                </tr>
+              );
+            })}
+            {filtered.length === 0 && (
+              <tr><td colSpan={6} style={{ padding: 32, textAlign: "center", color: "#94a3b8", fontSize: 13 }}>No expenses found</td></tr>
+            )}
+          </tbody>
+        </table>
+        <div style={{ padding: "12px 16px", borderTop: "1px solid #f1f5f9", background: "#f8fafc", display: "flex", justifyContent: "flex-end", gap: 24 }}>
+          <span style={{ fontSize: 13, color: "#64748b" }}>Total: <strong style={{ color: "#0f172a" }}>{fmt(total)}</strong></span>
+        </div>
+      </div>
+
+      {/* Add Expense Modal */}
+      {showModal && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
+          <div style={{ background: "#fff", borderRadius: 20, padding: 32, width: 480, boxShadow: "0 20px 60px rgba(0,0,0,0.18)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 20 }}>
+              <h2 style={{ color: "#0f172a", fontSize: 19, fontWeight: 700 }}>Add Expense</h2>
+              <button onClick={() => setShowModal(false)} style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8" }}><X size={20} /></button>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              <div>
+                <p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Flip *</p>
+                <select value={form.flipId} onChange={sf("flipId")} style={iS}>
+                  <option value="">Select flip...</option>
+                  {_FLIPS.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
+                </select>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                <div>
+                  <p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Date</p>
+                  <input type="date" style={iS} value={form.date} onChange={sf("date")} />
+                </div>
+                <div>
+                  <p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Amount *</p>
+                  <input type="number" style={iS} placeholder="0.00" value={form.amount} onChange={sf("amount")} />
+                </div>
+              </div>
+              <div>
+                <p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Vendor</p>
+                <input style={iS} placeholder="Vendor name" value={form.vendor} onChange={sf("vendor")} />
+              </div>
+              <div>
+                <p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Category</p>
+                <select style={iS} value={form.category} onChange={sf("category")}>
+                  {EXPENSE_CATS.map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
+              <div>
+                <p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Description</p>
+                <input style={iS} placeholder="Brief description" value={form.description} onChange={sf("description")} />
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
+              <button onClick={handleSave} style={{ flex: 1, padding: "11px", borderRadius: 10, border: "none", background: "#f59e0b", color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer" }}>Save Expense</button>
+              <button onClick={() => setShowModal(false)} style={{ padding: "11px 18px", borderRadius: 10, border: "1.5px solid #e2e8f0", background: "#fff", fontWeight: 600, fontSize: 14, cursor: "pointer", color: "#64748b" }}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// 4. CONTRACTORS
+// ---------------------------------------------------------------------------
+const STATUS_STYLES = {
+  active:   { bg: "#dbeafe", text: "#1d4ed8", label: "Active"   },
+  complete: { bg: "#dcfce7", text: "#15803d", label: "Complete" },
+  pending:  { bg: "#f1f5f9", text: "#64748b", label: "Pending"  },
+};
+
+export function FlipContractors() {
+  const [contractors, setContractors] = useState([..._CON]);
+  const [filterFlip, setFilterFlip]   = useState("all");
+  const [filterStatus, setFilterStatus] = useState("all");
+  const [showModal, setShowModal]     = useState(false);
+
+  const emptyForm = { flipId: "", name: "", trade: "", paymentType: "Fixed Bid", totalBid: "", dayRate: "", phone: "", status: "pending" };
+  const [form, setForm] = useState(emptyForm);
+  const sf = k => e => setForm(f => ({ ...f, [k]: e.target.value }));
+
+  const filtered = contractors.filter(c => {
+    if (filterFlip   !== "all" && c.flipId !== parseInt(filterFlip)) return false;
+    if (filterStatus !== "all" && c.status !== filterStatus) return false;
+    return true;
+  });
+
+  const totalCommitted = contractors.reduce((s, c) => s + (c.totalBid || 0), 0);
+  const totalPaid      = contractors.reduce((s, c) => s + (c.totalPaid || 0), 0);
+  const outstanding    = totalCommitted - totalPaid;
+
+  const handleSave = () => {
+    if (!form.name || !form.flipId) return;
+    setContractors(prev => [...prev, { id: newId(), flipId: parseInt(form.flipId), name: form.name, trade: form.trade, paymentType: form.paymentType, totalBid: parseFloat(form.totalBid) || 0, dayRate: parseFloat(form.dayRate) || 0, totalPaid: 0, status: form.status, phone: form.phone }]);
+    setForm(emptyForm); setShowModal(false);
+  };
+
+  return (
+    <div>
+      <PageHeader
+        title="Contractors"
+        sub="All contractors and subcontractors across your flips"
+        action={
+          <button onClick={() => setShowModal(true)} style={{ background: "#f59e0b", color: "#fff", border: "none", borderRadius: 10, padding: "10px 18px", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
+            <Plus size={16} /> Add Contractor
+          </button>
+        }
+      />
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 24 }}>
+        <StatCard icon={Users}      label="Total Contractors" value={contractors.length}   sub={`${contractors.filter(c=>c.status==="active").length} active`}  color="#f59e0b" />
+        <StatCard icon={DollarSign} label="Total Committed"   value={fmt(totalCommitted)}  sub="Across all flips"  color="#3b82f6" />
+        <StatCard icon={CheckCircle}label="Total Paid"        value={fmt(totalPaid)}        sub="Disbursed to date" color="#10b981" />
+        <StatCard icon={AlertCircle}label="Outstanding"       value={fmt(outstanding)}      sub="Remaining balance" color="#f59e0b" />
+      </div>
+
+      {/* Filters */}
+      <div style={{ display: "flex", gap: 10, marginBottom: 18 }}>
+        <select value={filterFlip} onChange={e => setFilterFlip(e.target.value)} style={{ ...iS, width: "auto", padding: "8px 12px", fontSize: 13 }}>
+          <option value="all">All Flips</option>
+          {_FLIPS.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
+        </select>
+        <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} style={{ ...iS, width: "auto", padding: "8px 12px", fontSize: 13 }}>
+          <option value="all">All Statuses</option>
+          <option value="active">Active</option>
+          <option value="complete">Complete</option>
+          <option value="pending">Pending</option>
+        </select>
+        <div style={{ marginLeft: "auto", fontSize: 13, color: "#64748b", display: "flex", alignItems: "center" }}>
+          {filtered.length} contractors
+        </div>
+      </div>
+
+      {/* Grid */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 14 }}>
+        {filtered.map(c => {
+          const flip = _FLIPS.find(f => f.id === c.flipId);
+          const ss = STATUS_STYLES[c.status] || STATUS_STYLES.pending;
+          const pct = c.totalBid > 0 ? Math.min((c.totalPaid / c.totalBid) * 100, 100) : 0;
+          return (
+            <div key={c.id} style={{ background: "#fff", borderRadius: 14, padding: 20, border: "1px solid #f1f5f9" }}>
+              <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 12 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <div style={{ width: 40, height: 40, borderRadius: 10, background: "#f1f5f9", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <Truck size={18} color="#64748b" />
+                  </div>
+                  <div>
+                    <p style={{ color: "#0f172a", fontWeight: 700, fontSize: 14 }}>{c.name}</p>
+                    <p style={{ color: "#94a3b8", fontSize: 12 }}>{c.trade} · {c.phone || "—"}</p>
+                  </div>
+                </div>
+                <span style={{ background: ss.bg, color: ss.text, borderRadius: 20, padding: "3px 10px", fontSize: 11, fontWeight: 600 }}>{ss.label}</span>
+              </div>
+              {flip && (
+                <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 10 }}>
+                  <span style={{ width: 8, height: 8, borderRadius: "50%", background: flip.color }} />
+                  <span style={{ fontSize: 12, color: "#64748b" }}>{flip.name}</span>
+                </div>
+              )}
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                <span style={{ fontSize: 12, color: "#94a3b8" }}>
+                  {c.paymentType === "Day Rate" ? `Day Rate: $${c.dayRate}/day` : `Bid: ${fmt(c.totalBid)}`}
+                </span>
+                <span style={{ fontSize: 12, color: "#0f172a", fontWeight: 600 }}>{fmt(c.totalPaid)} paid</span>
+              </div>
+              {c.paymentType !== "Day Rate" && (
+                <div style={{ background: "#f1f5f9", borderRadius: 4, height: 5, overflow: "hidden" }}>
+                  <div style={{ height: "100%", width: `${pct}%`, background: "#10b981", borderRadius: 4 }} />
+                </div>
+              )}
+            </div>
+          );
+        })}
+        {filtered.length === 0 && (
+          <div style={{ gridColumn: "1/-1", padding: 40, textAlign: "center", color: "#94a3b8", fontSize: 14 }}>
+            No contractors found
+          </div>
+        )}
+      </div>
+
+      {/* Add Modal */}
+      {showModal && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
+          <div style={{ background: "#fff", borderRadius: 20, padding: 32, width: 480, boxShadow: "0 20px 60px rgba(0,0,0,0.18)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 20 }}>
+              <h2 style={{ color: "#0f172a", fontSize: 19, fontWeight: 700 }}>Add Contractor</h2>
+              <button onClick={() => setShowModal(false)} style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8" }}><X size={20} /></button>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              <div>
+                <p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Flip *</p>
+                <select style={iS} value={form.flipId} onChange={sf("flipId")}>
+                  <option value="">Select flip...</option>
+                  {_FLIPS.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
+                </select>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                <div>
+                  <p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Company / Name *</p>
+                  <input style={iS} placeholder="ABC Plumbing" value={form.name} onChange={sf("name")} />
+                </div>
+                <div>
+                  <p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Trade</p>
+                  <input style={iS} placeholder="Plumbing" value={form.trade} onChange={sf("trade")} />
+                </div>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                <div>
+                  <p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Payment Type</p>
+                  <select style={iS} value={form.paymentType} onChange={sf("paymentType")}>
+                    <option>Fixed Bid</option>
+                    <option>Day Rate</option>
+                    <option>Time & Materials</option>
+                  </select>
+                </div>
+                <div>
+                  <p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>{form.paymentType === "Day Rate" ? "Day Rate ($)" : "Total Bid ($)"}</p>
+                  <input type="number" style={iS} placeholder="0" value={form.paymentType === "Day Rate" ? form.dayRate : form.totalBid} onChange={sf(form.paymentType === "Day Rate" ? "dayRate" : "totalBid")} />
+                </div>
+              </div>
+              <div>
+                <p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Phone</p>
+                <input style={iS} placeholder="555-000-0000" value={form.phone} onChange={sf("phone")} />
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
+              <button onClick={handleSave} style={{ flex: 1, padding: "11px", borderRadius: 10, border: "none", background: "#f59e0b", color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer" }}>Save Contractor</button>
+              <button onClick={() => setShowModal(false)} style={{ padding: "11px 18px", borderRadius: 10, border: "1.5px solid #e2e8f0", background: "#fff", fontWeight: 600, fontSize: 14, cursor: "pointer", color: "#64748b" }}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// 5. FLIP ANALYTICS
+// ---------------------------------------------------------------------------
+export function FlipAnalytics() {
+  const flips = _FLIPS;
+  const sold  = flips.filter(f => f.stage === "Sold");
+
+  const roiData = flips.map(f => {
+    const cost = f.purchasePrice + (f.stage === "Sold" ? f.rehabSpent : f.rehabBudget);
+    const sale = f.stage === "Sold" ? f.salePrice : f.arv;
+    const profit = sale - cost - (f.stage === "Sold" ? f.sellingCosts + f.totalHoldingCosts : (sale * 0.06) + (f.holdingCostsPerMonth * (f.daysOwned || 0) / 30));
+    const roi = cost > 0 ? ((profit / cost) * 100).toFixed(1) : 0;
+    return { name: f.image, fullName: f.name, roi: parseFloat(roi), profit: Math.round(profit), stage: f.stage, color: f.color };
+  });
+
+  const budgetVsActual = flips.filter(f => f.rehabSpent > 0).map(f => ({
+    name: f.image, budget: f.rehabBudget, actual: f.rehabSpent,
+    variance: f.rehabBudget - f.rehabSpent,
+  }));
+
+  const timelineData = flips.filter(f => f.daysOwned > 0).map(f => ({
+    name: f.image, days: f.daysOwned, stage: f.stage, color: f.color,
+  }));
+
+  const catSpend = _FE.reduce((acc, e) => {
+    acc[e.category] = (acc[e.category] || 0) + e.amount;
+    return acc;
+  }, {});
+  const catChartData = Object.entries(catSpend).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value);
+  const COLORS = ["#f59e0b", "#3b82f6", "#10b981", "#8b5cf6", "#ef4444", "#06b6d4"];
+
+  const avgROI    = roiData.length ? (roiData.reduce((s, d) => s + d.roi, 0) / roiData.length).toFixed(1) : 0;
+  const avgDays   = timelineData.length ? Math.round(timelineData.reduce((s, d) => s + d.days, 0) / timelineData.length) : 0;
+  const totalProfit = sold.reduce((s, f) => s + (f.netProfit || 0), 0);
+
+  return (
+    <div>
+      <PageHeader title="Flip Analytics" sub="Performance metrics across all deals" />
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 28 }}>
+        <StatCard icon={TrendingUp}  label="Avg ROI"          value={`${avgROI}%`}          sub="All deals"         color="#10b981" />
+        <StatCard icon={Clock}       label="Avg Hold Time"    value={`${avgDays} days`}      sub="Active deals"      color="#3b82f6" />
+        <StatCard icon={Star}        label="Total Realized"   value={fmt(totalProfit)}       sub="Closed deals"      color="#8b5cf6" />
+        <StatCard icon={BarChart3}   label="Deals Analyzed"   value={flips.length}           sub={`${sold.length} closed`} color="#f59e0b" />
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 20 }}>
+        {/* ROI by Deal */}
+        <div style={{ background: "#fff", borderRadius: 16, padding: 22, border: "1px solid #f1f5f9" }}>
+          <p style={{ color: "#0f172a", fontSize: 15, fontWeight: 700, marginBottom: 4 }}>ROI by Deal</p>
+          <p style={{ color: "#94a3b8", fontSize: 12, marginBottom: 16 }}>Actual (sold) vs projected (active)</p>
+          <ResponsiveContainer width="100%" height={200}>
+            <BarChart data={roiData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+              <XAxis dataKey="name" tick={{ fontSize: 12, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fontSize: 12, fill: "#94a3b8" }} axisLine={false} tickLine={false} tickFormatter={v => `${v}%`} />
+              <Tooltip formatter={(v, n, p) => [`${v}%`, "ROI"]} contentStyle={{ borderRadius: 10, border: "1px solid #e2e8f0", fontSize: 12 }} />
+              <Bar dataKey="roi" radius={[5, 5, 0, 0]}>
+                {roiData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Expense Category Breakdown */}
+        <div style={{ background: "#fff", borderRadius: 16, padding: 22, border: "1px solid #f1f5f9" }}>
+          <p style={{ color: "#0f172a", fontSize: 15, fontWeight: 700, marginBottom: 4 }}>Expense Breakdown</p>
+          <p style={{ color: "#94a3b8", fontSize: 12, marginBottom: 16 }}>By category across all flips</p>
+          <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+            <ResponsiveContainer width={160} height={160}>
+              <PieChart>
+                <Pie data={catChartData} cx="50%" cy="50%" innerRadius={45} outerRadius={70} dataKey="value" paddingAngle={2}>
+                  {catChartData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                </Pie>
+              </PieChart>
+            </ResponsiveContainer>
+            <div style={{ flex: 1 }}>
+              {catChartData.map((d, i) => (
+                <div key={d.name} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <div style={{ width: 8, height: 8, borderRadius: 2, background: COLORS[i % COLORS.length], flexShrink: 0 }} />
+                    <span style={{ fontSize: 12, color: "#374151" }}>{d.name}</span>
+                  </div>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: "#0f172a" }}>{fmt(d.value)}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Budget vs Actual */}
+      <div style={{ background: "#fff", borderRadius: 16, padding: 22, border: "1px solid #f1f5f9", marginBottom: 20 }}>
+        <p style={{ color: "#0f172a", fontSize: 15, fontWeight: 700, marginBottom: 4 }}>Rehab Budget vs Actual</p>
+        <p style={{ color: "#94a3b8", fontSize: 12, marginBottom: 16 }}>How well rehab budgets are holding</p>
+        <ResponsiveContainer width="100%" height={180}>
+          <BarChart data={budgetVsActual}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+            <XAxis dataKey="name" tick={{ fontSize: 12, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
+            <YAxis tick={{ fontSize: 12, fill: "#94a3b8" }} axisLine={false} tickLine={false} tickFormatter={v => `$${(v/1000).toFixed(0)}K`} />
+            <Tooltip formatter={v => fmt(v)} contentStyle={{ borderRadius: 10, border: "1px solid #e2e8f0", fontSize: 12 }} />
+            <Legend />
+            <Bar dataKey="budget" fill="#3b82f6" name="Budgeted" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="actual" fill="#f59e0b" name="Actual"   radius={[4, 4, 0, 0]} />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+
+      {/* Deal Summary Table */}
+      <div style={{ background: "#fff", borderRadius: 16, border: "1px solid #f1f5f9", overflow: "hidden" }}>
+        <div style={{ padding: "16px 22px", borderBottom: "1px solid #f1f5f9" }}>
+          <p style={{ color: "#0f172a", fontSize: 15, fontWeight: 700 }}>Deal Summary</p>
+        </div>
+        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <thead>
+            <tr style={{ background: "#f8fafc" }}>
+              {["Deal", "Stage", "Purchase", "Rehab Budget", "ARV / Sale", "Proj. Profit", "ROI"].map(h => (
+                <th key={h} style={{ textAlign: "left", color: "#94a3b8", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.04em", padding: "10px 16px" }}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {roiData.map((d, i) => {
+              const flip = flips[i];
+              return (
+                <tr key={flip.id} style={{ borderTop: "1px solid #f1f5f9" }}>
+                  <td style={{ padding: "12px 16px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <div style={{ width: 28, height: 28, borderRadius: 7, background: flip.color + "20", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 700, color: flip.color }}>{flip.image}</div>
+                      <span style={{ color: "#0f172a", fontSize: 13, fontWeight: 600 }}>{flip.name}</span>
+                    </div>
+                  </td>
+                  <td style={{ padding: "12px 16px" }}><StageDot stage={flip.stage} /></td>
+                  <td style={{ padding: "12px 16px", color: "#0f172a", fontSize: 13 }}>{fmt(flip.purchasePrice)}</td>
+                  <td style={{ padding: "12px 16px", color: "#0f172a", fontSize: 13 }}>{fmt(flip.rehabBudget)}</td>
+                  <td style={{ padding: "12px 16px", color: "#0f172a", fontSize: 13 }}>{fmt(flip.stage === "Sold" ? flip.salePrice : flip.arv)}</td>
+                  <td style={{ padding: "12px 16px" }}>
+                    <span style={{ color: d.profit > 0 ? "#10b981" : "#ef4444", fontWeight: 700, fontSize: 13 }}>{fmt(d.profit)}</span>
+                  </td>
+                  <td style={{ padding: "12px 16px" }}>
+                    <span style={{ color: d.roi > 0 ? "#10b981" : "#ef4444", fontWeight: 700, fontSize: 13 }}>{d.roi}%</span>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}

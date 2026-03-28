@@ -25,6 +25,7 @@ import {
 } from "./api.js";
 import { AuthProvider, AuthScreen, useAuth } from "./auth.jsx";
 import { Settings, OnboardingWizard } from "./settings.jsx";
+import { FlipDashboard, RehabTracker, FlipExpenses, FlipContractors, FlipAnalytics } from "./flips.jsx";
 
 const iS = { width: "100%", padding: "10px 12px", border: "1px solid #e2e8f0", borderRadius: 10, fontSize: 14, color: "#0f172a", background: "#fff", outline: "none", boxSizing: "border-box" };
 
@@ -2185,7 +2186,12 @@ function AppShell() {
   ];
 
   const flipNavItems = [
-    { id: "flips", label: "Flip Pipeline", icon: Hammer },
+    { id: "flipdashboard", label: "F&F Dashboard", icon: LayoutDashboard },
+    { id: "flips",         label: "Pipeline",       icon: Hammer          },
+    { id: "rehabtracker",  label: "Rehab Tracker",  icon: Wrench          },
+    { id: "flipexpenses",  label: "Expenses",        icon: Receipt         },
+    { id: "flipcontractors", label: "Contractors",   icon: Users           },
+    { id: "flipanalytics", label: "Analytics",       icon: BarChart3       },
   ];
 
   const toolNavItems = [
@@ -2234,7 +2240,7 @@ function AppShell() {
           <div style={{ height: 1, background: "rgba(255,255,255,0.07)", margin: "14px 8px 12px" }} />
           <p style={{ color: "#475569", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", padding: "0 8px", marginBottom: 8 }}>Fix &amp; Flip</p>
           {flipNavItems.map(item => {
-            const active = activeView === item.id || (item.id === "flips" && activeView === "flipDetail");
+            const active = activeView === item.id || (item.id === "flips" && activeView === "flipDetail") || (item.id === "flipdashboard" && activeView === "flipDetail");
             return (
               <button key={item.id} onClick={() => { setActiveView(item.id); setSelectedFlip(null); setSelectedProperty(null); }}
                 style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 10, border: "none", background: active ? "rgba(245,158,11,0.18)" : "transparent", color: active ? "#fcd34d" : "#64748b", fontWeight: active ? 700 : 500, fontSize: 14, cursor: "pointer", marginBottom: 2, textAlign: "left", transition: "all 0.15s" }}
@@ -2313,8 +2319,13 @@ function AppShell() {
           {activeView === "transactions" && <Transactions />}
           {activeView === "analytics" && <Analytics />}
           {activeView === "reports" && <Reports />}
-          {activeView === "flips" && <FlipPipeline onSelect={handleFlipSelect} />}
-          {activeView === "flipDetail" && selectedFlip && <FlipDetail flip={selectedFlip} onBack={() => setActiveView("flips")} />}
+          {activeView === "flipdashboard"   && <FlipDashboard onSelect={handleFlipSelect} />}
+          {activeView === "flips"           && <FlipPipeline onSelect={handleFlipSelect} />}
+          {activeView === "flipDetail"      && selectedFlip && <FlipDetail flip={selectedFlip} onBack={() => setActiveView("flips")} />}
+          {activeView === "rehabtracker"    && <RehabTracker />}
+          {activeView === "flipexpenses"    && <FlipExpenses />}
+          {activeView === "flipcontractors" && <FlipContractors />}
+          {activeView === "flipanalytics"   && <FlipAnalytics />}
           {activeView === "rentroll" && <RentRoll />}
           {activeView === "mileage" && <MileageTracker />}
           {activeView === "dealanalyzer" && <DealAnalyzer />}

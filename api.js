@@ -99,7 +99,7 @@ const _expenseCategories = [
   { name:"Other",        value:4,  color:"#6b7280" },
 ];
 
-const _flips = [
+export const FLIPS = [
   {
     id:1, name:"Oakdale Craftsman", address:"1422 Oakdale Ave, Nashville, TN 37206",
     stage:"Active Rehab", image:"OC", color:"#f59e0b",
@@ -163,7 +163,7 @@ const _flips = [
   },
 ];
 
-const _flipExpenses = [
+export const FLIP_EXPENSES = [
   { id:1,  flipId:1, date:"2026-03-18", vendor:"Home Depot",        category:"Materials/Supplies",    description:"Hardwood flooring - 680 sqft",        amount:2890 },
   { id:2,  flipId:1, date:"2026-03-15", vendor:"ABC Plumbing",      category:"Subcontractor",         description:"Master bath rough-in",                amount:3200 },
   { id:3,  flipId:1, date:"2026-03-10", vendor:"Lowe's",            category:"Materials/Supplies",    description:"Kitchen cabinet hardware + fixtures", amount:640  },
@@ -181,7 +181,7 @@ const _flipExpenses = [
   { id:15, flipId:4, date:"2025-06-01", vendor:"Raleigh Tile Co.",  category:"Subcontractor",         description:"Master bath tile work",               amount:3100 },
 ];
 
-const _contractors = [
+export const CONTRACTORS = [
   { id:1, flipId:1, name:"ABC Plumbing",   trade:"Plumbing",   paymentType:"Fixed Bid", totalBid:8500, totalPaid:3200, status:"active",   phone:"615-555-0182" },
   { id:2, flipId:1, name:"Elite Electric", trade:"Electrical", paymentType:"Fixed Bid", totalBid:4100, totalPaid:4100, status:"complete", phone:"615-555-0247" },
   { id:3, flipId:1, name:"Nash Drywall",   trade:"Drywall",    paymentType:"Day Rate",  dayRate:450,   totalPaid:0,    status:"pending",  phone:"615-555-0318" },
@@ -283,21 +283,21 @@ export function getExpenseCategories()  { return Promise.resolve([..._expenseCat
 // -----------------------------------------------------------------------------
 // Flips
 // -----------------------------------------------------------------------------
-export function getFlips()              { return Promise.resolve([..._flips]);         }
-export function addFlip(flip)           { _flips.push(flip); return Promise.resolve(flip); }
+export function getFlips()              { return Promise.resolve([...FLIPS]);         }
+export function addFlip(flip)           { FLIPS.push(flip); return Promise.resolve(flip); }
 export function updateFlip(id, updates) {
-  const i = _flips.findIndex(f => f.id === id);
-  if (i !== -1) Object.assign(_flips[i], updates);
-  return Promise.resolve(_flips[i]);
+  const i = FLIPS.findIndex(f => f.id === id);
+  if (i !== -1) Object.assign(FLIPS[i], updates);
+  return Promise.resolve(FLIPS[i]);
 }
 export function getFlipExpenses(flipId) {
-  return Promise.resolve(_flipExpenses.filter(e => e.flipId === flipId));
+  return Promise.resolve(FLIP_EXPENSES.filter(e => e.flipId === flipId));
 }
-export function addFlipExpense(exp)     { _flipExpenses.push(exp); return Promise.resolve(exp); }
+export function addFlipExpense(exp)     { FLIP_EXPENSES.push(exp); return Promise.resolve(exp); }
 export function getContractors(flipId)  {
-  return Promise.resolve(_contractors.filter(c => c.flipId === flipId));
+  return Promise.resolve(CONTRACTORS.filter(c => c.flipId === flipId));
 }
-export function addContractor(c)        { _contractors.push(c); return Promise.resolve(c); }
+export function addContractor(c)        { CONTRACTORS.push(c); return Promise.resolve(c); }
 export function getFlipMilestones(flipId) {
   return Promise.resolve([...(_flipMilestones[flipId] || DEFAULT_MILESTONES.map(label => ({ label, done: false, date: null })))]);
 }
