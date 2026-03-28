@@ -217,17 +217,23 @@ export function FlipDashboard({ onSelect }) {
 // 2. REHAB TRACKER
 // ---------------------------------------------------------------------------
 export function RehabTracker() {
-  const [filterFlip, setFilterFlip]   = useState("all");
+  const [filterFlip, setFilterFlip]     = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
+  // assignments: { [flipId-itemIdx]: contractorId | null }
+  // seeded from mock data, mutated in place so FlipContractors stays in sync
+  const [, forceUpdate] = useState(0);
+  const rerender = () => forceUpdate(n => n + 1);
 
   const flips = _FLIPS.filter(f => f.stage !== "Sold");
 
   const allItems = flips.flatMap(f =>
-    (f.rehabItems || []).map(item => ({ ...item, flipId: f.id, flipName: f.name, flipColor: f.color, flipImage: f.image }))
+    (f.rehabItems || []).map((item, idx) => ({
+      ...item, flipId: f.id, flipName: f.name, flipColor: f.color, flipImage: f.image, _idx: idx,
+    }))
   );
 
   const filtered = allItems.filter(item => {
-    if (filterFlip !== "all" && item.flipId !== parseInt(filterFlip)) return false;
+    if (filterFlip   !== "all" && item.flipId !== parseInt(filterFlip)) return false;
     if (filterStatus !== "all" && item.status !== filterStatus) return false;
     return true;
   });
@@ -237,13 +243,22 @@ export function RehabTracker() {
   const totalLeft   = totalBudget - totalSpent;
   const complete    = allItems.filter(i => i.status === "complete").length;
   const inProgress  = allItems.filter(i => i.status === "in-progress").length;
-  const pending     = allItems.filter(i => i.status === "pending").length;
 
   const statusStyle = {
     "complete":    { bg: "#dcfce7", text: "#15803d", label: "Complete"    },
     "in-progress": { bg: "#fef9c3", text: "#a16207", label: "In Progress" },
     "pending":     { bg: "#f1f5f9", text: "#64748b", label: "Pending"     },
   };
+
+  // Assign a contractor to a rehab item — mutates FLIPS directly so contractor
+  // cards pick it up without prop-drilling
+  function assign(flipId, itemIdx, contractorId) {
+    const flip = _FLIPS.find(f => f.id === flipId);
+    if (flip && flip.rehabItems[itemIdx] !== undefined) {
+      flip.rehabItems[itemIdx].contractorId = contractorId || null;
+      rerender();
+    }
+  }
 
   return (
     <div>
@@ -281,49 +296,109 @@ export function RehabTracker() {
         .map(f => {
           const items = filtered.filter(i => i.flipId === f.id);
           if (!items.length) return null;
-          const flipBudget = items.reduce((s, i) => s + i.budgeted, 0);
-          const flipSpent  = items.reduce((s, i) => s + i.spent,    0);
-          const pct = flipBudget > 0 ? Math.min((flipSpent / flipBudget) * 100, 100) : 0;
+          const flipBudget     = items.reduce((s, i) => s + i.budgeted, 0);
+          const flipSpent      = items.reduce((s, i) => s + i.spent,    0);
+          const pct            = flipBudget > 0 ? Math.min((flipSpent / flipBudget) * 100, 100) : 0;
+          const flipContractors = _CON.filter(c => c.flipId === f.id);
+          const assignedCount  = items.filter(i => i.contractorId).length;
+
           return (
             <div key={f.id} style={{ background: "#fff", borderRadius: 16, padding: 22, border: "1px solid #f1f5f9", marginBottom: 16 }}>
+              {/* Flip header */}
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                   <div style={{ width: 36, height: 36, borderRadius: 9, background: f.color + "20", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, color: f.color }}>{f.image}</div>
                   <div>
                     <p style={{ color: "#0f172a", fontWeight: 700, fontSize: 15 }}>{f.name}</p>
-                    <p style={{ color: "#94a3b8", fontSize: 12 }}>{fmt(flipSpent)} spent of {fmt(flipBudget)}</p>
+                    <p style={{ color: "#94a3b8", fontSize: 12 }}>
+                      {fmt(flipSpent)} spent of {fmt(flipBudget)} · {assignedCount}/{items.length} scopes assigned
+                    </p>
                   </div>
                 </div>
                 <StageDot stage={f.stage} />
               </div>
+
               {/* Progress bar */}
               <div style={{ background: "#f1f5f9", borderRadius: 4, height: 6, marginBottom: 16, overflow: "hidden" }}>
                 <div style={{ height: "100%", width: `${pct}%`, background: pct > 95 ? "#ef4444" : "#10b981", borderRadius: 4, transition: "width 0.3s" }} />
               </div>
-              {/* Line items */}
+
+              {/* Line items table */}
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead>
                   <tr>
-                    {["Category", "Status", "Budgeted", "Spent", "Variance"].map(h => (
+                    {["Category", "Contractor", "Status", "Budgeted", "Spent", "Variance"].map(h => (
                       <th key={h} style={{ textAlign: "left", color: "#94a3b8", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", paddingBottom: 8, borderBottom: "1px solid #f1f5f9" }}>{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {items.map((item, i) => {
-                    const variance = item.budgeted - item.spent;
-                    const ss = statusStyle[item.status];
+                    const variance   = item.budgeted - item.spent;
+                    const ss         = statusStyle[item.status];
+                    const contractor = item.contractorId ? _CON.find(c => c.id === item.contractorId) : null;
+                    // Status mismatch: item complete but contractor not, or vice versa
+                    const mismatch   = contractor && item.status === "complete" && contractor.status !== "complete";
+                    const mismatch2  = contractor && contractor.status === "complete" && item.status !== "complete";
+
                     return (
                       <tr key={i} style={{ borderBottom: i < items.length - 1 ? "1px solid #f8fafc" : "none" }}>
-                        <td style={{ padding: "10px 0", color: "#0f172a", fontSize: 13, fontWeight: 500 }}>{item.category}</td>
-                        <td style={{ padding: "10px 0" }}>
+                        {/* Category */}
+                        <td style={{ padding: "10px 0 10px", color: "#0f172a", fontSize: 13, fontWeight: 500, paddingRight: 12 }}>
+                          {item.category}
+                        </td>
+
+                        {/* Contractor cell */}
+                        <td style={{ padding: "10px 0", paddingRight: 12, minWidth: 160 }}>
+                          {contractor ? (
+                            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                              <div style={{ display: "flex", alignItems: "center", gap: 6, background: "#f1f5f9", borderRadius: 20, padding: "4px 10px 4px 6px" }}>
+                                <div style={{ width: 20, height: 20, borderRadius: "50%", background: "linear-gradient(135deg, #3b82f6, #8b5cf6)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                                  <Truck size={10} color="#fff" />
+                                </div>
+                                <span style={{ fontSize: 12, fontWeight: 600, color: "#374151" }}>{contractor.name}</span>
+                                <button onClick={() => assign(f.id, item._idx, null)}
+                                  style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8", padding: 0, display: "flex", alignItems: "center", marginLeft: 2 }}>
+                                  <X size={11} />
+                                </button>
+                              </div>
+                              {/* Status mismatch warnings */}
+                              {mismatch && (
+                                <span title={`${contractor.name} is still marked active`} style={{ cursor: "help" }}>
+                                  <AlertCircle size={13} color="#f59e0b" />
+                                </span>
+                              )}
+                              {mismatch2 && (
+                                <span title={`${contractor.name} is complete but this item isn't`} style={{ cursor: "help" }}>
+                                  <AlertCircle size={13} color="#3b82f6" />
+                                </span>
+                              )}
+                            </div>
+                          ) : (
+                            <select
+                              value=""
+                              onChange={e => { if (e.target.value) assign(f.id, item._idx, parseInt(e.target.value)); }}
+                              style={{ border: "1.5px dashed #cbd5e1", borderRadius: 8, padding: "4px 8px", fontSize: 12, color: "#94a3b8", background: "#fafafa", cursor: "pointer", outline: "none" }}>
+                              <option value="">+ Assign</option>
+                              {flipContractors.map(c => (
+                                <option key={c.id} value={c.id}>{c.name} ({c.trade})</option>
+                              ))}
+                              {flipContractors.length === 0 && <option disabled>No contractors added</option>}
+                            </select>
+                          )}
+                        </td>
+
+                        {/* Status */}
+                        <td style={{ padding: "10px 0", paddingRight: 12 }}>
                           <span style={{ background: ss.bg, color: ss.text, borderRadius: 20, padding: "2px 10px", fontSize: 11, fontWeight: 600 }}>{ss.label}</span>
                         </td>
-                        <td style={{ padding: "10px 0", color: "#0f172a", fontSize: 13 }}>{fmt(item.budgeted)}</td>
-                        <td style={{ padding: "10px 0", color: "#0f172a", fontSize: 13 }}>{fmt(item.spent)}</td>
+
+                        {/* Numbers */}
+                        <td style={{ padding: "10px 0", color: "#0f172a", fontSize: 13, paddingRight: 12 }}>{fmt(item.budgeted)}</td>
+                        <td style={{ padding: "10px 0", color: "#0f172a", fontSize: 13, paddingRight: 12 }}>{fmt(item.spent)}</td>
                         <td style={{ padding: "10px 0" }}>
                           <span style={{ color: variance < 0 ? "#ef4444" : "#10b981", fontSize: 13, fontWeight: 600 }}>
-                            {variance < 0 ? "-" : "+"}{fmt(Math.abs(variance))}
+                            {variance < 0 ? "−" : "+"}{fmt(Math.abs(variance))}
                           </span>
                         </td>
                       </tr>
@@ -609,10 +684,49 @@ export function FlipContractors() {
                 <span style={{ fontSize: 12, color: "#0f172a", fontWeight: 600 }}>{fmt(c.totalPaid)} paid</span>
               </div>
               {c.paymentType !== "Day Rate" && (
-                <div style={{ background: "#f1f5f9", borderRadius: 4, height: 5, overflow: "hidden" }}>
+                <div style={{ background: "#f1f5f9", borderRadius: 4, height: 5, overflow: "hidden", marginBottom: 14 }}>
                   <div style={{ height: "100%", width: `${pct}%`, background: "#10b981", borderRadius: 4 }} />
                 </div>
               )}
+
+              {/* Assigned Scope */}
+              {(() => {
+                const scope = [];
+                _FLIPS.forEach(fl => {
+                  (fl.rehabItems || []).forEach(item => {
+                    if (item.contractorId === c.id) {
+                      scope.push({ flipName: fl.name, flipColor: fl.color, label: item.label, budgeted: item.budgeted, status: item.status });
+                    }
+                  });
+                });
+                if (scope.length === 0) return null;
+                const scopeBudget = scope.reduce((s, i) => s + (i.budgeted || 0), 0);
+                return (
+                  <div style={{ borderTop: "1px solid #f1f5f9", paddingTop: 12, marginTop: c.paymentType === "Day Rate" ? 14 : 0 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.05em" }}>Assigned Scope</span>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: "#0f172a" }}>{fmt(scopeBudget)}</span>
+                    </div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+                      {scope.map((item, i) => {
+                        const sSt = STATUS_STYLES[item.status] || STATUS_STYLES.pending;
+                        return (
+                          <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "#f8fafc", borderRadius: 7, padding: "5px 8px" }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
+                              <span style={{ width: 7, height: 7, borderRadius: "50%", background: item.flipColor, flexShrink: 0 }} />
+                              <span style={{ fontSize: 12, color: "#374151", fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.label}</span>
+                            </div>
+                            <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0, marginLeft: 8 }}>
+                              <span style={{ fontSize: 11, color: "#94a3b8" }}>{fmt(item.budgeted)}</span>
+                              <span style={{ background: sSt.bg, color: sSt.text, borderRadius: 20, padding: "2px 7px", fontSize: 10, fontWeight: 600 }}>{sSt.label}</span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
           );
         })}
