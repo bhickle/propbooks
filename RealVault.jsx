@@ -1717,13 +1717,38 @@ function FlipDetail({ flip, onBack, allFlips, setAllFlips }) {
 function RentRoll() {
   const [tenantData, setTenantData] = useState(TENANTS);
   const [showModal, setShowModal] = useState(false);
+  const [editId, setEditId] = useState(null);
   const emptyT = { propertyId: PROPERTIES[0]?.id || 1, unit: "", name: "", rent: "", leaseStart: "", leaseEnd: "", status: "current", phone: "", email: "" };
   const [form, setForm] = useState(emptyT);
   const sf = k => e => setForm(f => ({ ...f, [k]: e.target.value }));
 
+  const openAdd = () => { setEditId(null); setForm(emptyT); setShowModal(true); };
+  const openEdit = t => {
+    setEditId(t.id);
+    setForm({
+      propertyId: t.propertyId,
+      unit:       t.unit || "",
+      name:       t.name || "",
+      rent:       String(t.rent || ""),
+      leaseStart: t.leaseStart || "",
+      leaseEnd:   t.leaseEnd || "",
+      status:     t.status,
+      phone:      t.phone || "",
+      email:      t.email || "",
+    });
+    setShowModal(true);
+  };
+
   const handleSaveTenant = () => {
-    if (!form.name) return;
-    setTenantData(prev => [...prev, { id: newId(), propertyId: parseInt(form.propertyId), unit: form.unit || "Main", name: form.name, rent: parseFloat(form.rent) || 0, leaseStart: form.leaseStart || null, leaseEnd: form.leaseEnd || null, status: form.status, daysUntilExpiry: null, lastPayment: null, phone: form.phone || null, email: form.email || null }]);
+    if (!form.name && form.status !== "vacant") return;
+    if (editId !== null) {
+      setTenantData(prev => prev.map(t => t.id === editId
+        ? { ...t, propertyId: parseInt(form.propertyId), unit: form.unit || t.unit, name: form.name, rent: parseFloat(form.rent) || 0, leaseStart: form.leaseStart || null, leaseEnd: form.leaseEnd || null, status: form.status, phone: form.phone || null, email: form.email || null }
+        : t
+      ));
+    } else {
+      setTenantData(prev => [...prev, { id: newId(), propertyId: parseInt(form.propertyId), unit: form.unit || "Main", name: form.name, rent: parseFloat(form.rent) || 0, leaseStart: form.leaseStart || null, leaseEnd: form.leaseEnd || null, status: form.status, daysUntilExpiry: null, lastPayment: null, phone: form.phone || null, email: form.email || null }]);
+    }
     setForm(emptyT);
     setShowModal(false);
   };
@@ -1746,7 +1771,7 @@ function RentRoll() {
           <h1 style={{ color: "#0f172a", fontSize: 26, fontWeight: 700, marginBottom: 4 }}>Rent Roll</h1>
           <p style={{ color: "#64748b", fontSize: 15 }}>All tenants, leases, and occupancy status</p>
         </div>
-        <button onClick={() => setShowModal(true)} style={{ background: "#3b82f6", color: "#fff", border: "none", borderRadius: 10, padding: "10px 18px", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
+        <button onClick={openAdd} style={{ background: "#3b82f6", color: "#fff", border: "none", borderRadius: 10, padding: "10px 18px", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
           <Plus size={16} /> Add Tenant
         </button>
       </div>
@@ -1784,7 +1809,7 @@ function RentRoll() {
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
             <tr style={{ background: "#f8fafc" }}>
-              {["Property / Unit", "Tenant", "Monthly Rent", "Lease Start", "Lease End", "Days Left", "Status", "Last Payment"].map(h => (
+              {["Property / Unit", "Tenant", "Monthly Rent", "Lease Start", "Lease End", "Days Left", "Status", "Last Payment", ""].map(h => (
                 <th key={h} style={{ padding: "14px 16px", textAlign: "left", color: "#94a3b8", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>{h}</th>
               ))}
             </tr>
@@ -1829,6 +1854,11 @@ function RentRoll() {
                     <span style={{ background: s.bg, color: s.text, borderRadius: 20, padding: "3px 10px", fontSize: 11, fontWeight: 700, textTransform: "capitalize" }}>{t.status.replace("-", " ")}</span>
                   </td>
                   <td style={{ padding: "14px 16px", fontSize: 13, color: "#64748b" }}>{t.lastPayment || "-"}</td>
+                  <td style={{ padding: "14px 16px" }}>
+                    <button onClick={() => openEdit(t)} style={{ background: "#f1f5f9", border: "none", borderRadius: 8, padding: "6px 10px", cursor: "pointer", display: "flex", alignItems: "center", gap: 5, color: "#475569", fontSize: 12, fontWeight: 600, whiteSpace: "nowrap" }}>
+                      <Pencil size={12} /> Edit
+                    </button>
+                  </td>
                 </tr>
               );
             })}
@@ -1836,38 +1866,56 @@ function RentRoll() {
         </table>
       </div>
       {showModal && (
-        <Modal title="Add Tenant" onClose={() => setShowModal(false)}>
-          <div style={{ marginBottom: 14 }}>
-            <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Property</label>
-            <select value={form.propertyId} onChange={sf("propertyId")} style={iS}>
-              {PROPERTIES.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-            </select>
-          </div>
-          {[
-            { label: "Unit", key: "unit", type: "text", placeholder: "e.g. Unit A, #4B" },
-            { label: "Tenant Name", key: "name", type: "text", placeholder: "Full name" },
-            { label: "Monthly Rent ($)", key: "rent", type: "number", placeholder: "0" },
-            { label: "Lease Start", key: "leaseStart", type: "date" },
-            { label: "Lease End", key: "leaseEnd", type: "date" },
-            { label: "Phone", key: "phone", type: "text", placeholder: "555-000-0000" },
-            { label: "Email", key: "email", type: "email", placeholder: "tenant@email.com" },
-          ].map(f => (
-            <div key={f.key} style={{ marginBottom: 14 }}>
-              <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>{f.label}</label>
-              <input type={f.type} placeholder={f.placeholder} value={form[f.key]} onChange={sf(f.key)} style={iS} />
+        <Modal title={editId ? "Edit Tenant" : "Add Tenant"} onClose={() => setShowModal(false)}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+            <div style={{ gridColumn: "1 / -1" }}>
+              <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Property</label>
+              <select value={form.propertyId} onChange={sf("propertyId")} style={iS}>
+                {PROPERTIES.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+              </select>
             </div>
-          ))}
-          <div style={{ marginBottom: 20 }}>
-            <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Status</label>
-            <select value={form.status} onChange={sf("status")} style={iS}>
-              <option value="current">Current</option>
-              <option value="month-to-month">Month-to-Month</option>
-              <option value="vacant">Vacant</option>
-            </select>
+            <div>
+              <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Unit</label>
+              <input type="text" placeholder="e.g. Unit A, #4B" value={form.unit} onChange={sf("unit")} style={iS} />
+            </div>
+            <div>
+              <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Status</label>
+              <select value={form.status} onChange={sf("status")} style={iS}>
+                <option value="current">Current</option>
+                <option value="month-to-month">Month-to-Month</option>
+                <option value="vacant">Vacant</option>
+              </select>
+            </div>
+            <div style={{ gridColumn: "1 / -1" }}>
+              <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Tenant Name</label>
+              <input type="text" placeholder="Full name" value={form.name} onChange={sf("name")} style={iS} />
+            </div>
+            <div>
+              <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Monthly Rent ($)</label>
+              <input type="number" placeholder="0" value={form.rent} onChange={sf("rent")} style={iS} />
+            </div>
+            <div>
+              <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Phone</label>
+              <input type="text" placeholder="555-000-0000" value={form.phone} onChange={sf("phone")} style={iS} />
+            </div>
+            <div>
+              <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Lease Start</label>
+              <input type="date" value={form.leaseStart} onChange={sf("leaseStart")} style={iS} />
+            </div>
+            <div>
+              <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Lease End</label>
+              <input type="date" value={form.leaseEnd} onChange={sf("leaseEnd")} style={iS} />
+            </div>
+            <div style={{ gridColumn: "1 / -1" }}>
+              <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Email</label>
+              <input type="email" placeholder="tenant@email.com" value={form.email} onChange={sf("email")} style={iS} />
+            </div>
           </div>
-          <div style={{ display: "flex", gap: 10 }}>
+          <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
             <button onClick={() => setShowModal(false)} style={{ flex: 1, padding: "12px", border: "1px solid #e2e8f0", borderRadius: 10, background: "#fff", color: "#475569", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
-            <button onClick={handleSaveTenant} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "#3b82f6", color: "#fff", fontWeight: 600, cursor: "pointer" }}>Add Tenant</button>
+            <button onClick={handleSaveTenant} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "#3b82f6", color: "#fff", fontWeight: 600, cursor: "pointer" }}>
+              {editId ? "Save Changes" : "Add Tenant"}
+            </button>
           </div>
         </Modal>
       )}
