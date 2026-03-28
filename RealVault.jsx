@@ -6,18 +6,27 @@ import {
 import {
   Building2, LayoutDashboard, ArrowUpDown, BarChart3, FileText,
   TrendingUp, TrendingDown, DollarSign, Home, Plus, Search, Bell,
-  ChevronRight, Settings, LogOut, Filter, Download, Eye, MoreHorizontal,
+  ChevronRight, Settings as SettingsIcon, LogOut, Filter, Download, Eye, MoreHorizontal,
   Calendar, Tag, CheckCircle, AlertCircle, X, ChevronDown, User,
   Percent, ArrowUp, ArrowDown, Star, MapPin, Wallet, PieChartIcon,
   Hammer, Clock, Target, Flag, Wrench,
   Users, Route, Calculator, FileCheck, UserCheck, Truck, Layers, Car,
   CheckSquare, Square, PlusCircle, Receipt, UploadCloud, Trash2, Pencil
 } from "lucide-react";
+import {
+  newId, fmt, fmtK,
+  PROP_COLORS, FLIP_COLORS, STAGE_ORDER, STAGE_COLORS, DEFAULT_MILESTONES,
+  getProperties, addProperty, getTransactions, addTransaction,
+  getMonthlyCashFlow, getEquityGrowth, getExpenseCategories,
+  getFlips, addFlip, updateFlip,
+  getFlipExpenses, addFlipExpense, getContractors, addContractor,
+  getFlipMilestones, updateFlipMilestones,
+  getTenants, getMileageTrips, addMileageTrip,
+} from "./api.js";
+import { AuthProvider, AuthScreen, useAuth } from "./auth.jsx";
+import { Settings, OnboardingWizard } from "./settings.jsx";
 
 const iS = { width: "100%", padding: "10px 12px", border: "1px solid #e2e8f0", borderRadius: 10, fontSize: 14, color: "#0f172a", background: "#fff", outline: "none", boxSizing: "border-box" };
-const newId = () => Date.now() + Math.floor(Math.random() * 1000);
-const PROP_COLORS = ["#3b82f6", "#10b981", "#8b5cf6", "#f59e0b", "#ef4444", "#06b6d4", "#ec4899"];
-const FLIP_COLORS = ["#f59e0b", "#10b981", "#8b5cf6", "#3b82f6", "#ef4444", "#06b6d4"];
 
 function Modal({ title, onClose, children, width = 500 }) {
   return (
@@ -35,6 +44,7 @@ function Modal({ title, onClose, children, width = 500 }) {
 
 // ---------------------------------------------
 // MOCK DATA
+// (Also exported via api.js for future backend swap)
 // ---------------------------------------------
 const PROPERTIES = [
   { id: 1, name: "Maple Ridge Duplex", address: "2847 Maple Ridge Dr, Austin, TX 78701", type: "Multi-Family", units: 2, purchasePrice: 385000, currentValue: 462000, mortgage: 298000, monthlyRent: 3800, monthlyExpenses: 1640, purchaseDate: "2021-03-15", status: "Occupied", image: "MR", capRate: 7.2, cashOnCash: 9.1, color: "#3b82f6" },
@@ -154,13 +164,7 @@ const FLIPS = [
   },
 ];
 
-const STAGE_ORDER = ["Under Contract", "Active Rehab", "Listed", "Sold"];
-const STAGE_COLORS = {
-  "Under Contract": { bg: "#ede9fe", text: "#6d28d9", dot: "#8b5cf6" },
-  "Active Rehab":   { bg: "#fef9c3", text: "#a16207", dot: "#f59e0b" },
-  "Listed":         { bg: "#dbeafe", text: "#1d4ed8", dot: "#3b82f6" },
-  "Sold":           { bg: "#dcfce7", text: "#15803d", dot: "#10b981" },
-};
+// STAGE_ORDER, STAGE_COLORS imported from api.js
 
 const FLIP_EXPENSES = [
   { id: 1, flipId: 1, date: "2026-03-18", vendor: "Home Depot", category: "Materials/Supplies", description: "Hardwood flooring - 680 sqft", amount: 2890 },
@@ -189,12 +193,7 @@ const CONTRACTORS = [
   { id: 6, flipId: 4, name: "Summit HVAC", trade: "HVAC", paymentType: "Fixed Bid", totalBid: 7200, totalPaid: 7200, status: "complete", phone: "919-555-0361" },
 ];
 
-const DEFAULT_MILESTONES = [
-  "Contract Executed", "Inspection Complete", "Financing Secured",
-  "Purchased / Closed", "Demo Complete", "Rough-In (Plumbing/Electric)",
-  "Drywall", "Paint", "Flooring", "Kitchen & Baths", "Punch List",
-  "Listed for Sale", "Under Contract", "Sold / Closed"
-];
+// DEFAULT_MILESTONES imported from api.js
 
 const FLIP_MILESTONES = {
   1: [
@@ -238,11 +237,7 @@ const MILEAGE_TRIPS = [
   { id: 8, date: "2026-02-28", description: "Accountant meeting - tax prep", from: "Home", to: "Downtown Office", miles: 9.3, purpose: "Business", businessPct: 100 },
 ];
 
-// ---------------------------------------------
-// UTILITY FUNCTIONS
-// ---------------------------------------------
-const fmt = (n) => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(n);
-const fmtK = (n) => n >= 1000000 ? `$${(n/1000000).toFixed(1)}M` : `$${(n/1000).toFixed(0)}K`;
+// fmt, fmtK imported from api.js
 
 // ---------------------------------------------
 // COMPONENTS
@@ -2171,10 +2166,13 @@ function DealAnalyzer() {
 // ---------------------------------------------
 // MAIN APP
 // ---------------------------------------------
-export default function App() {
+function AppShell() {
+  const { user, signOut } = useAuth();
   const [activeView, setActiveView] = useState("dashboard");
   const [selectedProperty, setSelectedProperty] = useState(null);
   const [selectedFlip, setSelectedFlip] = useState(null);
+  const [showSettings, setShowSettings] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(user?.plan === "trial");
 
   const rentalNavItems = [
     { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -2268,17 +2266,19 @@ export default function App() {
           <div style={{ background: "rgba(59,130,246,0.15)", borderRadius: 12, padding: "12px 14px", marginBottom: 12, border: "1px solid rgba(59,130,246,0.3)" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
               <Star size={12} color="#fbbf24" fill="#fbbf24" />
-              <span style={{ color: "#fbbf24", fontSize: 11, fontWeight: 700 }}>PRO PLAN</span>
+              <span style={{ color: "#fbbf24", fontSize: 11, fontWeight: 700 }}>{user?.planLabel || "PRO PLAN"}</span>
             </div>
-            <p style={{ color: "#94a3b8", fontSize: 12 }}>5 properties . Unlimited transactions</p>
+            <p style={{ color: "#94a3b8", fontSize: 12 }}>{user?.planDescription || "Unlimited properties"}</p>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={{ width: 34, height: 34, borderRadius: 10, background: "linear-gradient(135deg, #3b82f6, #8b5cf6)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 700, fontSize: 13 }}>B</div>
-            <div style={{ flex: 1 }}>
-              <p style={{ color: "#e2e8f0", fontSize: 13, fontWeight: 600 }}>Brandon H.</p>
-              <p style={{ color: "#64748b", fontSize: 11 }}>brandon@gmail.com</p>
+            <div style={{ width: 34, height: 34, borderRadius: 10, background: "linear-gradient(135deg, #3b82f6, #8b5cf6)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 700, fontSize: 13 }}>
+              {user?.initials || "?"}
             </div>
-            <Settings size={16} color="#475569" style={{ cursor: "pointer" }} />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={{ color: "#e2e8f0", fontSize: 13, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user?.name || "User"}</p>
+              <p style={{ color: "#64748b", fontSize: 11, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user?.email || ""}</p>
+            </div>
+            <SettingsIcon size={16} color="#475569" style={{ cursor: "pointer", flexShrink: 0 }} onClick={() => setShowSettings(true)} />
           </div>
         </div>
       </div>
@@ -2303,7 +2303,7 @@ export default function App() {
               <Bell size={20} color="#64748b" />
               <div style={{ position: "absolute", top: -3, right: -3, width: 8, height: 8, borderRadius: "50%", background: "#ef4444", border: "2px solid #fff" }} />
             </div>
-            <div style={{ width: 34, height: 34, borderRadius: 10, background: "linear-gradient(135deg, #3b82f6, #8b5cf6)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>B</div>
+            <div onClick={() => setShowSettings(true)} style={{ width: 34, height: 34, borderRadius: 10, background: "linear-gradient(135deg, #3b82f6, #8b5cf6)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>{user?.initials || "?"}</div>
           </div>
         </div>
         <div style={{ flex: 1, padding: 32, maxWidth: 1400, width: "100%" }}>
@@ -2320,6 +2320,31 @@ export default function App() {
           {activeView === "dealanalyzer" && <DealAnalyzer />}
         </div>
       </div>
+
+      {/* Settings Modal */}
+      {showSettings && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 500 }}>
+          <div style={{ background: "#fff", borderRadius: 20, padding: 32, width: "min(880px, 95vw)", maxHeight: "90vh", overflowY: "auto", boxShadow: "0 25px 60px rgba(0,0,0,0.2)" }}>
+            <Settings onClose={() => setShowSettings(false)} />
+          </div>
+        </div>
+      )}
+
+      {/* Onboarding Wizard (new users only) */}
+      {showOnboarding && <OnboardingWizard onComplete={() => setShowOnboarding(false)} />}
     </div>
   );
+}
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <AuthGate />
+    </AuthProvider>
+  );
+}
+
+function AuthGate() {
+  const { user } = useAuth();
+  return user ? <AppShell /> : <AuthScreen />;
 }
