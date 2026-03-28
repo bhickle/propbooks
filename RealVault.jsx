@@ -298,8 +298,8 @@ function Dashboard() {
   return (
     <div>
       <div style={{ marginBottom: 28 }}>
-        <h1 style={{ color: "#0f172a", fontSize: 26, fontWeight: 700, marginBottom: 4 }}>Portfolio Overview</h1>
-        <p style={{ color: "#64748b", fontSize: 15 }}>Welcome back, Brandon - here's your portfolio at a glance.</p>
+        <h1 style={{ color: "#0f172a", fontSize: 26, fontWeight: 700, marginBottom: 4 }}>Dashboard</h1>
+        <p style={{ color: "#64748b", fontSize: 15 }}>Welcome back, Brandon — here's your portfolio at a glance.</p>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 20, marginBottom: 28 }}>
         <StatCard icon={Building2} label="Portfolio Value" value={fmtK(totalValue)} sub={`${PROPERTIES.length} properties`} trend="up" trendVal="+4.2%" color="#3b82f6" />

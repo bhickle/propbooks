@@ -105,7 +105,7 @@ export function FlipDashboard({ onSelect }) {
 
   return (
     <div>
-      <PageHeader title="Flip Dashboard" sub="Portfolio overview across all fix & flip deals" />
+      <PageHeader title="Overview" sub="All fix & flip deals at a glance" />
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 28 }}>
         <StatCard icon={Hammer}     label="Active Deals"     value={active.length}              sub="In pipeline"        color="#f59e0b" trend="up" trendVal="+1 this quarter" />
