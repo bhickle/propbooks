@@ -1040,86 +1040,294 @@ function Transactions() {
 }
 
 function Analytics() {
+  const [selectedPropId, setSelectedPropId] = useState("");
+  const selectedProp = selectedPropId ? PROPERTIES.find(p => p.id === Number(selectedPropId)) : null;
+
+  // Deterministic monthly expense variation (avoids Math.random re-renders)
+  const EXP_FACTORS = [1.0, 0.88, 1.15, 0.92, 1.05, 1.18, 0.97, 1.22, 0.89, 1.08, 1.30, 0.95];
+  const MONTHS_SHORT = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+
+  const propMonthlyData = selectedProp ? MONTHS_SHORT.map((month, i) => {
+    const income = selectedProp.monthlyRent;
+    const expenses = Math.round(selectedProp.monthlyExpenses * EXP_FACTORS[i]);
+    return { month, income, expenses, net: income - expenses };
+  }) : [];
+
+  const propTenants = selectedProp ? TENANTS.filter(t => t.propertyId === selectedProp.id) : [];
+
+  const sortedByCoc = [...PROPERTIES].sort((a, b) => b.cashOnCash - a.cashOnCash);
+  const sortedByCapRate = [...PROPERTIES].sort((a, b) => b.capRate - a.capRate);
+  const cocRank = selectedProp ? sortedByCoc.findIndex(p => p.id === selectedProp.id) + 1 : 0;
+  const capRateRank = selectedProp ? sortedByCapRate.findIndex(p => p.id === selectedProp.id) + 1 : 0;
+  const rankLabel = r => r === 1 ? "#1 🥇" : r === 2 ? "#2 🥈" : r === 3 ? "#3 🥉" : `#${r}`;
+
   return (
     <div>
-      <div style={{ marginBottom: 24 }}>
-        <h1 style={{ color: "#0f172a", fontSize: 26, fontWeight: 700, marginBottom: 4 }}>Analytics &amp; Returns</h1>
-        <p style={{ color: "#64748b", fontSize: 15 }}>Detailed performance metrics for every property</p>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24 }}>
+        <div>
+          <h1 style={{ color: "#0f172a", fontSize: 26, fontWeight: 700, marginBottom: 4 }}>Analytics &amp; Returns</h1>
+          <p style={{ color: "#64748b", fontSize: 15 }}>
+            {selectedProp ? `Performance details — ${selectedProp.name}` : "Detailed performance metrics for every property"}
+          </p>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <label style={{ fontSize: 13, fontWeight: 600, color: "#475569", whiteSpace: "nowrap" }}>Viewing:</label>
+          <select value={selectedPropId} onChange={e => setSelectedPropId(e.target.value)} style={{ ...iS, width: 240, fontWeight: 600 }}>
+            <option value="">Entire Portfolio</option>
+            {PROPERTIES.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+          </select>
+        </div>
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 24 }}>
-        {[
-          { label: "Total Annual NOI", value: fmt(PROPERTIES.reduce((s, p) => s + (p.monthlyRent - p.monthlyExpenses) * 12, 0)), color: "#10b981" },
-          { label: "Portfolio Cap Rate", value: "6.9%", color: "#3b82f6" },
-          { label: "Avg Cash-on-Cash", value: "8.4%", color: "#8b5cf6" },
-          { label: "Total Appreciation", value: fmt(PROPERTIES.reduce((s, p) => s + (p.currentValue - p.purchasePrice), 0)), color: "#f59e0b" },
-        ].map((m, i) => (
-          <div key={i} style={{ background: "#fff", borderRadius: 14, padding: "20px", boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" }}>
-            <p style={{ color: "#94a3b8", fontSize: 12, fontWeight: 600, textTransform: "uppercase", marginBottom: 6 }}>{m.label}</p>
-            <p style={{ color: m.color, fontSize: 22, fontWeight: 800 }}>{m.value}</p>
+
+      {!selectedProp ? (
+        /* ——— PORTFOLIO VIEW ——— */
+        <>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 24 }}>
+            {[
+              { label: "Total Annual NOI", value: fmt(PROPERTIES.reduce((s, p) => s + (p.monthlyRent - p.monthlyExpenses) * 12, 0)), color: "#10b981" },
+              { label: "Portfolio Cap Rate", value: "6.9%", color: "#3b82f6" },
+              { label: "Avg Cash-on-Cash", value: "8.4%", color: "#8b5cf6" },
+              { label: "Total Appreciation", value: fmt(PROPERTIES.reduce((s, p) => s + (p.currentValue - p.purchasePrice), 0)), color: "#f59e0b" },
+            ].map((m, i) => (
+              <div key={i} style={{ background: "#fff", borderRadius: 14, padding: "20px", boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" }}>
+                <p style={{ color: "#94a3b8", fontSize: 12, fontWeight: 600, textTransform: "uppercase", marginBottom: 6 }}>{m.label}</p>
+                <p style={{ color: m.color, fontSize: 22, fontWeight: 800 }}>{m.value}</p>
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
-      <div style={{ background: "#fff", borderRadius: 16, padding: 24, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9", marginBottom: 24 }}>
-        <h3 style={{ color: "#0f172a", fontSize: 16, fontWeight: 700, marginBottom: 20 }}>Property-by-Property Performance</h3>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 14 }}>
-          {PROPERTIES.map(p => {
-            const annualRent = p.monthlyRent * 12;
-            const annualExpenses = p.monthlyExpenses * 12;
-            const NOI = annualRent - annualExpenses;
-            const coC = p.cashOnCash;
-            const appreciation = ((p.currentValue - p.purchasePrice) / p.purchasePrice * 100).toFixed(1);
-            return (
-              <div key={p.id} style={{ background: "#f8fafc", borderRadius: 14, padding: 18, border: `2px solid ${p.color}30` }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
-                  <div style={{ width: 32, height: 32, borderRadius: 8, background: p.color, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 12, fontWeight: 700 }}>{p.image}</div>
-                  <p style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", lineHeight: 1.3 }}>{p.name.split(" ").slice(0, 2).join(" ")}</p>
+          <div style={{ background: "#fff", borderRadius: 16, padding: 24, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9", marginBottom: 24 }}>
+            <h3 style={{ color: "#0f172a", fontSize: 16, fontWeight: 700, marginBottom: 20 }}>Property-by-Property Performance</h3>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 14 }}>
+              {PROPERTIES.map(p => {
+                const annualRent = p.monthlyRent * 12;
+                const annualExpenses = p.monthlyExpenses * 12;
+                const NOI = annualRent - annualExpenses;
+                const coC = p.cashOnCash;
+                const appreciation = ((p.currentValue - p.purchasePrice) / p.purchasePrice * 100).toFixed(1);
+                return (
+                  <div key={p.id} style={{ background: "#f8fafc", borderRadius: 14, padding: 18, border: `2px solid ${p.color}30` }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
+                      <div style={{ width: 32, height: 32, borderRadius: 8, background: p.color, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 12, fontWeight: 700 }}>{p.image}</div>
+                      <p style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", lineHeight: 1.3 }}>{p.name.split(" ").slice(0, 2).join(" ")}</p>
+                    </div>
+                    {[
+                      { label: "Annual NOI", value: fmtK(NOI), color: "#10b981" },
+                      { label: "Cap Rate", value: `${p.capRate}%`, color: "#3b82f6" },
+                      { label: "Cash-on-Cash", value: `${coC}%`, color: "#8b5cf6" },
+                      { label: "Appreciation", value: `+${appreciation}%`, color: "#f59e0b" },
+                    ].map((m, i) => (
+                      <div key={i} style={{ marginBottom: 8 }}>
+                        <p style={{ color: "#94a3b8", fontSize: 10, fontWeight: 600, textTransform: "uppercase", marginBottom: 1 }}>{m.label}</p>
+                        <p style={{ color: m.color, fontSize: 15, fontWeight: 700 }}>{m.value}</p>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
+            <div style={{ background: "#fff", borderRadius: 16, padding: 24, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" }}>
+              <h3 style={{ color: "#0f172a", fontSize: 16, fontWeight: 700, marginBottom: 4 }}>Cap Rate Comparison</h3>
+              <p style={{ color: "#94a3b8", fontSize: 13, marginBottom: 20 }}>Annual net operating income / property value</p>
+              <ResponsiveContainer width="100%" height={220}>
+                <BarChart data={PROPERTIES.map(p => ({ name: p.image, rate: p.capRate, fill: p.color }))}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                  <XAxis dataKey="name" tick={{ fontSize: 12, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 12, fill: "#94a3b8" }} axisLine={false} tickLine={false} domain={[0, 12]} tickFormatter={v => `${v}%`} />
+                  <Tooltip formatter={(v) => [`${v}%`, "Cap Rate"]} contentStyle={{ borderRadius: 10, border: "1px solid #e2e8f0" }} />
+                  <Bar dataKey="rate" radius={[6, 6, 0, 0]}>
+                    {PROPERTIES.map((p, i) => <Cell key={i} fill={p.color} />)}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+            <div style={{ background: "#fff", borderRadius: 16, padding: 24, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" }}>
+              <h3 style={{ color: "#0f172a", fontSize: 16, fontWeight: 700, marginBottom: 4 }}>Cash-on-Cash Return</h3>
+              <p style={{ color: "#94a3b8", fontSize: 13, marginBottom: 20 }}>Annual pre-tax cash flow / total cash invested</p>
+              <ResponsiveContainer width="100%" height={220}>
+                <BarChart data={PROPERTIES.map(p => ({ name: p.image, coc: p.cashOnCash }))}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                  <XAxis dataKey="name" tick={{ fontSize: 12, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 12, fill: "#94a3b8" }} axisLine={false} tickLine={false} domain={[0, 14]} tickFormatter={v => `${v}%`} />
+                  <Tooltip formatter={(v) => [`${v}%`, "CoC Return"]} contentStyle={{ borderRadius: 10, border: "1px solid #e2e8f0" }} />
+                  <Bar dataKey="coc" radius={[6, 6, 0, 0]} fill="#8b5cf6" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </>
+      ) : (
+        /* ——— PROPERTY VIEW ——— */
+        <>
+          {/* 1. Return Scorecard */}
+          <div style={{ background: "#fff", borderRadius: 16, padding: 24, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9", marginBottom: 20 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
+              <div style={{ width: 38, height: 38, borderRadius: 10, background: selectedProp.color, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 18 }}>{selectedProp.image}</div>
+              <div>
+                <h3 style={{ color: "#0f172a", fontSize: 16, fontWeight: 700, marginBottom: 2 }}>Return Scorecard</h3>
+                <p style={{ color: "#94a3b8", fontSize: 13 }}>How this property stacks up against your portfolio</p>
+              </div>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16 }}>
+              {[
+                {
+                  label: "Cap Rate", value: `${selectedProp.capRate}%`,
+                  sub: `Ranked ${rankLabel(capRateRank)} of ${PROPERTIES.length}`, color: "#3b82f6",
+                },
+                {
+                  label: "Cash-on-Cash", value: `${selectedProp.cashOnCash}%`,
+                  sub: `Ranked ${rankLabel(cocRank)} of ${PROPERTIES.length}`, color: "#8b5cf6",
+                },
+                {
+                  label: "Appreciation",
+                  value: `+${((selectedProp.currentValue - selectedProp.purchasePrice) / selectedProp.purchasePrice * 100).toFixed(1)}%`,
+                  sub: `${fmt(selectedProp.currentValue - selectedProp.purchasePrice)} total gain`, color: "#f59e0b",
+                },
+                {
+                  label: "Current Equity",
+                  value: fmt(selectedProp.currentValue - (calcLoanBalance(selectedProp.loanAmount, selectedProp.loanRate, selectedProp.loanTermYears, selectedProp.loanStartDate) ?? selectedProp.loanAmount ?? 0)),
+                  sub: "Value minus loan balance", color: "#10b981",
+                },
+              ].map((m, i) => (
+                <div key={i} style={{ background: "#f8fafc", borderRadius: 14, padding: "18px 16px", border: "1px solid #f1f5f9" }}>
+                  <p style={{ color: "#94a3b8", fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6 }}>{m.label}</p>
+                  <p style={{ color: m.color, fontSize: 26, fontWeight: 800, marginBottom: 4 }}>{m.value}</p>
+                  <p style={{ color: "#94a3b8", fontSize: 11 }}>{m.sub}</p>
                 </div>
+              ))}
+            </div>
+          </div>
+
+          {/* 2. Cash Flow Deep Dive */}
+          <div style={{ background: "#fff", borderRadius: 16, padding: 24, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9", marginBottom: 20 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 }}>
+              <div>
+                <h3 style={{ color: "#0f172a", fontSize: 16, fontWeight: 700, marginBottom: 2 }}>Cash Flow Deep Dive</h3>
+                <p style={{ color: "#94a3b8", fontSize: 13 }}>Income vs. expenses — trailing 12 months</p>
+              </div>
+              <div style={{ display: "flex", gap: 24 }}>
                 {[
-                  { label: "Annual NOI", value: fmtK(NOI), color: "#10b981" },
-                  { label: "Cap Rate", value: `${p.capRate}%`, color: "#3b82f6" },
-                  { label: "Cash-on-Cash", value: `${coC}%`, color: "#8b5cf6" },
-                  { label: "Appreciation", value: `+${appreciation}%`, color: "#f59e0b" },
+                  { label: "Avg Monthly Net", value: fmt(Math.round(propMonthlyData.reduce((s, m) => s + m.net, 0) / 12)), color: "#10b981" },
+                  { label: "Annual NOI", value: fmt((selectedProp.monthlyRent - selectedProp.monthlyExpenses) * 12), color: "#3b82f6" },
+                  { label: "Expense Ratio", value: `${((selectedProp.monthlyExpenses / selectedProp.monthlyRent) * 100).toFixed(0)}%`, color: "#f59e0b" },
                 ].map((m, i) => (
-                  <div key={i} style={{ marginBottom: 8 }}>
-                    <p style={{ color: "#94a3b8", fontSize: 10, fontWeight: 600, textTransform: "uppercase", marginBottom: 1 }}>{m.label}</p>
-                    <p style={{ color: m.color, fontSize: 15, fontWeight: 700 }}>{m.value}</p>
+                  <div key={i} style={{ textAlign: "right" }}>
+                    <p style={{ color: "#94a3b8", fontSize: 11, fontWeight: 600, textTransform: "uppercase" }}>{m.label}</p>
+                    <p style={{ color: m.color, fontSize: 20, fontWeight: 800 }}>{m.value}</p>
                   </div>
                 ))}
               </div>
-            );
-          })}
-        </div>
-      </div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
-        <div style={{ background: "#fff", borderRadius: 16, padding: 24, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" }}>
-          <h3 style={{ color: "#0f172a", fontSize: 16, fontWeight: 700, marginBottom: 4 }}>Cap Rate Comparison</h3>
-          <p style={{ color: "#94a3b8", fontSize: 13, marginBottom: 20 }}>Annual net operating income / property value</p>
-          <ResponsiveContainer width="100%" height={220}>
-            <BarChart data={PROPERTIES.map(p => ({ name: p.image, rate: p.capRate, fill: p.color }))}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-              <XAxis dataKey="name" tick={{ fontSize: 12, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fontSize: 12, fill: "#94a3b8" }} axisLine={false} tickLine={false} domain={[0, 12]} tickFormatter={v => `${v}%`} />
-              <Tooltip formatter={(v) => [`${v}%`, "Cap Rate"]} contentStyle={{ borderRadius: 10, border: "1px solid #e2e8f0" }} />
-              <Bar dataKey="rate" radius={[6, 6, 0, 0]}>
-                {PROPERTIES.map((p, i) => <Cell key={i} fill={p.color} />)}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-        <div style={{ background: "#fff", borderRadius: 16, padding: 24, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" }}>
-          <h3 style={{ color: "#0f172a", fontSize: 16, fontWeight: 700, marginBottom: 4 }}>Cash-on-Cash Return</h3>
-          <p style={{ color: "#94a3b8", fontSize: 13, marginBottom: 20 }}>Annual pre-tax cash flow / total cash invested</p>
-          <ResponsiveContainer width="100%" height={220}>
-            <BarChart data={PROPERTIES.map(p => ({ name: p.image, coc: p.cashOnCash }))}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-              <XAxis dataKey="name" tick={{ fontSize: 12, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fontSize: 12, fill: "#94a3b8" }} axisLine={false} tickLine={false} domain={[0, 14]} tickFormatter={v => `${v}%`} />
-              <Tooltip formatter={(v) => [`${v}%`, "CoC Return"]} contentStyle={{ borderRadius: 10, border: "1px solid #e2e8f0" }} />
-              <Bar dataKey="coc" radius={[6, 6, 0, 0]} fill="#8b5cf6" />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 24, alignItems: "center" }}>
+              <div>
+                <ResponsiveContainer width="100%" height={220}>
+                  <AreaChart data={propMonthlyData}>
+                    <defs>
+                      <linearGradient id="incGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#10b981" stopOpacity={0.15} />
+                        <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                      </linearGradient>
+                      <linearGradient id="expGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#ef4444" stopOpacity={0.15} />
+                        <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                    <XAxis dataKey="month" tick={{ fontSize: 11, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
+                    <YAxis tick={{ fontSize: 11, fill: "#94a3b8" }} axisLine={false} tickLine={false} tickFormatter={v => `$${(v / 1000).toFixed(0)}k`} />
+                    <Tooltip formatter={(v, name) => [fmt(v), name === "income" ? "Income" : "Expenses"]} contentStyle={{ borderRadius: 10, border: "1px solid #e2e8f0" }} />
+                    <Area type="monotone" dataKey="income" stroke="#10b981" strokeWidth={2.5} fill="url(#incGrad)" name="income" />
+                    <Area type="monotone" dataKey="expenses" stroke="#ef4444" strokeWidth={2.5} fill="url(#expGrad)" name="expenses" />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+              <div>
+                <p style={{ fontSize: 13, fontWeight: 700, color: "#0f172a", marginBottom: 12 }}>Annual Breakdown</p>
+                <ResponsiveContainer width="100%" height={150}>
+                  <PieChart>
+                    <Pie
+                      data={[
+                        { name: "Income", value: selectedProp.monthlyRent * 12 },
+                        { name: "Expenses", value: selectedProp.monthlyExpenses * 12 },
+                      ]}
+                      cx="50%" cy="50%" innerRadius={42} outerRadius={65} paddingAngle={3} dataKey="value"
+                    >
+                      <Cell fill="#10b981" />
+                      <Cell fill="#ef4444" />
+                    </Pie>
+                    <Tooltip formatter={v => fmt(v)} contentStyle={{ borderRadius: 10, border: "1px solid #e2e8f0" }} />
+                  </PieChart>
+                </ResponsiveContainer>
+                <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 4 }}>
+                  {[
+                    { label: "Annual Income", value: fmt(selectedProp.monthlyRent * 12), color: "#10b981" },
+                    { label: "Annual Expenses", value: fmt(selectedProp.monthlyExpenses * 12), color: "#ef4444" },
+                    { label: "Net (NOI)", value: fmt((selectedProp.monthlyRent - selectedProp.monthlyExpenses) * 12), color: "#3b82f6" },
+                  ].map((m, i) => (
+                    <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                        <div style={{ width: 8, height: 8, borderRadius: "50%", background: m.color, flexShrink: 0 }} />
+                        <span style={{ fontSize: 12, color: "#64748b" }}>{m.label}</span>
+                      </div>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: m.color }}>{m.value}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* 3. Tenant Health Panel */}
+          <div style={{ background: "#fff", borderRadius: 16, padding: 24, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" }}>
+            <h3 style={{ color: "#0f172a", fontSize: 16, fontWeight: 700, marginBottom: 4 }}>Tenant Health Panel</h3>
+            <p style={{ color: "#94a3b8", fontSize: 13, marginBottom: 20 }}>Unit-by-unit lease and payment status</p>
+            {propTenants.length === 0 ? (
+              <p style={{ color: "#94a3b8", fontSize: 14, textAlign: "center", padding: "40px 0" }}>No tenants on record for this property.</p>
+            ) : (
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 16 }}>
+                {propTenants.map(t => {
+                  const scMap = { current: { bg: "#dcfce7", text: "#15803d" }, "month-to-month": { bg: "#fef9c3", text: "#854d0e" }, vacant: { bg: "#fee2e2", text: "#b91c1c" } };
+                  const sc = scMap[t.status] || scMap.current;
+                  const expiring = t.daysUntilExpiry !== null && t.daysUntilExpiry <= 60;
+                  return (
+                    <div key={t.id} style={{ background: "#f8fafc", borderRadius: 14, padding: 18, border: `1px solid ${expiring ? "#fde68a" : "#f1f5f9"}` }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
+                        <div>
+                          <p style={{ fontSize: 14, fontWeight: 700, color: "#0f172a" }}>{t.unit || "Unit"}</p>
+                          <p style={{ fontSize: 12, color: "#64748b", marginTop: 2 }}>{t.status === "vacant" ? "No tenant" : t.name}</p>
+                        </div>
+                        <span style={{ background: sc.bg, color: sc.text, borderRadius: 20, padding: "3px 10px", fontSize: 11, fontWeight: 700, textTransform: "capitalize" }}>{t.status.replace("-", " ")}</span>
+                      </div>
+                      {t.status !== "vacant" && (
+                        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                          {[
+                            { label: "Monthly Rent", value: fmt(t.rent), color: "#0f172a" },
+                            { label: "Lease Ends", value: t.leaseEnd || "—", color: "#0f172a" },
+                            { label: "Days Remaining", value: t.daysUntilExpiry !== null ? `${t.daysUntilExpiry}d ${expiring ? "⚠️" : "✓"}` : "—", color: expiring ? "#b45309" : "#15803d" },
+                            { label: "Last Payment", value: t.lastPayment || "—", color: "#0f172a" },
+                          ].map((row, i) => (
+                            <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                              <span style={{ fontSize: 12, color: "#94a3b8" }}>{row.label}</span>
+                              <span style={{ fontSize: 12, fontWeight: 600, color: row.color }}>{row.value}</span>
+                            </div>
+                          ))}
+                          {t.securityDeposit ? (
+                            <div style={{ paddingTop: 8, borderTop: "1px solid #e2e8f0", display: "flex", justifyContent: "space-between" }}>
+                              <span style={{ fontSize: 12, color: "#94a3b8" }}>Security Deposit</span>
+                              <span style={{ fontSize: 12, fontWeight: 600, color: "#0f172a" }}>{fmt(t.securityDeposit)}</span>
+                            </div>
+                          ) : null}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </>
+      )}
     </div>
   );
 }
