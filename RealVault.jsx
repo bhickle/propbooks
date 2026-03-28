@@ -419,21 +419,44 @@ function Properties({ onSelect }) {
   const [view, setView] = useState("grid");
   const [search, setSearch] = useState("");
   const [showModal, setShowModal] = useState(false);
+  const [editId, setEditId] = useState(null); // null = add, id = edit
   const emptyP = { name: "", address: "", type: "Single Family", units: "1", purchasePrice: "", currentValue: "", mortgage: "", monthlyRent: "", monthlyExpenses: "", status: "Occupied", purchaseDate: "" };
   const [form, setForm] = useState(emptyP);
   const sf = k => e => setForm(f => ({ ...f, [k]: e.target.value }));
 
+  const openAdd = () => { setEditId(null); setForm(emptyP); setShowModal(true); };
+  const openEdit = (e, p) => {
+    e.stopPropagation();
+    setEditId(p.id);
+    setForm({ name: p.name, address: p.address, type: p.type, units: String(p.units), purchasePrice: String(p.purchasePrice), currentValue: String(p.currentValue), mortgage: String(p.mortgage), monthlyRent: String(p.monthlyRent), monthlyExpenses: String(p.monthlyExpenses), status: p.status, purchaseDate: p.purchaseDate || "" });
+    setShowModal(true);
+  };
+
+  const calcMetrics = (rent, exp, val, mortgage) => {
+    const capRate = val > 0 ? parseFloat(((rent - exp) * 12 / val * 100).toFixed(1)) : 0;
+    const down = val - mortgage;
+    const cashOnCash = down > 0 ? parseFloat(((rent - exp) * 12 / down * 100).toFixed(1)) : 0;
+    return { capRate, cashOnCash };
+  };
+
   const handleSaveProp = () => {
     if (!form.name) return;
-    const usedColors = propData.map(p => p.color);
-    const color = PROP_COLORS.find(c => !usedColors.includes(c)) || PROP_COLORS[propData.length % PROP_COLORS.length];
     const rent = parseFloat(form.monthlyRent) || 0;
-    const exp = parseFloat(form.monthlyExpenses) || 0;
-    const val = parseFloat(form.currentValue) || 0;
-    const capRate = val > 0 ? parseFloat(((rent - exp) * 12 / val * 100).toFixed(1)) : 0;
-    const down = parseFloat(form.currentValue) - parseFloat(form.mortgage || 0);
-    const cashOnCash = down > 0 ? parseFloat(((rent - exp) * 12 / down * 100).toFixed(1)) : 0;
-    setPropData(prev => [...prev, { id: newId(), name: form.name, address: form.address, type: form.type, units: parseInt(form.units) || 1, purchasePrice: parseFloat(form.purchasePrice) || 0, currentValue: val, mortgage: parseFloat(form.mortgage) || 0, monthlyRent: rent, monthlyExpenses: exp, purchaseDate: form.purchaseDate, status: form.status, image: form.name.slice(0, 2).toUpperCase(), capRate, cashOnCash, color }]);
+    const exp  = parseFloat(form.monthlyExpenses) || 0;
+    const val  = parseFloat(form.currentValue) || 0;
+    const mort = parseFloat(form.mortgage) || 0;
+    const { capRate, cashOnCash } = calcMetrics(rent, exp, val, mort);
+
+    if (editId !== null) {
+      setPropData(prev => prev.map(p => p.id === editId
+        ? { ...p, name: form.name, address: form.address, type: form.type, units: parseInt(form.units) || 1, purchasePrice: parseFloat(form.purchasePrice) || 0, currentValue: val, mortgage: mort, monthlyRent: rent, monthlyExpenses: exp, purchaseDate: form.purchaseDate, status: form.status, capRate, cashOnCash }
+        : p
+      ));
+    } else {
+      const usedColors = propData.map(p => p.color);
+      const color = PROP_COLORS.find(c => !usedColors.includes(c)) || PROP_COLORS[propData.length % PROP_COLORS.length];
+      setPropData(prev => [...prev, { id: newId(), name: form.name, address: form.address, type: form.type, units: parseInt(form.units) || 1, purchasePrice: parseFloat(form.purchasePrice) || 0, currentValue: val, mortgage: mort, monthlyRent: rent, monthlyExpenses: exp, purchaseDate: form.purchaseDate, status: form.status, image: form.name.slice(0, 2).toUpperCase(), capRate, cashOnCash, color }]);
+    }
     setForm(emptyP);
     setShowModal(false);
   };
@@ -447,7 +470,7 @@ function Properties({ onSelect }) {
           <h1 style={{ color: "#0f172a", fontSize: 26, fontWeight: 700, marginBottom: 4 }}>Properties</h1>
           <p style={{ color: "#64748b", fontSize: 15 }}>{propData.length} properties in your portfolio</p>
         </div>
-        <button onClick={() => setShowModal(true)} style={{ background: "#3b82f6", color: "#fff", border: "none", borderRadius: 10, padding: "10px 18px", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
+        <button onClick={openAdd} style={{ background: "#3b82f6", color: "#fff", border: "none", borderRadius: 10, padding: "10px 18px", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
           <Plus size={16} /> Add Property
         </button>
       </div>
@@ -479,7 +502,13 @@ function Properties({ onSelect }) {
                 onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "0 1px 3px rgba(0,0,0,0.06)"; }}>
                 <div style={{ height: 110, background: `linear-gradient(135deg, ${p.color}22, ${p.color}44)`, display: "flex", alignItems: "center", justifyContent: "center", position: "relative" }}>
                   <div style={{ width: 56, height: 56, borderRadius: 16, background: p.color, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 18, fontWeight: 800 }}>{p.image}</div>
-                  <div style={{ position: "absolute", top: 12, right: 12 }}><Badge status={p.status} /></div>
+                  <div style={{ position: "absolute", top: 10, right: 10, display: "flex", alignItems: "center", gap: 6 }}>
+                    <Badge status={p.status} />
+                    <button onClick={e => openEdit(e, p)} title="Edit property"
+                      style={{ background: "rgba(255,255,255,0.85)", border: "none", borderRadius: 7, padding: "4px 7px", cursor: "pointer", display: "flex", alignItems: "center", backdropFilter: "blur(4px)" }}>
+                      <Pencil size={12} color="#475569" />
+                    </button>
+                  </div>
                 </div>
                 <div style={{ padding: 18 }}>
                   <h3 style={{ color: "#0f172a", fontSize: 15, fontWeight: 700, marginBottom: 3 }}>{p.name}</h3>
@@ -515,7 +544,7 @@ function Properties({ onSelect }) {
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr style={{ background: "#f8fafc" }}>
-                {["Property", "Type", "Value", "Equity", "Monthly Rent", "Net Cash Flow", "Cap Rate", "Status"].map(h => (
+                {["Property", "Type", "Value", "Equity", "Monthly Rent", "Net Cash Flow", "Cap Rate", "Status", ""].map(h => (
                   <th key={h} style={{ padding: "14px 20px", textAlign: "left", color: "#94a3b8", fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>{h}</th>
                 ))}
               </tr>
@@ -543,6 +572,11 @@ function Properties({ onSelect }) {
                     <span style={{ background: "#ede9fe", color: "#6d28d9", borderRadius: 20, padding: "3px 10px", fontSize: 12, fontWeight: 700 }}>{p.capRate}%</span>
                   </td>
                   <td style={{ padding: "16px 20px" }}><Badge status={p.status} /></td>
+                  <td style={{ padding: "16px 20px" }}>
+                    <button onClick={e => openEdit(e, p)} style={{ background: "#f1f5f9", border: "none", borderRadius: 8, padding: "6px 10px", cursor: "pointer", display: "flex", alignItems: "center", gap: 5, color: "#475569", fontSize: 12, fontWeight: 600 }}>
+                      <Pencil size={12} /> Edit
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -550,7 +584,7 @@ function Properties({ onSelect }) {
         </div>
       )}
       {showModal && (
-        <Modal title="Add Property" onClose={() => setShowModal(false)} width={560}>
+        <Modal title={editId ? "Edit Property" : "Add Property"} onClose={() => setShowModal(false)} width={560}>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
             {[
               { label: "Property Name", key: "name", type: "text", placeholder: "e.g. Maple Ridge Duplex", full: true },
@@ -583,7 +617,9 @@ function Properties({ onSelect }) {
           </div>
           <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
             <button onClick={() => setShowModal(false)} style={{ flex: 1, padding: "12px", border: "1px solid #e2e8f0", borderRadius: 10, background: "#fff", color: "#475569", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
-            <button onClick={handleSaveProp} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "#3b82f6", color: "#fff", fontWeight: 600, cursor: "pointer" }}>Add Property</button>
+            <button onClick={handleSaveProp} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "#3b82f6", color: "#fff", fontWeight: 600, cursor: "pointer" }}>
+              {editId ? "Save Changes" : "Add Property"}
+            </button>
           </div>
         </Modal>
       )}
@@ -2176,26 +2212,23 @@ function AppShell() {
   const [showOnboarding, setShowOnboarding] = useState(user?.plan === "trial");
 
   const rentalNavItems = [
-    { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
-    { id: "properties", label: "Properties", icon: Building2 },
-    { id: "rentroll", label: "Rent Roll", icon: Users },
-    { id: "transactions", label: "Transactions", icon: ArrowUpDown },
-    { id: "mileage", label: "Mileage", icon: Car },
-    { id: "analytics", label: "Analytics", icon: BarChart3 },
-    { id: "reports", label: "Reports", icon: FileText },
+    { id: "dashboard",    label: "Dashboard",     icon: LayoutDashboard },
+    { id: "properties",   label: "Properties",    icon: Building2       },
+    { id: "rentroll",     label: "Rent Roll",      icon: Users           },
+    { id: "transactions", label: "Transactions",   icon: ArrowUpDown     },
+    { id: "analytics",    label: "Analytics",      icon: BarChart3       },
+    { id: "reports",      label: "Reports",        icon: FileText        },
+    { id: "dealanalyzer", label: "Deal Analyzer",  icon: Calculator      },
+    { id: "mileage",      label: "Mileage Tracker",icon: Car             },
   ];
 
   const flipNavItems = [
-    { id: "flipdashboard", label: "F&F Dashboard", icon: LayoutDashboard },
-    { id: "flips",         label: "Pipeline",       icon: Hammer          },
-    { id: "rehabtracker",  label: "Rehab Tracker",  icon: Wrench          },
-    { id: "flipexpenses",  label: "Expenses",        icon: Receipt         },
-    { id: "flipcontractors", label: "Contractors",   icon: Users           },
-    { id: "flipanalytics", label: "Analytics",       icon: BarChart3       },
-  ];
-
-  const toolNavItems = [
-    { id: "dealanalyzer", label: "Deal Analyzer", icon: Calculator },
+    { id: "flipdashboard",   label: "F&F Dashboard", icon: LayoutDashboard },
+    { id: "flips",           label: "Pipeline",       icon: Hammer          },
+    { id: "rehabtracker",    label: "Rehab Tracker",  icon: Wrench          },
+    { id: "flipexpenses",    label: "Expenses",        icon: Receipt         },
+    { id: "flipcontractors", label: "Contractors",     icon: Users           },
+    { id: "flipanalytics",   label: "Analytics",       icon: BarChart3       },
   ];
 
   const handlePropertySelect = (p) => {
@@ -2252,21 +2285,6 @@ function AppShell() {
               </button>
             );
           })}
-          <div style={{ height: 1, background: "rgba(255,255,255,0.07)", margin: "14px 8px 12px" }} />
-          <p style={{ color: "#475569", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", padding: "0 8px", marginBottom: 8 }}>Tools</p>
-          {toolNavItems.map(item => {
-            const active = activeView === item.id;
-            return (
-              <button key={item.id} onClick={() => { setActiveView(item.id); setSelectedFlip(null); setSelectedProperty(null); }}
-                style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 10, border: "none", background: active ? "rgba(139,92,246,0.18)" : "transparent", color: active ? "#c4b5fd" : "#64748b", fontWeight: active ? 700 : 500, fontSize: 14, cursor: "pointer", marginBottom: 2, textAlign: "left", transition: "all 0.15s" }}
-                onMouseEnter={e => { if (!active) e.currentTarget.style.background = "rgba(255,255,255,0.05)"; }}
-                onMouseLeave={e => { if (!active) e.currentTarget.style.background = "transparent"; }}>
-                <item.icon size={17} />
-                {item.label}
-                {active && <ChevronRight size={14} style={{ marginLeft: "auto" }} />}
-              </button>
-            );
-          })}
         </nav>
         <div style={{ padding: 16, borderTop: "1px solid rgba(255,255,255,0.08)" }}>
           <div style={{ background: "rgba(59,130,246,0.15)", borderRadius: 12, padding: "12px 14px", marginBottom: 12, border: "1px solid rgba(59,130,246,0.3)" }}>
@@ -2297,7 +2315,7 @@ function AppShell() {
               {activeView === "propertyDetail" && selectedProperty ? selectedProperty.name :
                activeView === "flipDetail" && selectedFlip ? selectedFlip.name :
                activeView === "dashboard" ? "Dashboard" :
-               [...rentalNavItems, ...flipNavItems, ...toolNavItems].find(n => n.id === activeView)?.label || ""}
+               [...rentalNavItems, ...flipNavItems].find(n => n.id === activeView)?.label || ""}
             </span>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
