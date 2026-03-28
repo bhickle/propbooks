@@ -271,9 +271,70 @@ export function RehabTracker() {
     }
   }
 
+  // Add line item modal state
+  const emptyItem = { flipId: "", category: "", budgeted: "", spent: "0", status: "pending" };
+  const [showAddItem, setShowAddItem] = useState(false);
+  const [itemForm, setItemForm]       = useState(emptyItem);
+  const sif = k => e => setItemForm(f => ({ ...f, [k]: e.target.value }));
+
+  function saveLineItem() {
+    if (!itemForm.flipId || !itemForm.category) return;
+    const flip = _FLIPS.find(f => f.id === parseInt(itemForm.flipId));
+    if (!flip) return;
+    flip.rehabItems.push({
+      category:      itemForm.category,
+      budgeted:      parseFloat(itemForm.budgeted) || 0,
+      spent:         parseFloat(itemForm.spent) || 0,
+      status:        itemForm.status,
+      contractorIds: [],
+    });
+    setItemForm(emptyItem);
+    setShowAddItem(false);
+    rerender();
+  }
+
+  // Edit line item inline (status + budgeted)
+  const [editingItem, setEditingItem] = useState(null); // { flipId, idx }
+  const [editVals, setEditVals]       = useState({});
+
+  function startEditItem(flipId, idx, item) {
+    setEditingItem({ flipId, idx });
+    setEditVals({ budgeted: String(item.budgeted), spent: String(item.spent), status: item.status });
+  }
+
+  function saveEditItem() {
+    if (!editingItem) return;
+    const flip = _FLIPS.find(f => f.id === editingItem.flipId);
+    if (flip && flip.rehabItems[editingItem.idx]) {
+      Object.assign(flip.rehabItems[editingItem.idx], {
+        budgeted: parseFloat(editVals.budgeted) || 0,
+        spent:    parseFloat(editVals.spent) || 0,
+        status:   editVals.status,
+      });
+    }
+    setEditingItem(null);
+    rerender();
+  }
+
+  function deleteLineItem(flipId, idx) {
+    const flip = _FLIPS.find(f => f.id === flipId);
+    if (flip) {
+      flip.rehabItems.splice(idx, 1);
+      rerender();
+    }
+  }
+
   return (
     <div>
-      <PageHeader title="Rehab Tracker" sub="All rehab line items across active flips" />
+      <PageHeader
+        title="Rehab Tracker"
+        sub="All rehab line items across active flips"
+        action={
+          <button onClick={() => setShowAddItem(true)} style={{ background: "#f59e0b", color: "#fff", border: "none", borderRadius: 10, padding: "10px 18px", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
+            <Plus size={16} /> Add Line Item
+          </button>
+        }
+      />
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 24 }}>
         <StatCard icon={Target}      label="Total Budget"  value={fmtK(totalBudget)} sub="Active flips"   color="#3b82f6" />
@@ -338,20 +399,21 @@ export function RehabTracker() {
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead>
                   <tr>
-                    {["Category", "Contractor", "Status", "Budgeted", "Spent", "Variance"].map(h => (
+                    {["Category", "Contractor", "Status", "Budgeted", "Spent", "Variance", ""].map(h => (
                       <th key={h} style={{ textAlign: "left", color: "#94a3b8", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", paddingBottom: 8, borderBottom: "1px solid #f1f5f9" }}>{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {items.map((item, i) => {
-                    const variance   = item.budgeted - item.spent;
-                    const ss         = statusStyle[item.status];
+                    const variance    = item.budgeted - item.spent;
+                    const ss          = statusStyle[item.status];
                     const assignedIds = item.contractorIds || [];
                     const unassigned  = flipContractors.filter(c => !assignedIds.includes(c.id));
+                    const isEditing   = editingItem?.flipId === f.id && editingItem?.idx === item._idx;
 
                     return (
-                      <tr key={i} style={{ borderBottom: i < items.length - 1 ? "1px solid #f8fafc" : "none" }}>
+                      <tr key={i} style={{ borderBottom: i < items.length - 1 ? "1px solid #f8fafc" : "none", background: isEditing ? "#fffbeb" : "transparent" }}>
                         {/* Category */}
                         <td style={{ padding: "10px 0 10px", color: "#0f172a", fontSize: 13, fontWeight: 500, paddingRight: 12 }}>
                           {item.category}
@@ -397,18 +459,70 @@ export function RehabTracker() {
                           </div>
                         </td>
 
-                        {/* Status */}
+                        {/* Status — editable inline */}
                         <td style={{ padding: "10px 0", paddingRight: 12 }}>
-                          <span style={{ background: ss.bg, color: ss.text, borderRadius: 20, padding: "2px 10px", fontSize: 11, fontWeight: 600 }}>{ss.label}</span>
+                          {isEditing ? (
+                            <select value={editVals.status} onChange={e => setEditVals(v => ({ ...v, status: e.target.value }))}
+                              style={{ ...iS, padding: "4px 8px", fontSize: 12, width: 120 }}>
+                              <option value="pending">Pending</option>
+                              <option value="in-progress">In Progress</option>
+                              <option value="complete">Complete</option>
+                            </select>
+                          ) : (
+                            <span style={{ background: ss.bg, color: ss.text, borderRadius: 20, padding: "2px 10px", fontSize: 11, fontWeight: 600 }}>{ss.label}</span>
+                          )}
                         </td>
 
-                        {/* Numbers */}
-                        <td style={{ padding: "10px 0", color: "#0f172a", fontSize: 13, paddingRight: 12 }}>{fmt(item.budgeted)}</td>
-                        <td style={{ padding: "10px 0", color: "#0f172a", fontSize: 13, paddingRight: 12 }}>{fmt(item.spent)}</td>
-                        <td style={{ padding: "10px 0" }}>
+                        {/* Budgeted — editable inline */}
+                        <td style={{ padding: "10px 0", paddingRight: 12 }}>
+                          {isEditing ? (
+                            <input type="number" value={editVals.budgeted} onChange={e => setEditVals(v => ({ ...v, budgeted: e.target.value }))}
+                              style={{ ...iS, padding: "4px 8px", fontSize: 12, width: 100 }} />
+                          ) : (
+                            <span style={{ color: "#0f172a", fontSize: 13 }}>{fmt(item.budgeted)}</span>
+                          )}
+                        </td>
+
+                        {/* Spent — editable inline */}
+                        <td style={{ padding: "10px 0", paddingRight: 12 }}>
+                          {isEditing ? (
+                            <input type="number" value={editVals.spent} onChange={e => setEditVals(v => ({ ...v, spent: e.target.value }))}
+                              style={{ ...iS, padding: "4px 8px", fontSize: 12, width: 100 }} />
+                          ) : (
+                            <span style={{ color: "#0f172a", fontSize: 13 }}>{fmt(item.spent)}</span>
+                          )}
+                        </td>
+
+                        {/* Variance */}
+                        <td style={{ padding: "10px 0", paddingRight: 8 }}>
                           <span style={{ color: variance < 0 ? "#ef4444" : "#10b981", fontSize: 13, fontWeight: 600 }}>
                             {variance < 0 ? "−" : "+"}{fmt(Math.abs(variance))}
                           </span>
+                        </td>
+
+                        {/* Actions */}
+                        <td style={{ padding: "10px 0", whiteSpace: "nowrap" }}>
+                          {isEditing ? (
+                            <div style={{ display: "flex", gap: 6 }}>
+                              <button onClick={saveEditItem} style={{ background: "#10b981", color: "#fff", border: "none", borderRadius: 7, padding: "4px 10px", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>Save</button>
+                              <button onClick={() => setEditingItem(null)} style={{ background: "#f1f5f9", color: "#64748b", border: "none", borderRadius: 7, padding: "4px 10px", fontSize: 12, cursor: "pointer" }}>Cancel</button>
+                            </div>
+                          ) : (
+                            <div style={{ display: "flex", gap: 4, opacity: 0.4, transition: "opacity 0.15s" }}
+                              onMouseEnter={e => e.currentTarget.style.opacity = 1}
+                              onMouseLeave={e => e.currentTarget.style.opacity = 0.4}>
+                              <button onClick={() => startEditItem(f.id, item._idx, item)}
+                                style={{ background: "#f1f5f9", border: "none", borderRadius: 6, padding: "4px 7px", cursor: "pointer", color: "#64748b", display: "flex", alignItems: "center" }}
+                                title="Edit">
+                                ✏️
+                              </button>
+                              <button onClick={() => { if (window.confirm(`Delete "${item.category}"?`)) deleteLineItem(f.id, item._idx); }}
+                                style={{ background: "#fee2e2", border: "none", borderRadius: 6, padding: "4px 7px", cursor: "pointer", color: "#ef4444", display: "flex", alignItems: "center" }}
+                                title="Delete">
+                                <Trash2 size={13} />
+                              </button>
+                            </div>
+                          )}
                         </td>
                       </tr>
                     );
@@ -418,6 +532,53 @@ export function RehabTracker() {
             </div>
           );
         })}
+
+      {/* Add Line Item Modal */}
+      {showAddItem && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
+          <div style={{ background: "#fff", borderRadius: 20, padding: 32, width: 460, boxShadow: "0 20px 60px rgba(0,0,0,0.18)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 20 }}>
+              <h2 style={{ color: "#0f172a", fontSize: 19, fontWeight: 700 }}>Add Rehab Line Item</h2>
+              <button onClick={() => setShowAddItem(false)} style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8" }}><X size={20} /></button>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              <div>
+                <p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Flip *</p>
+                <select style={iS} value={itemForm.flipId} onChange={sif("flipId")}>
+                  <option value="">Select flip...</option>
+                  {flips.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
+                </select>
+              </div>
+              <div>
+                <p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Category / Scope Name *</p>
+                <input style={iS} placeholder="e.g. Kitchen, Drywall, HVAC, Landscaping..." value={itemForm.category} onChange={sif("category")} />
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                <div>
+                  <p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Budget ($)</p>
+                  <input type="number" style={iS} placeholder="0" value={itemForm.budgeted} onChange={sif("budgeted")} />
+                </div>
+                <div>
+                  <p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Spent so far ($)</p>
+                  <input type="number" style={iS} placeholder="0" value={itemForm.spent} onChange={sif("spent")} />
+                </div>
+              </div>
+              <div>
+                <p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Status</p>
+                <select style={iS} value={itemForm.status} onChange={sif("status")}>
+                  <option value="pending">Pending</option>
+                  <option value="in-progress">In Progress</option>
+                  <option value="complete">Complete</option>
+                </select>
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
+              <button onClick={saveLineItem} style={{ flex: 1, padding: "11px", borderRadius: 10, border: "none", background: "#f59e0b", color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer" }}>Add Line Item</button>
+              <button onClick={() => setShowAddItem(false)} style={{ padding: "11px 18px", borderRadius: 10, border: "1.5px solid #e2e8f0", background: "#fff", fontWeight: 600, fontSize: 14, cursor: "pointer", color: "#64748b" }}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
