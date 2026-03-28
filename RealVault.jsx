@@ -2212,14 +2212,12 @@ function AppShell() {
   const [showOnboarding, setShowOnboarding] = useState(user?.plan === "trial");
 
   const rentalNavItems = [
-    { id: "dashboard",    label: "Dashboard",     icon: LayoutDashboard },
-    { id: "properties",   label: "Properties",    icon: Building2       },
-    { id: "rentroll",     label: "Rent Roll",      icon: Users           },
-    { id: "transactions", label: "Transactions",   icon: ArrowUpDown     },
-    { id: "analytics",    label: "Analytics",      icon: BarChart3       },
-    { id: "reports",      label: "Reports",        icon: FileText        },
-    { id: "dealanalyzer", label: "Deal Analyzer",  icon: Calculator      },
-    { id: "mileage",      label: "Mileage Tracker",icon: Car             },
+    { id: "dashboard",    label: "Dashboard",    icon: LayoutDashboard },
+    { id: "properties",   label: "Properties",   icon: Building2       },
+    { id: "rentroll",     label: "Rent Roll",     icon: Users           },
+    { id: "transactions", label: "Transactions",  icon: ArrowUpDown     },
+    { id: "analytics",    label: "Analytics",     icon: BarChart3       },
+    { id: "reports",      label: "Reports",       icon: FileText        },
   ];
 
   const flipNavItems = [
@@ -2229,6 +2227,12 @@ function AppShell() {
     { id: "flipexpenses",    label: "Expenses",        icon: Receipt         },
     { id: "flipcontractors", label: "Contractors",     icon: Users           },
     { id: "flipanalytics",   label: "Analytics",       icon: BarChart3       },
+  ];
+
+  // Cross-cutting tools — apply to both rentals and flips
+  const toolNavItems = [
+    { id: "dealanalyzer", label: "Deal Analyzer",   icon: Calculator },
+    { id: "mileage",      label: "Mileage Tracker",  icon: Car        },
   ];
 
   const handlePropertySelect = (p) => {
@@ -2285,6 +2289,21 @@ function AppShell() {
               </button>
             );
           })}
+          <div style={{ height: 1, background: "rgba(255,255,255,0.07)", margin: "14px 8px 12px" }} />
+          <p style={{ color: "#475569", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", padding: "0 8px", marginBottom: 8 }}>Tools</p>
+          {toolNavItems.map(item => {
+            const active = activeView === item.id;
+            return (
+              <button key={item.id} onClick={() => { setActiveView(item.id); setSelectedFlip(null); setSelectedProperty(null); }}
+                style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 10, border: "none", background: active ? "rgba(139,92,246,0.18)" : "transparent", color: active ? "#c4b5fd" : "#64748b", fontWeight: active ? 700 : 500, fontSize: 14, cursor: "pointer", marginBottom: 2, textAlign: "left", transition: "all 0.15s" }}
+                onMouseEnter={e => { if (!active) e.currentTarget.style.background = "rgba(255,255,255,0.05)"; }}
+                onMouseLeave={e => { if (!active) e.currentTarget.style.background = "transparent"; }}>
+                <item.icon size={17} />
+                {item.label}
+                {active && <ChevronRight size={14} style={{ marginLeft: "auto" }} />}
+              </button>
+            );
+          })}
         </nav>
         <div style={{ padding: 16, borderTop: "1px solid rgba(255,255,255,0.08)" }}>
           <div style={{ background: "rgba(59,130,246,0.15)", borderRadius: 12, padding: "12px 14px", marginBottom: 12, border: "1px solid rgba(59,130,246,0.3)" }}>
@@ -2315,7 +2334,7 @@ function AppShell() {
               {activeView === "propertyDetail" && selectedProperty ? selectedProperty.name :
                activeView === "flipDetail" && selectedFlip ? selectedFlip.name :
                activeView === "dashboard" ? "Dashboard" :
-               [...rentalNavItems, ...flipNavItems].find(n => n.id === activeView)?.label || ""}
+               [...rentalNavItems, ...flipNavItems, ...toolNavItems].find(n => n.id === activeView)?.label || ""}
             </span>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
