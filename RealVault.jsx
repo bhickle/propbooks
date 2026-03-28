@@ -715,9 +715,19 @@ function Transactions() {
   const [filter, setFilter] = useState("all");
   const [search, setSearch] = useState("");
   const [showModal, setShowModal] = useState(false);
-  const emptyForm = { date: "", property: PROPERTIES[0]?.name || "", type: "income", category: "", description: "", amount: "" };
+  const [editId, setEditId] = useState(null);
+  const emptyForm = { date: "", property: PROPERTIES[0]?.name || "", type: "income", category: "Rent Income", description: "", amount: "" };
   const [form, setForm] = useState(emptyForm);
   const sf = k => e => setForm(f => ({ ...f, [k]: e.target.value }));
+
+  const TX_CATS = ["Rent Income","Mortgage","Maintenance","Property Tax","Insurance","HOA Fees","Utilities","Landscaping","Other"];
+
+  const openAdd = () => { setEditId(null); setForm(emptyForm); setShowModal(true); };
+  const openEdit = t => {
+    setEditId(t.id);
+    setForm({ date: t.date, property: t.property, type: t.type, category: t.category, description: t.description, amount: String(Math.abs(t.amount)) });
+    setShowModal(true);
+  };
 
   const filtered = txData.filter(t => {
     const matchType = filter === "all" || t.type === filter;
@@ -731,7 +741,12 @@ function Transactions() {
   const handleSave = () => {
     if (!form.description || !form.amount) return;
     const amt = parseFloat(form.amount) || 0;
-    setTxData(prev => [{ id: newId(), date: form.date || new Date().toISOString().split("T")[0], property: form.property, category: form.category || "Other", description: form.description, amount: form.type === "income" ? Math.abs(amt) : -Math.abs(amt), type: form.type }, ...prev]);
+    const built = { date: form.date || new Date().toISOString().split("T")[0], property: form.property, category: form.category || "Other", description: form.description, amount: form.type === "income" ? Math.abs(amt) : -Math.abs(amt), type: form.type };
+    if (editId !== null) {
+      setTxData(prev => prev.map(t => t.id === editId ? { ...t, ...built } : t));
+    } else {
+      setTxData(prev => [{ id: newId(), ...built }, ...prev]);
+    }
     setForm(emptyForm);
     setShowModal(false);
   };
@@ -747,7 +762,7 @@ function Transactions() {
           <button style={{ border: "1px solid #e2e8f0", borderRadius: 10, padding: "10px 16px", background: "#fff", color: "#475569", fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
             <Download size={15} /> Export CSV
           </button>
-          <button onClick={() => setShowModal(true)} style={{ background: "#3b82f6", color: "#fff", border: "none", borderRadius: 10, padding: "10px 18px", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
+          <button onClick={openAdd} style={{ background: "#3b82f6", color: "#fff", border: "none", borderRadius: 10, padding: "10px 18px", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
             <Plus size={16} /> Add Transaction
           </button>
         </div>
@@ -781,7 +796,7 @@ function Transactions() {
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
             <tr style={{ background: "#f8fafc" }}>
-              {["Date", "Property", "Category", "Description", "Amount", "Type"].map(h => (
+              {["Date", "Property", "Category", "Description", "Amount", "Type", ""].map(h => (
                 <th key={h} style={{ padding: "14px 20px", textAlign: "left", color: "#94a3b8", fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>{h}</th>
               ))}
             </tr>
@@ -802,7 +817,10 @@ function Transactions() {
                   <span style={{ background: t.type === "income" ? "#dcfce7" : "#fee2e2", color: t.type === "income" ? "#15803d" : "#b91c1c", borderRadius: 20, padding: "3px 10px", fontSize: 12, fontWeight: 600, textTransform: "capitalize" }}>{t.type}</span>
                 </td>
                 <td style={{ padding: "14px 20px" }}>
-                  <button onClick={() => setTxData(prev => prev.filter(x => x.id !== t.id))} style={{ background: "none", border: "none", cursor: "pointer", color: "#ef4444", opacity: 0.6, padding: 4 }} title="Delete"><Trash2 size={14} /></button>
+                  <div style={{ display: "flex", gap: 4 }}>
+                    <button onClick={() => openEdit(t)} style={{ background: "#f1f5f9", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "#475569", display: "flex", alignItems: "center" }} title="Edit"><Pencil size={13} /></button>
+                    <button onClick={() => setTxData(prev => prev.filter(x => x.id !== t.id))} style={{ background: "#fee2e2", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "#ef4444", display: "flex", alignItems: "center" }} title="Delete"><Trash2 size={13} /></button>
+                  </div>
                 </td>
               </tr>
             ))}
@@ -810,39 +828,45 @@ function Transactions() {
         </table>
       </div>
       {showModal && (
-        <Modal title="Add Transaction" onClose={() => setShowModal(false)}>
-          {[
-            { label: "Date", type: "date", key: "date" },
-            { label: "Description", type: "text", key: "description", placeholder: "Brief description" },
-            { label: "Amount ($)", type: "number", key: "amount", placeholder: "0.00" },
-          ].map(f => (
-            <div key={f.key} style={{ marginBottom: 14 }}>
-              <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>{f.label}</label>
-              <input type={f.type} placeholder={f.placeholder} value={form[f.key]} onChange={sf(f.key)} style={iS} />
+        <Modal title={editId ? "Edit Transaction" : "Add Transaction"} onClose={() => setShowModal(false)}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+            <div>
+              <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Date</label>
+              <input type="date" value={form.date} onChange={sf("date")} style={iS} />
             </div>
-          ))}
-          <div style={{ marginBottom: 14 }}>
-            <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Property</label>
-            <select value={form.property} onChange={sf("property")} style={iS}>
-              {PROPERTIES.map(p => <option key={p.id} value={p.name}>{p.name}</option>)}
-            </select>
+            <div>
+              <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Amount ($)</label>
+              <input type="number" placeholder="0.00" value={form.amount} onChange={sf("amount")} style={iS} />
+            </div>
+            <div style={{ gridColumn: "1 / -1" }}>
+              <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Description</label>
+              <input type="text" placeholder="Brief description" value={form.description} onChange={sf("description")} style={iS} />
+            </div>
+            <div style={{ gridColumn: "1 / -1" }}>
+              <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Property</label>
+              <select value={form.property} onChange={sf("property")} style={iS}>
+                {PROPERTIES.map(p => <option key={p.id} value={p.name}>{p.name}</option>)}
+              </select>
+            </div>
+            <div>
+              <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Type</label>
+              <select value={form.type} onChange={sf("type")} style={iS}>
+                <option value="income">Income</option>
+                <option value="expense">Expense</option>
+              </select>
+            </div>
+            <div>
+              <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Category</label>
+              <select value={form.category} onChange={sf("category")} style={iS}>
+                {TX_CATS.map(c => <option key={c}>{c}</option>)}
+              </select>
+            </div>
           </div>
-          <div style={{ marginBottom: 14 }}>
-            <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Type</label>
-            <select value={form.type} onChange={sf("type")} style={iS}>
-              <option value="income">Income</option>
-              <option value="expense">Expense</option>
-            </select>
-          </div>
-          <div style={{ marginBottom: 20 }}>
-            <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Category</label>
-            <select value={form.category} onChange={sf("category")} style={iS}>
-              {["Rent Income","Mortgage","Maintenance","Property Tax","Insurance","HOA Fees","Utilities","Landscaping","Other"].map(c => <option key={c}>{c}</option>)}
-            </select>
-          </div>
-          <div style={{ display: "flex", gap: 10 }}>
+          <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
             <button onClick={() => setShowModal(false)} style={{ flex: 1, padding: "12px", border: "1px solid #e2e8f0", borderRadius: 10, background: "#fff", color: "#475569", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
-            <button onClick={handleSave} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "#3b82f6", color: "#fff", fontWeight: 600, cursor: "pointer" }}>Save Transaction</button>
+            <button onClick={handleSave} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "#3b82f6", color: "#fff", fontWeight: 600, cursor: "pointer" }}>
+              {editId ? "Save Changes" : "Save Transaction"}
+            </button>
           </div>
         </Modal>
       )}
@@ -2269,7 +2293,7 @@ function AppShell() {
   ];
 
   const flipNavItems = [
-    { id: "flipdashboard",   label: "F&F Dashboard", icon: LayoutDashboard },
+    { id: "flipdashboard",   label: "Overview",       icon: LayoutDashboard },
     { id: "flips",           label: "Pipeline",       icon: Hammer          },
     { id: "rehabtracker",    label: "Rehab Tracker",  icon: Wrench          },
     { id: "flipexpenses",    label: "Expenses",        icon: Receipt         },
