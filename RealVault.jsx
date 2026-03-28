@@ -716,11 +716,45 @@ function Transactions() {
   const [search, setSearch] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [editId, setEditId] = useState(null);
-  const emptyForm = { date: "", property: PROPERTIES[0]?.name || "", type: "income", category: "Rent Income", description: "", amount: "" };
+  const INCOME_CATS = [
+    "Rent Income",
+    "Late Fees",
+    "Pet Fees",
+    "Parking / Storage",
+    "Laundry Income",
+    "Application Fees",
+    "Damage Deposit Applied",
+    "Other Income",
+  ];
+  const EXPENSE_CATS = [
+    "Mortgage Payment",
+    "Property Tax",
+    "Insurance",
+    "Repairs & Maintenance",
+    "Capital Improvement",
+    "HOA / Condo Fees",
+    "Property Management",
+    "Utilities",
+    "Landscaping",
+    "Advertising & Marketing",
+    "Legal & Professional Fees",
+    "Cleaning & Janitorial",
+    "Pest Control",
+    "Supplies & Materials",
+    "Travel & Mileage",
+    "Other Expenses",
+  ];
+  const catsForType = t => t === "income" ? INCOME_CATS : EXPENSE_CATS;
+
+  const emptyForm = { date: "", property: PROPERTIES[0]?.name || "", type: "income", category: INCOME_CATS[0], description: "", amount: "" };
   const [form, setForm] = useState(emptyForm);
   const sf = k => e => setForm(f => ({ ...f, [k]: e.target.value }));
 
-  const TX_CATS = ["Rent Income","Mortgage","Maintenance","Property Tax","Insurance","HOA Fees","Utilities","Landscaping","Other"];
+  // When type changes, reset category to first option for that type
+  const setType = e => {
+    const t = e.target.value;
+    setForm(f => ({ ...f, type: t, category: catsForType(t)[0] }));
+  };
 
   const openAdd = () => { setEditId(null); setForm(emptyForm); setShowModal(true); };
   const openEdit = t => {
@@ -850,7 +884,7 @@ function Transactions() {
             </div>
             <div>
               <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Type</label>
-              <select value={form.type} onChange={sf("type")} style={iS}>
+              <select value={form.type} onChange={setType} style={iS}>
                 <option value="income">Income</option>
                 <option value="expense">Expense</option>
               </select>
@@ -858,7 +892,7 @@ function Transactions() {
             <div>
               <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Category</label>
               <select value={form.category} onChange={sf("category")} style={iS}>
-                {TX_CATS.map(c => <option key={c}>{c}</option>)}
+                {catsForType(form.type).map(c => <option key={c}>{c}</option>)}
               </select>
             </div>
           </div>
