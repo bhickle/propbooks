@@ -97,21 +97,21 @@ const PROPERTIES = [
 ];
 
 const TRANSACTIONS = [
-  { id: 1, date: "2026-03-20", property: "Maple Ridge Duplex", category: "Rent Income", description: "March rent - Unit A", amount: 1900, type: "income" },
-  { id: 2, date: "2026-03-20", property: "Maple Ridge Duplex", category: "Rent Income", description: "March rent - Unit B", amount: 1900, type: "income" },
-  { id: 3, date: "2026-03-18", property: "Riverside Triplex", category: "Maintenance", description: "HVAC repair - Unit 2", amount: -420, type: "expense" },
-  { id: 4, date: "2026-03-15", property: "Lakeview SFR", category: "Rent Income", description: "March rent", amount: 2950, type: "income" },
-  { id: 5, date: "2026-03-12", property: "Midtown Condo #4B", category: "HOA Fees", description: "Monthly HOA", amount: -285, type: "expense" },
-  { id: 6, date: "2026-03-10", property: "Sunset Strip Commercial", category: "Rent Income", description: "March commercial rent", amount: 8500, type: "income" },
-  { id: 7, date: "2026-03-08", property: "Riverside Triplex", category: "Rent Income", description: "March rent - Units 1,2,3", amount: 5700, type: "income" },
-  { id: 8, date: "2026-03-05", property: "Maple Ridge Duplex", category: "Insurance", description: "Q1 property insurance", amount: -1200, type: "expense" },
-  { id: 9, date: "2026-03-03", property: "Lakeview SFR", category: "Property Tax", description: "Semi-annual tax payment", amount: -2100, type: "expense" },
-  { id: 10, date: "2026-03-01", property: "Midtown Condo #4B", category: "Rent Income", description: "March rent", amount: 2100, type: "income" },
-  { id: 11, date: "2026-02-28", property: "Sunset Strip Commercial", category: "Maintenance", description: "Parking lot reseal", amount: -3500, type: "expense" },
-  { id: 12, date: "2026-02-20", property: "Riverside Triplex", category: "Mortgage", description: "February mortgage", amount: -2840, type: "expense" },
-  { id: 13, date: "2026-02-15", property: "Maple Ridge Duplex", category: "Mortgage", description: "February mortgage", amount: -1620, type: "expense" },
-  { id: 14, date: "2026-02-10", property: "Lakeview SFR", category: "Landscaping", description: "Monthly lawn service", amount: -180, type: "expense" },
-  { id: 15, date: "2026-02-05", property: "Midtown Condo #4B", category: "Utilities", description: "Common area utilities", amount: -95, type: "expense" },
+  { id: 1,  date: "2026-03-20", property: "Maple Ridge Duplex",       category: "Rent Income", description: "March rent - Unit A",       amount:  1900, type: "income",  payee: "Jordan Williams" },
+  { id: 2,  date: "2026-03-20", property: "Maple Ridge Duplex",       category: "Rent Income", description: "March rent - Unit B",       amount:  1900, type: "income",  payee: "Priya Patel" },
+  { id: 3,  date: "2026-03-18", property: "Riverside Triplex",        category: "Maintenance", description: "HVAC repair - Unit 2",      amount:  -420, type: "expense", payee: "AirPro HVAC Services" },
+  { id: 4,  date: "2026-03-15", property: "Lakeview SFR",             category: "Rent Income", description: "March rent",               amount:  2950, type: "income",  payee: "Marcus Thompson" },
+  { id: 5,  date: "2026-03-12", property: "Midtown Condo #4B",        category: "HOA Fees",    description: "Monthly HOA",              amount:  -285, type: "expense", payee: "Midtown HOA" },
+  { id: 6,  date: "2026-03-10", property: "Sunset Strip Commercial",  category: "Rent Income", description: "March commercial rent",    amount:  8500, type: "income",  payee: "Acme Retail LLC" },
+  { id: 7,  date: "2026-03-08", property: "Riverside Triplex",        category: "Rent Income", description: "March rent - Units 1,2,3", amount:  5700, type: "income",  payee: "Various Tenants" },
+  { id: 8,  date: "2026-03-05", property: "Maple Ridge Duplex",       category: "Insurance",   description: "Q1 property insurance",   amount: -1200, type: "expense", payee: "State Farm" },
+  { id: 9,  date: "2026-03-03", property: "Lakeview SFR",             category: "Property Tax",description: "Semi-annual tax payment",  amount: -2100, type: "expense", payee: "Denver County Assessor" },
+  { id: 10, date: "2026-03-01", property: "Midtown Condo #4B",        category: "Rent Income", description: "March rent",               amount:  2100, type: "income",  payee: "Keisha Brown" },
+  { id: 11, date: "2026-02-28", property: "Sunset Strip Commercial",  category: "Maintenance", description: "Parking lot reseal",       amount: -3500, type: "expense", payee: "Pacific Paving Co." },
+  { id: 12, date: "2026-02-20", property: "Riverside Triplex",        category: "Mortgage",    description: "February mortgage",        amount: -2840, type: "expense", payee: "US Bank" },
+  { id: 13, date: "2026-02-15", property: "Maple Ridge Duplex",       category: "Mortgage",    description: "February mortgage",        amount: -1620, type: "expense", payee: "Chase Mortgage" },
+  { id: 14, date: "2026-02-10", property: "Lakeview SFR",             category: "Landscaping", description: "Monthly lawn service",     amount:  -180, type: "expense", payee: "Green Thumb Landscaping" },
+  { id: 15, date: "2026-02-05", property: "Midtown Condo #4B",        category: "Utilities",   description: "Common area utilities",    amount:   -95, type: "expense", payee: "Georgia Power" },
 ];
 
 const MONTHLY_CASH_FLOW = [
@@ -897,8 +897,9 @@ function Transactions() {
   ];
   const catsForType = t => t === "income" ? INCOME_CATS : EXPENSE_CATS;
 
-  const emptyForm = { date: "", property: PROPERTIES[0]?.name || "", type: "income", category: INCOME_CATS[0], description: "", amount: "" };
+  const emptyForm = { date: "", property: PROPERTIES[0]?.name || "", type: "income", category: INCOME_CATS[0], description: "", amount: "", payee: "" };
   const [form, setForm] = useState(emptyForm);
+  const [payeeFocus, setPayeeFocus] = useState(false);
   const sf = k => e => setForm(f => ({ ...f, [k]: e.target.value }));
 
   // When type changes, reset category to first option for that type
@@ -907,10 +908,11 @@ function Transactions() {
     setForm(f => ({ ...f, type: t, category: catsForType(t)[0] }));
   };
 
-  const openAdd = () => { setEditId(null); setForm(emptyForm); setShowModal(true); };
+  const openAdd = () => { setEditId(null); setForm(emptyForm); setPayeeFocus(false); setShowModal(true); };
   const openEdit = t => {
     setEditId(t.id);
-    setForm({ date: t.date, property: t.property, type: t.type, category: t.category, description: t.description, amount: String(Math.abs(t.amount)) });
+    setForm({ date: t.date, property: t.property, type: t.type, category: t.category, description: t.description, amount: String(Math.abs(t.amount)), payee: t.payee || "" });
+    setPayeeFocus(false);
     setShowModal(true);
   };
 
@@ -938,17 +940,20 @@ function Transactions() {
     const matchType = filter === "all" || t.type === filter;
     const matchProp = propFilter === "all" || t.property === propFilter;
     const matchCat = catFilter === "all" || t.category === catFilter;
-    const matchSearch = t.description.toLowerCase().includes(search.toLowerCase()) || t.property.toLowerCase().includes(search.toLowerCase()) || t.category.toLowerCase().includes(search.toLowerCase());
+    const matchSearch = t.description.toLowerCase().includes(search.toLowerCase()) || t.property.toLowerCase().includes(search.toLowerCase()) || t.category.toLowerCase().includes(search.toLowerCase()) || (t.payee || "").toLowerCase().includes(search.toLowerCase());
     return matchType && matchProp && matchCat && matchSearch && matchesDate(t);
   });
 
   const totalIncome = filtered.filter(t => t.type === "income").reduce((s, t) => s + t.amount, 0);
   const totalExpenses = filtered.filter(t => t.type === "expense").reduce((s, t) => s + Math.abs(t.amount), 0);
 
+  // Derived payee list from all logged transactions
+  const allPayees = [...new Set(txData.map(t => t.payee).filter(Boolean))].sort();
+
   const handleSave = () => {
     if (!form.description || !form.amount) return;
     const amt = parseFloat(form.amount) || 0;
-    const built = { date: form.date || new Date().toISOString().split("T")[0], property: form.property, category: form.category || "Other", description: form.description, amount: form.type === "income" ? Math.abs(amt) : -Math.abs(amt), type: form.type };
+    const built = { date: form.date || new Date().toISOString().split("T")[0], property: form.property, category: form.category || "Other", description: form.description, amount: form.type === "income" ? Math.abs(amt) : -Math.abs(amt), type: form.type, payee: form.payee.trim() };
     if (editId !== null) {
       setTxData(prev => prev.map(t => t.id === editId ? { ...t, ...built } : t));
     } else {
@@ -1036,14 +1041,14 @@ function Transactions() {
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
             <tr style={{ background: "#f8fafc" }}>
-              {["Date", "Property", "Category", "Description", "Amount", "Type", ""].map(h => (
+              {["Date", "Property", "Category", "Payee", "Description", "Amount", "Type", ""].map(h => (
                 <th key={h} style={{ padding: "14px 20px", textAlign: "left", color: "#94a3b8", fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {filtered.length === 0 && (
-              <tr><td colSpan={7} style={{ padding: "48px 20px", textAlign: "center", color: "#94a3b8", fontSize: 14 }}>No transactions match your filters. <button onClick={() => { setPropFilter("all"); setCatFilter("all"); setDateFilter("all"); setSearch(""); setFilter("all"); }} style={{ background: "none", border: "none", color: "#3b82f6", fontSize: 14, cursor: "pointer", textDecoration: "underline", padding: 0 }}>Clear filters</button></td></tr>
+              <tr><td colSpan={8} style={{ padding: "48px 20px", textAlign: "center", color: "#94a3b8", fontSize: 14 }}>No transactions match your filters. <button onClick={() => { setPropFilter("all"); setCatFilter("all"); setDateFilter("all"); setSearch(""); setFilter("all"); }} style={{ background: "none", border: "none", color: "#3b82f6", fontSize: 14, cursor: "pointer", textDecoration: "underline", padding: 0 }}>Clear filters</button></td></tr>
             )}
             {filtered.map((t, i) => (
               <tr key={t.id} style={{ borderTop: "1px solid #f1f5f9", background: i % 2 === 0 ? "#fff" : "#fafafa" }}>
@@ -1052,6 +1057,7 @@ function Transactions() {
                 <td style={{ padding: "14px 20px" }}>
                   <span style={{ background: "#f1f5f9", borderRadius: 6, padding: "3px 8px", fontSize: 12, fontWeight: 600, color: "#475569" }}>{t.category}</span>
                 </td>
+                <td style={{ padding: "14px 20px", fontSize: 13, color: "#475569" }}>{t.payee || <span style={{ color: "#cbd5e1", fontStyle: "italic" }}>—</span>}</td>
                 <td style={{ padding: "14px 20px", fontSize: 13, color: "#0f172a" }}>{t.description}</td>
                 <td style={{ padding: "14px 20px", fontSize: 14, fontWeight: 700, color: t.type === "income" ? "#15803d" : "#b91c1c" }}>
                   {t.type === "income" ? "+" : "-"}{fmt(Math.abs(t.amount))}
@@ -1084,6 +1090,44 @@ function Transactions() {
             <div style={{ gridColumn: "1 / -1" }}>
               <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Description</label>
               <input type="text" placeholder="Brief description" value={form.description} onChange={sf("description")} style={iS} />
+            </div>
+            <div style={{ gridColumn: "1 / -1", position: "relative" }}>
+              <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>
+                Payee <span style={{ color: "#94a3b8", fontWeight: 400 }}>(optional)</span>
+              </label>
+              <input
+                type="text"
+                placeholder="e.g. State Farm, Green Thumb Landscaping, Jordan Williams"
+                value={form.payee}
+                onChange={e => setForm(f => ({ ...f, payee: e.target.value }))}
+                onFocus={() => setPayeeFocus(true)}
+                onBlur={() => setTimeout(() => setPayeeFocus(false), 150)}
+                style={iS}
+                autoComplete="off"
+              />
+              {payeeFocus && (() => {
+                const q = form.payee.toLowerCase();
+                const matches = q ? allPayees.filter(p => p.toLowerCase().includes(q) && p.toLowerCase() !== q) : allPayees;
+                const exactExists = allPayees.some(p => p.toLowerCase() === q);
+                const showNew = q && !exactExists;
+                if (matches.length === 0 && !showNew) return null;
+                return (
+                  <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, background: "#fff", border: "1px solid #e2e8f0", borderRadius: 12, boxShadow: "0 8px 24px rgba(0,0,0,0.10)", zIndex: 200, overflow: "hidden" }}>
+                    {matches.slice(0, 6).map(p => (
+                      <button key={p} onMouseDown={() => { setForm(f => ({ ...f, payee: p })); setPayeeFocus(false); }}
+                        style={{ width: "100%", padding: "10px 14px", background: "none", border: "none", borderBottom: "1px solid #f1f5f9", textAlign: "left", cursor: "pointer", fontSize: 13, color: "#0f172a", display: "flex", alignItems: "center", gap: 8 }}>
+                        <User size={13} style={{ color: "#94a3b8", flexShrink: 0 }} /> {p}
+                      </button>
+                    ))}
+                    {showNew && (
+                      <div style={{ padding: "10px 14px", display: "flex", alignItems: "center", gap: 8, background: "#f0f9ff", borderTop: matches.length > 0 ? "1px solid #e2e8f0" : "none" }}>
+                        <PlusCircle size={13} style={{ color: "#3b82f6", flexShrink: 0 }} />
+                        <span style={{ fontSize: 13, color: "#3b82f6", fontWeight: 600 }}>Add "{form.payee}" as new payee</span>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
             </div>
             <div style={{ gridColumn: "1 / -1" }}>
               <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Property</label>
