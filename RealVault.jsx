@@ -1087,14 +1087,8 @@ function Transactions() {
               <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Amount ($)</label>
               <input type="number" placeholder="0.00" value={form.amount} onChange={sf("amount")} style={iS} />
             </div>
-            <div style={{ gridColumn: "1 / -1" }}>
-              <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Description</label>
-              <input type="text" placeholder="Brief description" value={form.description} onChange={sf("description")} style={iS} />
-            </div>
             <div style={{ gridColumn: "1 / -1", position: "relative" }}>
-              <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>
-                Payee <span style={{ color: "#94a3b8", fontWeight: 400 }}>(optional)</span>
-              </label>
+              <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Payee</label>
               <input
                 type="text"
                 placeholder="e.g. State Farm, Green Thumb Landscaping, Jordan Williams"
@@ -1128,6 +1122,10 @@ function Transactions() {
                   </div>
                 );
               })()}
+            </div>
+            <div style={{ gridColumn: "1 / -1" }}>
+              <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Description</label>
+              <input type="text" placeholder="Brief description" value={form.description} onChange={sf("description")} style={iS} />
             </div>
             <div style={{ gridColumn: "1 / -1" }}>
               <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Property</label>
