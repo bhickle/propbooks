@@ -897,23 +897,20 @@ function Transactions() {
   ];
   const catsForType = t => t === "income" ? INCOME_CATS : EXPENSE_CATS;
 
-  const emptyForm = { date: "", property: PROPERTIES[0]?.name || "", type: "income", category: INCOME_CATS[0], description: "", amount: "", payee: "" };
-  const [form, setForm] = useState(emptyForm);
+  const emptyIncome  = { date: "", property: PROPERTIES[0]?.name || "", type: "income",  category: INCOME_CATS[0],  description: "", amount: "", payee: "" };
+  const emptyExpense = { date: "", property: PROPERTIES[0]?.name || "", type: "expense", category: EXPENSE_CATS[0], description: "", amount: "", payee: "" };
+  const [form, setForm] = useState(emptyIncome);
   const [payeeFocus, setPayeeFocus] = useState(false);
   const sf = k => e => setForm(f => ({ ...f, [k]: e.target.value }));
 
-  // When type changes, reset category to first option for that type
-  const setType = e => {
-    const t = e.target.value;
-    setForm(f => ({ ...f, type: t, category: catsForType(t)[0] }));
-  };
-
-  const openAdd = () => { setEditId(null); setForm(emptyForm); setPayeeFocus(false); setShowModal(true); };
+  const closeModal = () => { setShowModal(false); setPayeeFocus(false); };
+  const openAddIncome  = () => { setEditId(null); setForm(emptyIncome);  setPayeeFocus(false); setShowModal("income");  };
+  const openAddExpense = () => { setEditId(null); setForm(emptyExpense); setPayeeFocus(false); setShowModal("expense"); };
   const openEdit = t => {
     setEditId(t.id);
     setForm({ date: t.date, property: t.property, type: t.type, category: t.category, description: t.description, amount: String(Math.abs(t.amount)), payee: t.payee || "" });
     setPayeeFocus(false);
-    setShowModal(true);
+    setShowModal(t.type);
   };
 
   // Unique categories in the current data
@@ -974,8 +971,11 @@ function Transactions() {
           <button style={{ border: "1px solid #e2e8f0", borderRadius: 10, padding: "10px 16px", background: "#fff", color: "#475569", fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
             <Download size={15} /> Export CSV
           </button>
-          <button onClick={openAdd} style={{ background: "#3b82f6", color: "#fff", border: "none", borderRadius: 10, padding: "10px 18px", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
-            <Plus size={16} /> Add Transaction
+          <button onClick={openAddExpense} style={{ background: "#fef2f2", color: "#b91c1c", border: "1px solid #fecaca", borderRadius: 10, padding: "10px 18px", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
+            <Plus size={16} /> Add Expense
+          </button>
+          <button onClick={openAddIncome} style={{ background: "#15803d", color: "#fff", border: "none", borderRadius: 10, padding: "10px 18px", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
+            <Plus size={16} /> Add Income
           </button>
         </div>
       </div>
@@ -1076,85 +1076,108 @@ function Transactions() {
           </tbody>
         </table>
       </div>
-      {showModal && (
-        <Modal title={editId ? "Edit Transaction" : "Add Transaction"} onClose={() => setShowModal(false)}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-            <div>
-              <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Date</label>
-              <input type="date" value={form.date} onChange={sf("date")} style={iS} />
+      {/* ── Shared payee typeahead — rendered inside whichever modal is open ── */}
+      {(showModal === "income" || showModal === "expense") && (() => {
+        const isIncome = showModal === "income";
+        const accentColor = isIncome ? "#15803d" : "#b91c1c";
+        const accentBg    = isIncome ? "#f0fdf4"  : "#fef2f2";
+        const accentBorder= isIncome ? "#bbf7d0"  : "#fecaca";
+        const saveColor   = isIncome ? "#15803d"  : "#b91c1c";
+        const payeeLabel  = isIncome ? "Received From" : "Payee";
+        const payeePlaceholder = isIncome
+          ? "e.g. Jordan Williams, Marcus Thompson"
+          : "e.g. State Farm, Green Thumb Landscaping";
+
+        const PayeeDropdown = () => {
+          const q = form.payee.toLowerCase();
+          const matches = q ? allPayees.filter(p => p.toLowerCase().includes(q) && p.toLowerCase() !== q) : allPayees;
+          const exactExists = allPayees.some(p => p.toLowerCase() === q);
+          const showNew = q && !exactExists;
+          if (matches.length === 0 && !showNew) return null;
+          return (
+            <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, background: "#fff", border: "1px solid #e2e8f0", borderRadius: 12, boxShadow: "0 8px 24px rgba(0,0,0,0.10)", zIndex: 200, overflow: "hidden" }}>
+              {matches.slice(0, 6).map(p => (
+                <button key={p} onMouseDown={() => { setForm(f => ({ ...f, payee: p })); setPayeeFocus(false); }}
+                  style={{ width: "100%", padding: "10px 14px", background: "none", border: "none", borderBottom: "1px solid #f1f5f9", textAlign: "left", cursor: "pointer", fontSize: 13, color: "#0f172a", display: "flex", alignItems: "center", gap: 8 }}>
+                  <User size={13} style={{ color: "#94a3b8", flexShrink: 0 }} /> {p}
+                </button>
+              ))}
+              {showNew && (
+                <div style={{ padding: "10px 14px", display: "flex", alignItems: "center", gap: 8, background: "#f0f9ff", borderTop: matches.length > 0 ? "1px solid #e2e8f0" : "none" }}>
+                  <PlusCircle size={13} style={{ color: "#3b82f6", flexShrink: 0 }} />
+                  <span style={{ fontSize: 13, color: "#3b82f6", fontWeight: 600 }}>Add "{form.payee}" as new</span>
+                </div>
+              )}
             </div>
-            <div>
-              <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Amount ($)</label>
-              <input type="number" placeholder="0.00" value={form.amount} onChange={sf("amount")} style={iS} />
+          );
+        };
+
+        return (
+          <Modal
+            title={editId
+              ? `Edit ${isIncome ? "Income" : "Expense"}`
+              : isIncome ? "Log Income" : "Log Expense"}
+            onClose={closeModal}
+          >
+            {/* Colored type badge at top */}
+            <div style={{ background: accentBg, border: `1px solid ${accentBorder}`, borderRadius: 10, padding: "8px 14px", marginBottom: 20, display: "inline-flex", alignItems: "center", gap: 8 }}>
+              <span style={{ width: 8, height: 8, borderRadius: "50%", background: accentColor, display: "inline-block" }} />
+              <span style={{ fontSize: 13, fontWeight: 700, color: accentColor }}>{isIncome ? "Income" : "Expense"}</span>
             </div>
-            <div style={{ gridColumn: "1 / -1", position: "relative" }}>
-              <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Payee</label>
-              <input
-                type="text"
-                placeholder="e.g. State Farm, Green Thumb Landscaping, Jordan Williams"
-                value={form.payee}
-                onChange={e => setForm(f => ({ ...f, payee: e.target.value }))}
-                onFocus={() => setPayeeFocus(true)}
-                onBlur={() => setTimeout(() => setPayeeFocus(false), 150)}
-                style={iS}
-                autoComplete="off"
-              />
-              {payeeFocus && (() => {
-                const q = form.payee.toLowerCase();
-                const matches = q ? allPayees.filter(p => p.toLowerCase().includes(q) && p.toLowerCase() !== q) : allPayees;
-                const exactExists = allPayees.some(p => p.toLowerCase() === q);
-                const showNew = q && !exactExists;
-                if (matches.length === 0 && !showNew) return null;
-                return (
-                  <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, background: "#fff", border: "1px solid #e2e8f0", borderRadius: 12, boxShadow: "0 8px 24px rgba(0,0,0,0.10)", zIndex: 200, overflow: "hidden" }}>
-                    {matches.slice(0, 6).map(p => (
-                      <button key={p} onMouseDown={() => { setForm(f => ({ ...f, payee: p })); setPayeeFocus(false); }}
-                        style={{ width: "100%", padding: "10px 14px", background: "none", border: "none", borderBottom: "1px solid #f1f5f9", textAlign: "left", cursor: "pointer", fontSize: 13, color: "#0f172a", display: "flex", alignItems: "center", gap: 8 }}>
-                        <User size={13} style={{ color: "#94a3b8", flexShrink: 0 }} /> {p}
-                      </button>
-                    ))}
-                    {showNew && (
-                      <div style={{ padding: "10px 14px", display: "flex", alignItems: "center", gap: 8, background: "#f0f9ff", borderTop: matches.length > 0 ? "1px solid #e2e8f0" : "none" }}>
-                        <PlusCircle size={13} style={{ color: "#3b82f6", flexShrink: 0 }} />
-                        <span style={{ fontSize: 13, color: "#3b82f6", fontWeight: 600 }}>Add "{form.payee}" as new payee</span>
-                      </div>
-                    )}
-                  </div>
-                );
-              })()}
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+              <div>
+                <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Date</label>
+                <input type="date" value={form.date} onChange={sf("date")} style={iS} />
+              </div>
+              <div>
+                <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Amount ($)</label>
+                <input type="number" placeholder="0.00" value={form.amount} onChange={sf("amount")} style={iS} />
+              </div>
+
+              {/* Payee / Received From — typeahead */}
+              <div style={{ gridColumn: "1 / -1", position: "relative" }}>
+                <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>{payeeLabel}</label>
+                <input
+                  type="text"
+                  placeholder={payeePlaceholder}
+                  value={form.payee}
+                  onChange={e => setForm(f => ({ ...f, payee: e.target.value }))}
+                  onFocus={() => setPayeeFocus(true)}
+                  onBlur={() => setTimeout(() => setPayeeFocus(false), 150)}
+                  style={iS}
+                  autoComplete="off"
+                />
+                {payeeFocus && <PayeeDropdown />}
+              </div>
+
+              <div style={{ gridColumn: "1 / -1" }}>
+                <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Description</label>
+                <input type="text" placeholder="Brief description" value={form.description} onChange={sf("description")} style={iS} />
+              </div>
+              <div style={{ gridColumn: "1 / -1" }}>
+                <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Property</label>
+                <select value={form.property} onChange={sf("property")} style={iS}>
+                  {PROPERTIES.map(p => <option key={p.id} value={p.name}>{p.name}</option>)}
+                </select>
+              </div>
+              <div style={{ gridColumn: "1 / -1" }}>
+                <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Category</label>
+                <select value={form.category} onChange={sf("category")} style={iS}>
+                  {catsForType(form.type).map(c => <option key={c}>{c}</option>)}
+                </select>
+              </div>
             </div>
-            <div style={{ gridColumn: "1 / -1" }}>
-              <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Description</label>
-              <input type="text" placeholder="Brief description" value={form.description} onChange={sf("description")} style={iS} />
+
+            <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
+              <button onClick={closeModal} style={{ flex: 1, padding: "12px", border: "1px solid #e2e8f0", borderRadius: 10, background: "#fff", color: "#475569", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
+              <button onClick={handleSave} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: saveColor, color: "#fff", fontWeight: 700, cursor: "pointer" }}>
+                {editId ? "Save Changes" : isIncome ? "Save Income" : "Save Expense"}
+              </button>
             </div>
-            <div style={{ gridColumn: "1 / -1" }}>
-              <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Property</label>
-              <select value={form.property} onChange={sf("property")} style={iS}>
-                {PROPERTIES.map(p => <option key={p.id} value={p.name}>{p.name}</option>)}
-              </select>
-            </div>
-            <div>
-              <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Type</label>
-              <select value={form.type} onChange={setType} style={iS}>
-                <option value="income">Income</option>
-                <option value="expense">Expense</option>
-              </select>
-            </div>
-            <div>
-              <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Category</label>
-              <select value={form.category} onChange={sf("category")} style={iS}>
-                {catsForType(form.type).map(c => <option key={c}>{c}</option>)}
-              </select>
-            </div>
-          </div>
-          <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
-            <button onClick={() => setShowModal(false)} style={{ flex: 1, padding: "12px", border: "1px solid #e2e8f0", borderRadius: 10, background: "#fff", color: "#475569", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
-            <button onClick={handleSave} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "#3b82f6", color: "#fff", fontWeight: 600, cursor: "pointer" }}>
-              {editId ? "Save Changes" : "Save Transaction"}
-            </button>
-          </div>
-        </Modal>
-      )}
+          </Modal>
+        );
+      })()}
     </div>
   );
 }
