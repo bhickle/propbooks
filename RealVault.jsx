@@ -61,6 +61,23 @@ function calcLoanBalance(loanAmount, annualRate, termYears, startDate) {
   return Math.max(0, Math.round(balance));
 }
 
+// calcPaymentInterest: returns the interest portion of a specific mortgage payment
+// by computing the remaining balance one period before that payment date
+function calcPaymentInterest(loanAmount, annualRate, termYears, startDate, paymentDate) {
+  const P = parseFloat(loanAmount), r0 = parseFloat(annualRate), n = parseFloat(termYears) * 12;
+  if (!P || !r0 || !n || !startDate || !paymentDate) return null;
+  const r = r0 / 100 / 12;
+  const start = new Date(startDate);
+  const payment = new Date(paymentDate);
+  // k = number of payments already made before this one
+  const k = Math.max(0, Math.round((payment - start) / (1000 * 60 * 60 * 24 * 30.4375)));
+  if (k >= n) return 0;
+  const M = P * r * Math.pow(1 + r, n) / (Math.pow(1 + r, n) - 1);
+  // Balance just before this payment (after k prior payments)
+  const balBefore = k === 0 ? P : P * Math.pow(1 + r, k) - M * (Math.pow(1 + r, k) - 1) / r;
+  return Math.max(0, Math.round(balBefore * r));
+}
+
 function daysAgo(dateStr) {
   if (!dateStr) return null;
   const d = Math.floor((Date.now() - new Date(dateStr)) / 86400000);
@@ -1436,16 +1453,38 @@ function Reports() {
       if (!m || m.line === "skip" || m.line === "cap") return;
       lines[m.line] = (lines[m.line] || 0) + Math.abs(t.amount);
     });
-    const bal = calcLoanBalance(p.loanAmount, p.loanRate, p.loanTermYears, p.loanStartDate) ?? (p.loanAmount || 0);
-    lines["12"] = Math.round(bal * (p.loanRate || 4) / 100);
+
+    // Line 12: Mortgage Interest — derived from actual payment transactions via amortization
+    // Each "Mortgage" transaction amount = principal + interest; we calculate the interest
+    // portion precisely from the amortization schedule for that payment date.
+    const mortgageTx = TRANSACTIONS.filter(t =>
+      new Date(t.date).getFullYear() === Number(taxYear) &&
+      t.property === p.name &&
+      (t.category === "Mortgage" || t.category === "Mortgage Payment")
+    );
+    let interestSource = "estimated";
+    if (mortgageTx.length > 0) {
+      lines["12"] = mortgageTx.reduce((s, t) => {
+        const interest = calcPaymentInterest(p.loanAmount, p.loanRate, p.loanTermYears, p.loanStartDate, t.date);
+        return s + (interest ?? 0);
+      }, 0);
+      interestSource = `${mortgageTx.length} payment${mortgageTx.length > 1 ? "s" : ""}`;
+    } else {
+      // Fallback: rough annual estimate from current balance × rate
+      const bal = calcLoanBalance(p.loanAmount, p.loanRate, p.loanTermYears, p.loanStartDate) ?? (p.loanAmount || 0);
+      lines["12"] = Math.round(bal * (p.loanRate || 4) / 100);
+    }
+
+    // Line 18: Depreciation — always estimated (no single transaction represents this)
     lines["18"] = Math.round(p.purchasePrice * 0.8 / 27.5);
+
     const txIncome = TRANSACTIONS.filter(t =>
       new Date(t.date).getFullYear() === Number(taxYear) && t.property === p.name && t.type === "income"
     ).reduce((s, t) => s + t.amount, 0);
     const grossRent = txIncome > 0 ? txIncome : p.monthlyRent * 12;
     const totalExp = Object.values(lines).reduce((s, v) => s + v, 0);
     const net = grossRent - totalExp;
-    return { lines, grossRent, totalExp, net, hasActual: txIncome > 0 };
+    return { lines, grossRent, totalExp, net, hasActual: txIncome > 0, interestSource };
   };
 
   // Legacy per-property calc (for year-end)
@@ -1569,7 +1608,7 @@ function Reports() {
               <h2 style={{ color: "#0f172a", fontSize: 18, fontWeight: 700, marginBottom: 4 }}>Schedule E — Supplemental Income &amp; Loss</h2>
               <p style={{ color: "#94a3b8", fontSize: 13, marginBottom: 24 }}>Tax Year {taxYear} · Part I: Income or Loss From Rental Real Estate</p>
               {reportProps.map(p => {
-                const { lines, grossRent, totalExp, net, hasActual } = calcPropLines(p);
+                const { lines, grossRent, totalExp, net, hasActual, interestSource } = calcPropLines(p);
                 const lineOrder = [
                   { n: "3",  label: "Rents Received",         income: true },
                   { n: "5",  label: "Advertising" },
@@ -1578,7 +1617,7 @@ function Reports() {
                   { n: "9",  label: "Insurance" },
                   { n: "10", label: "Legal & Prof." },
                   { n: "11", label: "Management Fees" },
-                  { n: "12", label: "Mortgage Interest (est.)" },
+                  { n: "12", label: `Mortgage Interest (${interestSource})` },
                   { n: "14", label: "Repairs" },
                   { n: "15", label: "Supplies" },
                   { n: "16", label: "Taxes" },
