@@ -376,6 +376,53 @@ function Dashboard() {
   })).sort((a, b) => b.value - a.value);
   const chartExpCats = dashExpCats.length > 0 ? dashExpCats : EXPENSE_CATEGORIES;
 
+  // Equity growth — simulate historical equity for filtered properties
+  // For a single property, build yearly equity from purchase date to now using loan amortization
+  const dashEquityGrowth = useMemo(() => {
+    if (isAll) return EQUITY_GROWTH;
+    // Build year-by-year equity for the selected property(ies)
+    const years = [];
+    const curYear = new Date().getFullYear();
+    props.forEach(p => {
+      const purchaseYear = p.purchaseDate ? new Date(p.purchaseDate).getFullYear() : (p.loanStartDate ? new Date(p.loanStartDate).getFullYear() : curYear - 2);
+      for (let y = purchaseYear; y <= curYear; y++) {
+        if (!years.includes(y)) years.push(y);
+      }
+    });
+    years.sort((a, b) => a - b);
+    // If no date info, show at least current year
+    if (years.length === 0) years.push(curYear);
+
+    return years.map(y => {
+      let equity = 0;
+      props.forEach(p => {
+        const purchaseYear = p.purchaseDate ? new Date(p.purchaseDate).getFullYear() : (p.loanStartDate ? new Date(p.loanStartDate).getFullYear() : curYear - 2);
+        if (y < purchaseYear) return; // not owned yet
+        const yearsOwned = y - purchaseYear;
+        // Estimate value appreciation (~3% per year from purchase price to current value)
+        const totalYears = Math.max(1, curYear - purchaseYear);
+        const annualAppreciation = totalYears > 0 ? Math.pow(p.currentValue / p.purchasePrice, 1 / totalYears) : 1;
+        const estValue = y === curYear ? p.currentValue : Math.round(p.purchasePrice * Math.pow(annualAppreciation, yearsOwned));
+        // Estimate loan balance at that point in time
+        let loanBal = p.loanAmount || 0;
+        if (p.loanAmount && p.loanRate && p.loanTermYears && p.loanStartDate) {
+          const loanStartYear = new Date(p.loanStartDate).getFullYear();
+          const monthsElapsed = Math.max(0, (y - loanStartYear) * 12);
+          const r = (p.loanRate / 100) / 12;
+          const n = p.loanTermYears * 12;
+          if (r > 0 && monthsElapsed < n) {
+            const M = p.loanAmount * r * Math.pow(1 + r, n) / (Math.pow(1 + r, n) - 1);
+            loanBal = Math.max(0, p.loanAmount * Math.pow(1 + r, monthsElapsed) - M * (Math.pow(1 + r, monthsElapsed) - 1) / r);
+          } else if (monthsElapsed >= n) {
+            loanBal = 0;
+          }
+        }
+        equity += Math.max(0, estValue - loanBal);
+      });
+      return { year: String(y), equity: Math.round(equity) };
+    });
+  }, [dashProp]);
+
   // Subtitle
   const subtitle = isAll
     ? "Welcome back, Brandon — here's your portfolio at a glance."
@@ -461,7 +508,7 @@ function Dashboard() {
           <h3 style={{ color: "#0f172a", fontSize: 16, fontWeight: 700, marginBottom: 4 }}>Equity Growth</h3>
           <p style={{ color: "#94a3b8", fontSize: 13, marginBottom: 20 }}>{isAll ? "Total portfolio equity over time" : `${selectedProp?.name || ""} equity over time`}</p>
           <ResponsiveContainer width="100%" height={180}>
-            <AreaChart data={EQUITY_GROWTH}>
+            <AreaChart data={dashEquityGrowth}>
               <defs>
                 <linearGradient id="colorEquity" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.2}/>
