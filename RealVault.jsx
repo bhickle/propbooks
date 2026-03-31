@@ -11,7 +11,7 @@ import {
   Percent, ArrowUp, ArrowDown, Star, MapPin, Wallet, PieChartIcon,
   Hammer, Clock, Target, Flag, Wrench,
   Users, Route, Calculator, FileCheck, UserCheck, Truck, Layers, Car,
-  CheckSquare, Square, PlusCircle, Receipt, UploadCloud, Trash2, Pencil, Info, List, Edit3
+  CheckSquare, Square, PlusCircle, Receipt, UploadCloud, Trash2, Pencil, Info, List
 } from "lucide-react";
 import {
   newId, fmt, fmtK,
@@ -3856,7 +3856,7 @@ function FlipDetail({ flip, onBack, allFlips, setAllFlips }) {
           </div>
           <div style={{ textAlign: "right" }}>
             <button onClick={openEditDeal} style={{ background: "rgba(255,255,255,0.7)", border: "1px solid rgba(0,0,0,0.08)", borderRadius: 8, padding: "6px 12px", fontSize: 12, fontWeight: 600, color: "#475569", cursor: "pointer", marginBottom: 8, display: "flex", alignItems: "center", gap: 5, marginLeft: "auto" }}>
-              <Edit3 size={12} /> Edit Deal
+              <Pencil size={12} /> Edit Deal
             </button>
             <p style={{ color: "#64748b", fontSize: 13 }}>{stage === "Sold" ? "Sale Price" : "ARV"}</p>
             <p style={{ color: "#0f172a", fontSize: 32, fontWeight: 800 }}>{fmt(saleOrARV)}</p>
@@ -4038,8 +4038,8 @@ function FlipDetail({ flip, onBack, allFlips, setAllFlips }) {
                       </td>
                       <td style={{ padding: "12px 16px" }}>
                         <div style={{ display: "flex", gap: 4 }}>
-                          <button onClick={() => openEditRehab(item, i)} style={{ background: "none", border: "none", cursor: "pointer", color: "#3b82f6", opacity: 0.4, padding: 4 }} title="Edit item"><Edit3 size={13} /></button>
-                          <button onClick={() => setDeleteConfirm({ type: "rehab", item: item, index: i })} style={{ background: "none", border: "none", cursor: "pointer", color: "#ef4444", opacity: 0.4, padding: 4 }} title="Remove item"><Trash2 size={13} /></button>
+                          <button onClick={() => openEditRehab(item, i)} style={{ background: "#f1f5f9", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "#475569", display: "flex", alignItems: "center" }} title="Edit"><Pencil size={13} /></button>
+                          <button onClick={() => setDeleteConfirm({ type: "rehab", item: item, index: i })} style={{ background: "#fee2e2", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "#ef4444", display: "flex", alignItems: "center" }} title="Delete"><Trash2 size={13} /></button>
                         </div>
                       </td>
                     </tr>
@@ -4153,8 +4153,8 @@ function FlipDetail({ flip, onBack, allFlips, setAllFlips }) {
                       <td style={{ padding: "13px 18px", fontSize: 14, fontWeight: 700, color: "#b91c1c" }}>{fmt(e.amount)}</td>
                       <td style={{ padding: "13px 18px" }}>
                         <div style={{ display: "flex", gap: 4 }}>
-                          <button onClick={() => openEditExp(e)} style={{ background: "none", border: "none", cursor: "pointer", color: "#3b82f6", opacity: 0.6, padding: 4 }} title="Edit"><Edit3 size={13} /></button>
-                          <button onClick={() => setDeleteConfirm({ type: "expense", item: e })} style={{ background: "none", border: "none", cursor: "pointer", color: "#ef4444", opacity: 0.6, padding: 4 }} title="Delete"><Trash2 size={13} /></button>
+                          <button onClick={() => openEditExp(e)} style={{ background: "#f1f5f9", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "#475569", display: "flex", alignItems: "center" }} title="Edit"><Pencil size={13} /></button>
+                          <button onClick={() => setDeleteConfirm({ type: "expense", item: e })} style={{ background: "#fee2e2", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "#ef4444", display: "flex", alignItems: "center" }} title="Delete"><Trash2 size={13} /></button>
                         </div>
                       </td>
                     </tr>
@@ -4231,8 +4231,8 @@ function FlipDetail({ flip, onBack, allFlips, setAllFlips }) {
                       </div>
                       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                         <span style={{ background: s.bg, color: s.text, borderRadius: 20, padding: "4px 12px", fontSize: 12, fontWeight: 700, textTransform: "capitalize" }}>{c.status}</span>
-                        <button onClick={() => openEditCon(c)} style={{ background: "none", border: "none", cursor: "pointer", color: "#3b82f6", opacity: 0.5, padding: 4 }} title="Edit"><Edit3 size={14} /></button>
-                        <button onClick={() => setDeleteConfirm({ type: "contractor", item: c })} style={{ background: "none", border: "none", cursor: "pointer", color: "#ef4444", opacity: 0.5, padding: 4 }} title="Delete"><Trash2 size={14} /></button>
+                        <button onClick={() => openEditCon(c)} style={{ background: "#f1f5f9", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "#475569", display: "flex", alignItems: "center" }} title="Edit"><Pencil size={13} /></button>
+                        <button onClick={() => setDeleteConfirm({ type: "contractor", item: c })} style={{ background: "#fee2e2", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "#ef4444", display: "flex", alignItems: "center" }} title="Delete"><Trash2 size={13} /></button>
                       </div>
                     </div>
                     <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
@@ -4362,10 +4362,10 @@ function FlipDetail({ flip, onBack, allFlips, setAllFlips }) {
                   ) : (
                     <span style={{ fontSize: 12, color: "#cbd5e1" }}>Pending</span>
                   )}
-                  <button onClick={(e) => { e.stopPropagation(); setEditingMilestoneIdx(i); setMilestoneEditText(m.label); }} style={{ background: "none", border: "none", cursor: "pointer", color: "#3b82f6", opacity: 0.4, padding: 4 }} title="Rename milestone">
-                    <Edit3 size={13} />
+                  <button onClick={(e) => { e.stopPropagation(); setEditingMilestoneIdx(i); setMilestoneEditText(m.label); }} style={{ background: "#f1f5f9", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "#475569", display: "flex", alignItems: "center" }} title="Rename">
+                    <Pencil size={13} />
                   </button>
-                  <button onClick={(e) => { e.stopPropagation(); setDeleteConfirm({ type: "milestone", item: m, index: i }); }} style={{ background: "none", border: "none", cursor: "pointer", color: "#ef4444", opacity: 0.4, padding: 4 }} title="Remove milestone">
+                  <button onClick={(e) => { e.stopPropagation(); setDeleteConfirm({ type: "milestone", item: m, index: i }); }} style={{ background: "#fee2e2", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "#ef4444", display: "flex", alignItems: "center" }} title="Delete">
                     <Trash2 size={13} />
                   </button>
                 </div>
