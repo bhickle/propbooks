@@ -1001,50 +1001,56 @@ function Transactions() {
   const [propFilter, setPropFilter] = useState("all");
   const [catFilter, setCatFilter] = useState("all");
   const [dateFilter, setDateFilter] = useState("all");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [editId, setEditId] = useState(null);
-  const INCOME_CATS = [
-    "Rent Income",
-    "Late Fees",
-    "Pet Fees",
-    "Parking / Storage",
-    "Laundry Income",
-    "Application Fees",
-    "Damage Deposit Applied",
-    "Other Income",
-  ];
-  const EXPENSE_CATS = [
-    "Mortgage Payment",
-    "Property Tax",
-    "Insurance",
-    "Repairs & Maintenance",
-    "Capital Improvement",
-    "HOA / Condo Fees",
-    "Property Management",
-    "Utilities",
-    "Landscaping",
-    "Advertising & Marketing",
-    "Legal & Professional Fees",
-    "Cleaning & Janitorial",
-    "Pest Control",
-    "Supplies & Materials",
-    "Travel & Mileage",
-    "Other Expenses",
-  ];
+  // ── Two-tier category system: parent → subcategories ──
+  const INCOME_GROUPS = {
+    "Rent":           ["Rent Income", "Parking / Storage", "Laundry Income"],
+    "Fees":           ["Late Fees", "Pet Fees", "Application Fees"],
+    "Other Income":   ["Damage Deposit Applied", "Other Income"],
+  };
+  const EXPENSE_GROUPS = {
+    "Mortgage & Financing": ["Mortgage Payment", "Loan Interest", "Refinance Costs"],
+    "Taxes":                ["Property Tax", "Tax Penalties"],
+    "Insurance":            ["Property Insurance", "Liability Insurance", "Flood Insurance"],
+    "Repairs & Maintenance":["Plumbing", "Electrical", "HVAC", "Appliance Repair", "Roof Repair", "General Maintenance"],
+    "Capital Improvement":  ["Kitchen Remodel", "Bathroom Remodel", "Flooring", "New Roof", "Other Capital"],
+    "HOA / Condo Fees":     ["HOA Dues", "Special Assessment"],
+    "Property Management":  ["Management Fee", "Leasing Fee"],
+    "Utilities":            ["Electric", "Gas", "Water / Sewer", "Trash", "Internet / Cable"],
+    "Grounds":              ["Landscaping", "Snow Removal", "Pest Control"],
+    "Professional Services":["Legal Fees", "Accounting / CPA", "Inspection Fees"],
+    "Marketing":            ["Advertising", "Listing Fees", "Signage"],
+    "General":              ["Cleaning", "Supplies & Materials", "Travel & Mileage", "Other Expenses"],
+  };
+  const groupsForType = t => t === "income" ? INCOME_GROUPS : EXPENSE_GROUPS;
+  // Flat list for backwards compat
+  const INCOME_CATS = Object.values(INCOME_GROUPS).flat();
+  const EXPENSE_CATS = Object.values(EXPENSE_GROUPS).flat();
   const catsForType = t => t === "income" ? INCOME_CATS : EXPENSE_CATS;
+  // Get parent group for a subcategory
+  const parentOf = (cat, type) => {
+    const groups = groupsForType(type);
+    for (const [parent, subs] of Object.entries(groups)) { if (subs.includes(cat)) return parent; }
+    return "";
+  };
+  const [selectedGroup, setSelectedGroup] = useState("");
 
-  const emptyIncome  = { date: "", property: PROPERTIES[0]?.name || "", type: "income",  category: INCOME_CATS[0],  description: "", amount: "", payee: "" };
-  const emptyExpense = { date: "", property: PROPERTIES[0]?.name || "", type: "expense", category: EXPENSE_CATS[0], description: "", amount: "", payee: "" };
+  const emptyIncome  = { date: "", property: PROPERTIES[0]?.name || "", type: "income",  category: "Rent Income",      description: "", amount: "", payee: "" };
+  const emptyExpense = { date: "", property: PROPERTIES[0]?.name || "", type: "expense", category: "Mortgage Payment", description: "", amount: "", payee: "" };
   const [form, setForm] = useState(emptyIncome);
   const [payeeFocus, setPayeeFocus] = useState(false);
   const sf = k => e => setForm(f => ({ ...f, [k]: e.target.value }));
 
-  const closeModal = () => { setShowModal(false); setPayeeFocus(false); };
-  const openAddIncome  = () => { setEditId(null); setForm(emptyIncome);  setPayeeFocus(false); setShowModal("income");  };
-  const openAddExpense = () => { setEditId(null); setForm(emptyExpense); setPayeeFocus(false); setShowModal("expense"); };
+  const closeModal = () => { setShowModal(false); setPayeeFocus(false); setSelectedGroup(""); };
+  const openAddIncome  = () => { setEditId(null); setForm(emptyIncome);  setSelectedGroup("Rent"); setPayeeFocus(false); setShowModal("income");  };
+  const openAddExpense = () => { setEditId(null); setForm(emptyExpense); setSelectedGroup("Mortgage & Financing"); setPayeeFocus(false); setShowModal("expense"); };
   const openEdit = t => {
     setEditId(t.id);
     setForm({ date: t.date, property: t.property, type: t.type, category: t.category, description: t.description, amount: String(Math.abs(t.amount)), payee: t.payee || "" });
+    setSelectedGroup(parentOf(t.category, t.type));
     setPayeeFocus(false);
     setShowModal(t.type);
   };
@@ -1066,6 +1072,12 @@ function Transactions() {
       return d.getFullYear() === ly && d.getMonth() === lm;
     }
     if (dateFilter === "thisYear") return d.getFullYear() === thisYear;
+    if (dateFilter === "lastYear") return d.getFullYear() === thisYear - 1;
+    if (dateFilter === "custom") {
+      if (dateFrom && t.date < dateFrom) return false;
+      if (dateTo && t.date > dateTo) return false;
+      return true;
+    }
     return true;
   };
 
@@ -1105,9 +1117,6 @@ function Transactions() {
           <p style={{ color: "#64748b", fontSize: 15 }}>Track all income and expenses across your portfolio</p>
         </div>
         <div style={{ display: "flex", gap: 10 }}>
-          <button style={{ border: "1px solid #e2e8f0", borderRadius: 10, padding: "10px 16px", background: "#fff", color: "#475569", fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
-            <Download size={15} /> Export CSV
-          </button>
           <button onClick={openAddExpense} style={{ background: "#fef2f2", color: "#b91c1c", border: "1px solid #fecaca", borderRadius: 10, padding: "10px 18px", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
             <Plus size={16} /> Add Expense
           </button>
@@ -1148,12 +1157,21 @@ function Transactions() {
           {allCategories.map(c => <option key={c} value={c}>{c}</option>)}
         </select>
         {/* Date range */}
-        <select value={dateFilter} onChange={e => setDateFilter(e.target.value)} style={{ ...iS, width: "auto", minWidth: 140, fontSize: 13, padding: "9px 12px" }}>
+        <select value={dateFilter} onChange={e => { setDateFilter(e.target.value); if (e.target.value !== "custom") { setDateFrom(""); setDateTo(""); } }} style={{ ...iS, width: "auto", minWidth: 140, fontSize: 13, padding: "9px 12px" }}>
           <option value="all">All Time</option>
           <option value="thisMonth">This Month</option>
           <option value="lastMonth">Last Month</option>
           <option value="thisYear">This Year</option>
+          <option value="lastYear">Last Year</option>
+          <option value="custom">Custom Range</option>
         </select>
+        {dateFilter === "custom" && (
+          <>
+            <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} style={{ ...iS, width: "auto", fontSize: 13, padding: "9px 12px" }} placeholder="From" />
+            <span style={{ color: "#94a3b8", fontSize: 13, alignSelf: "center" }}>to</span>
+            <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} style={{ ...iS, width: "auto", fontSize: 13, padding: "9px 12px" }} placeholder="To" />
+          </>
+        )}
         {/* Income / Expense toggle */}
         <div style={{ display: "flex", gap: 6, marginLeft: "auto" }}>
           {[["all", "All"], ["income", "Income"], ["expense", "Expenses"]].map(([f, label]) => (
@@ -1169,9 +1187,9 @@ function Transactions() {
           <span style={{ fontSize: 12, color: "#94a3b8", fontWeight: 600 }}>Filtered:</span>
           {propFilter !== "all" && <span style={{ background: "#eff6ff", color: "#3b82f6", borderRadius: 20, padding: "3px 10px", fontSize: 12, fontWeight: 600 }}>{propFilter.split(" ").slice(0, 2).join(" ")}</span>}
           {catFilter !== "all" && <span style={{ background: "#f0fdf4", color: "#15803d", borderRadius: 20, padding: "3px 10px", fontSize: 12, fontWeight: 600 }}>{catFilter}</span>}
-          {dateFilter !== "all" && <span style={{ background: "#fef9c3", color: "#854d0e", borderRadius: 20, padding: "3px 10px", fontSize: 12, fontWeight: 600 }}>{{ thisMonth: "This Month", lastMonth: "Last Month", thisYear: "This Year" }[dateFilter]}</span>}
+          {dateFilter !== "all" && <span style={{ background: "#fef9c3", color: "#854d0e", borderRadius: 20, padding: "3px 10px", fontSize: 12, fontWeight: 600 }}>{{ thisMonth: "This Month", lastMonth: "Last Month", thisYear: "This Year", lastYear: "Last Year", custom: dateFrom && dateTo ? `${dateFrom} – ${dateTo}` : "Custom Range" }[dateFilter]}</span>}
           {search && <span style={{ background: "#f1f5f9", color: "#475569", borderRadius: 20, padding: "3px 10px", fontSize: 12, fontWeight: 600 }}>"{search}"</span>}
-          <button onClick={() => { setPropFilter("all"); setCatFilter("all"); setDateFilter("all"); setSearch(""); }} style={{ background: "none", border: "none", color: "#94a3b8", fontSize: 12, cursor: "pointer", textDecoration: "underline", padding: 0 }}>Clear all</button>
+          <button onClick={() => { setPropFilter("all"); setCatFilter("all"); setDateFilter("all"); setDateFrom(""); setDateTo(""); setSearch(""); }} style={{ background: "none", border: "none", color: "#94a3b8", fontSize: 12, cursor: "pointer", textDecoration: "underline", padding: 0 }}>Clear all</button>
         </div>
       )}
       <div style={{ background: "#fff", borderRadius: 16, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9", overflow: "hidden" }}>
@@ -1185,7 +1203,7 @@ function Transactions() {
           </thead>
           <tbody>
             {filtered.length === 0 && (
-              <tr><td colSpan={8} style={{ padding: "48px 20px", textAlign: "center", color: "#94a3b8", fontSize: 14 }}>No transactions match your filters. <button onClick={() => { setPropFilter("all"); setCatFilter("all"); setDateFilter("all"); setSearch(""); setFilter("all"); }} style={{ background: "none", border: "none", color: "#3b82f6", fontSize: 14, cursor: "pointer", textDecoration: "underline", padding: 0 }}>Clear filters</button></td></tr>
+              <tr><td colSpan={8} style={{ padding: "48px 20px", textAlign: "center", color: "#94a3b8", fontSize: 14 }}>No transactions match your filters. <button onClick={() => { setPropFilter("all"); setCatFilter("all"); setDateFilter("all"); setDateFrom(""); setDateTo(""); setSearch(""); setFilter("all"); }} style={{ background: "none", border: "none", color: "#3b82f6", fontSize: 14, cursor: "pointer", textDecoration: "underline", padding: 0 }}>Clear filters</button></td></tr>
             )}
             {filtered.map((t, i) => (
               <tr key={t.id} style={{ borderTop: "1px solid #f1f5f9", background: i % 2 === 0 ? "#fff" : "#fafafa" }}>
@@ -1301,10 +1319,17 @@ function Transactions() {
                   {PROPERTIES.map(p => <option key={p.id} value={p.name}>{p.name}</option>)}
                 </select>
               </div>
-              <div style={{ gridColumn: "1 / -1" }}>
+              <div>
                 <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Category</label>
-                <select value={form.category} onChange={sf("category")} style={iS}>
-                  {catsForType(form.type).map(c => <option key={c}>{c}</option>)}
+                <select value={selectedGroup} onChange={e => { setSelectedGroup(e.target.value); const subs = groupsForType(form.type)[e.target.value]; if (subs && subs.length > 0) setForm(f => ({ ...f, category: subs[0] })); }} style={iS}>
+                  <option value="">Select category...</option>
+                  {Object.keys(groupsForType(form.type)).map(g => <option key={g} value={g}>{g}</option>)}
+                </select>
+              </div>
+              <div>
+                <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Subcategory</label>
+                <select value={form.category} onChange={sf("category")} style={{ ...iS, opacity: selectedGroup ? 1 : 0.5 }} disabled={!selectedGroup}>
+                  {(groupsForType(form.type)[selectedGroup] || []).map(c => <option key={c} value={c}>{c}</option>)}
                 </select>
               </div>
             </div>
@@ -1626,25 +1651,72 @@ function Reports() {
 
   // IRS Schedule E line mapping keyed by transaction category
   const CAT_TO_LINE = {
+    // Marketing (line 5)
     "Advertising & Marketing":  { line: "5",  label: "Advertising" },
+    "Advertising":              { line: "5",  label: "Advertising" },
+    "Listing Fees":             { line: "5",  label: "Advertising" },
+    "Signage":                  { line: "5",  label: "Advertising" },
+    // Auto & travel (line 6)
     "Travel & Mileage":         { line: "6",  label: "Auto & Travel" },
+    // Cleaning (line 7)
     "Cleaning & Janitorial":    { line: "7",  label: "Cleaning & Maintenance" },
+    "Cleaning":                 { line: "7",  label: "Cleaning & Maintenance" },
+    // Insurance (line 9)
     "Insurance":                { line: "9",  label: "Insurance" },
+    "Property Insurance":       { line: "9",  label: "Insurance" },
+    "Liability Insurance":      { line: "9",  label: "Insurance" },
+    "Flood Insurance":          { line: "9",  label: "Insurance" },
+    // Legal & professional (line 10)
     "Legal & Professional Fees":{ line: "10", label: "Legal & Professional" },
+    "Legal Fees":               { line: "10", label: "Legal & Professional" },
+    "Accounting / CPA":         { line: "10", label: "Legal & Professional" },
+    "Inspection Fees":          { line: "10", label: "Legal & Professional" },
+    // Management (line 11)
     "Property Management":      { line: "11", label: "Management Fees" },
+    "Management Fee":           { line: "11", label: "Management Fees" },
+    "Leasing Fee":              { line: "11", label: "Management Fees" },
+    // Mortgage (skip — handled via amortization)
     "Mortgage":                 { line: "skip", label: "" },
     "Mortgage Payment":         { line: "skip", label: "" },
-    "Property Tax":             { line: "16", label: "Taxes" },
-    "Utilities":                { line: "17", label: "Utilities" },
-    "Supplies & Materials":     { line: "15", label: "Supplies" },
+    "Loan Interest":            { line: "skip", label: "" },
+    "Refinance Costs":          { line: "skip", label: "" },
+    // Repairs (line 14)
     "Repairs & Maintenance":    { line: "14", label: "Repairs" },
     "Maintenance":              { line: "14", label: "Repairs" },
+    "Plumbing":                 { line: "14", label: "Repairs" },
+    "Electrical":               { line: "14", label: "Repairs" },
+    "HVAC":                     { line: "14", label: "Repairs" },
+    "Appliance Repair":         { line: "14", label: "Repairs" },
+    "Roof Repair":              { line: "14", label: "Repairs" },
+    "General Maintenance":      { line: "14", label: "Repairs" },
     "Pest Control":             { line: "14", label: "Repairs" },
     "Landscaping":              { line: "14", label: "Repairs" },
+    "Snow Removal":             { line: "14", label: "Repairs" },
+    // Supplies (line 15)
+    "Supplies & Materials":     { line: "15", label: "Supplies" },
+    // Taxes (line 16)
+    "Property Tax":             { line: "16", label: "Taxes" },
+    "Tax Penalties":            { line: "16", label: "Taxes" },
+    // Utilities (line 17)
+    "Utilities":                { line: "17", label: "Utilities" },
+    "Electric":                 { line: "17", label: "Utilities" },
+    "Gas":                      { line: "17", label: "Utilities" },
+    "Water / Sewer":            { line: "17", label: "Utilities" },
+    "Trash":                    { line: "17", label: "Utilities" },
+    "Internet / Cable":         { line: "17", label: "Utilities" },
+    // Other (line 19)
     "HOA Fees":                 { line: "19", label: "Other" },
     "HOA / Condo Fees":         { line: "19", label: "Other" },
+    "HOA Dues":                 { line: "19", label: "Other" },
+    "Special Assessment":       { line: "19", label: "Other" },
     "Other Expenses":           { line: "19", label: "Other" },
+    // Capital improvements (not deductible as expense — depreciated)
     "Capital Improvement":      { line: "cap", label: "" },
+    "Kitchen Remodel":          { line: "cap", label: "" },
+    "Bathroom Remodel":         { line: "cap", label: "" },
+    "Flooring":                 { line: "cap", label: "" },
+    "New Roof":                 { line: "cap", label: "" },
+    "Other Capital":            { line: "cap", label: "" },
   };
 
   // Build per-property Schedule E lines from real transactions
