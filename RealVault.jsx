@@ -671,7 +671,7 @@ function Dashboard({ onNavigate, onNavigateToTx }) {
   );
 }
 
-function Properties({ onSelect }) {
+function Properties({ onSelect, editPropertyId, onClearEditId }) {
   const [propData, setPropData] = useState(PROPERTIES);
   const [view, setView] = useState("grid");
   const [search, setSearch] = useState("");
@@ -681,6 +681,19 @@ function Properties({ onSelect }) {
   const emptyP = { name: "", address: "", type: "Single Family", units: "1", purchasePrice: "", currentValue: "", closingCosts: "", loanAmount: "", loanRate: "", loanTermYears: "30", loanStartDate: "", monthlyRent: "", monthlyExpenses: "", status: "Occupied", purchaseDate: "", photo: null };
   const [form, setForm] = useState(emptyP);
   const sf = k => e => setForm(f => ({ ...f, [k]: e.target.value }));
+
+  // Auto-open edit modal when navigated from PropertyDetail health banner
+  useEffect(() => {
+    if (editPropertyId) {
+      const p = propData.find(pr => pr.id === editPropertyId);
+      if (p) {
+        setEditId(p.id);
+        setForm({ name: p.name, address: p.address, type: p.type, units: String(p.units), purchasePrice: String(p.purchasePrice), currentValue: String(p.currentValue), closingCosts: String(p.closingCosts || ""), loanAmount: String(p.loanAmount || ""), loanRate: String(p.loanRate || ""), loanTermYears: String(p.loanTermYears || "30"), loanStartDate: p.loanStartDate || "", monthlyRent: String(p.monthlyRent), monthlyExpenses: String(p.monthlyExpenses), status: p.status, purchaseDate: p.purchaseDate || "", photo: p.photo || null });
+        setShowModal(true);
+      }
+      onClearEditId && onClearEditId();
+    }
+  }, [editPropertyId]);
 
   const handlePhotoUpload = e => {
     const file = e.target.files[0];
@@ -1034,7 +1047,7 @@ function Properties({ onSelect }) {
   );
 }
 
-function PropertyDetail({ property, onBack }) {
+function PropertyDetail({ property, onBack, onEditProperty, onGoToTransactions }) {
   const calcBal = calcLoanBalance(property.loanAmount, property.loanRate, property.loanTermYears, property.loanStartDate);
   const effectiveMortgage = calcBal !== null ? calcBal : (property.mortgage || 0);
   const equity = property.currentValue - effectiveMortgage;
@@ -1076,9 +1089,13 @@ function PropertyDetail({ property, onBack }) {
                     <p style={{ color: "#0f172a", fontSize: 13, fontWeight: 700, marginBottom: 2 }}>{item.label}</p>
                     <p style={{ color: "#64748b", fontSize: 12, lineHeight: 1.5 }}>{item.detail}</p>
                   </div>
-                  <span style={{
-                    fontSize: 11, fontWeight: 600, color: "#b45309", background: "#fef3c7", borderRadius: 6, padding: "3px 10px", whiteSpace: "nowrap", flexShrink: 0,
-                  }}>{item.field ? "Edit property to update" : "Log transactions"}</span>
+                  <button onClick={e => { e.stopPropagation(); item.field ? onEditProperty && onEditProperty(property) : onGoToTransactions && onGoToTransactions(); }} style={{
+                    fontSize: 11, fontWeight: 600, color: "#b45309", background: "#fef3c7", borderRadius: 6, padding: "5px 12px", whiteSpace: "nowrap", flexShrink: 0,
+                    border: "1px solid #fde68a", cursor: "pointer", transition: "all 0.15s",
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.background = "#fde68a"; e.currentTarget.style.color = "#92400e"; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = "#fef3c7"; e.currentTarget.style.color = "#b45309"; }}
+                  >{item.field ? "Edit Property" : "Go to Transactions"}</button>
                 </div>
               ))}
             </div>
@@ -4422,6 +4439,7 @@ function AppShell() {
   const [showOnboarding, setShowOnboarding] = useState(user?.plan === "trial");
   const [highlightTxId, setHighlightTxId] = useState(null);
   const [navSource, setNavSource] = useState(null);
+  const [editPropertyId, setEditPropertyId] = useState(null); // triggers edit modal in Properties
 
   const navigateToTransaction = (txId) => {
     setHighlightTxId(txId);
@@ -4567,8 +4585,8 @@ function AppShell() {
         </div>
         <div style={{ flex: 1, padding: 32, maxWidth: 1400, width: "100%" }}>
           {activeView === "dashboard" && <Dashboard onNavigate={setActiveView} onNavigateToTx={navigateToTransaction} />}
-          {activeView === "properties" && <Properties onSelect={handlePropertySelect} />}
-          {activeView === "propertyDetail" && selectedProperty && <PropertyDetail property={selectedProperty} onBack={() => setActiveView("properties")} />}
+          {activeView === "properties" && <Properties onSelect={handlePropertySelect} editPropertyId={editPropertyId} onClearEditId={() => setEditPropertyId(null)} />}
+          {activeView === "propertyDetail" && selectedProperty && <PropertyDetail property={selectedProperty} onBack={() => setActiveView("properties")} onEditProperty={(p) => { setEditPropertyId(p.id); setActiveView("properties"); }} onGoToTransactions={() => setActiveView("transactions")} />}
           {activeView === "transactions" && <Transactions highlightTxId={highlightTxId} onBack={navSource === "dashboard" ? () => { setActiveView("dashboard"); setHighlightTxId(null); setNavSource(null); } : null} onClearHighlight={() => setHighlightTxId(null)} />}
           {activeView === "analytics" && <Analytics />}
           {activeView === "reports" && <Reports />}
