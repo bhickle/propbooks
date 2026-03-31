@@ -1030,10 +1030,13 @@ function Transactions() {
   const INCOME_CATS = Object.values(INCOME_GROUPS).flat();
   const EXPENSE_CATS = Object.values(EXPENSE_GROUPS).flat();
   const catsForType = t => t === "income" ? INCOME_CATS : EXPENSE_CATS;
-  // Get parent group for a subcategory
+  // Get parent group for a subcategory (checks both income & expense groups, handles legacy names)
   const parentOf = (cat, type) => {
     const groups = groupsForType(type);
     for (const [parent, subs] of Object.entries(groups)) { if (subs.includes(cat)) return parent; }
+    // Fallback: check the other type's groups too (for filter chip display)
+    const alt = type === "income" ? EXPENSE_GROUPS : INCOME_GROUPS;
+    for (const [parent, subs] of Object.entries(alt)) { if (subs.includes(cat)) return parent; }
     return "";
   };
   // selectedGroup no longer needed — single grouped dropdown
@@ -1209,6 +1212,7 @@ function Transactions() {
                 <td style={{ padding: "14px 20px", fontSize: 13, color: "#64748b" }}>{t.date}</td>
                 <td style={{ padding: "14px 20px", fontSize: 13, fontWeight: 600, color: "#0f172a" }}>{t.property.split(" ").slice(0, 2).join(" ")}</td>
                 <td style={{ padding: "14px 20px" }}>
+                  {(() => { const group = parentOf(t.category, t.type); return group && group !== t.category ? <p style={{ fontSize: 10, color: "#94a3b8", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.03em", marginBottom: 2 }}>{group}</p> : null; })()}
                   <span style={{ background: "#f1f5f9", borderRadius: 6, padding: "3px 8px", fontSize: 12, fontWeight: 600, color: "#475569" }}>{t.category}</span>
                 </td>
                 <td style={{ padding: "14px 20px", fontSize: 13, color: "#475569" }}>{t.payee || <span style={{ color: "#cbd5e1", fontStyle: "italic" }}>—</span>}</td>
