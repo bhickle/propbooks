@@ -3843,10 +3843,10 @@ function FlipDetail({ flip, onBack, allFlips, setAllFlips }) {
   const rehabComplete = rehabItems.filter(i => i.status === "complete").length;
   const tabs = [
     { id: "overview", label: "Overview", icon: LayoutDashboard },
-    { id: "rehab", label: `Rehab (${rehabComplete}/${rehabItems.length})`, icon: Wrench },
-    { id: "expenses", label: `Expenses (${flipExpenses.length})`, icon: Receipt },
-    { id: "contractors", label: `Contractors (${flipContractors.length})`, icon: UserCheck },
     { id: "milestones", label: `Milestones (${doneCount}/${milestones.length})`, icon: CheckSquare },
+    { id: "rehab", label: `Rehab (${rehabComplete}/${rehabItems.length})`, icon: Wrench },
+    { id: "contractors", label: `Contractors (${flipContractors.length})`, icon: UserCheck },
+    { id: "expenses", label: `Expenses (${flipExpenses.length})`, icon: Receipt },
   ];
 
   return (
@@ -3881,11 +3881,11 @@ function FlipDetail({ flip, onBack, allFlips, setAllFlips }) {
           </div>
         </div>
       </div>
-      <div style={{ display: "flex", gap: 4, background: "#f1f5f9", borderRadius: 12, padding: 4, marginBottom: 24, width: "fit-content" }}>
+      <div style={{ display: "flex", gap: 6, background: "#f8fafc", borderRadius: 14, padding: 5, marginBottom: 24, border: "1px solid #e2e8f0" }}>
         {tabs.map(t => {
           const active = activeTab === t.id;
           return (
-            <button key={t.id} onClick={() => setActiveTab(t.id)} style={{ display: "flex", alignItems: "center", gap: 7, padding: "9px 16px", borderRadius: 9, border: "none", background: active ? "#fff" : "transparent", color: active ? "#0f172a" : "#64748b", fontWeight: active ? 700 : 500, fontSize: 13, cursor: "pointer", boxShadow: active ? "0 1px 3px rgba(0,0,0,0.1)" : "none", whiteSpace: "nowrap" }}>
+            <button key={t.id} onClick={() => setActiveTab(t.id)} style={{ display: "flex", alignItems: "center", gap: 7, padding: "10px 18px", borderRadius: 10, border: "none", background: active ? "#f59e0b" : "transparent", color: active ? "#fff" : "#64748b", fontWeight: active ? 700 : 500, fontSize: 13, cursor: "pointer", boxShadow: active ? "0 2px 8px rgba(245,158,11,0.3)" : "none", whiteSpace: "nowrap", transition: "all 0.15s ease" }}>
               <t.icon size={14} />
               {t.label}
             </button>
