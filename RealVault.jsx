@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import {
   AreaChart, Area, BarChart, Bar, LineChart, Line,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend
@@ -328,7 +328,7 @@ function Badge({ status }) {
 // VIEWS
 // ---------------------------------------------
 
-function Dashboard({ onNavigate }) {
+function Dashboard({ onNavigate, onNavigateToTx }) {
   const [dashProp, setDashProp] = useState("all");
   const isAll = dashProp === "all";
   const props = isAll ? PROPERTIES : PROPERTIES.filter(p => String(p.id) === dashProp);
@@ -532,7 +532,7 @@ function Dashboard({ onNavigate }) {
             {filteredTx.length === 0 ? (
               <p style={{ color: "#94a3b8", fontSize: 13, textAlign: "center", padding: 24 }}>No transactions for this property yet.</p>
             ) : filteredTx.slice(0, 5).map(t => (
-              <div key={t.id} onClick={() => onNavigate && onNavigate("transactions")} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer", padding: "10px 8px", borderRadius: 10, transition: "background 0.15s" }}
+              <div key={t.id} onClick={() => onNavigateToTx && onNavigateToTx(t.id)} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer", padding: "10px 8px", borderRadius: 10, transition: "background 0.15s" }}
                 onMouseEnter={e => e.currentTarget.style.background = "#f8fafc"}
                 onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -997,7 +997,7 @@ function PropertyDetail({ property, onBack }) {
   );
 }
 
-function Transactions() {
+function Transactions({ highlightTxId, onBack, onClearHighlight }) {
   const [txData, setTxData] = useState(TRANSACTIONS);
   const [filter, setFilter] = useState("all");
   const [search, setSearch] = useState("");
@@ -1007,6 +1007,24 @@ function Transactions() {
   const [dateFrom, setDateFrom] = useState("");
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [dateTo, setDateTo] = useState("");
+  const [flashId, setFlashId] = useState(highlightTxId);
+  const highlightRef = useRef(null);
+
+  useEffect(() => {
+    if (highlightTxId) {
+      setFlashId(highlightTxId);
+      setTimeout(() => {
+        if (highlightRef.current) {
+          highlightRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+      }, 100);
+      const timer = setTimeout(() => {
+        setFlashId(null);
+        onClearHighlight && onClearHighlight();
+      }, 2500);
+      return () => clearTimeout(timer);
+    }
+  }, [highlightTxId]);
   const [showModal, setShowModal] = useState(false);
   const [editId, setEditId] = useState(null);
   // ── Two-tier category system: parent → subcategories ──
@@ -1117,6 +1135,11 @@ function Transactions() {
 
   return (
     <div>
+      {onBack && (
+        <button onClick={onBack} style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: "none", color: "#3b82f6", fontSize: 13, fontWeight: 600, cursor: "pointer", padding: "0 0 12px", marginBottom: 0 }}>
+          <ChevronRight size={14} style={{ transform: "rotate(180deg)" }} /> Back to Dashboard
+        </button>
+      )}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
         <div>
           <h1 style={{ color: "#0f172a", fontSize: 26, fontWeight: 700, marginBottom: 4 }}>Transactions</h1>
@@ -1212,7 +1235,7 @@ function Transactions() {
               <tr><td colSpan={8} style={{ padding: "48px 20px", textAlign: "center", color: "#94a3b8", fontSize: 14 }}>No transactions match your filters. <button onClick={() => { setPropFilter("all"); setCatFilter("all"); setDateFilter("all"); setDateFrom(""); setDateTo(""); setSearch(""); setFilter("all"); }} style={{ background: "none", border: "none", color: "#3b82f6", fontSize: 14, cursor: "pointer", textDecoration: "underline", padding: 0 }}>Clear filters</button></td></tr>
             )}
             {filtered.map((t, i) => (
-              <tr key={t.id} style={{ borderTop: "1px solid #f1f5f9", background: i % 2 === 0 ? "#fff" : "#fafafa" }}>
+              <tr key={t.id} ref={t.id === flashId ? highlightRef : undefined} style={{ borderTop: "1px solid #f1f5f9", background: t.id === flashId ? "#dbeafe" : i % 2 === 0 ? "#fff" : "#fafafa", transition: "background 1.5s ease" }}>
                 <td style={{ padding: "14px 20px", fontSize: 13, color: "#64748b" }}>{t.date}</td>
                 <td style={{ padding: "14px 20px", fontSize: 13, fontWeight: 600, color: "#0f172a" }}>{t.property.split(" ").slice(0, 2).join(" ")}</td>
                 <td style={{ padding: "14px 20px" }}>
@@ -4010,6 +4033,14 @@ function AppShell() {
   const [selectedFlip, setSelectedFlip] = useState(null);
   const [showSettings, setShowSettings] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(user?.plan === "trial");
+  const [highlightTxId, setHighlightTxId] = useState(null);
+  const [navSource, setNavSource] = useState(null);
+
+  const navigateToTransaction = (txId) => {
+    setHighlightTxId(txId);
+    setNavSource("dashboard");
+    setActiveView("transactions");
+  };
 
   const rentalNavItems = [
     { id: "dashboard",    label: "Dashboard",    icon: LayoutDashboard },
@@ -4064,7 +4095,7 @@ function AppShell() {
           {rentalNavItems.map(item => {
             const active = activeView === item.id || (item.id === "properties" && activeView === "propertyDetail");
             return (
-              <button key={item.id} onClick={() => { setActiveView(item.id); setSelectedProperty(null); setSelectedFlip(null); }}
+              <button key={item.id} onClick={() => { setActiveView(item.id); setSelectedProperty(null); setSelectedFlip(null); setHighlightTxId(null); setNavSource(null); }}
                 style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 10, border: "none", background: active ? "rgba(59,130,246,0.2)" : "transparent", color: active ? "#93c5fd" : "#64748b", fontWeight: active ? 700 : 500, fontSize: 14, cursor: "pointer", marginBottom: 2, textAlign: "left", transition: "all 0.15s" }}
                 onMouseEnter={e => { if (!active) e.currentTarget.style.background = "rgba(255,255,255,0.05)"; }}
                 onMouseLeave={e => { if (!active) e.currentTarget.style.background = "transparent"; }}>
@@ -4079,7 +4110,7 @@ function AppShell() {
           {flipNavItems.map(item => {
             const active = activeView === item.id || (item.id === "flips" && activeView === "flipDetail") || (item.id === "flipdashboard" && activeView === "flipDetail");
             return (
-              <button key={item.id} onClick={() => { setActiveView(item.id); setSelectedFlip(null); setSelectedProperty(null); }}
+              <button key={item.id} onClick={() => { setActiveView(item.id); setSelectedFlip(null); setSelectedProperty(null); setHighlightTxId(null); setNavSource(null); }}
                 style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 10, border: "none", background: active ? "rgba(245,158,11,0.18)" : "transparent", color: active ? "#fcd34d" : "#64748b", fontWeight: active ? 700 : 500, fontSize: 14, cursor: "pointer", marginBottom: 2, textAlign: "left", transition: "all 0.15s" }}
                 onMouseEnter={e => { if (!active) e.currentTarget.style.background = "rgba(255,255,255,0.05)"; }}
                 onMouseLeave={e => { if (!active) e.currentTarget.style.background = "transparent"; }}>
@@ -4094,7 +4125,7 @@ function AppShell() {
           {toolNavItems.map(item => {
             const active = activeView === item.id;
             return (
-              <button key={item.id} onClick={() => { setActiveView(item.id); setSelectedFlip(null); setSelectedProperty(null); }}
+              <button key={item.id} onClick={() => { setActiveView(item.id); setSelectedFlip(null); setSelectedProperty(null); setHighlightTxId(null); setNavSource(null); }}
                 style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 10, border: "none", background: active ? "rgba(139,92,246,0.18)" : "transparent", color: active ? "#c4b5fd" : "#64748b", fontWeight: active ? 700 : 500, fontSize: 14, cursor: "pointer", marginBottom: 2, textAlign: "left", transition: "all 0.15s" }}
                 onMouseEnter={e => { if (!active) e.currentTarget.style.background = "rgba(255,255,255,0.05)"; }}
                 onMouseLeave={e => { if (!active) e.currentTarget.style.background = "transparent"; }}>
@@ -4148,10 +4179,10 @@ function AppShell() {
           </div>
         </div>
         <div style={{ flex: 1, padding: 32, maxWidth: 1400, width: "100%" }}>
-          {activeView === "dashboard" && <Dashboard onNavigate={setActiveView} />}
+          {activeView === "dashboard" && <Dashboard onNavigate={setActiveView} onNavigateToTx={navigateToTransaction} />}
           {activeView === "properties" && <Properties onSelect={handlePropertySelect} />}
           {activeView === "propertyDetail" && selectedProperty && <PropertyDetail property={selectedProperty} onBack={() => setActiveView("properties")} />}
-          {activeView === "transactions" && <Transactions />}
+          {activeView === "transactions" && <Transactions highlightTxId={highlightTxId} onBack={navSource === "dashboard" ? () => { setActiveView("dashboard"); setHighlightTxId(null); setNavSource(null); } : null} onClearHighlight={() => setHighlightTxId(null)} />}
           {activeView === "analytics" && <Analytics />}
           {activeView === "reports" && <Reports />}
           {activeView === "flipdashboard"   && <FlipDashboard onSelect={handleFlipSelect} />}
