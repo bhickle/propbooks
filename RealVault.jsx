@@ -2465,6 +2465,11 @@ function FlipDetail({ flip, onBack, allFlips, setAllFlips }) {
   const [conData, setConData] = useState(CONTRACTORS.filter(c => c.flipId === flip.id));
   const [rehabItems, setRehabItems] = useState(flip.rehabItems || []);
   const [milestones, setMilestones] = useState(FLIP_MILESTONES[flip.id] || DEFAULT_MILESTONES.map(label => ({ label, done: false, date: null })));
+  const [newMilestone, setNewMilestone] = useState("");
+  const [showAddRehab, setShowAddRehab] = useState(false);
+  const emptyRehab = { category: "", budgeted: "", spent: "0", status: "pending" };
+  const [rehabForm, setRehabForm] = useState(emptyRehab);
+  const sfR = k => e => setRehabForm(f => ({ ...f, [k]: e.target.value }));
   const [stage, setStage] = useState(flip.stage);
 
   const emptyExp = { date: "", vendor: "", category: "Materials/Supplies", description: "", amount: "" };
@@ -2650,9 +2655,14 @@ function FlipDetail({ flip, onBack, allFlips, setAllFlips }) {
       </div>
       <div style={{ background: "#fff", borderRadius: 16, padding: 24, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <Wrench size={18} color="#f59e0b" />
-            <h3 style={{ color: "#0f172a", fontSize: 16, fontWeight: 700 }}>Rehab Budget Tracker</h3>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <Wrench size={18} color="#f59e0b" />
+              <h3 style={{ color: "#0f172a", fontSize: 16, fontWeight: 700 }}>Rehab Budget Tracker</h3>
+            </div>
+            <button onClick={() => setShowAddRehab(true)} style={{ background: "#f59e0b", color: "#fff", border: "none", borderRadius: 8, padding: "6px 12px", fontWeight: 600, fontSize: 12, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
+              <Plus size={13} /> Add Item
+            </button>
           </div>
           <div style={{ display: "flex", gap: 16 }}>
             <span style={{ fontSize: 13, color: "#64748b" }}>Budget: <strong style={{ color: "#0f172a" }}>{fmt(rehabTotalBudget)}</strong></span>
@@ -2665,7 +2675,7 @@ function FlipDetail({ flip, onBack, allFlips, setAllFlips }) {
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr style={{ background: "#f8fafc" }}>
-                {["Category", "Budgeted", "Spent", "Remaining", "Status"].map(h => (
+                {["Category", "Budgeted", "Spent", "Remaining", "Status", ""].map(h => (
                   <th key={h} style={{ padding: "10px 16px", textAlign: "left", color: "#94a3b8", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>{h}</th>
                 ))}
               </tr>
@@ -2687,6 +2697,9 @@ function FlipDetail({ flip, onBack, allFlips, setAllFlips }) {
                         {statusIcons[item.status]} {item.status}
                       </button>
                     </td>
+                    <td style={{ padding: "12px 16px" }}>
+                      <button onClick={() => setRehabItems(prev => prev.filter((_, idx) => idx !== i))} style={{ background: "none", border: "none", cursor: "pointer", color: "#ef4444", opacity: 0.4, padding: 4 }} title="Remove item"><Trash2 size={13} /></button>
+                    </td>
                   </tr>
                 );
               })}
@@ -2694,6 +2707,50 @@ function FlipDetail({ flip, onBack, allFlips, setAllFlips }) {
           </table>
         </div>
       </div>
+
+      {showAddRehab && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
+          <div style={{ background: "#fff", borderRadius: 20, width: 420, padding: 28 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+              <h2 style={{ color: "#0f172a", fontSize: 18, fontWeight: 700 }}>Add Rehab Item</h2>
+              <button onClick={() => { setShowAddRehab(false); setRehabForm(emptyRehab); }} style={{ background: "#f1f5f9", border: "none", borderRadius: 8, width: 32, height: 32, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><X size={16} color="#64748b" /></button>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+              <div>
+                <label style={{ display: "block", color: "#374151", fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Category *</label>
+                <input value={rehabForm.category} onChange={sfR("category")} placeholder="e.g. Kitchen, Flooring, HVAC" style={iS} />
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                <div>
+                  <label style={{ display: "block", color: "#374151", fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Budget *</label>
+                  <input value={rehabForm.budgeted} onChange={sfR("budgeted")} type="number" placeholder="18000" style={iS} />
+                </div>
+                <div>
+                  <label style={{ display: "block", color: "#374151", fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Spent So Far</label>
+                  <input value={rehabForm.spent} onChange={sfR("spent")} type="number" placeholder="0" style={iS} />
+                </div>
+              </div>
+              <div>
+                <label style={{ display: "block", color: "#374151", fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Status</label>
+                <select value={rehabForm.status} onChange={sfR("status")} style={iS}>
+                  <option value="pending">Pending</option>
+                  <option value="in-progress">In Progress</option>
+                  <option value="complete">Complete</option>
+                </select>
+              </div>
+            </div>
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 22 }}>
+              <button onClick={() => { setShowAddRehab(false); setRehabForm(emptyRehab); }} style={{ padding: "10px 20px", borderRadius: 10, border: "1px solid #e2e8f0", background: "#fff", color: "#64748b", fontWeight: 600, fontSize: 14, cursor: "pointer" }}>Cancel</button>
+              <button onClick={() => {
+                if (!rehabForm.category || !rehabForm.budgeted) return;
+                setRehabItems(prev => [...prev, { category: rehabForm.category, budgeted: parseFloat(rehabForm.budgeted) || 0, spent: parseFloat(rehabForm.spent) || 0, status: rehabForm.status, contractorIds: [] }]);
+                setRehabForm(emptyRehab);
+                setShowAddRehab(false);
+              }} style={{ padding: "10px 24px", borderRadius: 10, border: "none", background: "#f59e0b", color: "#fff", fontWeight: 600, fontSize: 14, cursor: "pointer", opacity: (!rehabForm.category || !rehabForm.budgeted) ? 0.5 : 1 }}>Add Item</button>
+            </div>
+          </div>
+        </div>
+      )}
       </>)}
       {activeTab === "expenses" && (
         <div>
@@ -2920,27 +2977,49 @@ function FlipDetail({ flip, onBack, allFlips, setAllFlips }) {
           </div>
           <div style={{ background: "#fff", borderRadius: 16, padding: 24, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" }}>
             {milestones.map((m, i) => (
-              <div key={i} onClick={() => {
-                const updated = milestones.map((item, idx) => idx === i ? { ...item, done: !item.done, date: !item.done ? new Date().toISOString().split("T")[0] : null } : item);
-                setMilestones(updated);
-              }} style={{ display: "flex", alignItems: "center", gap: 14, padding: "13px 0", borderBottom: i < milestones.length - 1 ? "1px solid #f8fafc" : "none", cursor: "pointer" }}
+              <div key={i} style={{ display: "flex", alignItems: "center", gap: 14, padding: "13px 0", borderBottom: "1px solid #f8fafc" }}
                 onMouseEnter={e => e.currentTarget.style.background = "#f8fafc"}
                 onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
-                <div style={{ color: m.done ? "#10b981" : "#cbd5e1", flexShrink: 0 }}>
+                <div onClick={() => {
+                  const updated = milestones.map((item, idx) => idx === i ? { ...item, done: !item.done, date: !item.done ? new Date().toISOString().split("T")[0] : null } : item);
+                  setMilestones(updated);
+                }} style={{ color: m.done ? "#10b981" : "#cbd5e1", flexShrink: 0, cursor: "pointer" }}>
                   {m.done ? <CheckSquare size={20} /> : <Square size={20} />}
                 </div>
-                <div style={{ flex: 1 }}>
-                  <p style={{ fontSize: 14, fontWeight: m.done ? 600 : 500, color: m.done ? "#0f172a" : "#475569", textDecoration: m.done ? "none" : "none" }}>{m.label}</p>
+                <div onClick={() => {
+                  const updated = milestones.map((item, idx) => idx === i ? { ...item, done: !item.done, date: !item.done ? new Date().toISOString().split("T")[0] : null } : item);
+                  setMilestones(updated);
+                }} style={{ flex: 1, cursor: "pointer" }}>
+                  <p style={{ fontSize: 14, fontWeight: m.done ? 600 : 500, color: m.done ? "#0f172a" : "#475569" }}>{m.label}</p>
                 </div>
-                <div>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                   {m.done && m.date ? (
-                    <span style={{ fontSize: 12, color: "#10b981", fontWeight: 600 }}>v {m.date}</span>
+                    <span style={{ fontSize: 12, color: "#10b981", fontWeight: 600 }}>&#10003; {m.date}</span>
                   ) : (
                     <span style={{ fontSize: 12, color: "#cbd5e1" }}>Pending</span>
                   )}
+                  <button onClick={(e) => { e.stopPropagation(); setMilestones(prev => prev.filter((_, idx) => idx !== i)); }} style={{ background: "none", border: "none", cursor: "pointer", color: "#ef4444", opacity: 0.4, padding: 4 }} title="Remove milestone">
+                    <Trash2 size={13} />
+                  </button>
                 </div>
               </div>
             ))}
+            {/* Add custom milestone inline */}
+            <div style={{ display: "flex", gap: 8, marginTop: 12, paddingTop: 12, borderTop: "1px solid #f1f5f9" }}>
+              <input value={newMilestone} onChange={e => setNewMilestone(e.target.value)} onKeyDown={e => {
+                if (e.key === "Enter" && newMilestone.trim()) {
+                  setMilestones(prev => [...prev, { label: newMilestone.trim(), done: false, date: null }]);
+                  setNewMilestone("");
+                }
+              }} placeholder="Add custom milestone..." style={{ ...iS, flex: 1 }} />
+              <button onClick={() => {
+                if (!newMilestone.trim()) return;
+                setMilestones(prev => [...prev, { label: newMilestone.trim(), done: false, date: null }]);
+                setNewMilestone("");
+              }} style={{ background: "#10b981", color: "#fff", border: "none", borderRadius: 10, padding: "10px 16px", fontWeight: 600, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6, whiteSpace: "nowrap", opacity: newMilestone.trim() ? 1 : 0.5 }}>
+                <Plus size={14} /> Add
+              </button>
+            </div>
           </div>
         </div>
       )}
