@@ -2082,11 +2082,135 @@ function Analytics() {
   );
 }
 
+// ── REPORT EXPORT HELPERS ──
+function downloadFile(content, filename, mimeType) {
+  const blob = new Blob([content], { type: mimeType });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = filename; document.body.appendChild(a); a.click();
+  document.body.removeChild(a); URL.revokeObjectURL(url);
+}
+
+function exportReportCSV(activeReport, reportProps, monthlyData, deprRows, lenderData, calcPropLines, taxYear) {
+  let csv = "";
+  if (activeReport === "scheduleE") {
+    csv = "Property,Line,Description,Amount\n";
+    reportProps.forEach(p => {
+      const { lines, grossRent, net } = calcPropLines(p);
+      csv += `"${p.name}",3,Rents Received,${grossRent}\n`;
+      Object.entries(lines).forEach(([line, amt]) => {
+        const labels = { "5":"Advertising","6":"Auto & Travel","7":"Cleaning","9":"Insurance","10":"Legal","11":"Management","12":"Mortgage Interest","14":"Repairs","15":"Supplies","16":"Taxes","17":"Utilities","18":"Depreciation","19":"Other" };
+        csv += `"${p.name}",${line},"${labels[line] || "Other"}",${Math.round(amt)}\n`;
+      });
+      csv += `"${p.name}",26,Net Income / (Loss),${Math.round(net)}\n`;
+    });
+  } else if (activeReport === "cashflow") {
+    csv = "Month,Source,Income,Expenses,Net Cash Flow,Margin %\n";
+    monthlyData.forEach(m => {
+      const margin = m.income > 0 ? ((m.net / m.income) * 100).toFixed(1) : "0";
+      csv += `${m.month},${m.isActual ? "Actual" : "Estimated"},${m.income},${m.expenses},${m.net},${margin}\n`;
+    });
+  } else if (activeReport === "depreciation") {
+    csv = "Property,Placed in Service,Purchase Price,Depr Basis,Annual Deduction,Years Held,Cumulative,Remaining\n";
+    deprRows.forEach(({ p, basis, annual, yearsHeld, cumul, remaining }) => {
+      csv += `"${p.name}",${p.purchaseDate || ""},${p.purchasePrice},${basis},${annual},${yearsHeld},${cumul},${remaining}\n`;
+    });
+  } else if (activeReport === "lenderPackage") {
+    csv = "Property,Annual NOI,Loan Balance,Current Value,Equity,Monthly DS,DSCR,LTV %\n";
+    lenderData.forEach(({ p, noi, bal, mds, dscr, ltv, equity }) => {
+      csv += `"${p.name}",${noi},${Math.round(bal)},${p.currentValue},${Math.round(equity)},${mds},${dscr ? dscr.toFixed(2) : ""},${ltv.toFixed(1)}\n`;
+    });
+  } else if (activeReport === "yearend") {
+    csv = "Property,Annual Rent,Annual Expenses,Depreciation,Mortgage Interest (est),Net\n";
+    reportProps.forEach(p => {
+      const cEff = getEffectiveMonthly(p, TRANSACTIONS);
+      const annRent = cEff.monthlyIncome * 12;
+      const annExp = cEff.monthlyExpenses * 12;
+      const yrs = p.type === "Commercial" ? 39 : 27.5;
+      const depr = Math.round(p.purchasePrice * 0.8 / yrs);
+      const bal = calcLoanBalance(p.loanAmount, p.loanRate, p.loanTermYears, p.loanStartDate) ?? (p.loanAmount || 0);
+      const intEst = Math.round(bal * (p.loanRate || 4) / 100);
+      csv += `"${p.name}",${annRent},${annExp},${depr},${intEst},${annRent - annExp - depr - intEst}\n`;
+    });
+  } else if (activeReport === "ownerStatement") {
+    csv = "Type,Date,Description,Category,Amount\n";
+    const p = reportProps[0];
+    if (p) {
+      const monthTx = TRANSACTIONS.filter(t => {
+        const d = new Date(t.date);
+        return d.getMonth() === new Date().getMonth() && d.getFullYear() === Number(taxYear) && t.property === p.name;
+      });
+      monthTx.forEach(t => { csv += `${t.type},${t.date},"${t.description}","${t.category}",${t.amount}\n`; });
+    }
+  }
+  downloadFile(csv, `RealVault_${activeReport}_${taxYear}.csv`, "text/csv");
+}
+
+function exportReportPDF(activeReport, reportProps, monthlyData, deprRows, lenderData, calcPropLines, taxYear, propFilter) {
+  // Build printable HTML and open in new window for browser print-to-PDF
+  const reportNames = { scheduleE: "Schedule E", cashflow: "Cash Flow Report", ownerStatement: "Owner's Statement", lenderPackage: "Lender Package", depreciation: "Depreciation Schedule", yearend: "Year-End Summary" };
+  let tableHTML = "";
+
+  if (activeReport === "scheduleE") {
+    reportProps.forEach(p => {
+      const { lines, grossRent, totalExp, net, interestSource } = calcPropLines(p);
+      tableHTML += `<h3>${p.name}</h3><p style="color:#888">${p.address}</p><table><tr><th>Line</th><th>Description</th><th style="text-align:right">Amount</th></tr>`;
+      tableHTML += `<tr><td>3</td><td>Rents Received</td><td style="text-align:right;color:green">+$${grossRent.toLocaleString()}</td></tr>`;
+      const labels = { "5":"Advertising","6":"Auto & Travel","7":"Cleaning","9":"Insurance","10":"Legal & Professional","11":"Management Fees","12":`Mortgage Interest (${interestSource})`,"14":"Repairs","15":"Supplies","16":"Taxes","17":"Utilities","18":"Depreciation (est.)","19":"Other" };
+      Object.entries(lines).sort((a,b) => Number(a[0]) - Number(b[0])).forEach(([line, amt]) => {
+        if (amt > 0) tableHTML += `<tr><td>${line}</td><td>${labels[line] || "Other"}</td><td style="text-align:right;color:#b91c1c">-$${Math.round(amt).toLocaleString()}</td></tr>`;
+      });
+      tableHTML += `<tr style="border-top:2px solid #333;font-weight:bold"><td colspan="2">Net Income / (Loss)</td><td style="text-align:right;color:${net >= 0 ? 'green' : '#b91c1c'}">${net >= 0 ? '' : '-'}$${Math.abs(Math.round(net)).toLocaleString()}</td></tr></table>`;
+    });
+  } else if (activeReport === "cashflow") {
+    tableHTML = `<table><tr><th>Month</th><th>Source</th><th style="text-align:right">Income</th><th style="text-align:right">Expenses</th><th style="text-align:right">Net</th><th style="text-align:right">Margin</th></tr>`;
+    monthlyData.forEach(m => {
+      const margin = m.income > 0 ? ((m.net / m.income) * 100).toFixed(0) + "%" : "0%";
+      tableHTML += `<tr><td>${m.month}</td><td>${m.isActual ? "Actual" : "Est."}</td><td style="text-align:right;color:green">+$${m.income.toLocaleString()}</td><td style="text-align:right;color:#b91c1c">-$${m.expenses.toLocaleString()}</td><td style="text-align:right;font-weight:bold">$${m.net.toLocaleString()}</td><td style="text-align:right">${margin}</td></tr>`;
+    });
+    tableHTML += `</table>`;
+  } else if (activeReport === "depreciation") {
+    tableHTML = `<table><tr><th>Property</th><th>In Service</th><th style="text-align:right">Purchase</th><th style="text-align:right">Basis</th><th style="text-align:right">Annual</th><th>Yrs Held</th><th style="text-align:right">Cumulative</th><th style="text-align:right">Remaining</th></tr>`;
+    deprRows.forEach(({ p, basis, annual, yearsHeld, cumul, remaining }) => {
+      tableHTML += `<tr><td>${p.name}</td><td>${p.purchaseDate || "—"}</td><td style="text-align:right">$${p.purchasePrice.toLocaleString()}</td><td style="text-align:right">$${basis.toLocaleString()}</td><td style="text-align:right">$${annual.toLocaleString()}</td><td>${yearsHeld}</td><td style="text-align:right">$${cumul.toLocaleString()}</td><td style="text-align:right">$${remaining.toLocaleString()}</td></tr>`;
+    });
+    tableHTML += `</table>`;
+  } else if (activeReport === "lenderPackage") {
+    tableHTML = `<table><tr><th>Property</th><th style="text-align:right">NOI</th><th style="text-align:right">Loan Bal</th><th style="text-align:right">Value</th><th style="text-align:right">Equity</th><th style="text-align:right">Mo DS</th><th style="text-align:right">DSCR</th><th style="text-align:right">LTV</th></tr>`;
+    lenderData.forEach(({ p, noi, bal, mds, dscr, ltv, equity }) => {
+      tableHTML += `<tr><td>${p.name}</td><td style="text-align:right">$${noi.toLocaleString()}</td><td style="text-align:right">$${Math.round(bal).toLocaleString()}</td><td style="text-align:right">$${p.currentValue.toLocaleString()}</td><td style="text-align:right">$${Math.round(equity).toLocaleString()}</td><td style="text-align:right">$${mds.toLocaleString()}</td><td style="text-align:right">${dscr ? dscr.toFixed(2) : "—"}</td><td style="text-align:right">${ltv.toFixed(1)}%</td></tr>`;
+    });
+    tableHTML += `</table>`;
+  } else {
+    tableHTML = `<p>Use your browser's print dialog to save as PDF.</p>`;
+  }
+
+  const scopeLabel = propFilter === "all" ? "All Properties" : (reportProps[0]?.name || "");
+  const html = `<!DOCTYPE html><html><head><title>RealVault — ${reportNames[activeReport] || activeReport}</title><style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 900px; margin: 40px auto; color: #1e293b; }
+    h1 { font-size: 22px; margin-bottom: 4px; } h2 { color: #64748b; font-size: 14px; font-weight: 400; margin-bottom: 24px; } h3 { margin-top: 28px; }
+    table { width: 100%; border-collapse: collapse; margin: 16px 0; } th, td { padding: 8px 12px; border-bottom: 1px solid #e2e8f0; text-align: left; font-size: 13px; }
+    th { background: #f8fafc; font-weight: 600; color: #64748b; text-transform: uppercase; font-size: 11px; }
+    .footer { margin-top: 40px; padding-top: 16px; border-top: 1px solid #e2e8f0; color: #94a3b8; font-size: 11px; }
+    @media print { body { margin: 20px; } }
+  </style></head><body>
+    <h1>${reportNames[activeReport] || activeReport}</h1>
+    <h2>${scopeLabel} · Tax Year ${taxYear} · Generated ${new Date().toLocaleDateString()}</h2>
+    ${tableHTML}
+    <div class="footer">Generated by RealVault · For planning purposes only — consult your CPA before filing.</div>
+  </body></html>`;
+  const w = window.open("", "_blank");
+  w.document.write(html);
+  w.document.close();
+  setTimeout(() => w.print(), 500);
+}
+
 function Reports() {
   const [activeReport, setActiveReport] = useState("scheduleE");
   const [taxYear, setTaxYear] = useState("2026");
   const [propFilter, setPropFilter] = useState("all");
   const [ownerMonth, setOwnerMonth] = useState(new Date().getMonth());
+  const [taxRate, setTaxRate] = useState(24); // user-adjustable marginal rate
 
   const reportProps = propFilter === "all" ? PROPERTIES : PROPERTIES.filter(p => p.id === Number(propFilter));
   const reportPropNames = new Set(reportProps.map(p => p.name));
@@ -2195,7 +2319,8 @@ function Reports() {
     }
 
     // Line 18: Depreciation — always estimated (no single transaction represents this)
-    lines["18"] = Math.round(p.purchasePrice * 0.8 / 27.5);
+    const deprYrs = p.type === "Commercial" ? 39 : 27.5;
+    lines["18"] = Math.round(p.purchasePrice * 0.8 / deprYrs);
 
     const txIncome = TRANSACTIONS.filter(t =>
       new Date(t.date).getFullYear() === Number(taxYear) && t.property === p.name && t.type === "income"
@@ -2212,7 +2337,7 @@ function Reports() {
     const cEff = getEffectiveMonthly(p, TRANSACTIONS);
     const annRent = cEff.monthlyIncome * 12;
     const annExp = cEff.monthlyExpenses * 12;
-    const depr = Math.round(p.purchasePrice * 0.8 / 27.5);
+    const depr = Math.round(p.purchasePrice * 0.8 / (p.type === "Commercial" ? 39 : 27.5));
     const bal = calcLoanBalance(p.loanAmount, p.loanRate, p.loanTermYears, p.loanStartDate) ?? (p.loanAmount || 0);
     const intEst = Math.round(bal * (p.loanRate || 4) / 100);
     const net = annRent - annExp - depr - intEst;
@@ -2247,11 +2372,12 @@ function Reports() {
   const taxYearEnd = new Date(`${taxYear}-12-31`);
   const deprRows = reportProps.map(p => {
     const basis = Math.round(p.purchasePrice * 0.8);
-    const annual = Math.round(basis / 27.5);
+    const deprLife = p.type === "Commercial" ? 39 : 27.5;
+    const annual = Math.round(basis / deprLife);
     const start = p.purchaseDate ? new Date(p.purchaseDate) : new Date("2020-01-01");
     const yearsHeld = Math.max(0, (taxYearEnd - start) / (365.25 * 86400000));
     const cumul = Math.min(basis, Math.round(annual * yearsHeld));
-    return { p, basis, annual, yearsHeld: yearsHeld.toFixed(1), cumul, remaining: basis - cumul };
+    return { p, basis, annual, deprLife, yearsHeld: yearsHeld.toFixed(1), cumul, remaining: basis - cumul };
   });
 
   // Lender package data
@@ -2266,7 +2392,10 @@ function Reports() {
     const dscr = annDebt > 0 ? (noi / annDebt) : null;
     const ltv = p.currentValue > 0 ? ((bal / p.currentValue) * 100) : 0;
     const equity = p.currentValue - bal;
-    return { p, noi, bal, mds, annDebt, dscr, ltv, equity };
+    const capRate = p.currentValue > 0 ? (noi / p.currentValue * 100) : 0;
+    const grm = lEff.monthlyIncome > 0 ? (p.currentValue / (lEff.monthlyIncome * 12)) : 0;
+    const perUnit = p.units > 0 ? Math.round(p.currentValue / p.units) : p.currentValue;
+    return { p, noi, bal, mds, annDebt, dscr, ltv, equity, capRate, grm, perUnit };
   });
 
   const reportTypes = [
@@ -2284,10 +2413,10 @@ function Reports() {
   return (
     <div>
       {/* Header */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
         <div>
-          <h1 style={{ color: "#0f172a", fontSize: 26, fontWeight: 700, marginBottom: 4 }}>Tax Reports</h1>
-          <p style={{ color: "#64748b", fontSize: 15 }}>IRS-ready summaries and year-end reporting</p>
+          <h1 style={{ color: "#0f172a", fontSize: 26, fontWeight: 700, marginBottom: 4 }}>Reports</h1>
+          <p style={{ color: "#64748b", fontSize: 15 }}>Financial summaries, tax reports, and lender packages</p>
         </div>
         <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
           <select value={taxYear} onChange={e => setTaxYear(e.target.value)} style={{ ...iS, width: 110, fontWeight: 700 }}>
@@ -2300,10 +2429,40 @@ function Reports() {
             <option value="all">All Properties</option>
             {PROPERTIES.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
           </select>
-          <button style={{ background: "#3b82f6", color: "#fff", border: "none", borderRadius: 10, padding: "10px 18px", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
-            <Download size={16} /> Export PDF
+          <button onClick={() => exportReportCSV(activeReport, reportProps, monthlyData, deprRows, lenderData, calcPropLines, taxYear)} style={{ background: "#fff", color: "#475569", border: "1px solid #e2e8f0", borderRadius: 10, padding: "10px 16px", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
+            <Download size={16} /> CSV
+          </button>
+          <button onClick={() => exportReportPDF(activeReport, reportProps, monthlyData, deprRows, lenderData, calcPropLines, taxYear, propFilter)} style={{ background: "#3b82f6", color: "#fff", border: "none", borderRadius: 10, padding: "10px 16px", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
+            <Download size={16} /> PDF
           </button>
         </div>
+      </div>
+
+      {/* Portfolio Summary KPIs */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 14, marginBottom: 24 }}>
+        {(() => {
+          const allCalc = reportProps.map(p => calcPropLines(p));
+          const tRent = allCalc.reduce((s, c) => s + c.grossRent, 0);
+          const tExp  = allCalc.reduce((s, c) => s + c.totalExp, 0);
+          const tNet  = allCalc.reduce((s, c) => s + c.net, 0);
+          const tDepr = reportProps.reduce((s, p) => {
+            const yrs = p.type === "Commercial" ? 39 : 27.5;
+            return s + Math.round(p.purchasePrice * 0.8 / yrs);
+          }, 0);
+          const actualPct = Math.round((allCalc.filter(c => c.hasActual).length / Math.max(1, allCalc.length)) * 100);
+          return [
+            { label: "Gross Rental Income", value: fmt(tRent), color: "#15803d", bg: "#f0fdf4" },
+            { label: "Total Expenses", value: fmt(tExp), color: "#b91c1c", bg: "#fef2f2" },
+            { label: "Net Taxable Income", value: fmt(tNet), color: tNet >= 0 ? "#15803d" : "#b91c1c", bg: "#f0f9ff" },
+            { label: "Annual Depreciation", value: fmt(tDepr), color: "#8b5cf6", bg: "#f5f3ff" },
+            { label: "Actual Data Coverage", value: `${actualPct}%`, color: "#3b82f6", bg: "#eff6ff" },
+          ].map((m, i) => (
+            <div key={i} style={{ background: m.bg, borderRadius: 14, padding: "14px 16px", border: "1px solid #f1f5f9" }}>
+              <p style={{ color: "#64748b", fontSize: 10, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6 }}>{m.label}</p>
+              <p style={{ color: m.color, fontSize: 20, fontWeight: 800 }}>{m.value}</p>
+            </div>
+          ));
+        })()}
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "220px 1fr", gap: 20 }}>
@@ -2408,7 +2567,7 @@ function Reports() {
                       { label: "Total Gross Rents", value: fmt(tRent), color: "#15803d" },
                       { label: "Total Expenses (incl. depr.)", value: `-${fmt(tExp)}`, color: "#b91c1c" },
                       { label: "Net Taxable Rental Income", value: fmt(tNet), color: tNet >= 0 ? "#15803d" : "#b91c1c" },
-                      { label: "Total Depreciation", value: `-${fmt(reportProps.reduce((s, p) => s + Math.round(p.purchasePrice*0.8/27.5), 0))}`, color: "#b91c1c" },
+                      { label: "Total Depreciation", value: `-${fmt(reportProps.reduce((s, p) => s + Math.round(p.purchasePrice*0.8/(p.type === "Commercial" ? 39 : 27.5)), 0))}`, color: "#b91c1c" },
                       { label: "Mortgage Interest (est.)", value: `-${fmt(reportProps.reduce((s, p) => { const b = calcLoanBalance(p.loanAmount, p.loanRate, p.loanTermYears, p.loanStartDate) ?? (p.loanAmount||0); return s + Math.round(b*(p.loanRate||4)/100); }, 0))}`, color: "#b91c1c" },
                       { label: "Est. Tax Liability @ 28%", value: tNet > 0 ? `-${fmt(Math.round(tNet * 0.28))}` : "$0", color: "#b91c1c" },
                     ].map((m, i) => (
@@ -2432,12 +2591,31 @@ function Reports() {
               <div style={{ display: "flex", gap: 14, marginBottom: 20 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                   <span style={{ width: 10, height: 10, borderRadius: 3, background: "#10b981", display: "inline-block" }} />
-                  <span style={{ fontSize: 12, color: "#475569" }}>Actual (from transactions)</span>
+                  <span style={{ fontSize: 12, color: "#475569" }}>Income</span>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                  <span style={{ width: 10, height: 10, borderRadius: 3, background: "#94a3b8", display: "inline-block" }} />
-                  <span style={{ fontSize: 12, color: "#475569" }}>Estimated (no transactions logged)</span>
+                  <span style={{ width: 10, height: 10, borderRadius: 3, background: "#ef4444", display: "inline-block" }} />
+                  <span style={{ fontSize: 12, color: "#475569" }}>Expenses</span>
                 </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <span style={{ width: 10, height: 10, borderRadius: 3, background: "#3b82f6", display: "inline-block" }} />
+                  <span style={{ fontSize: 12, color: "#475569" }}>Net Cash Flow</span>
+                </div>
+              </div>
+
+              {/* Cash Flow Bar Chart */}
+              <div style={{ background: "#f8fafc", borderRadius: 14, padding: "20px 16px 10px", marginBottom: 24, border: "1px solid #f1f5f9" }}>
+                <ResponsiveContainer width="100%" height={240}>
+                  <BarChart data={monthlyData} margin={{ top: 5, right: 10, left: 10, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                    <XAxis dataKey="month" tick={{ fontSize: 11, fill: "#94a3b8" }} />
+                    <YAxis tick={{ fontSize: 11, fill: "#94a3b8" }} tickFormatter={v => `$${(v/1000).toFixed(0)}k`} />
+                    <Tooltip formatter={(v, name) => [`$${v.toLocaleString()}`, name]} contentStyle={{ borderRadius: 10, border: "1px solid #e2e8f0", fontSize: 13 }} />
+                    <Bar dataKey="income" name="Income" fill="#10b981" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="expenses" name="Expenses" fill="#ef4444" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="net" name="Net" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
               </div>
               <div style={{ overflowX: "auto" }}>
                 <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 640 }}>
@@ -2597,10 +2775,38 @@ function Reports() {
                       </div>
                     </div>
 
-                    <div style={{ background: net >= 0 ? "#f0fdf4" : "#fef2f2", borderRadius: 12, padding: "14px 20px", border: `1px solid ${net >= 0 ? "#bbf7d0" : "#fecaca"}`, marginTop: 20, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                      <p style={{ fontWeight: 700, fontSize: 14, color: "#0f172a" }}>Net Operating Income — {MONTH_NAMES[ownerMonth]} {taxYear}</p>
-                      <p style={{ fontWeight: 800, fontSize: 20, color: net >= 0 ? "#15803d" : "#b91c1c" }}>{net >= 0 ? "+" : "-"}{fmt(Math.abs(net))}</p>
-                    </div>
+                    {/* NOI + Management Fee + Distribution breakdown */}
+                    {(() => {
+                      const mgmtTx = expenses.filter(t => ["Property Management", "Management Fee", "Leasing Fee"].includes(t.category));
+                      const mgmtFee = mgmtTx.reduce((s, t) => s + Math.abs(t.amount), 0);
+                      const mortgageTx = expenses.filter(t => ["Mortgage", "Mortgage Payment"].includes(t.category));
+                      const mortgageAmt = mortgageTx.reduce((s, t) => s + Math.abs(t.amount), 0);
+                      const ownerDist = net - mgmtFee;
+                      return (
+                        <div style={{ marginTop: 20 }}>
+                          <div style={{ background: net >= 0 ? "#f0fdf4" : "#fef2f2", borderRadius: "12px 12px 0 0", padding: "14px 20px", border: `1px solid ${net >= 0 ? "#bbf7d0" : "#fecaca"}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                            <p style={{ fontWeight: 700, fontSize: 14, color: "#0f172a" }}>Net Operating Income — {MONTH_NAMES[ownerMonth]} {taxYear}</p>
+                            <p style={{ fontWeight: 800, fontSize: 20, color: net >= 0 ? "#15803d" : "#b91c1c" }}>{net >= 0 ? "+" : "-"}{fmt(Math.abs(net))}</p>
+                          </div>
+                          <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderTop: "none", padding: "14px 20px" }}>
+                            <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: "1px solid #f1f5f9" }}>
+                              <span style={{ fontSize: 13, color: "#475569" }}>Less: Management Fee{mgmtFee === 0 ? " (none logged)" : ""}</span>
+                              <span style={{ fontSize: 13, fontWeight: 600, color: "#b91c1c" }}>{mgmtFee > 0 ? `-${fmt(mgmtFee)}` : "$0"}</span>
+                            </div>
+                            {mortgageAmt > 0 && (
+                              <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: "1px solid #f1f5f9" }}>
+                                <span style={{ fontSize: 13, color: "#475569" }}>Less: Mortgage Payment (P&I)</span>
+                                <span style={{ fontSize: 13, fontWeight: 600, color: "#b91c1c" }}>-{fmt(mortgageAmt)}</span>
+                              </div>
+                            )}
+                          </div>
+                          <div style={{ background: "#eff6ff", borderRadius: "0 0 12px 12px", padding: "14px 20px", border: "1px solid #bfdbfe", borderTop: "2px solid #3b82f6", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                            <p style={{ fontWeight: 700, fontSize: 14, color: "#1e40af" }}>Owner Distribution</p>
+                            <p style={{ fontWeight: 800, fontSize: 20, color: ownerDist - mortgageAmt >= 0 ? "#1e40af" : "#b91c1c" }}>{fmt(ownerDist - mortgageAmt)}</p>
+                          </div>
+                        </div>
+                      );
+                    })()}
                   </div>
                 );
               })()}
@@ -2615,16 +2821,17 @@ function Reports() {
               <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: 24 }}>
                 <thead>
                   <tr>
-                    {["Property","Annual NOI","Loan Balance","Current Value","Equity","Monthly DS","DSCR","LTV"].map(h => (
+                    {["Property","Annual NOI","Value","$/Unit","Equity","Cap Rate","GRM","Mo DS","DSCR","LTV"].map(h => (
                       <th key={h} style={thStyle}>{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
-                  {lenderData.map(({ p, noi, bal, mds, dscr, ltv, equity }, i) => {
+                  {lenderData.map(({ p, noi, bal, mds, dscr, ltv, equity, capRate, grm, perUnit }, i) => {
                     const dscrColor = dscr === null ? "#94a3b8" : dscr >= 1.25 ? "#15803d" : dscr >= 1.0 ? "#d97706" : "#b91c1c";
                     const dscrBg   = dscr === null ? "#f8fafc" : dscr >= 1.25 ? "#dcfce7" : dscr >= 1.0 ? "#fef9c3" : "#fee2e2";
                     const ltvColor = ltv < 70 ? "#15803d" : ltv < 80 ? "#d97706" : "#b91c1c";
+                    const capColor = capRate >= 6 ? "#15803d" : capRate >= 4 ? "#d97706" : "#b91c1c";
                     return (
                       <tr key={p.id} style={{ background: i % 2 === 0 ? "#fff" : "#fafafa" }}>
                         <td style={{ ...tdStyle, fontWeight: 600 }}>
@@ -2634,9 +2841,11 @@ function Reports() {
                           </div>
                         </td>
                         <td style={{ ...tdStyle, color: noi >= 0 ? "#15803d" : "#b91c1c", fontWeight: 600 }}>{fmt(noi)}</td>
-                        <td style={tdStyle}>{fmt(bal)}</td>
                         <td style={tdStyle}>{fmt(p.currentValue)}</td>
+                        <td style={{ ...tdStyle, fontSize: 12 }}>{fmt(perUnit)}</td>
                         <td style={{ ...tdStyle, color: equity >= 0 ? "#15803d" : "#b91c1c", fontWeight: 600 }}>{fmt(equity)}</td>
+                        <td style={tdStyle}><span style={{ color: capColor, fontWeight: 700 }}>{capRate.toFixed(1)}%</span></td>
+                        <td style={{ ...tdStyle, fontSize: 12 }}>{grm > 0 ? `${grm.toFixed(1)}x` : "—"}</td>
                         <td style={tdStyle}>{mds > 0 ? fmt(mds) : "—"}</td>
                         <td style={tdStyle}>
                           <span style={{ background: dscrBg, color: dscrColor, fontWeight: 700, fontSize: 13, borderRadius: 7, padding: "4px 10px" }}>
@@ -2654,9 +2863,11 @@ function Reports() {
                   <tr style={{ background: "#f0f9ff", borderTop: "2px solid #bae6fd" }}>
                     <td style={{ ...tdStyle, fontWeight: 800, color: "#0c4a6e" }}>Portfolio Total</td>
                     <td style={{ ...tdStyle, fontWeight: 800, color: "#15803d" }}>{fmt(lenderData.reduce((s, d) => s + d.noi, 0))}</td>
-                    <td style={{ ...tdStyle, fontWeight: 700 }}>{fmt(lenderData.reduce((s, d) => s + d.bal, 0))}</td>
                     <td style={{ ...tdStyle, fontWeight: 700 }}>{fmt(lenderData.reduce((s, d) => s + d.p.currentValue, 0))}</td>
+                    <td style={tdStyle} />
                     <td style={{ ...tdStyle, fontWeight: 800, color: "#15803d" }}>{fmt(lenderData.reduce((s, d) => s + d.equity, 0))}</td>
+                    <td style={tdStyle} />
+                    <td style={tdStyle} />
                     <td style={{ ...tdStyle, fontWeight: 700 }}>{fmt(lenderData.reduce((s, d) => s + d.mds, 0))}</td>
                     <td style={tdStyle} />
                     <td style={tdStyle} />
@@ -2691,18 +2902,18 @@ function Reports() {
           {activeReport === "depreciation" && (
             <div>
               <h2 style={{ color: "#0f172a", fontSize: 18, fontWeight: 700, marginBottom: 4 }}>Depreciation Schedule</h2>
-              <p style={{ color: "#94a3b8", fontSize: 13, marginBottom: 6 }}>Tax Year {taxYear} · IRS MACRS — Residential Real Property (27.5 years, straight-line)</p>
+              <p style={{ color: "#94a3b8", fontSize: 13, marginBottom: 6 }}>Tax Year {taxYear} · IRS MACRS — Residential (27.5 yr) &amp; Commercial (39 yr), straight-line</p>
               <p style={{ color: "#64748b", fontSize: 12, marginBottom: 24 }}>Land value excluded at 20% of purchase price. Depreciable basis = 80% of purchase price.</p>
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead>
                   <tr>
-                    {["Property", "Placed in Service", "Purchase Price", "Depr. Basis (80%)", "Annual Deduction", "Yrs Held", "Cumul. Taken", "Remaining Basis"].map(h => (
+                    {["Property", "Placed in Service", "Purchase Price", "Depr. Basis (80%)", "Life", "Annual Deduction", "Yrs Held", "Cumul. Taken", "Remaining Basis"].map(h => (
                       <th key={h} style={thStyle}>{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
-                  {deprRows.map(({ p, basis, annual, yearsHeld, cumul, remaining }, i) => (
+                  {deprRows.map(({ p, basis, annual, yearsHeld, cumul, remaining, deprLife }, i) => (
                     <tr key={p.id} style={{ background: i % 2 === 0 ? "#fff" : "#fafafa" }}>
                       <td style={{ ...tdStyle, fontWeight: 600 }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -2713,6 +2924,7 @@ function Reports() {
                       <td style={tdStyle}>{p.purchaseDate || "—"}</td>
                       <td style={tdStyle}>{fmt(p.purchasePrice)}</td>
                       <td style={{ ...tdStyle, color: "#8b5cf6", fontWeight: 600 }}>{fmt(basis)}</td>
+                      <td style={{ ...tdStyle, fontSize: 12 }}>{deprLife} yr</td>
                       <td style={{ ...tdStyle, color: "#b91c1c", fontWeight: 700 }}>-{fmt(annual)}</td>
                       <td style={tdStyle}>{yearsHeld} yrs</td>
                       <td style={{ ...tdStyle, color: "#b91c1c" }}>-{fmt(cumul)}</td>
@@ -2722,7 +2934,7 @@ function Reports() {
                 </tbody>
                 <tfoot>
                   <tr style={{ background: "#f0f9ff", borderTop: "2px solid #bae6fd" }}>
-                    <td colSpan={4} style={{ ...tdStyle, fontWeight: 800, color: "#0c4a6e" }}>Portfolio Total</td>
+                    <td colSpan={5} style={{ ...tdStyle, fontWeight: 800, color: "#0c4a6e" }}>Portfolio Total</td>
                     <td style={{ ...tdStyle, fontWeight: 800, color: "#b91c1c" }}>-{fmt(deprRows.reduce((s, r) => s + r.annual, 0))}</td>
                     <td style={tdStyle} />
                     <td style={{ ...tdStyle, fontWeight: 700, color: "#b91c1c" }}>-{fmt(deprRows.reduce((s, r) => s + r.cumul, 0))}</td>
@@ -2737,7 +2949,27 @@ function Reports() {
           )}
 
           {/* ── YEAR-END SUMMARY ── */}
-          {activeReport === "yearend" && (
+          {activeReport === "yearend" && (() => {
+            // Pull actual other income (late fees, pet fees, app fees) from transactions
+            const otherIncomeTx = TRANSACTIONS.filter(t =>
+              new Date(t.date).getFullYear() === Number(taxYear) && t.type === "income" && reportPropNames.has(t.property)
+              && !["Rent", "Rent Payment", "Monthly Rent"].includes(t.category)
+            );
+            const otherIncome = otherIncomeTx.reduce((s, t) => s + t.amount, 0);
+
+            // Pull actual property tax from transactions
+            const propTaxTx = TRANSACTIONS.filter(t =>
+              new Date(t.date).getFullYear() === Number(taxYear) && reportPropNames.has(t.property)
+              && (t.category === "Property Tax" || t.category === "Tax Penalties")
+            );
+            const propTaxActual = propTaxTx.reduce((s, t) => s + Math.abs(t.amount), 0);
+            const propTaxHasActual = propTaxTx.length > 0;
+
+            const totalGross = totIncome + otherIncome;
+            const totalDeductions = totExpenses + totInt + totDepr;
+            const rate = taxRate / 100;
+
+            return (
             <div>
               <h2 style={{ color: "#0f172a", fontSize: 18, fontWeight: 700, marginBottom: 4 }}>Year-End Tax Summary</h2>
               <p style={{ color: "#94a3b8", fontSize: 13, marginBottom: 24 }}>Tax Year {taxYear} · Full rental P&amp;L for your records and CPA</p>
@@ -2748,17 +2980,17 @@ function Reports() {
                 <table style={{ width: "100%", borderCollapse: "collapse" }}>
                   <tbody>
                     {[
-                      { label: "Gross Rents Received", value: totIncome, positive: true },
-                      { label: "Late Fees & Other Income (est.)", value: Math.round(totIncome * 0.01), positive: true },
+                      { label: "Gross Rents Received", value: totIncome },
+                      { label: otherIncome > 0 ? `Other Income (late fees, deposits, etc.)` : "Other Income", value: otherIncome, note: otherIncome === 0 ? "No non-rent income transactions logged" : null },
                     ].map((row, i) => (
                       <tr key={i} style={{ borderBottom: "1px solid #f1f5f9" }}>
-                        <td style={{ padding: "10px 0", fontSize: 14, color: "#0f172a" }}>{row.label}</td>
+                        <td style={{ padding: "10px 0", fontSize: 14, color: "#0f172a" }}>{row.label}{row.note && <span style={{ color: "#94a3b8", fontSize: 12, marginLeft: 8 }}>({row.note})</span>}</td>
                         <td style={{ padding: "10px 0", fontSize: 14, fontWeight: 700, color: "#15803d", textAlign: "right" }}>+{fmt(row.value)}</td>
                       </tr>
                     ))}
                     <tr style={{ borderBottom: "2px solid #e2e8f0" }}>
                       <td style={{ padding: "10px 0", fontSize: 14, fontWeight: 700, color: "#0f172a" }}>Total Gross Income</td>
-                      <td style={{ padding: "10px 0", fontSize: 15, fontWeight: 800, color: "#15803d", textAlign: "right" }}>+{fmt(totIncome + Math.round(totIncome * 0.01))}</td>
+                      <td style={{ padding: "10px 0", fontSize: 15, fontWeight: 800, color: "#15803d", textAlign: "right" }}>+{fmt(totalGross)}</td>
                     </tr>
                   </tbody>
                 </table>
@@ -2772,17 +3004,20 @@ function Reports() {
                     {[
                       { label: "Operating Expenses (repairs, insurance, mgmt, etc.)", value: totExpenses },
                       { label: "Mortgage Interest — Line 12 (est.)", value: totInt },
-                      { label: "Depreciation — Line 20 (27.5-yr straight-line)", value: totDepr },
-                      { label: "Property Taxes (est., included in expenses)", value: Math.round(reportProps.reduce((s, p) => s + p.purchasePrice * 0.012, 0)) },
+                      { label: `Depreciation — straight-line`, value: totDepr },
+                      { label: propTaxHasActual ? "Property Taxes (from transactions)" : "Property Taxes (no transactions logged)", value: propTaxActual, note: !propTaxHasActual },
                     ].map((row, i) => (
                       <tr key={i} style={{ borderBottom: "1px solid #f1f5f9" }}>
-                        <td style={{ padding: "10px 0", fontSize: 14, color: "#0f172a" }}>{row.label}</td>
+                        <td style={{ padding: "10px 0", fontSize: 14, color: "#0f172a" }}>
+                          {row.label}
+                          {row.note && <span style={{ color: "#f59e0b", fontSize: 12, marginLeft: 8 }}>— log property tax payments for accuracy</span>}
+                        </td>
                         <td style={{ padding: "10px 0", fontSize: 14, fontWeight: 600, color: "#b91c1c", textAlign: "right" }}>-{fmt(row.value)}</td>
                       </tr>
                     ))}
                     <tr style={{ borderBottom: "2px solid #e2e8f0" }}>
                       <td style={{ padding: "10px 0", fontSize: 14, fontWeight: 700, color: "#0f172a" }}>Total Deductions</td>
-                      <td style={{ padding: "10px 0", fontSize: 15, fontWeight: 800, color: "#b91c1c", textAlign: "right" }}>-{fmt(totExpenses + totInt + totDepr)}</td>
+                      <td style={{ padding: "10px 0", fontSize: 15, fontWeight: 800, color: "#b91c1c", textAlign: "right" }}>-{fmt(totalDeductions)}</td>
                     </tr>
                   </tbody>
                 </table>
@@ -2794,11 +3029,19 @@ function Reports() {
                   <p style={{ fontSize: 16, fontWeight: 700, color: "#0f172a" }}>Net Taxable Rental Income</p>
                   <p style={{ fontSize: 24, fontWeight: 800, color: totNet >= 0 ? "#15803d" : "#b91c1c" }}>{totNet >= 0 ? "" : "-"}{fmt(Math.abs(totNet))}</p>
                 </div>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14 }}>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 14 }}>
+                  <div style={{ background: "#fff", borderRadius: 10, padding: "12px 14px" }}>
+                    <p style={{ color: "#94a3b8", fontSize: 11, fontWeight: 600, textTransform: "uppercase", marginBottom: 4 }}>Marginal Tax Rate</p>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                      <select value={taxRate} onChange={e => setTaxRate(Number(e.target.value))} style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 6, padding: "4px 8px", fontSize: 15, fontWeight: 800, color: "#475569", cursor: "pointer" }}>
+                        {[10, 12, 22, 24, 32, 35, 37].map(r => <option key={r} value={r}>{r}%</option>)}
+                      </select>
+                    </div>
+                  </div>
                   {[
-                    { label: "Est. Federal Tax @ 28%", value: totNet > 0 ? `-${fmt(Math.round(totNet * 0.28))}` : "No liability", color: "#b91c1c" },
-                    { label: "Net After Est. Taxes", value: fmt(totNet - Math.max(0, Math.round(totNet * 0.28))), color: "#15803d" },
-                    { label: "Effective Rate", value: totNet > 0 ? "28.0%" : "N/A", color: "#475569" },
+                    { label: `Est. Federal Tax @ ${taxRate}%`, value: totNet > 0 ? `-${fmt(Math.round(totNet * rate))}` : "No liability", color: "#b91c1c" },
+                    { label: "Net After Est. Taxes", value: fmt(totNet - Math.max(0, Math.round(totNet * rate))), color: "#15803d" },
+                    { label: "Effective Rate", value: totNet > 0 ? `${((Math.round(totNet * rate) / totalGross) * 100).toFixed(1)}%` : "N/A", color: "#475569" },
                   ].map((m, i) => (
                     <div key={i} style={{ background: "#fff", borderRadius: 10, padding: "12px 14px" }}>
                       <p style={{ color: "#94a3b8", fontSize: 11, fontWeight: 600, textTransform: "uppercase", marginBottom: 4 }}>{m.label}</p>
@@ -2809,7 +3052,8 @@ function Reports() {
               </div>
               <p style={{ fontSize: 11, color: "#94a3b8" }}>⚠️ Estimates for planning only — does not account for the 20% QBI deduction (Sec. 199A), passive activity loss rules, or state taxes. Please consult your CPA before filing.</p>
             </div>
-          )}
+            );
+          })()}
 
         </div>
       </div>
