@@ -27,6 +27,25 @@ import { AuthProvider, AuthScreen, useAuth } from "./auth.jsx";
 import { Settings, OnboardingWizard } from "./settings.jsx";
 import { FlipDashboard, RehabTracker, FlipExpenses, FlipContractors, FlipAnalytics } from "./flips.jsx";
 
+// ─── Annual Tax Config ──────────────────────────────────────────────
+// Update this block once per year (typically January) when IRS publishes new rates.
+// Every tax-sensitive value in the app pulls from here — no hunting through code.
+const TAX_CONFIG = {
+  currentYear: 2026,                          // Default tax year for reports
+  yearRange: [2023, 2024, 2025, 2026],        // Available years in dropdowns
+  mileageRate: 0.70,                           // IRS standard mileage rate ($/mile)
+  mileageRateYear: 2025,                       // Year the mileage rate applies to
+  brackets: [10, 12, 22, 24, 32, 35, 37],     // Federal marginal tax brackets (%)
+  defaultBracket: 24,                          // Default bracket for estimates
+  depreciationResidential: 27.5,               // Years — IRS MACRS residential
+  depreciationCommercial: 39,                  // Years — IRS MACRS commercial
+  landValuePct: 0.20,                          // Non-depreciable land % of purchase price
+  buildingValuePct: 0.80,                      // Depreciable building % (1 - landValuePct)
+  recaptureRate: 0.25,                         // Depreciation recapture rate on sale
+  qbiDeductionPct: 0.20,                       // Sec. 199A QBI deduction (informational)
+};
+// ────────────────────────────────────────────────────────────────────
+
 const iS = { width: "100%", padding: "10px 12px", border: "1px solid #e2e8f0", borderRadius: 10, fontSize: 14, color: "#0f172a", background: "#fff", outline: "none", boxSizing: "border-box" };
 
 function Modal({ title, onClose, children, width = 500 }) {
@@ -2190,8 +2209,8 @@ function exportReportCSV(activeReport, reportProps, monthlyData, deprRows, lende
       const cEff = getEffectiveMonthly(p, TRANSACTIONS);
       const annRent = cEff.monthlyIncome * 12;
       const annExp = cEff.monthlyExpenses * 12;
-      const yrs = p.type === "Commercial" ? 39 : 27.5;
-      const depr = Math.round(p.purchasePrice * 0.8 / yrs);
+      const yrs = p.type === "Commercial" ? TAX_CONFIG.depreciationCommercial : TAX_CONFIG.depreciationResidential;
+      const depr = Math.round(p.purchasePrice * TAX_CONFIG.buildingValuePct / yrs);
       const bal = calcLoanBalance(p.loanAmount, p.loanRate, p.loanTermYears, p.loanStartDate) ?? (p.loanAmount || 0);
       const intEst = Math.round(bal * (p.loanRate || 4) / 100);
       csv += `"${p.name}",${annRent},${annExp},${depr},${intEst},${annRent - annExp - depr - intEst}\n`;
@@ -2271,8 +2290,11 @@ function exportReportPDF(activeReport, reportProps, monthlyData, deprRows, lende
   const reportNames2 = { ...reportNames, transactions: "Transaction Detail" };
   const isTaxRpt = ["scheduleE", "depreciation", "yearend"].includes(activeReport);
   const scopeLabel = propFilter === "all" ? "All Properties" : (reportProps[0]?.name || "");
-  const html = `<!DOCTYPE html><html><head><title>RealVault — ${reportNames2[activeReport] || activeReport}</title><style>
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 900px; margin: 40px auto; color: #1e293b; }
+  const html = `<!DOCTYPE html><html><head><title>RealVault — ${reportNames2[activeReport] || activeReport}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <style>
+    body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 900px; margin: 40px auto; color: #1e293b; }
     h1 { font-size: 22px; margin-bottom: 4px; } h2 { color: #64748b; font-size: 14px; font-weight: 400; margin-bottom: 24px; } h3 { margin-top: 28px; }
     table { width: 100%; border-collapse: collapse; margin: 16px 0; } th, td { padding: 8px 12px; border-bottom: 1px solid #e2e8f0; text-align: left; font-size: 13px; }
     th { background: #f8fafc; font-weight: 600; color: #64748b; text-transform: uppercase; font-size: 11px; }
@@ -2292,10 +2314,10 @@ function exportReportPDF(activeReport, reportProps, monthlyData, deprRows, lende
 
 function Reports() {
   const [activeReport, setActiveReport] = useState("scheduleE");
-  const [taxYear, setTaxYear] = useState("2026");
+  const [taxYear, setTaxYear] = useState(String(TAX_CONFIG.currentYear));
   const [propFilter, setPropFilter] = useState("all");
   const [ownerMonth, setOwnerMonth] = useState(new Date().getMonth());
-  const [taxRate, setTaxRate] = useState(24); // user-adjustable marginal rate
+  const [taxRate, setTaxRate] = useState(TAX_CONFIG.defaultBracket);
   const [txSearch, setTxSearch] = useState("");
   const [txCatFilter, setTxCatFilter] = useState("all");
   const [txTypeFilter, setTxTypeFilter] = useState("all");
@@ -2416,8 +2438,8 @@ function Reports() {
     }
 
     // Line 18: Depreciation — always estimated (no single transaction represents this)
-    const deprYrs = p.type === "Commercial" ? 39 : 27.5;
-    lines["18"] = Math.round(p.purchasePrice * 0.8 / deprYrs);
+    const deprYrs = p.type === "Commercial" ? TAX_CONFIG.depreciationCommercial : TAX_CONFIG.depreciationResidential;
+    lines["18"] = Math.round(p.purchasePrice * TAX_CONFIG.buildingValuePct / deprYrs);
 
     const txIncome = TRANSACTIONS.filter(t =>
       new Date(t.date).getFullYear() === Number(taxYear) && t.property === p.name && t.type === "income"
@@ -2434,7 +2456,7 @@ function Reports() {
     const cEff = getEffectiveMonthly(p, TRANSACTIONS);
     const annRent = cEff.monthlyIncome * 12;
     const annExp = cEff.monthlyExpenses * 12;
-    const depr = Math.round(p.purchasePrice * 0.8 / (p.type === "Commercial" ? 39 : 27.5));
+    const depr = Math.round(p.purchasePrice * TAX_CONFIG.buildingValuePct / (p.type === "Commercial" ? TAX_CONFIG.depreciationCommercial : TAX_CONFIG.depreciationResidential));
     const bal = calcLoanBalance(p.loanAmount, p.loanRate, p.loanTermYears, p.loanStartDate) ?? (p.loanAmount || 0);
     const intEst = Math.round(bal * (p.loanRate || 4) / 100);
     const net = annRent - annExp - depr - intEst;
@@ -2468,8 +2490,8 @@ function Reports() {
   // Depreciation schedule
   const taxYearEnd = new Date(`${taxYear}-12-31`);
   const deprRows = reportProps.map(p => {
-    const basis = Math.round(p.purchasePrice * 0.8);
-    const deprLife = p.type === "Commercial" ? 39 : 27.5;
+    const basis = Math.round(p.purchasePrice * TAX_CONFIG.buildingValuePct);
+    const deprLife = p.type === "Commercial" ? TAX_CONFIG.depreciationCommercial : TAX_CONFIG.depreciationResidential;
     const annual = Math.round(basis / deprLife);
     const start = p.purchaseDate ? new Date(p.purchaseDate) : new Date("2020-01-01");
     const yearsHeld = Math.max(0, (taxYearEnd - start) / (365.25 * 86400000));
@@ -2523,21 +2545,9 @@ function Reports() {
         <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
           {activeReport !== "transactions" && (
             <select value={taxYear} onChange={e => setTaxYear(e.target.value)} style={{ ...iS, width: 110, fontWeight: 700 }}>
-              {isTaxReport ? (
-                <>
-                  <option value="2026">TY 2026</option>
-                  <option value="2025">TY 2025</option>
-                  <option value="2024">TY 2024</option>
-                  <option value="2023">TY 2023</option>
-                </>
-              ) : (
-                <>
-                  <option value="2026">2026</option>
-                  <option value="2025">2025</option>
-                  <option value="2024">2024</option>
-                  <option value="2023">2023</option>
-                </>
-              )}
+              {TAX_CONFIG.yearRange.slice().reverse().map(y => (
+                <option key={y} value={String(y)}>{isTaxReport ? `TY ${y}` : String(y)}</option>
+              ))}
             </select>
           )}
           <select value={propFilter} onChange={e => setPropFilter(e.target.value)} style={{ ...iS, width: 220 }}>
@@ -2561,8 +2571,8 @@ function Reports() {
           const tExp  = allCalc.reduce((s, c) => s + c.totalExp, 0);
           const tNet  = allCalc.reduce((s, c) => s + c.net, 0);
           const tDepr = reportProps.reduce((s, p) => {
-            const yrs = p.type === "Commercial" ? 39 : 27.5;
-            return s + Math.round(p.purchasePrice * 0.8 / yrs);
+            const yrs = p.type === "Commercial" ? TAX_CONFIG.depreciationCommercial : TAX_CONFIG.depreciationResidential;
+            return s + Math.round(p.purchasePrice * TAX_CONFIG.buildingValuePct / yrs);
           }, 0);
           const actualPct = Math.round((allCalc.filter(c => c.hasActual).length / Math.max(1, allCalc.length)) * 100);
           return [
@@ -2690,7 +2700,7 @@ function Reports() {
                       { label: "Total Gross Rents", value: fmt(tRent), color: "#15803d" },
                       { label: "Total Expenses (incl. depr.)", value: `-${fmt(tExp)}`, color: "#b91c1c" },
                       { label: "Net Taxable Rental Income", value: fmt(tNet), color: tNet >= 0 ? "#15803d" : "#b91c1c" },
-                      { label: "Total Depreciation", value: `-${fmt(reportProps.reduce((s, p) => s + Math.round(p.purchasePrice*0.8/(p.type === "Commercial" ? 39 : 27.5)), 0))}`, color: "#b91c1c" },
+                      { label: "Total Depreciation", value: `-${fmt(reportProps.reduce((s, p) => s + Math.round(p.purchasePrice*0.8/(p.type === "Commercial" ? TAX_CONFIG.depreciationCommercial : TAX_CONFIG.depreciationResidential)), 0))}`, color: "#b91c1c" },
                       { label: "Mortgage Interest (est.)", value: `-${fmt(reportProps.reduce((s, p) => { const b = calcLoanBalance(p.loanAmount, p.loanRate, p.loanTermYears, p.loanStartDate) ?? (p.loanAmount||0); return s + Math.round(b*(p.loanRate||4)/100); }, 0))}`, color: "#b91c1c" },
                       { label: "Est. Tax Liability @ 28%", value: tNet > 0 ? `-${fmt(Math.round(tNet * 0.28))}` : "$0", color: "#b91c1c" },
                     ].map((m, i) => (
@@ -3025,8 +3035,8 @@ function Reports() {
           {activeReport === "depreciation" && (
             <div>
               <h2 style={{ color: "#0f172a", fontSize: 18, fontWeight: 700, marginBottom: 4 }}>Depreciation Schedule</h2>
-              <p style={{ color: "#94a3b8", fontSize: 13, marginBottom: 6 }}>Tax Year {taxYear} · IRS MACRS — Residential (27.5 yr) &amp; Commercial (39 yr), straight-line</p>
-              <p style={{ color: "#64748b", fontSize: 12, marginBottom: 24 }}>Land value excluded at 20% of purchase price. Depreciable basis = 80% of purchase price.</p>
+              <p style={{ color: "#94a3b8", fontSize: 13, marginBottom: 6 }}>Tax Year {taxYear} · IRS MACRS — Residential ({TAX_CONFIG.depreciationResidential} yr) &amp; Commercial ({TAX_CONFIG.depreciationCommercial} yr), straight-line</p>
+              <p style={{ color: "#64748b", fontSize: 12, marginBottom: 24 }}>Land value excluded at {TAX_CONFIG.landValuePct * 100}% of purchase price. Depreciable basis = {TAX_CONFIG.buildingValuePct * 100}% of purchase price.</p>
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead>
                   <tr>
@@ -3066,7 +3076,7 @@ function Reports() {
                 </tfoot>
               </table>
               <div style={{ background: "#fef9c3", border: "1px solid #fde68a", borderRadius: 12, padding: "12px 16px", marginTop: 20 }}>
-                <p style={{ fontSize: 12, color: "#854d0e" }}>⚠️ Depreciation recapture at 25% applies if you sell. Buildings placed in service mid-year use the mid-month convention for the first year. Consult your CPA for the exact first-year deduction.</p>
+                <p style={{ fontSize: 12, color: "#854d0e" }}>⚠️ Depreciation recapture at {TAX_CONFIG.recaptureRate * 100}% applies if you sell. Buildings placed in service mid-year use the mid-month convention for the first year. Consult your CPA for the exact first-year deduction.</p>
               </div>
             </div>
           )}
@@ -3164,7 +3174,7 @@ function Reports() {
                     <p style={{ color: "#94a3b8", fontSize: 11, fontWeight: 600, textTransform: "uppercase", marginBottom: 4 }}>Marginal Tax Rate</p>
                     <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                       <select value={taxRate} onChange={e => setTaxRate(Number(e.target.value))} style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 6, padding: "4px 8px", fontSize: 15, fontWeight: 800, color: "#475569", cursor: "pointer" }}>
-                        {[10, 12, 22, 24, 32, 35, 37].map(r => <option key={r} value={r}>{r}%</option>)}
+                        {TAX_CONFIG.brackets.map(r => <option key={r} value={r}>{r}%</option>)}
                       </select>
                     </div>
                   </div>
@@ -3180,7 +3190,7 @@ function Reports() {
                   ))}
                 </div>
               </div>
-              <p style={{ fontSize: 11, color: "#94a3b8" }}>⚠️ Estimates for planning only — does not account for the 20% QBI deduction (Sec. 199A), passive activity loss rules, or state taxes. Please consult your CPA before filing.</p>
+              <p style={{ fontSize: 11, color: "#94a3b8" }}>⚠️ Estimates for planning only — does not account for the {TAX_CONFIG.qbiDeductionPct * 100}% QBI deduction (Sec. 199A), passive activity loss rules, or state taxes. Please consult your CPA before filing.</p>
             </div>
             );
           })()}
@@ -4660,7 +4670,7 @@ function MileageTracker() {
     setShowModal(false);
   };
 
-  const IRS_RATE = 0.70;
+  const IRS_RATE = TAX_CONFIG.mileageRate;
   const purposeColors = { Flip: "#f59e0b", Rental: "#3b82f6", Business: "#8b5cf6" };
 
   const mNow = new Date();
@@ -4688,7 +4698,7 @@ function MileageTracker() {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
         <div>
           <h1 style={{ color: "#0f172a", fontSize: 26, fontWeight: 700, marginBottom: 4 }}>Mileage Tracker</h1>
-          <p style={{ color: "#64748b", fontSize: 15 }}>Log business trips · IRS rate: ${IRS_RATE}/mile (2025)</p>
+          <p style={{ color: "#64748b", fontSize: 15 }}>Log business trips · IRS rate: ${IRS_RATE}/mile (${TAX_CONFIG.mileageRateYear})</p>
         </div>
         <button onClick={openAdd} style={{ background: "#3b82f6", color: "#fff", border: "none", borderRadius: 10, padding: "10px 18px", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
           <Plus size={16} /> Log Trip
