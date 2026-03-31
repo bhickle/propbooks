@@ -938,7 +938,10 @@ export function FlipContractors() {
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                   <span style={{ background: ss.bg, color: ss.text, borderRadius: 20, padding: "3px 10px", fontSize: 11, fontWeight: 600 }}>{ss.label}</span>
                   <button onClick={() => openEdit(c)} style={{ background: "#f1f5f9", border: "none", borderRadius: 8, padding: "5px 8px", cursor: "pointer", color: "#64748b", display: "flex", alignItems: "center", gap: 4, fontSize: 12, fontWeight: 600 }}>
-                    ✏️ Edit
+                    <Pencil size={12} /> Edit
+                  </button>
+                  <button onClick={() => { setContractors(prev => prev.filter(x => x.id !== c.id)); const ci = _CON.findIndex(x => x.id === c.id); if (ci !== -1) _CON.splice(ci, 1); }} style={{ background: "#fee2e2", border: "none", borderRadius: 8, padding: "5px 8px", cursor: "pointer", color: "#ef4444", display: "flex", alignItems: "center" }} title="Delete">
+                    <Trash2 size={12} />
                   </button>
                 </div>
               </div>
