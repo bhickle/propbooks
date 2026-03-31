@@ -613,7 +613,7 @@ function Properties({ onSelect }) {
   const [showModal, setShowModal] = useState(false);
   const [editId, setEditId] = useState(null); // null = add, id = edit
   const [deleteConfirm, setDeleteConfirm] = useState(null); // property object to confirm delete
-  const emptyP = { name: "", address: "", type: "Single Family", units: "1", purchasePrice: "", currentValue: "", loanAmount: "", loanRate: "", loanTermYears: "30", loanStartDate: "", monthlyRent: "", monthlyExpenses: "", status: "Occupied", purchaseDate: "", photo: null };
+  const emptyP = { name: "", address: "", type: "Single Family", units: "1", purchasePrice: "", currentValue: "", closingCosts: "", loanAmount: "", loanRate: "", loanTermYears: "30", loanStartDate: "", monthlyRent: "", monthlyExpenses: "", status: "Occupied", purchaseDate: "", photo: null };
   const [form, setForm] = useState(emptyP);
   const sf = k => e => setForm(f => ({ ...f, [k]: e.target.value }));
 
@@ -630,16 +630,8 @@ function Properties({ onSelect }) {
   const openEdit = (e, p) => {
     e.stopPropagation();
     setEditId(p.id);
-    setForm({ name: p.name, address: p.address, type: p.type, units: String(p.units), purchasePrice: String(p.purchasePrice), currentValue: String(p.currentValue), loanAmount: String(p.loanAmount || ""), loanRate: String(p.loanRate || ""), loanTermYears: String(p.loanTermYears || "30"), loanStartDate: p.loanStartDate || "", monthlyRent: String(p.monthlyRent), monthlyExpenses: String(p.monthlyExpenses), status: p.status, purchaseDate: p.purchaseDate || "", photo: p.photo || null });
+    setForm({ name: p.name, address: p.address, type: p.type, units: String(p.units), purchasePrice: String(p.purchasePrice), currentValue: String(p.currentValue), closingCosts: String(p.closingCosts || ""), loanAmount: String(p.loanAmount || ""), loanRate: String(p.loanRate || ""), loanTermYears: String(p.loanTermYears || "30"), loanStartDate: p.loanStartDate || "", monthlyRent: String(p.monthlyRent), monthlyExpenses: String(p.monthlyExpenses), status: p.status, purchaseDate: p.purchaseDate || "", photo: p.photo || null });
     setShowModal(true);
-  };
-
-  const calcMetrics = (rent, exp, val, loanAmt, loanRate, loanTerm, loanStart) => {
-    const currentBalance = calcLoanBalance(loanAmt, loanRate, loanTerm, loanStart) ?? parseFloat(loanAmt) ?? 0;
-    const capRate = val > 0 ? parseFloat(((rent - exp) * 12 / val * 100).toFixed(1)) : 0;
-    const equity = val - currentBalance;
-    const cashOnCash = equity > 0 ? parseFloat(((rent - exp) * 12 / equity * 100).toFixed(1)) : 0;
-    return { capRate, cashOnCash };
   };
 
   const handleSaveProp = () => {
@@ -651,19 +643,19 @@ function Properties({ onSelect }) {
     const loanRate = parseFloat(form.loanRate) || 0;
     const loanTerm = parseFloat(form.loanTermYears) || 30;
     const loanStart = form.loanStartDate || "";
-    const { capRate, cashOnCash } = calcMetrics(rent, exp, val, loanAmt, loanRate, loanTerm, loanStart);
+    const cc = parseFloat(form.closingCosts) || 0;
     const today = new Date().toISOString().slice(0, 10);
 
     if (editId !== null) {
       setPropData(prev => prev.map(p => {
         if (p.id !== editId) return p;
         const valChanged = val !== p.currentValue;
-        return { ...p, name: form.name, address: form.address, type: form.type, units: parseInt(form.units) || 1, purchasePrice: parseFloat(form.purchasePrice) || 0, currentValue: val, valueUpdatedAt: valChanged ? today : (p.valueUpdatedAt || today), loanAmount: loanAmt, loanRate, loanTermYears: loanTerm, loanStartDate: loanStart, monthlyRent: rent, monthlyExpenses: exp, purchaseDate: form.purchaseDate, status: form.status, capRate, cashOnCash, photo: form.photo ?? p.photo };
+        return { ...p, name: form.name, address: form.address, type: form.type, units: parseInt(form.units) || 1, purchasePrice: parseFloat(form.purchasePrice) || 0, currentValue: val, valueUpdatedAt: valChanged ? today : (p.valueUpdatedAt || today), loanAmount: loanAmt, loanRate, loanTermYears: loanTerm, loanStartDate: loanStart, closingCosts: cc, monthlyRent: rent, monthlyExpenses: exp, purchaseDate: form.purchaseDate, status: form.status, photo: form.photo ?? p.photo };
       }));
     } else {
       const usedColors = propData.map(p => p.color);
       const color = PROP_COLORS.find(c => !usedColors.includes(c)) || PROP_COLORS[propData.length % PROP_COLORS.length];
-      setPropData(prev => [...prev, { id: newId(), name: form.name, address: form.address, type: form.type, units: parseInt(form.units) || 1, purchasePrice: parseFloat(form.purchasePrice) || 0, currentValue: val, valueUpdatedAt: today, loanAmount: loanAmt, loanRate, loanTermYears: loanTerm, loanStartDate: loanStart, monthlyRent: rent, monthlyExpenses: exp, purchaseDate: form.purchaseDate, status: form.status, image: form.name.slice(0, 2).toUpperCase(), capRate, cashOnCash, color, photo: form.photo || null }]);
+      setPropData(prev => [...prev, { id: newId(), name: form.name, address: form.address, type: form.type, units: parseInt(form.units) || 1, purchasePrice: parseFloat(form.purchasePrice) || 0, currentValue: val, valueUpdatedAt: today, loanAmount: loanAmt, loanRate, loanTermYears: loanTerm, loanStartDate: loanStart, closingCosts: cc, monthlyRent: rent, monthlyExpenses: exp, purchaseDate: form.purchaseDate, status: form.status, image: form.name.slice(0, 2).toUpperCase(), color, photo: form.photo || null }]);
     }
     setForm(emptyP);
     setShowModal(false);
@@ -865,6 +857,7 @@ function Properties({ onSelect }) {
               { label: "Address", key: "address", type: "text", placeholder: "Street, City, State ZIP", full: true },
               { label: "Purchase Price ($)", key: "purchasePrice", type: "number", placeholder: "0" },
               { label: "Current Value ($)", key: "currentValue", type: "number", placeholder: "0" },
+              { label: "Closing Costs ($)", key: "closingCosts", type: "number", placeholder: "0" },
               { label: "Monthly Rent ($)", key: "monthlyRent", type: "number", placeholder: "0" },
               { label: "Monthly Expenses ($)", key: "monthlyExpenses", type: "number", placeholder: "0" },
               { label: "Units", key: "units", type: "number", placeholder: "1" },
@@ -1002,6 +995,7 @@ function PropertyDetail({ property, onBack }) {
           { label: "Net Cash Flow", value: fmt(property.monthlyRent - property.monthlyExpenses), color: "#3b82f6" },
           { label: "Total Equity", value: fmt(equity), color: "#8b5cf6" },
           { label: "Purchase Price", value: fmt(property.purchasePrice), color: "#0f172a" },
+          { label: "Closing Costs", value: property.closingCosts ? fmt(property.closingCosts) : "—", color: "#64748b" },
           { label: calcBal !== null ? "Est. Mortgage Balance" : "Mortgage Balance", value: fmt(effectiveMortgage), color: "#f59e0b", sub: calcBal !== null ? "Auto-calculated" : null },
           { label: "Cap Rate", value: `${calcCapRate(property)}%`, color: "#8b5cf6" },
           { label: "Cash-on-Cash", value: `${calcCashOnCash(property)}%`, color: "#10b981" },
