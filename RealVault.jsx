@@ -461,6 +461,7 @@ function Properties({ onSelect }) {
   const [search, setSearch] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [editId, setEditId] = useState(null); // null = add, id = edit
+  const [deleteConfirm, setDeleteConfirm] = useState(null); // property object to confirm delete
   const emptyP = { name: "", address: "", type: "Single Family", units: "1", purchasePrice: "", currentValue: "", loanAmount: "", loanRate: "", loanTermYears: "30", loanStartDate: "", monthlyRent: "", monthlyExpenses: "", status: "Occupied", purchaseDate: "", photo: null };
   const [form, setForm] = useState(emptyP);
   const sf = k => e => setForm(f => ({ ...f, [k]: e.target.value }));
@@ -517,6 +518,12 @@ function Properties({ onSelect }) {
     setShowModal(false);
   };
 
+  const handleDeleteProp = () => {
+    if (!deleteConfirm) return;
+    setPropData(prev => prev.filter(p => p.id !== deleteConfirm.id));
+    setDeleteConfirm(null);
+  };
+
   const filtered = propData.filter(p => p.name.toLowerCase().includes(search.toLowerCase()) || p.type.toLowerCase().includes(search.toLowerCase()));
 
   return (
@@ -568,6 +575,10 @@ function Properties({ onSelect }) {
                     <button onClick={e => openEdit(e, p)} title="Edit property"
                       style={{ background: "rgba(255,255,255,0.85)", border: "none", borderRadius: 7, padding: "4px 7px", cursor: "pointer", display: "flex", alignItems: "center", backdropFilter: "blur(4px)" }}>
                       <Pencil size={12} color="#475569" />
+                    </button>
+                    <button onClick={e => { e.stopPropagation(); setDeleteConfirm(p); }} title="Delete property"
+                      style={{ background: "rgba(255,255,255,0.85)", border: "none", borderRadius: 7, padding: "4px 7px", cursor: "pointer", display: "flex", alignItems: "center", backdropFilter: "blur(4px)" }}>
+                      <Trash2 size={12} color="#ef4444" />
                     </button>
                   </div>
                 </div>
@@ -645,9 +656,14 @@ function Properties({ onSelect }) {
                   </td>
                   <td style={{ padding: "16px 20px" }}><Badge status={p.status} /></td>
                   <td style={{ padding: "16px 20px" }}>
-                    <button onClick={e => openEdit(e, p)} style={{ background: "#f1f5f9", border: "none", borderRadius: 8, padding: "6px 10px", cursor: "pointer", display: "flex", alignItems: "center", gap: 5, color: "#475569", fontSize: 12, fontWeight: 600 }}>
-                      <Pencil size={12} /> Edit
-                    </button>
+                    <div style={{ display: "flex", gap: 4 }}>
+                      <button onClick={e => openEdit(e, p)} style={{ background: "#f1f5f9", border: "none", borderRadius: 8, padding: "6px 10px", cursor: "pointer", display: "flex", alignItems: "center", gap: 5, color: "#475569", fontSize: 12, fontWeight: 600 }}>
+                        <Pencil size={12} /> Edit
+                      </button>
+                      <button onClick={e => { e.stopPropagation(); setDeleteConfirm(p); }} style={{ background: "#fee2e2", border: "none", borderRadius: 8, padding: "6px 10px", cursor: "pointer", display: "flex", alignItems: "center", color: "#ef4444" }} title="Delete">
+                        <Trash2 size={12} />
+                      </button>
+                    </div>
                   </td>
                 </tr>
                 );
@@ -761,6 +777,28 @@ function Properties({ onSelect }) {
             <button onClick={handleSaveProp} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "#3b82f6", color: "#fff", fontWeight: 600, cursor: "pointer" }}>
               {editId ? "Save Changes" : "Add Property"}
             </button>
+          </div>
+        </Modal>
+      )}
+      {deleteConfirm && (
+        <Modal title="Delete Property" onClose={() => setDeleteConfirm(null)} width={440}>
+          <div style={{ textAlign: "center", padding: "8px 0" }}>
+            <div style={{ width: 48, height: 48, borderRadius: 14, background: "#fee2e2", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 16 }}>
+              <Trash2 size={22} color="#ef4444" />
+            </div>
+            <p style={{ color: "#0f172a", fontSize: 15, fontWeight: 600, marginBottom: 8 }}>
+              Are you sure you want to delete <strong>{deleteConfirm.name}</strong>?
+            </p>
+            <p style={{ color: "#64748b", fontSize: 13, marginBottom: 6 }}>
+              {deleteConfirm.address}
+            </p>
+            <p style={{ color: "#94a3b8", fontSize: 12, marginBottom: 24 }}>
+              This will remove the property and its data from your portfolio. This action cannot be undone.
+            </p>
+            <div style={{ display: "flex", gap: 10 }}>
+              <button onClick={() => setDeleteConfirm(null)} style={{ flex: 1, padding: "12px", border: "1px solid #e2e8f0", borderRadius: 10, background: "#fff", color: "#475569", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
+              <button onClick={handleDeleteProp} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "#ef4444", color: "#fff", fontWeight: 700, cursor: "pointer" }}>Delete Property</button>
+            </div>
           </div>
         </Modal>
       )}
@@ -944,20 +982,21 @@ function Transactions() {
   const totalIncome = filtered.filter(t => t.type === "income").reduce((s, t) => s + t.amount, 0);
   const totalExpenses = filtered.filter(t => t.type === "expense").reduce((s, t) => s + Math.abs(t.amount), 0);
 
-  // Derived payee list from all logged transactions
-  const allPayees = [...new Set(txData.map(t => t.payee).filter(Boolean))].sort();
+  // Separate payee/payer lists: expense payees vs income payers
+  const allPayees = [...new Set(txData.filter(t => t.type === "expense").map(t => t.payee).filter(Boolean))].sort();
+  const allPayers = [...new Set(txData.filter(t => t.type === "income").map(t => t.payee).filter(Boolean))].sort();
 
   const handleSave = () => {
     if (!form.description || !form.amount) return;
     const amt = parseFloat(form.amount) || 0;
-    const built = { date: form.date || new Date().toISOString().split("T")[0], property: form.property, category: form.category || "Other", description: form.description, amount: form.type === "income" ? Math.abs(amt) : -Math.abs(amt), type: form.type, payee: form.payee.trim() };
+    const built = { date: form.date || new Date().toISOString().split("T")[0], property: form.property, category: form.category || "Other", description: form.description, amount: form.type === "income" ? Math.abs(amt) : -Math.abs(amt), type: form.type, payee: (form.payee || "").trim() };
     if (editId !== null) {
       setTxData(prev => prev.map(t => t.id === editId ? { ...t, ...built } : t));
     } else {
       setTxData(prev => [{ id: newId(), ...built }, ...prev]);
     }
-    setForm(emptyForm);
-    setShowModal(false);
+    setForm(emptyIncome);
+    closeModal();
   };
 
   return (
@@ -1087,11 +1126,12 @@ function Transactions() {
         const payeePlaceholder = isIncome
           ? "e.g. Jordan Williams, Marcus Thompson"
           : "e.g. State Farm, Green Thumb Landscaping";
+        const payeePool = isIncome ? allPayers : allPayees;
 
         const PayeeDropdown = () => {
           const q = form.payee.toLowerCase();
-          const matches = q ? allPayees.filter(p => p.toLowerCase().includes(q) && p.toLowerCase() !== q) : allPayees;
-          const exactExists = allPayees.some(p => p.toLowerCase() === q);
+          const matches = q ? payeePool.filter(p => p.toLowerCase().includes(q) && p.toLowerCase() !== q) : (isIncome ? [] : payeePool);
+          const exactExists = payeePool.some(p => p.toLowerCase() === q);
           const showNew = q && !exactExists;
           if (matches.length === 0 && !showNew) return null;
           return (
@@ -1137,7 +1177,9 @@ function Transactions() {
 
               {/* Payee / Received From — typeahead */}
               <div style={{ gridColumn: "1 / -1", position: "relative" }}>
-                <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>{payeeLabel}</label>
+                <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>
+                  {payeeLabel} {isIncome && <span style={{ color: "#94a3b8", fontWeight: 400 }}>(optional)</span>}
+                </label>
                 <input
                   type="text"
                   placeholder={payeePlaceholder}
@@ -3138,16 +3180,30 @@ function RentRoll() {
 function MileageTracker() {
   const [tripData, setTripData] = useState(MILEAGE_TRIPS);
   const [showModal, setShowModal] = useState(false);
+  const [editId, setEditId] = useState(null);
   const [purposeFilter, setPurposeFilter] = useState("all");
   const [dateFilter, setDateFilter] = useState("thisYear");
   const emptyTrip = { date: "", description: "", from: "Home", to: "", miles: "", purpose: "Rental", businessPct: "100" };
   const [form, setForm] = useState(emptyTrip);
   const sf = k => e => setForm(f => ({ ...f, [k]: e.target.value }));
 
+  const openAdd = () => { setEditId(null); setForm(emptyTrip); setShowModal(true); };
+  const openEdit = t => {
+    setEditId(t.id);
+    setForm({ date: t.date, description: t.description, from: t.from, to: t.to, miles: String(t.miles), purpose: t.purpose, businessPct: String(t.businessPct) });
+    setShowModal(true);
+  };
+
   const handleSave = () => {
     if (!form.miles || !form.to) return;
-    setTripData(prev => [{ id: newId(), date: form.date || new Date().toISOString().split("T")[0], description: form.description || form.to, from: form.from, to: form.to, miles: parseFloat(form.miles) || 0, purpose: form.purpose, businessPct: parseFloat(form.businessPct) || 100 }, ...prev]);
+    const built = { date: form.date || new Date().toISOString().split("T")[0], description: form.description || form.to, from: form.from, to: form.to, miles: parseFloat(form.miles) || 0, purpose: form.purpose, businessPct: parseFloat(form.businessPct) || 100 };
+    if (editId !== null) {
+      setTripData(prev => prev.map(t => t.id === editId ? { ...t, ...built } : t));
+    } else {
+      setTripData(prev => [{ id: newId(), ...built }, ...prev]);
+    }
     setForm(emptyTrip);
+    setEditId(null);
     setShowModal(false);
   };
 
@@ -3181,7 +3237,7 @@ function MileageTracker() {
           <h1 style={{ color: "#0f172a", fontSize: 26, fontWeight: 700, marginBottom: 4 }}>Mileage Tracker</h1>
           <p style={{ color: "#64748b", fontSize: 15 }}>Log business trips · IRS rate: ${IRS_RATE}/mile (2025)</p>
         </div>
-        <button onClick={() => setShowModal(true)} style={{ background: "#3b82f6", color: "#fff", border: "none", borderRadius: 10, padding: "10px 18px", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
+        <button onClick={openAdd} style={{ background: "#3b82f6", color: "#fff", border: "none", borderRadius: 10, padding: "10px 18px", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
           <Plus size={16} /> Log Trip
         </button>
       </div>
@@ -3237,7 +3293,7 @@ function MileageTracker() {
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
             <tr style={{ background: "#f8fafc" }}>
-              {["Date", "Description", "From / To", "Miles", "Purpose", "Deduction"].map(h => (
+              {["Date", "Description", "From / To", "Miles", "Purpose", "Deduction", ""].map(h => (
                 <th key={h} style={{ padding: "12px 18px", textAlign: "left", color: "#94a3b8", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>{h}</th>
               ))}
             </tr>
@@ -3257,7 +3313,10 @@ function MileageTracker() {
                 </td>
                 <td style={{ padding: "13px 18px", fontSize: 13, fontWeight: 700, color: "#15803d" }}>{fmt(t.miles * IRS_RATE * t.businessPct / 100)}</td>
                 <td style={{ padding: "13px 18px" }}>
-                  <button onClick={() => setTripData(prev => prev.filter(x => x.id !== t.id))} style={{ background: "none", border: "none", cursor: "pointer", color: "#ef4444", opacity: 0.6, padding: 4 }} title="Delete"><Trash2 size={14} /></button>
+                  <div style={{ display: "flex", gap: 4 }}>
+                    <button onClick={() => openEdit(t)} style={{ background: "#f1f5f9", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "#475569", display: "flex", alignItems: "center" }} title="Edit"><Pencil size={13} /></button>
+                    <button onClick={() => setTripData(prev => prev.filter(x => x.id !== t.id))} style={{ background: "#fee2e2", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "#ef4444", display: "flex", alignItems: "center" }} title="Delete"><Trash2 size={13} /></button>
+                  </div>
                 </td>
               </tr>
             ))}
@@ -3273,7 +3332,7 @@ function MileageTracker() {
         </table>
       </div>
       {showModal && (
-        <Modal title="Log Trip" onClose={() => setShowModal(false)} width={460}>
+        <Modal title={editId ? "Edit Trip" : "Log Trip"} onClose={() => { setShowModal(false); setEditId(null); }} width={460}>
           {[
             { label: "Date", type: "date", key: "date" },
             { label: "Description", type: "text", key: "description", placeholder: "e.g. Inspect Oakdale Craftsman" },
@@ -3295,7 +3354,7 @@ function MileageTracker() {
           </div>
           <div style={{ display: "flex", gap: 10 }}>
             <button onClick={() => setShowModal(false)} style={{ flex: 1, padding: "12px", border: "1px solid #e2e8f0", borderRadius: 10, background: "#fff", color: "#475569", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
-            <button onClick={handleSave} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "#3b82f6", color: "#fff", fontWeight: 600, cursor: "pointer" }}>Save Trip</button>
+            <button onClick={handleSave} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "#3b82f6", color: "#fff", fontWeight: 600, cursor: "pointer" }}>{editId ? "Save Changes" : "Save Trip"}</button>
           </div>
         </Modal>
       )}
