@@ -2144,7 +2144,7 @@ function exportReportCSV(activeReport, reportProps, monthlyData, deprRows, lende
     }
   } else if (activeReport === "transactions") {
     const reportPropNames = new Set(reportProps.map(p => p.name));
-    const allTx = TRANSACTIONS.filter(t => new Date(t.date).getFullYear() === Number(taxYear) && reportPropNames.has(t.property));
+    const allTx = TRANSACTIONS.filter(t => reportPropNames.has(t.property));
     csv = "Date,Property,Category,Type,Description,Amount\n";
     allTx.sort((a, b) => new Date(b.date) - new Date(a.date)).forEach(t => {
       csv += `${t.date},"${t.property}","${t.category}",${t.type},"${t.description || t.vendor || ""}",${t.amount}\n`;
@@ -2190,7 +2190,7 @@ function exportReportPDF(activeReport, reportProps, monthlyData, deprRows, lende
     tableHTML += `</table>`;
   } else if (activeReport === "transactions") {
     const reportPropNames = new Set(reportProps.map(p => p.name));
-    const allTx = TRANSACTIONS.filter(t => new Date(t.date).getFullYear() === Number(taxYear) && reportPropNames.has(t.property));
+    const allTx = TRANSACTIONS.filter(t => reportPropNames.has(t.property));
     allTx.sort((a, b) => new Date(b.date) - new Date(a.date));
     tableHTML = `<table><tr><th>Date</th><th>Property</th><th>Category</th><th>Type</th><th>Description</th><th style="text-align:right">Amount</th></tr>`;
     allTx.forEach(t => {
@@ -2236,6 +2236,9 @@ function Reports() {
   const [txCatFilter, setTxCatFilter] = useState("all");
   const [txTypeFilter, setTxTypeFilter] = useState("all");
   const [txSort, setTxSort] = useState("date-desc");
+  const [txDateFrom, setTxDateFrom] = useState(`${new Date().getFullYear()}-01-01`);
+  const [txDateTo, setTxDateTo] = useState(new Date().toISOString().slice(0, 10));
+  const [txDatePreset, setTxDatePreset] = useState("ytd");
 
   const reportProps = propFilter === "all" ? PROPERTIES : PROPERTIES.filter(p => p.id === Number(propFilter));
   const reportPropNames = new Set(reportProps.map(p => p.name));
@@ -3106,10 +3109,41 @@ function Reports() {
 
           {/* ── TRANSACTION DETAIL ── */}
           {activeReport === "transactions" && (() => {
-            // All transactions for selected year + selected properties
+            // Date range presets helper
+            const applyPreset = (preset) => {
+              const today = new Date();
+              const todayStr = today.toISOString().slice(0, 10);
+              setTxDatePreset(preset);
+              if (preset === "thisMonth") {
+                setTxDateFrom(`${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,"0")}-01`);
+                setTxDateTo(todayStr);
+              } else if (preset === "lastMonth") {
+                const lm = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+                const lmEnd = new Date(today.getFullYear(), today.getMonth(), 0);
+                setTxDateFrom(lm.toISOString().slice(0, 10));
+                setTxDateTo(lmEnd.toISOString().slice(0, 10));
+              } else if (preset === "90days") {
+                const d90 = new Date(today); d90.setDate(d90.getDate() - 90);
+                setTxDateFrom(d90.toISOString().slice(0, 10));
+                setTxDateTo(todayStr);
+              } else if (preset === "ytd") {
+                setTxDateFrom(`${today.getFullYear()}-01-01`);
+                setTxDateTo(todayStr);
+              } else if (preset === "lastYear") {
+                setTxDateFrom(`${today.getFullYear() - 1}-01-01`);
+                setTxDateTo(`${today.getFullYear() - 1}-12-31`);
+              } else if (preset === "all") {
+                setTxDateFrom("2000-01-01");
+                setTxDateTo(todayStr);
+              }
+            };
+
+            // All transactions for date range + selected properties
+            const fromDate = new Date(txDateFrom + "T00:00:00");
+            const toDate = new Date(txDateTo + "T23:59:59");
             const allTx = TRANSACTIONS.filter(t => {
               const d = new Date(t.date);
-              return d.getFullYear() === Number(taxYear) && reportPropNames.has(t.property);
+              return d >= fromDate && d <= toDate && reportPropNames.has(t.property);
             });
 
             // Unique categories
@@ -3159,7 +3193,28 @@ function Reports() {
             return (
             <div>
               <h2 style={{ color: "#0f172a", fontSize: 18, fontWeight: 700, marginBottom: 4 }}>Transaction Detail</h2>
-              <p style={{ color: "#94a3b8", fontSize: 13, marginBottom: 20 }}>All transactions for {taxYear} · Filter by property, type, or category</p>
+              <p style={{ color: "#94a3b8", fontSize: 13, marginBottom: 16 }}>All transactions for selected date range · Filter by property, type, or category</p>
+
+              {/* Date range row */}
+              <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 16, flexWrap: "wrap" }}>
+                {[
+                  { id: "thisMonth", label: "This Month" },
+                  { id: "lastMonth", label: "Last Month" },
+                  { id: "90days",    label: "Last 90 Days" },
+                  { id: "ytd",       label: "Year to Date" },
+                  { id: "lastYear",  label: "Last Year" },
+                  { id: "all",       label: "All Time" },
+                ].map(p => (
+                  <button key={p.id} onClick={() => applyPreset(p.id)} style={{ padding: "7px 14px", borderRadius: 8, border: txDatePreset === p.id ? "2px solid #3b82f6" : "1px solid #e2e8f0", background: txDatePreset === p.id ? "#eff6ff" : "#fff", color: txDatePreset === p.id ? "#3b82f6" : "#475569", fontWeight: txDatePreset === p.id ? 700 : 500, fontSize: 12, cursor: "pointer" }}>
+                    {p.label}
+                  </button>
+                ))}
+                <div style={{ display: "flex", alignItems: "center", gap: 6, marginLeft: 8 }}>
+                  <input type="date" value={txDateFrom} onChange={e => { setTxDateFrom(e.target.value); setTxDatePreset("custom"); }} style={{ padding: "7px 10px", borderRadius: 8, border: "1px solid #e2e8f0", fontSize: 12, color: "#0f172a" }} />
+                  <span style={{ color: "#94a3b8", fontSize: 12 }}>to</span>
+                  <input type="date" value={txDateTo} onChange={e => { setTxDateTo(e.target.value); setTxDatePreset("custom"); }} style={{ padding: "7px 10px", borderRadius: 8, border: "1px solid #e2e8f0", fontSize: 12, color: "#0f172a" }} />
+                </div>
+              </div>
 
               {/* Summary cards */}
               <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, marginBottom: 20 }}>
