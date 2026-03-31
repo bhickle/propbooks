@@ -4176,6 +4176,7 @@ function FlipDetail({ flip, onBack, allFlips, setAllFlips }) {
                       <td style={{ padding: "13px 18px", fontSize: 13, color: "#64748b" }}>{e.date}</td>
                       <td style={{ padding: "13px 18px", fontSize: 13, fontWeight: 600, color: "#0f172a" }}>{e.vendor}</td>
                       <td style={{ padding: "13px 18px" }}>
+                        {(() => { const group = getFlipExpGroup(e.category); return group && group !== e.category ? <p style={{ fontSize: 10, color: "#94a3b8", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.03em", marginBottom: 2 }}>{group}</p> : null; })()}
                         <span style={{ background: "#f1f5f9", borderRadius: 6, padding: "3px 8px", fontSize: 11, fontWeight: 600, color: "#475569" }}>{e.category}</span>
                       </td>
                       <td style={{ padding: "13px 18px", fontSize: 13, color: "#475569" }}>{e.description}</td>
