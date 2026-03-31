@@ -3759,6 +3759,8 @@ function FlipDetail({ flip, onBack, allFlips, setAllFlips }) {
   const [expForm, setExpForm] = useState(emptyExp);
   const sfE = k => e => setExpForm(f => ({ ...f, [k]: e.target.value }));
   const [editingExpId, setEditingExpId] = useState(null);
+  const [vendorFocus, setVendorFocus] = useState(false);
+  const allVendors = [...new Set(expData.map(e => e.vendor).filter(Boolean))].sort();
   const openEditExp = (e) => {
     setEditingExpId(e.id);
     setExpForm({ date: e.date, vendor: e.vendor, category: e.category, description: e.description, amount: String(e.amount) });
@@ -4199,36 +4201,68 @@ function FlipDetail({ flip, onBack, allFlips, setAllFlips }) {
               </table>
             )}
           </div>
-          {showExpenseModal && (
-            <Modal title={editingExpId ? "Edit Expense" : "Log Expense"} onClose={() => { setShowExpenseModal(false); setEditingExpId(null); setExpForm(emptyExp); }}>
-              <p style={{ color: "#64748b", fontSize: 13, marginBottom: 16, marginTop: -12 }}>For: <strong>{flip.name}</strong></p>
-              {[
-                { label: "Date", type: "date", key: "date" },
-                { label: "Vendor / Payee", type: "text", key: "vendor", placeholder: "e.g. Home Depot" },
-                { label: "Description", type: "text", key: "description", placeholder: "What was purchased or done?" },
-                { label: "Amount ($)", type: "number", key: "amount", placeholder: "0.00" },
-              ].map(f => (
-                <div key={f.key} style={{ marginBottom: 14 }}>
-                  <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>{f.label}</label>
-                  <input type={f.type} placeholder={f.placeholder} value={expForm[f.key]} onChange={sfE(f.key)} style={iS} />
-                </div>
-              ))}
-              <div style={{ marginBottom: 20 }}>
-                <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Category</label>
-                <select value={expForm.category} onChange={sfE("category")} style={iS}>
-                  {Object.entries(FLIP_EXPENSE_GROUPS).map(([group, subs]) => (
-                    <optgroup key={group} label={group}>
-                      {subs.map(c => <option key={c} value={c}>{c}</option>)}
-                    </optgroup>
+          {showExpenseModal && (() => {
+            const VendorDropdown = () => {
+              const q = (expForm.vendor || "").toLowerCase();
+              const matches = q ? allVendors.filter(v => v.toLowerCase().includes(q) && v.toLowerCase() !== q) : allVendors;
+              const exactExists = allVendors.some(v => v.toLowerCase() === q);
+              const showNew = q && !exactExists;
+              if (matches.length === 0 && !showNew) return null;
+              return (
+                <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, background: "#fff", border: "1px solid #e2e8f0", borderRadius: 12, boxShadow: "0 8px 24px rgba(0,0,0,0.10)", zIndex: 200, overflow: "hidden" }}>
+                  {matches.slice(0, 6).map(v => (
+                    <button key={v} onMouseDown={() => { setExpForm(f => ({ ...f, vendor: v })); setVendorFocus(false); }}
+                      style={{ width: "100%", padding: "10px 14px", background: "none", border: "none", borderBottom: "1px solid #f1f5f9", textAlign: "left", cursor: "pointer", fontSize: 13, color: "#0f172a", display: "flex", alignItems: "center", gap: 8 }}>
+                      <User size={13} style={{ color: "#94a3b8", flexShrink: 0 }} /> {v}
+                    </button>
                   ))}
-                </select>
+                  {showNew && (
+                    <div style={{ padding: "10px 14px", display: "flex", alignItems: "center", gap: 8, background: "#f0f9ff", borderTop: matches.length > 0 ? "1px solid #e2e8f0" : "none" }}>
+                      <PlusCircle size={13} style={{ color: "#3b82f6", flexShrink: 0 }} />
+                      <span style={{ fontSize: 13, color: "#3b82f6", fontWeight: 600 }}>Add "{expForm.vendor}" as new</span>
+                    </div>
+                  )}
+                </div>
+              );
+            };
+            return (
+            <Modal title={editingExpId ? "Edit Expense" : "Log Expense"} onClose={() => { setShowExpenseModal(false); setEditingExpId(null); setExpForm(emptyExp); }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+                <div>
+                  <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Date</label>
+                  <input type="date" value={expForm.date} onChange={sfE("date")} style={iS} />
+                </div>
+                <div>
+                  <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Amount ($)</label>
+                  <input type="number" placeholder="0.00" value={expForm.amount} onChange={sfE("amount")} style={iS} />
+                </div>
+                <div style={{ gridColumn: "1 / -1", position: "relative" }}>
+                  <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Vendor / Payee</label>
+                  <input type="text" placeholder="e.g. Home Depot, ABC Plumbing" value={expForm.vendor} onChange={e => setExpForm(f => ({ ...f, vendor: e.target.value }))} onFocus={() => setVendorFocus(true)} onBlur={() => setTimeout(() => setVendorFocus(false), 150)} style={iS} autoComplete="off" />
+                  {vendorFocus && <VendorDropdown />}
+                </div>
+                <div style={{ gridColumn: "1 / -1" }}>
+                  <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Description</label>
+                  <input type="text" placeholder="Brief description of what was purchased or done" value={expForm.description} onChange={sfE("description")} style={iS} />
+                </div>
+                <div style={{ gridColumn: "1 / -1" }}>
+                  <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Category</label>
+                  <select value={expForm.category} onChange={sfE("category")} style={iS}>
+                    {Object.entries(FLIP_EXPENSE_GROUPS).map(([group, subs]) => (
+                      <optgroup key={group} label={group}>
+                        {subs.map(c => <option key={c} value={c}>{c}</option>)}
+                      </optgroup>
+                    ))}
+                  </select>
+                </div>
               </div>
-              <div style={{ display: "flex", gap: 10 }}>
+              <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
                 <button onClick={() => { setShowExpenseModal(false); setEditingExpId(null); setExpForm(emptyExp); }} style={{ flex: 1, padding: "12px", border: "1px solid #e2e8f0", borderRadius: 10, background: "#fff", color: "#475569", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
                 <button onClick={handleSaveExp} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "#f59e0b", color: "#fff", fontWeight: 600, cursor: "pointer" }}>{editingExpId ? "Save Changes" : "Save Expense"}</button>
               </div>
             </Modal>
-          )}
+            );
+          })()}
         </div>
       )}
       {activeTab === "contractors" && (
