@@ -3720,20 +3720,25 @@ function FlipDetail({ flip, onBack, allFlips, setAllFlips }) {
   const [deleteConfirm, setDeleteConfirm] = useState(null); // { type: "expense"|"contractor"|"rehab"|"milestone", item, index? }
   const [stage, setStage] = useState(flip.stage);
 
-  // Deal notes & activity log
-  const [activityLog, setActivityLog] = useState(() => {
-    // Seed some demo activity from existing data
-    const logs = [];
-    if (flip.acquisitionDate) logs.push({ id: newId(), date: flip.acquisitionDate, type: "milestone", text: `Property acquired at ${fmt(flip.purchasePrice)}`, icon: "milestone" });
-    if (flip.rehabStartDate) logs.push({ id: newId(), date: flip.rehabStartDate, type: "milestone", text: "Rehab started", icon: "milestone" });
-    expData.slice(0, 3).forEach(e => logs.push({ id: newId(), date: e.date, type: "expense", text: `${e.vendor}: ${e.description} (${fmt(e.amount)})`, icon: "expense" }));
-    return logs.sort((a, b) => b.date.localeCompare(a.date));
+  // Deal notes
+  const [dealNotes, setDealNotes] = useState(() => {
+    // Seed a couple demo notes for flip 1
+    if (flip.id === 1) return [
+      { id: newId(), date: "2026-03-28", text: "Spoke with inspector — back wall needs structural review before drywall. Getting quote from Nash Drywall." },
+      { id: newId(), date: "2026-03-15", text: "ABC Plumbing delayed 1 week on master bath rough-in. Pushed flooring start to 3/21." },
+      { id: newId(), date: "2026-02-10", text: "Demo went smooth. Dumpster picked up, ready for rough-in next week." },
+    ];
+    if (flip.id === 2) return [
+      { id: newId(), date: "2026-01-20", text: "All rehab complete. Scheduling photographer for listing photos this week." },
+    ];
+    return [];
   });
   const [showNoteInput, setShowNoteInput] = useState(false);
   const [noteText, setNoteText] = useState("");
+  const [noteSearch, setNoteSearch] = useState("");
   const addNote = () => {
     if (!noteText.trim()) return;
-    setActivityLog(prev => [{ id: newId(), date: today, type: "note", text: noteText.trim(), icon: "note" }, ...prev]);
+    setDealNotes(prev => [{ id: newId(), date: today, text: noteText.trim() }, ...prev]);
     setNoteText("");
     setShowNoteInput(false);
   };
@@ -3816,7 +3821,7 @@ function FlipDetail({ flip, onBack, allFlips, setAllFlips }) {
       setExpData(prev => [{ id: newId(), flipId: flip.id, date: paymentDate, vendor: con.name, category: con.trade === "General Contractor" ? "General Contractor" : "Subcontractor", description: paymentNote || `Payment to ${con.name}`, amount: amt, status: "paid", contractorId: showPaymentModal }, ...prev]);
     }
     // Add to activity log
-    if (con) setActivityLog(prev => [{ id: newId(), date: paymentDate, type: "payment", text: `Recorded ${fmt(amt)} payment to ${con.name}`, icon: "payment" }, ...prev]);
+    if (con) setDealNotes(prev => [{ id: newId(), date: paymentDate, text: `Recorded ${fmt(amt)} payment to ${con.name}` }, ...prev]);
     setShowPaymentModal(null);
     setPaymentAmount("");
     setPaymentNote("");
@@ -3914,7 +3919,7 @@ function FlipDetail({ flip, onBack, allFlips, setAllFlips }) {
     { id: "rehab", label: `Rehab (${rehabComplete}/${rehabItems.length})`, icon: Wrench },
     { id: "contractors", label: `Contractors (${flipContractors.length})`, icon: UserCheck },
     { id: "expenses", label: `Expenses (${flipExpenses.length})`, icon: Receipt },
-    { id: "notes", label: `Notes (${activityLog.filter(a => a.type === "note").length})`, icon: MessageSquare },
+    { id: "notes", label: `Notes (${dealNotes.length})`, icon: MessageSquare },
   ];
 
   return (
@@ -3952,7 +3957,7 @@ function FlipDetail({ flip, onBack, allFlips, setAllFlips }) {
                 FLIPS.push(cloned);
                 FLIP_MILESTONES[cloned.id] = milestones.map(m => ({ label: m.label, done: false, date: null, targetDate: null }));
                 if (setAllFlips) setAllFlips([...FLIPS]);
-                setActivityLog(prev => [{ id: newId(), date: today, type: "note", text: `Deal cloned as "${cloned.name}"`, icon: "milestone" }, ...prev]);
+                setDealNotes(prev => [{ id: newId(), date: today, text: `Deal cloned as "${cloned.name}"` }, ...prev]);
               }} style={{ background: "rgba(255,255,255,0.7)", border: "1px solid rgba(0,0,0,0.08)", borderRadius: 8, padding: "6px 12px", fontSize: 12, fontWeight: 600, color: "#475569", cursor: "pointer", display: "flex", alignItems: "center", gap: 5 }}>
                 <Copy size={12} /> Clone Deal
               </button>
@@ -4286,7 +4291,7 @@ function FlipDetail({ flip, onBack, allFlips, setAllFlips }) {
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead>
                   <tr style={{ background: "#f8fafc" }}>
-                    {["Date", "Vendor", "Category", "Description", "Amount", "Status", ""].map(h => (
+                    {["Date", "Paid To", "Category", "Description", "Amount", "Status", ""].map(h => (
                       <th key={h} style={{ padding: "12px 18px", textAlign: "left", color: "#94a3b8", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>{h}</th>
                     ))}
                   </tr>
@@ -4295,7 +4300,10 @@ function FlipDetail({ flip, onBack, allFlips, setAllFlips }) {
                   {flipExpenses.map((e, i) => (
                     <tr key={e.id} style={{ borderTop: "1px solid #f1f5f9", background: i % 2 === 0 ? "#fff" : "#fafafa" }}>
                       <td style={{ padding: "13px 18px", fontSize: 13, color: "#64748b" }}>{e.date}</td>
-                      <td style={{ padding: "13px 18px", fontSize: 13, fontWeight: 600, color: "#0f172a" }}>{e.vendor}</td>
+                      <td style={{ padding: "13px 18px", fontSize: 13, fontWeight: 600, color: "#0f172a" }}>
+                        {e.vendor}
+                        {e.contractorId && <UserCheck size={11} color="#3b82f6" style={{ marginLeft: 5, display: "inline" }} title={`Linked contractor`} />}
+                      </td>
                       <td style={{ padding: "13px 18px" }}>
                         {(() => { const group = getFlipExpGroup(e.category); return group && group !== e.category ? <p style={{ fontSize: 10, color: "#94a3b8", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.03em", marginBottom: 2 }}>{group}</p> : null; })()}
                         <span style={{ background: "#f1f5f9", borderRadius: 6, padding: "3px 8px", fontSize: 11, fontWeight: 600, color: "#475569" }}>{e.category}</span>
@@ -4306,7 +4314,6 @@ function FlipDetail({ flip, onBack, allFlips, setAllFlips }) {
                         <button onClick={() => setExpData(prev => prev.map(x => x.id === e.id ? { ...x, status: x.status === "paid" ? "pending" : "paid" } : x))} style={{ background: (e.status || "paid") === "paid" ? "#dcfce7" : "#fef9c3", color: (e.status || "paid") === "paid" ? "#15803d" : "#a16207", borderRadius: 20, padding: "3px 10px", fontSize: 11, fontWeight: 600, border: "none", cursor: "pointer", textTransform: "capitalize" }}>
                           {(e.status || "paid") === "paid" ? "Paid" : "Pending"}
                         </button>
-                        {e.contractorId && <span title={`Linked to ${(conData.find(c => c.id === e.contractorId) || {}).name || "contractor"}`} style={{ marginLeft: 6, color: "#3b82f6", fontSize: 10 }}><UserCheck size={11} style={{ display: "inline" }} /></span>}
                       </td>
                       <td style={{ padding: "13px 18px" }}>
                         <div style={{ display: "flex", gap: 4 }}>
@@ -4330,22 +4337,44 @@ function FlipDetail({ flip, onBack, allFlips, setAllFlips }) {
             )}
           </div>
           {showExpenseModal && (() => {
-            const VendorDropdown = () => {
+            const PaidToDropdown = () => {
               const q = (expForm.vendor || "").toLowerCase();
-              const matches = q ? allVendors.filter(v => v.toLowerCase().includes(q) && v.toLowerCase() !== q) : allVendors;
-              const exactExists = allVendors.some(v => v.toLowerCase() === q);
+              // Contractors on this project
+              const conMatches = q ? conData.filter(c => c.name.toLowerCase().includes(q)) : conData;
+              // Previous vendors (excluding contractor names to avoid duplicates)
+              const conNames = new Set(conData.map(c => c.name.toLowerCase()));
+              const vendorMatches = q ? allVendors.filter(v => v.toLowerCase().includes(q) && !conNames.has(v.toLowerCase())) : allVendors.filter(v => !conNames.has(v.toLowerCase()));
+              const exactExists = allVendors.some(v => v.toLowerCase() === q) || conData.some(c => c.name.toLowerCase() === q);
               const showNew = q && !exactExists;
-              if (matches.length === 0 && !showNew) return null;
+              if (conMatches.length === 0 && vendorMatches.length === 0 && !showNew) return null;
               return (
-                <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, background: "#fff", border: "1px solid #e2e8f0", borderRadius: 12, boxShadow: "0 8px 24px rgba(0,0,0,0.10)", zIndex: 200, overflow: "hidden" }}>
-                  {matches.slice(0, 6).map(v => (
-                    <button key={v} onMouseDown={() => { setExpForm(f => ({ ...f, vendor: v })); setVendorFocus(false); }}
-                      style={{ width: "100%", padding: "10px 14px", background: "none", border: "none", borderBottom: "1px solid #f1f5f9", textAlign: "left", cursor: "pointer", fontSize: 13, color: "#0f172a", display: "flex", alignItems: "center", gap: 8 }}>
-                      <User size={13} style={{ color: "#94a3b8", flexShrink: 0 }} /> {v}
-                    </button>
-                  ))}
+                <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, background: "#fff", border: "1px solid #e2e8f0", borderRadius: 12, boxShadow: "0 8px 24px rgba(0,0,0,0.10)", zIndex: 200, overflow: "hidden", maxHeight: 280, overflowY: "auto" }}>
+                  {conMatches.length > 0 && (
+                    <>
+                      <div style={{ padding: "6px 14px", background: "#f8fafc", fontSize: 10, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.05em" }}>Project Contractors</div>
+                      {conMatches.slice(0, 5).map(c => (
+                        <button key={`con-${c.id}`} onMouseDown={() => { setExpForm(f => ({ ...f, vendor: c.name, contractorId: String(c.id) })); setVendorFocus(false); }}
+                          style={{ width: "100%", padding: "10px 14px", background: "none", border: "none", borderBottom: "1px solid #f1f5f9", textAlign: "left", cursor: "pointer", fontSize: 13, color: "#0f172a", display: "flex", alignItems: "center", gap: 8 }}>
+                          <UserCheck size={13} style={{ color: "#3b82f6", flexShrink: 0 }} />
+                          <span style={{ flex: 1 }}>{c.name}</span>
+                          <span style={{ fontSize: 11, color: "#94a3b8" }}>{c.trade}</span>
+                        </button>
+                      ))}
+                    </>
+                  )}
+                  {vendorMatches.length > 0 && (
+                    <>
+                      <div style={{ padding: "6px 14px", background: "#f8fafc", fontSize: 10, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.05em" }}>Previous Vendors</div>
+                      {vendorMatches.slice(0, 5).map(v => (
+                        <button key={v} onMouseDown={() => { setExpForm(f => ({ ...f, vendor: v, contractorId: "" })); setVendorFocus(false); }}
+                          style={{ width: "100%", padding: "10px 14px", background: "none", border: "none", borderBottom: "1px solid #f1f5f9", textAlign: "left", cursor: "pointer", fontSize: 13, color: "#0f172a", display: "flex", alignItems: "center", gap: 8 }}>
+                          <User size={13} style={{ color: "#94a3b8", flexShrink: 0 }} /> {v}
+                        </button>
+                      ))}
+                    </>
+                  )}
                   {showNew && (
-                    <div style={{ padding: "10px 14px", display: "flex", alignItems: "center", gap: 8, background: "#f0f9ff", borderTop: matches.length > 0 ? "1px solid #e2e8f0" : "none" }}>
+                    <div style={{ padding: "10px 14px", display: "flex", alignItems: "center", gap: 8, background: "#f0f9ff", borderTop: "1px solid #e2e8f0" }}>
                       <PlusCircle size={13} style={{ color: "#3b82f6", flexShrink: 0 }} />
                       <span style={{ fontSize: 13, color: "#3b82f6", fontWeight: 600 }}>Add "{expForm.vendor}" as new</span>
                     </div>
@@ -4353,6 +4382,13 @@ function FlipDetail({ flip, onBack, allFlips, setAllFlips }) {
                 </div>
               );
             };
+            // Auto-detect contractor link when vendor name changes
+            const handleVendorChange = (e) => {
+              const val = e.target.value;
+              const matchedCon = conData.find(c => c.name.toLowerCase() === val.toLowerCase());
+              setExpForm(f => ({ ...f, vendor: val, contractorId: matchedCon ? String(matchedCon.id) : "" }));
+            };
+            const linkedCon = expForm.contractorId ? conData.find(c => String(c.id) === String(expForm.contractorId)) : null;
             return (
             <Modal title={editingExpId ? "Edit Expense" : "Log Expense"} onClose={() => { setShowExpenseModal(false); setEditingExpId(null); setExpForm(emptyExp); }}>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
@@ -4365,9 +4401,16 @@ function FlipDetail({ flip, onBack, allFlips, setAllFlips }) {
                   <input type="number" placeholder="0.00" value={expForm.amount} onChange={sfE("amount")} style={iS} />
                 </div>
                 <div style={{ gridColumn: "1 / -1", position: "relative" }}>
-                  <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Vendor</label>
-                  <input type="text" placeholder="e.g. Home Depot, ABC Plumbing" value={expForm.vendor} onChange={e => setExpForm(f => ({ ...f, vendor: e.target.value }))} onFocus={() => setVendorFocus(true)} onBlur={() => setTimeout(() => setVendorFocus(false), 150)} style={iS} autoComplete="off" />
-                  {vendorFocus && <VendorDropdown />}
+                  <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Paid To</label>
+                  <input type="text" placeholder="Contractor name or vendor (e.g. ABC Plumbing, Home Depot)" value={expForm.vendor} onChange={handleVendorChange} onFocus={() => setVendorFocus(true)} onBlur={() => setTimeout(() => setVendorFocus(false), 150)} style={iS} autoComplete="off" />
+                  {vendorFocus && <PaidToDropdown />}
+                  {linkedCon && (
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 6 }}>
+                      <UserCheck size={12} color="#3b82f6" />
+                      <span style={{ fontSize: 12, color: "#3b82f6", fontWeight: 600 }}>Linked to {linkedCon.name} ({linkedCon.trade})</span>
+                      <button onClick={() => setExpForm(f => ({ ...f, contractorId: "" }))} style={{ background: "none", border: "none", color: "#94a3b8", cursor: "pointer", fontSize: 11, textDecoration: "underline" }}>unlink</button>
+                    </div>
+                  )}
                 </div>
                 <div style={{ gridColumn: "1 / -1" }}>
                   <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Description</label>
@@ -4388,13 +4431,6 @@ function FlipDetail({ flip, onBack, allFlips, setAllFlips }) {
                   <select value={expForm.status} onChange={sfE("status")} style={iS}>
                     <option value="paid">Paid</option>
                     <option value="pending">Pending</option>
-                  </select>
-                </div>
-                <div>
-                  <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Linked Contractor</label>
-                  <select value={expForm.contractorId} onChange={sfE("contractorId")} style={iS}>
-                    <option value="">None</option>
-                    {conData.map(c => <option key={c.id} value={c.id}>{c.name} ({c.trade})</option>)}
                   </select>
                 </div>
               </div>
@@ -4776,16 +4812,36 @@ function FlipDetail({ flip, onBack, allFlips, setAllFlips }) {
           </div>
         </Modal>
       )}
-      {activeTab === "notes" && (
+      {activeTab === "notes" && (() => {
+        const q = noteSearch.toLowerCase().trim();
+        const filtered = q ? dealNotes.filter(n => n.text.toLowerCase().includes(q) || n.date.includes(q)) : dealNotes;
+        // Highlight matching text
+        const highlight = (text) => {
+          if (!q) return text;
+          const idx = text.toLowerCase().indexOf(q);
+          if (idx === -1) return text;
+          return (<>{text.slice(0, idx)}<mark style={{ background: "#fef08a", borderRadius: 2, padding: "0 1px" }}>{text.slice(idx, idx + q.length)}</mark>{text.slice(idx + q.length)}</>);
+        };
+        return (
         <div>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
             <p style={{ color: "#64748b", fontSize: 14 }}>
-              {activityLog.length} entries . {activityLog.filter(a => a.type === "note").length} notes
+              {dealNotes.length} note{dealNotes.length !== 1 ? "s" : ""}
+              {q && filtered.length !== dealNotes.length && <span style={{ color: "#f59e0b", fontWeight: 600 }}> . {filtered.length} match{filtered.length !== 1 ? "es" : ""}</span>}
             </p>
             <button onClick={() => setShowNoteInput(true)} style={{ background: "#f59e0b", color: "#fff", border: "none", borderRadius: 10, padding: "10px 16px", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
               <Plus size={15} /> Add Note
             </button>
           </div>
+          {dealNotes.length > 2 && (
+            <div style={{ position: "relative", marginBottom: 14 }}>
+              <Search size={16} style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: "#94a3b8" }} />
+              <input type="text" placeholder="Search notes..." value={noteSearch} onChange={e => setNoteSearch(e.target.value)} style={{ ...iS, paddingLeft: 40 }} />
+              {noteSearch && (
+                <button onClick={() => setNoteSearch("")} style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", color: "#94a3b8", cursor: "pointer", padding: 0 }}><X size={14} /></button>
+              )}
+            </div>
+          )}
           {showNoteInput && (
             <div style={{ background: "#fff", borderRadius: 16, padding: 20, marginBottom: 16, border: "1px solid #f1f5f9", boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
               <textarea value={noteText} onChange={e => setNoteText(e.target.value)} placeholder="Add a note about this deal... e.g. 'Spoke with inspector, needs structural review on back wall'" rows={3} style={{ ...iS, resize: "vertical", fontFamily: "inherit" }} autoFocus />
@@ -4796,38 +4852,37 @@ function FlipDetail({ flip, onBack, allFlips, setAllFlips }) {
             </div>
           )}
           <div style={{ background: "#fff", borderRadius: 16, border: "1px solid #f1f5f9", boxShadow: "0 1px 3px rgba(0,0,0,0.06)", overflow: "hidden" }}>
-            {activityLog.length === 0 ? (
+            {dealNotes.length === 0 ? (
               <div style={{ textAlign: "center", padding: 48, color: "#94a3b8" }}>
                 <MessageSquare size={32} style={{ margin: "0 auto 12px", display: "block" }} />
-                <p style={{ fontWeight: 600, marginBottom: 4 }}>No notes or activity yet</p>
-                <p style={{ fontSize: 13 }}>Add notes to keep a running log of this deal.</p>
+                <p style={{ fontWeight: 600, marginBottom: 4 }}>No notes yet</p>
+                <p style={{ fontSize: 13 }}>Keep a running journal of updates, calls, and decisions for this deal.</p>
+              </div>
+            ) : filtered.length === 0 ? (
+              <div style={{ textAlign: "center", padding: 36, color: "#94a3b8" }}>
+                <Search size={24} style={{ margin: "0 auto 8px", display: "block" }} />
+                <p style={{ fontWeight: 600, fontSize: 14 }}>No notes match "{noteSearch}"</p>
               </div>
             ) : (
-              <div style={{ position: "relative" }}>
-                {activityLog.map((entry, i) => {
-                  const iconMap = { note: { icon: MessageSquare, bg: "#dbeafe", color: "#3b82f6" }, expense: { icon: Receipt, bg: "#fee2e2", color: "#b91c1c" }, payment: { icon: CreditCard, bg: "#dcfce7", color: "#15803d" }, milestone: { icon: Flag, bg: "#fef9c3", color: "#a16207" } };
-                  const config = iconMap[entry.icon] || iconMap.note;
-                  const IconComp = config.icon;
-                  return (
-                    <div key={entry.id} style={{ display: "flex", gap: 14, padding: "16px 20px", borderBottom: i < activityLog.length - 1 ? "1px solid #f1f5f9" : "none" }}>
-                      <div style={{ width: 36, height: 36, borderRadius: 10, background: config.bg, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                        <IconComp size={16} color={config.color} />
-                      </div>
-                      <div style={{ flex: 1 }}>
-                        <p style={{ fontSize: 14, color: "#0f172a", fontWeight: entry.type === "note" ? 500 : 400, lineHeight: 1.5 }}>{entry.text}</p>
-                        <p style={{ fontSize: 12, color: "#94a3b8", marginTop: 4 }}>{entry.date}</p>
-                      </div>
-                      {entry.type === "note" && (
-                        <button onClick={() => setActivityLog(prev => prev.filter(a => a.id !== entry.id))} style={{ background: "#fee2e2", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "#ef4444", display: "flex", alignItems: "center", alignSelf: "flex-start" }} title="Delete"><Trash2 size={13} /></button>
-                      )}
+              <div>
+                {filtered.map((note, i) => (
+                  <div key={note.id} style={{ display: "flex", gap: 14, padding: "16px 20px", borderBottom: i < filtered.length - 1 ? "1px solid #f1f5f9" : "none" }}>
+                    <div style={{ width: 36, height: 36, borderRadius: 10, background: "#dbeafe", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                      <MessageSquare size={16} color="#3b82f6" />
                     </div>
-                  );
-                })}
+                    <div style={{ flex: 1 }}>
+                      <p style={{ fontSize: 14, color: "#0f172a", lineHeight: 1.6 }}>{highlight(note.text)}</p>
+                      <p style={{ fontSize: 12, color: "#94a3b8", marginTop: 6 }}>{note.date}</p>
+                    </div>
+                    <button onClick={() => setDealNotes(prev => prev.filter(n => n.id !== note.id))} style={{ background: "#fee2e2", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "#ef4444", display: "flex", alignItems: "center", alignSelf: "flex-start" }} title="Delete"><Trash2 size={13} /></button>
+                  </div>
+                ))}
               </div>
             )}
           </div>
         </div>
-      )}
+        );
+      })()}
       {showEditDeal && (
         <Modal title="Edit Deal" onClose={() => setShowEditDeal(false)}>
           <div style={{ maxHeight: "60vh", overflowY: "auto", paddingRight: 4 }}>
