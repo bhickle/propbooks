@@ -317,21 +317,36 @@ const FLIPS = [
 
 // STAGE_ORDER, STAGE_COLORS imported from api.js
 
+const FLIP_EXPENSE_GROUPS = {
+  "Acquisition":          ["Closing Costs (Buy)", "Title & Escrow", "Inspection", "Appraisal"],
+  "Rehab Labor":          ["General Contractor", "Subcontractor", "Day Labor"],
+  "Rehab Materials":      ["Materials & Supplies", "Appliances", "Fixtures & Hardware"],
+  "Permits & Fees":       ["Permits", "Inspections", "Dumpster / Debris Removal"],
+  "Holding Costs":        ["Insurance", "Property Tax", "Utilities", "Loan Interest / Hard Money", "HOA"],
+  "Selling Costs":        ["Agent Commission", "Photography / Marketing", "Staging", "Cleaning", "Closing Costs (Sell)"],
+  "General":              ["Landscaping", "Travel", "Other"],
+};
+const FLIP_EXPENSE_CATS = Object.values(FLIP_EXPENSE_GROUPS).flat();
+const getFlipExpGroup = (cat) => {
+  for (const [parent, subs] of Object.entries(FLIP_EXPENSE_GROUPS)) { if (subs.includes(cat)) return parent; }
+  return "General";
+};
+
 const FLIP_EXPENSES = [
-  { id: 1, flipId: 1, date: "2026-03-18", vendor: "Home Depot", category: "Materials/Supplies", description: "Hardwood flooring - 680 sqft", amount: 2890 },
+  { id: 1, flipId: 1, date: "2026-03-18", vendor: "Home Depot", category: "Materials & Supplies", description: "Hardwood flooring - 680 sqft", amount: 2890 },
   { id: 2, flipId: 1, date: "2026-03-15", vendor: "ABC Plumbing", category: "Subcontractor", description: "Master bath rough-in", amount: 3200 },
-  { id: 3, flipId: 1, date: "2026-03-10", vendor: "Lowe's", category: "Materials/Supplies", description: "Kitchen cabinet hardware + fixtures", amount: 640 },
-  { id: 4, flipId: 1, date: "2026-03-04", vendor: "City of Nashville", category: "Permits & Inspections", description: "Renovation permit", amount: 380 },
+  { id: 3, flipId: 1, date: "2026-03-10", vendor: "Lowe's", category: "Fixtures & Hardware", description: "Kitchen cabinet hardware + fixtures", amount: 640 },
+  { id: 4, flipId: 1, date: "2026-03-04", vendor: "City of Nashville", category: "Permits", description: "Renovation permit", amount: 380 },
   { id: 5, flipId: 1, date: "2026-02-28", vendor: "Elite Electric", category: "Subcontractor", description: "Panel upgrade + recessed lighting", amount: 4100 },
-  { id: 6, flipId: 1, date: "2026-02-20", vendor: "Lowe's", category: "Materials/Supplies", description: "Kitchen cabinets - shaker style", amount: 5800 },
-  { id: 7, flipId: 1, date: "2026-02-14", vendor: "Budget Dumpster", category: "Dump Fees", description: "Demo debris removal", amount: 420 },
-  { id: 8, flipId: 2, date: "2026-01-12", vendor: "Sherwin-Williams", category: "Materials/Supplies", description: "Interior/exterior paint + supplies", amount: 1150 },
+  { id: 6, flipId: 1, date: "2026-02-20", vendor: "Lowe's", category: "Materials & Supplies", description: "Kitchen cabinets - shaker style", amount: 5800 },
+  { id: 7, flipId: 1, date: "2026-02-14", vendor: "Budget Dumpster", category: "Dumpster / Debris Removal", description: "Demo debris removal", amount: 420 },
+  { id: 8, flipId: 2, date: "2026-01-12", vendor: "Sherwin-Williams", category: "Materials & Supplies", description: "Interior/exterior paint + supplies", amount: 1150 },
   { id: 9, flipId: 2, date: "2026-01-08", vendor: "Pro Flooring Co.", category: "Subcontractor", description: "LVP install - 1,100 sqft", amount: 3900 },
   { id: 10, flipId: 2, date: "2025-12-20", vendor: "Home Depot", category: "Appliances", description: "Stainless appliance package", amount: 2400 },
   { id: 11, flipId: 2, date: "2025-12-10", vendor: "Jim's Windows", category: "Subcontractor", description: "Replace 8 windows", amount: 5400 },
-  { id: 12, flipId: 2, date: "2025-11-18", vendor: "City of Memphis", category: "Permits & Inspections", description: "Electrical & structural permits", amount: 295 },
+  { id: 12, flipId: 2, date: "2025-11-18", vendor: "City of Memphis", category: "Permits", description: "Electrical & structural permits", amount: 295 },
   { id: 13, flipId: 4, date: "2025-07-02", vendor: "Summit HVAC", category: "Subcontractor", description: "Full HVAC replacement", amount: 7200 },
-  { id: 14, flipId: 4, date: "2025-06-15", vendor: "Habitat Flooring", category: "Materials/Supplies", description: "Engineered hardwood - whole house", amount: 4300 },
+  { id: 14, flipId: 4, date: "2025-06-15", vendor: "Habitat Flooring", category: "Materials & Supplies", description: "Engineered hardwood - whole house", amount: 4300 },
   { id: 15, flipId: 4, date: "2025-06-01", vendor: "Raleigh Tile Co.", category: "Subcontractor", description: "Master bath tile work", amount: 3100 },
 ];
 
@@ -3736,7 +3751,7 @@ function FlipDetail({ flip, onBack, allFlips, setAllFlips }) {
   };
 
   // Expense edit state
-  const emptyExp = { date: "", vendor: "", category: "Materials/Supplies", description: "", amount: "" };
+  const emptyExp = { date: "", vendor: "", category: "Materials & Supplies", description: "", amount: "" };
   const [expForm, setExpForm] = useState(emptyExp);
   const sfE = k => e => setExpForm(f => ({ ...f, [k]: e.target.value }));
   const [editingExpId, setEditingExpId] = useState(null);
@@ -4114,11 +4129,12 @@ function FlipDetail({ flip, onBack, allFlips, setAllFlips }) {
             </button>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 20 }}>
-            {["Materials/Supplies", "Subcontractor", "Permits & Inspections", "Dump Fees"].map(cat => {
-              const total = flipExpenses.filter(e => e.category === cat).reduce((s, e) => s + e.amount, 0);
+            {Object.keys(FLIP_EXPENSE_GROUPS).slice(0, 4).map(group => {
+              const subs = FLIP_EXPENSE_GROUPS[group];
+              const total = flipExpenses.filter(e => subs.includes(e.category)).reduce((s, e) => s + e.amount, 0);
               return (
-                <div key={cat} style={{ background: "#fff", borderRadius: 12, padding: "14px 16px", boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" }}>
-                  <p style={{ color: "#94a3b8", fontSize: 11, fontWeight: 600, textTransform: "uppercase", marginBottom: 4 }}>{cat}</p>
+                <div key={group} style={{ background: "#fff", borderRadius: 12, padding: "14px 16px", boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" }}>
+                  <p style={{ color: "#94a3b8", fontSize: 11, fontWeight: 600, textTransform: "uppercase", marginBottom: 4 }}>{group}</p>
                   <p style={{ color: "#0f172a", fontSize: 18, fontWeight: 700 }}>{total > 0 ? fmt(total) : "-"}</p>
                 </div>
               );
@@ -4186,7 +4202,11 @@ function FlipDetail({ flip, onBack, allFlips, setAllFlips }) {
               <div style={{ marginBottom: 20 }}>
                 <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Category</label>
                 <select value={expForm.category} onChange={sfE("category")} style={iS}>
-                  {["Materials/Supplies","Subcontractor","Dump Fees","Permits & Inspections","Appliances","Landscaping","Staging","Carrying Costs","Other"].map(o => <option key={o}>{o}</option>)}
+                  {Object.entries(FLIP_EXPENSE_GROUPS).map(([group, subs]) => (
+                    <optgroup key={group} label={group}>
+                      {subs.map(c => <option key={c} value={c}>{c}</option>)}
+                    </optgroup>
+                  ))}
                 </select>
               </div>
               <div style={{ display: "flex", gap: 10 }}>
