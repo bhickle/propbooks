@@ -96,21 +96,55 @@ const PROPERTIES = [
   { id: 5, name: "Sunset Strip Commercial", address: "9220 Sunset Blvd, West Hollywood, CA 90069", type: "Commercial", units: 1, purchasePrice: 1200000, currentValue: 1380000, valueUpdatedAt: "2025-12-05", loanAmount: 900000, loanRate: 4.5, loanTermYears: 25, loanStartDate: "2018-06-30", closingCosts: 26400, monthlyRent: 8500, monthlyExpenses: 3200, purchaseDate: "2018-06-30", status: "Occupied", image: "SS", color: "#ef4444", photo: null },
 ];
 
+// ── Derived financials from transactions ──
+// Returns { monthlyIncome, monthlyExpenses, months, source } for a property
+// "source" = "transactions" if 2+ months of data, else "estimate" (falls back to property fields)
+function calcMonthlyFromTx(propertyName, transactions, fallbackRent, fallbackExp) {
+  const propTx = transactions.filter(t => t.property === propertyName);
+  if (propTx.length === 0) return { monthlyIncome: fallbackRent || 0, monthlyExpenses: fallbackExp || 0, months: 0, source: "estimate" };
+
+  const dates = propTx.map(t => t.date).sort();
+  const first = new Date(dates[0]);
+  const last = new Date(dates[dates.length - 1]);
+  const months = Math.max(1, Math.round((last - first) / (1000 * 60 * 60 * 24 * 30.4375)) + 1);
+
+  const totalIncome = propTx.filter(t => t.type === "income").reduce((s, t) => s + Math.abs(t.amount), 0);
+  const totalExpenses = propTx.filter(t => t.type === "expense").reduce((s, t) => s + Math.abs(t.amount), 0);
+
+  // Need at least 2 months of data to trust the average
+  if (months < 2) return { monthlyIncome: fallbackRent || 0, monthlyExpenses: fallbackExp || 0, months, source: "estimate" };
+
+  return {
+    monthlyIncome: Math.round(totalIncome / months),
+    monthlyExpenses: Math.round(totalExpenses / months),
+    months,
+    source: "transactions",
+  };
+}
+
+// Convenience: get effective monthly numbers for a property (prefers transactions, falls back to estimates)
+function getEffectiveMonthly(p, transactions) {
+  return calcMonthlyFromTx(p.name, transactions, p.monthlyRent, p.monthlyExpenses);
+}
+
 // ── Derived metric helpers ──
 // Cap Rate = Annual NOI / Current Property Value × 100
-function calcCapRate(p) {
+// Pass transactions to use real data; omit to use property estimates
+function calcCapRate(p, transactions) {
   if (!p.currentValue) return 0;
-  const annualNOI = (p.monthlyRent - p.monthlyExpenses) * 12;
+  const eff = transactions ? getEffectiveMonthly(p, transactions) : { monthlyIncome: p.monthlyRent, monthlyExpenses: p.monthlyExpenses };
+  const annualNOI = (eff.monthlyIncome - eff.monthlyExpenses) * 12;
   return parseFloat((annualNOI / p.currentValue * 100).toFixed(1));
 }
 
 // Cash-on-Cash = (Annual NOI − Annual Debt Service) / Total Cash Invested × 100
 // Total Cash Invested = Down Payment + Closing Costs
-function calcCashOnCash(p) {
+function calcCashOnCash(p, transactions) {
   const downPayment = p.purchasePrice - (p.loanAmount || 0);
   const totalCashInvested = downPayment + (p.closingCosts || 0);
   if (totalCashInvested <= 0) return 0;
-  const annualNOI = (p.monthlyRent - p.monthlyExpenses) * 12;
+  const eff = transactions ? getEffectiveMonthly(p, transactions) : { monthlyIncome: p.monthlyRent, monthlyExpenses: p.monthlyExpenses };
+  const annualNOI = (eff.monthlyIncome - eff.monthlyExpenses) * 12;
   let annualDebtService = 0;
   if (p.loanAmount && p.loanRate && p.loanTermYears) {
     const r = p.loanRate / 100 / 12;
@@ -384,13 +418,13 @@ function Dashboard({ onNavigate, onNavigateToTx }) {
   const props = isAll ? PROPERTIES : PROPERTIES.filter(p => String(p.id) === dashProp);
   const selectedProp = !isAll ? PROPERTIES.find(p => String(p.id) === dashProp) : null;
 
-  // KPIs — filtered by selected property
+  // KPIs — filtered by selected property, using transaction-derived financials
   const totalValue = props.reduce((s, p) => s + p.currentValue, 0);
   const totalEquity = props.reduce((s, p) => s + (p.currentValue - (calcLoanBalance(p.loanAmount, p.loanRate, p.loanTermYears, p.loanStartDate) ?? p.loanAmount ?? 0)), 0);
-  const monthlyIncome = props.reduce((s, p) => s + p.monthlyRent, 0);
-  const monthlyExpenses = props.reduce((s, p) => s + p.monthlyExpenses, 0);
+  const monthlyIncome = props.reduce((s, p) => { const e = getEffectiveMonthly(p, TRANSACTIONS); return s + e.monthlyIncome; }, 0);
+  const monthlyExpenses = props.reduce((s, p) => { const e = getEffectiveMonthly(p, TRANSACTIONS); return s + e.monthlyExpenses; }, 0);
   const netCashFlow = monthlyIncome - monthlyExpenses;
-  const avgCapRate = props.length > 0 ? (props.reduce((s, p) => s + calcCapRate(p), 0) / props.length).toFixed(1) : "0.0";
+  const avgCapRate = props.length > 0 ? (props.reduce((s, p) => s + calcCapRate(p, TRANSACTIONS), 0) / props.length).toFixed(1) : "0.0";
 
   // Transactions filtered by property
   const filteredTx = isAll ? TRANSACTIONS : TRANSACTIONS.filter(t => {
@@ -703,7 +737,8 @@ function Properties({ onSelect }) {
             const calcBal = calcLoanBalance(p.loanAmount, p.loanRate, p.loanTermYears, p.loanStartDate);
             const effectiveMortgage = calcBal !== null ? calcBal : (p.mortgage || 0);
             const equity = p.currentValue - effectiveMortgage;
-            const monthlyNet = p.monthlyRent - p.monthlyExpenses;
+            const eff = getEffectiveMonthly(p, TRANSACTIONS);
+            const monthlyNet = eff.monthlyIncome - eff.monthlyExpenses;
             return (
               <div key={p.id} onClick={() => onSelect(p)} style={{ background: "#fff", borderRadius: 16, overflow: "hidden", boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9", cursor: "pointer", transition: "transform 0.15s, box-shadow 0.15s" }}
                 onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-3px)"; e.currentTarget.style.boxShadow = "0 8px 24px rgba(0,0,0,0.1)"; }}
@@ -761,7 +796,7 @@ function Properties({ onSelect }) {
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr style={{ background: "#f8fafc" }}>
-                {["Property", "Type", "Value", "Equity", "Monthly Rent", "Net Cash Flow", "Cap Rate", "Status", ""].map(h => (
+                {["Property", "Type", "Value", "Equity", "Monthly Income", "Net Cash Flow", "Cap Rate", "Status", ""].map(h => (
                   <th key={h} style={{ padding: "14px 20px", textAlign: "left", color: "#94a3b8", fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>{h}</th>
                 ))}
               </tr>
@@ -792,10 +827,10 @@ function Properties({ onSelect }) {
                     <p style={{ fontSize: 14, fontWeight: 600, color: "#10b981" }}>{fmtK(p.currentValue - effMort)}</p>
                     {lBal !== null && <p style={{ fontSize: 11, color: "#cbd5e1" }}>Balance {fmtK(effMort)}</p>}
                   </td>
-                  <td style={{ padding: "16px 20px", fontSize: 14, fontWeight: 600, color: "#0f172a" }}>{fmt(p.monthlyRent)}</td>
-                  <td style={{ padding: "16px 20px", fontSize: 14, fontWeight: 700, color: "#3b82f6" }}>{fmt(p.monthlyRent - p.monthlyExpenses)}</td>
+                  <td style={{ padding: "16px 20px", fontSize: 14, fontWeight: 600, color: "#0f172a" }}>{fmt(getEffectiveMonthly(p, TRANSACTIONS).monthlyIncome)}</td>
+                  <td style={{ padding: "16px 20px", fontSize: 14, fontWeight: 700, color: "#3b82f6" }}>{fmt(getEffectiveMonthly(p, TRANSACTIONS).monthlyIncome - getEffectiveMonthly(p, TRANSACTIONS).monthlyExpenses)}</td>
                   <td style={{ padding: "16px 20px" }}>
-                    <span style={{ background: "#ede9fe", color: "#6d28d9", borderRadius: 20, padding: "3px 10px", fontSize: 12, fontWeight: 700 }}>{calcCapRate(p)}%</span>
+                    <span style={{ background: "#ede9fe", color: "#6d28d9", borderRadius: 20, padding: "3px 10px", fontSize: 12, fontWeight: 700 }}>{calcCapRate(p, TRANSACTIONS)}%</span>
                   </td>
                   <td style={{ padding: "16px 20px" }}><Badge status={p.status} /></td>
                   <td style={{ padding: "16px 20px" }}>
@@ -858,8 +893,8 @@ function Properties({ onSelect }) {
               { label: "Purchase Price ($)", key: "purchasePrice", type: "number", placeholder: "0" },
               { label: "Current Value ($)", key: "currentValue", type: "number", placeholder: "0" },
               { label: "Closing Costs ($)", key: "closingCosts", type: "number", placeholder: "0" },
-              { label: "Monthly Rent ($)", key: "monthlyRent", type: "number", placeholder: "0" },
-              { label: "Monthly Expenses ($)", key: "monthlyExpenses", type: "number", placeholder: "0" },
+              { label: "Est. Monthly Rent ($)", key: "monthlyRent", type: "number", placeholder: "0" },
+              { label: "Est. Monthly Expenses ($)", key: "monthlyExpenses", type: "number", placeholder: "0" },
               { label: "Units", key: "units", type: "number", placeholder: "1" },
               { label: "Purchase Date", key: "purchaseDate", type: "date", placeholder: "" },
             ].map(f => (
@@ -955,7 +990,8 @@ function PropertyDetail({ property, onBack }) {
   const effectiveMortgage = calcBal !== null ? calcBal : (property.mortgage || 0);
   const equity = property.currentValue - effectiveMortgage;
   const appreciation = property.currentValue - property.purchasePrice;
-  const annualNOI = (property.monthlyRent - property.monthlyExpenses) * 12;
+  const eff = getEffectiveMonthly(property, TRANSACTIONS);
+  const annualNOI = (eff.monthlyIncome - eff.monthlyExpenses) * 12;
   const propTransactions = TRANSACTIONS.filter(t => t.property === property.name);
 
   return (
@@ -990,15 +1026,15 @@ function PropertyDetail({ property, onBack }) {
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 24 }}>
         {[
-          { label: "Monthly Rent", value: fmt(property.monthlyRent), color: "#10b981" },
-          { label: "Monthly Expenses", value: fmt(property.monthlyExpenses), color: "#ef4444" },
-          { label: "Net Cash Flow", value: fmt(property.monthlyRent - property.monthlyExpenses), color: "#3b82f6" },
+          { label: "Monthly Income", value: fmt(eff.monthlyIncome), color: "#10b981", sub: eff.source === "transactions" ? `From ${eff.months}mo avg` : "Estimated" },
+          { label: "Monthly Expenses", value: fmt(eff.monthlyExpenses), color: "#ef4444", sub: eff.source === "transactions" ? `From ${eff.months}mo avg` : "Estimated" },
+          { label: "Net Cash Flow", value: fmt(eff.monthlyIncome - eff.monthlyExpenses), color: "#3b82f6" },
           { label: "Total Equity", value: fmt(equity), color: "#8b5cf6" },
           { label: "Purchase Price", value: fmt(property.purchasePrice), color: "#0f172a" },
           { label: "Closing Costs", value: property.closingCosts ? fmt(property.closingCosts) : "—", color: "#64748b" },
           { label: calcBal !== null ? "Est. Mortgage Balance" : "Mortgage Balance", value: fmt(effectiveMortgage), color: "#f59e0b", sub: calcBal !== null ? "Auto-calculated" : null },
-          { label: "Cap Rate", value: `${calcCapRate(property)}%`, color: "#8b5cf6" },
-          { label: "Cash-on-Cash", value: `${calcCashOnCash(property)}%`, color: "#10b981" },
+          { label: "Cap Rate", value: `${calcCapRate(property, TRANSACTIONS)}%`, color: "#8b5cf6" },
+          { label: "Cash-on-Cash", value: `${calcCashOnCash(property, TRANSACTIONS)}%`, color: "#10b981" },
         ].map((m, i) => (
           <div key={i} style={{ background: "#fff", borderRadius: 12, padding: "16px 18px", boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" }}>
             <p style={{ color: "#94a3b8", fontSize: 12, fontWeight: 500, marginBottom: 4 }}>{m.label}</p>
@@ -1450,12 +1486,12 @@ function Analytics() {
   const totalUnits = PROPERTIES.reduce((s, p) => s + p.units, 0);
   const vacantUnits = TENANTS.filter(t => t.status === "vacant").length;
   const occupancyRate = totalUnits > 0 ? ((totalUnits - vacantUnits) / totalUnits * 100).toFixed(1) : "100.0";
-  const portfolioIncome = PROPERTIES.reduce((s, p) => s + p.monthlyRent, 0);
-  const portfolioExpenses = PROPERTIES.reduce((s, p) => s + p.monthlyExpenses, 0);
+  const portfolioIncome = PROPERTIES.reduce((s, p) => s + getEffectiveMonthly(p, TRANSACTIONS).monthlyIncome, 0);
+  const portfolioExpenses = PROPERTIES.reduce((s, p) => s + getEffectiveMonthly(p, TRANSACTIONS).monthlyExpenses, 0);
   const portfolioNOI = (portfolioIncome - portfolioExpenses) * 12;
   const portfolioExpenseRatio = portfolioIncome > 0 ? ((portfolioExpenses / portfolioIncome) * 100).toFixed(1) : "0";
-  const avgCapRate = (PROPERTIES.reduce((s, p) => s + calcCapRate(p), 0) / PROPERTIES.length).toFixed(1);
-  const avgCoC = (PROPERTIES.reduce((s, p) => s + calcCashOnCash(p), 0) / PROPERTIES.length).toFixed(1);
+  const avgCapRate = (PROPERTIES.reduce((s, p) => s + calcCapRate(p, TRANSACTIONS), 0) / PROPERTIES.length).toFixed(1);
+  const avgCoC = (PROPERTIES.reduce((s, p) => s + calcCashOnCash(p, TRANSACTIONS), 0) / PROPERTIES.length).toFixed(1);
   const totalAppreciation = PROPERTIES.reduce((s, p) => s + (p.currentValue - p.purchasePrice), 0);
 
   // DSCR = NOI / Annual Debt Service
@@ -1481,9 +1517,10 @@ function Analytics() {
   const yoyCoC = 0.5;
   const yoyAppreciation = 14.7;
 
-  const propMonthlyData = selectedProp ? TRAILING_MONTHS.map(({ label, idx }, i) => {
-    const income = selectedProp.monthlyRent;
-    const expenses = Math.round(selectedProp.monthlyExpenses * EXP_FACTORS[idx]);
+  const selectedPropEff = selectedProp ? getEffectiveMonthly(selectedProp, TRANSACTIONS) : null;
+  const propMonthlyData = selectedProp && selectedPropEff ? TRAILING_MONTHS.map(({ label, idx }, i) => {
+    const income = selectedPropEff.monthlyIncome;
+    const expenses = Math.round(selectedPropEff.monthlyExpenses * EXP_FACTORS[idx]);
     return { month: label, income, expenses, net: income - expenses };
   }) : [];
 
@@ -1496,7 +1533,8 @@ function Analytics() {
     const n = selectedProp.loanTermYears * 12;
     const M = selectedProp.loanAmount * r * Math.pow(1 + r, n) / (Math.pow(1 + r, n) - 1);
     const annualDS = M * 12;
-    const noi = (selectedProp.monthlyRent - selectedProp.monthlyExpenses) * 12;
+    const se = getEffectiveMonthly(selectedProp, TRANSACTIONS);
+    const noi = (se.monthlyIncome - se.monthlyExpenses) * 12;
     return annualDS > 0 ? (noi / annualDS).toFixed(2) : "N/A";
   })() : "N/A";
 
@@ -1626,12 +1664,13 @@ function Analytics() {
             <h3 style={{ color: "#0f172a", fontSize: 16, fontWeight: 700, marginBottom: 20 }}>Property-by-Property Performance</h3>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16 }}>
               {PROPERTIES.map(p => {
-                const annualRent = p.monthlyRent * 12;
-                const annualExpenses = p.monthlyExpenses * 12;
+                const pEff = getEffectiveMonthly(p, TRANSACTIONS);
+                const annualRent = pEff.monthlyIncome * 12;
+                const annualExpenses = pEff.monthlyExpenses * 12;
                 const NOI = annualRent - annualExpenses;
-                const coC = calcCashOnCash(p);
+                const coC = calcCashOnCash(p, TRANSACTIONS);
                 const appreciation = ((p.currentValue - p.purchasePrice) / p.purchasePrice * 100).toFixed(1);
-                const expRatio = ((p.monthlyExpenses / p.monthlyRent) * 100).toFixed(0);
+                const expRatio = pEff.monthlyIncome > 0 ? ((pEff.monthlyExpenses / pEff.monthlyIncome) * 100).toFixed(0) : "0";
                 const propTen = TENANTS.filter(t => t.propertyId === p.id);
                 const occUnits = propTen.filter(t => t.status !== "vacant").length;
                 const propOcc = propTen.length > 0 ? ((occUnits / propTen.length) * 100).toFixed(0) : (p.status === "Occupied" ? "100" : "0");
@@ -1740,12 +1779,12 @@ function Analytics() {
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, marginBottom: 16 }}>
               {[
                 {
-                  label: "Cap Rate", value: `${calcCapRate(selectedProp)}%`,
+                  label: "Cap Rate", value: `${calcCapRate(selectedProp, TRANSACTIONS)}%`,
                   sub: `Ranked ${rankLabel(capRateRank)} of ${PROPERTIES.length}`, color: "#3b82f6",
                   tip: "Cap Rate = Annual NOI \u00f7 Current Property Value. Measures return independent of financing.",
                 },
                 {
-                  label: "Cash-on-Cash", value: `${calcCashOnCash(selectedProp)}%`,
+                  label: "Cash-on-Cash", value: `${calcCashOnCash(selectedProp, TRANSACTIONS)}%`,
                   sub: `Ranked ${rankLabel(cocRank)} of ${PROPERTIES.length}`, color: "#8b5cf6",
                   tip: "(Annual NOI \u2212 Annual Debt Service) \u00f7 (Down Payment + Closing Costs). Down payment = Purchase Price \u2212 Loan Amount.",
                 },
@@ -1810,8 +1849,8 @@ function Analytics() {
               <div style={{ display: "flex", gap: 24 }}>
                 {[
                   { label: "Avg Monthly Net", value: fmt(Math.round(propMonthlyData.reduce((s, m) => s + m.net, 0) / 12)), color: "#10b981" },
-                  { label: "Annual NOI", value: fmt((selectedProp.monthlyRent - selectedProp.monthlyExpenses) * 12), color: "#3b82f6" },
-                  { label: "Expense Ratio", value: `${((selectedProp.monthlyExpenses / selectedProp.monthlyRent) * 100).toFixed(0)}%`, color: "#f59e0b" },
+                  { label: "Annual NOI", value: fmt((selectedPropEff.monthlyIncome - selectedPropEff.monthlyExpenses) * 12), color: "#3b82f6" },
+                  { label: "Expense Ratio", value: `${((selectedPropEff.monthlyExpenses / selectedPropEff.monthlyIncome) * 100).toFixed(0)}%`, color: "#f59e0b" },
                 ].map((m, i) => (
                   <div key={i} style={{ textAlign: "right" }}>
                     <p style={{ color: "#94a3b8", fontSize: 11, fontWeight: 600, textTransform: "uppercase" }}>{m.label}</p>
@@ -1849,8 +1888,8 @@ function Analytics() {
                   <PieChart>
                     <Pie
                       data={[
-                        { name: "Income", value: selectedProp.monthlyRent * 12 },
-                        { name: "Expenses", value: selectedProp.monthlyExpenses * 12 },
+                        { name: "Income", value: selectedPropEff.monthlyIncome * 12 },
+                        { name: "Expenses", value: selectedPropEff.monthlyExpenses * 12 },
                       ]}
                       cx="50%" cy="50%" innerRadius={42} outerRadius={65} paddingAngle={3} dataKey="value"
                     >
@@ -1862,9 +1901,9 @@ function Analytics() {
                 </ResponsiveContainer>
                 <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 4 }}>
                   {[
-                    { label: "Annual Income", value: fmt(selectedProp.monthlyRent * 12), color: "#10b981" },
-                    { label: "Annual Expenses", value: fmt(selectedProp.monthlyExpenses * 12), color: "#ef4444" },
-                    { label: "Net (NOI)", value: fmt((selectedProp.monthlyRent - selectedProp.monthlyExpenses) * 12), color: "#3b82f6" },
+                    { label: "Annual Income", value: fmt(selectedPropEff.monthlyIncome * 12), color: "#10b981" },
+                    { label: "Annual Expenses", value: fmt(selectedPropEff.monthlyExpenses * 12), color: "#ef4444" },
+                    { label: "Net (NOI)", value: fmt((selectedPropEff.monthlyIncome - selectedPropEff.monthlyExpenses) * 12), color: "#3b82f6" },
                   ].map((m, i) => (
                     <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
@@ -2051,16 +2090,18 @@ function Reports() {
     const txIncome = TRANSACTIONS.filter(t =>
       new Date(t.date).getFullYear() === Number(taxYear) && t.property === p.name && t.type === "income"
     ).reduce((s, t) => s + t.amount, 0);
-    const grossRent = txIncome > 0 ? txIncome : p.monthlyRent * 12;
+    const rEff = getEffectiveMonthly(p, TRANSACTIONS);
+    const grossRent = txIncome > 0 ? txIncome : rEff.monthlyIncome * 12;
     const totalExp = Object.values(lines).reduce((s, v) => s + v, 0);
     const net = grossRent - totalExp;
     return { lines, grossRent, totalExp, net, hasActual: txIncome > 0, interestSource };
   };
 
-  // Legacy per-property calc (for year-end)
+  // Per-property calc (for year-end) — uses transaction-derived financials
   const calcProp = p => {
-    const annRent = p.monthlyRent * 12;
-    const annExp = p.monthlyExpenses * 12;
+    const cEff = getEffectiveMonthly(p, TRANSACTIONS);
+    const annRent = cEff.monthlyIncome * 12;
+    const annExp = cEff.monthlyExpenses * 12;
     const depr = Math.round(p.purchasePrice * 0.8 / 27.5);
     const bal = calcLoanBalance(p.loanAmount, p.loanRate, p.loanTermYears, p.loanStartDate) ?? (p.loanAmount || 0);
     const intEst = Math.round(bal * (p.loanRate || 4) / 100);
@@ -2087,8 +2128,8 @@ function Reports() {
       const expenses = monthTx.filter(t => t.type === "expense").reduce((s, t) => s + Math.abs(t.amount), 0);
       return { month, income, expenses, net: income - expenses, isActual: true };
     }
-    const income   = reportProps.reduce((s, p) => s + p.monthlyRent, 0);
-    const expenses = reportProps.reduce((s, p) => s + Math.round(p.monthlyExpenses * EXP_FACTORS[i]), 0);
+    const income   = reportProps.reduce((s, p) => s + getEffectiveMonthly(p, TRANSACTIONS).monthlyIncome, 0);
+    const expenses = reportProps.reduce((s, p) => s + Math.round(getEffectiveMonthly(p, TRANSACTIONS).monthlyExpenses * EXP_FACTORS[i]), 0);
     return { month, income, expenses, net: income - expenses, isActual: false };
   });
 
@@ -2105,7 +2146,8 @@ function Reports() {
 
   // Lender package data
   const lenderData = reportProps.map(p => {
-    const noi = (p.monthlyRent - p.monthlyExpenses) * 12;
+    const lEff = getEffectiveMonthly(p, TRANSACTIONS);
+    const noi = (lEff.monthlyIncome - lEff.monthlyExpenses) * 12;
     const bal = calcLoanBalance(p.loanAmount, p.loanRate, p.loanTermYears, p.loanStartDate) ?? (p.loanAmount ?? 0);
     const r = (p.loanRate || 4) / 100 / 12;
     const n = (p.loanTermYears || 30) * 12;
