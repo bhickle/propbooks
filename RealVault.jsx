@@ -89,12 +89,37 @@ function daysAgo(dateStr) {
 }
 
 const PROPERTIES = [
-  { id: 1, name: "Maple Ridge Duplex", address: "2847 Maple Ridge Dr, Austin, TX 78701", type: "Multi-Family", units: 2, purchasePrice: 385000, currentValue: 462000, valueUpdatedAt: "2025-10-01", loanAmount: 308000, loanRate: 3.25, loanTermYears: 30, loanStartDate: "2021-03-15", monthlyRent: 3800, monthlyExpenses: 1640, purchaseDate: "2021-03-15", status: "Occupied", image: "MR", capRate: 7.2, cashOnCash: 9.1, color: "#3b82f6", photo: null },
-  { id: 2, name: "Lakeview SFR", address: "518 Lakeview Terrace, Denver, CO 80203", type: "Single Family", units: 1, purchasePrice: 520000, currentValue: 598000, valueUpdatedAt: "2025-11-15", loanAmount: 416000, loanRate: 2.875, loanTermYears: 30, loanStartDate: "2020-07-22", monthlyRent: 2950, monthlyExpenses: 1120, purchaseDate: "2020-07-22", status: "Occupied", image: "LV", capRate: 5.6, cashOnCash: 7.4, color: "#10b981", photo: null },
-  { id: 3, name: "Midtown Condo #4B", address: "1200 Peachtree St NE #4B, Atlanta, GA 30309", type: "Condo", units: 1, purchasePrice: 280000, currentValue: 315000, valueUpdatedAt: "2026-01-20", loanAmount: 224000, loanRate: 3.75, loanTermYears: 30, loanStartDate: "2022-01-10", monthlyRent: 2100, monthlyExpenses: 860, purchaseDate: "2022-01-10", status: "Occupied", image: "MC", capRate: 6.9, cashOnCash: 8.3, color: "#8b5cf6", photo: null },
-  { id: 4, name: "Riverside Triplex", address: "744 Riverside Blvd, Portland, OR 97201", type: "Multi-Family", units: 3, purchasePrice: 670000, currentValue: 745000, valueUpdatedAt: "2025-08-30", loanAmount: 536000, loanRate: 4.0, loanTermYears: 30, loanStartDate: "2019-11-05", monthlyRent: 5700, monthlyExpenses: 2380, purchaseDate: "2019-11-05", status: "Partial Vacancy", image: "RT", capRate: 8.1, cashOnCash: 10.2, color: "#f59e0b", photo: null },
-  { id: 5, name: "Sunset Strip Commercial", address: "9220 Sunset Blvd, West Hollywood, CA 90069", type: "Commercial", units: 1, purchasePrice: 1200000, currentValue: 1380000, valueUpdatedAt: "2025-12-05", loanAmount: 900000, loanRate: 4.5, loanTermYears: 25, loanStartDate: "2018-06-30", monthlyRent: 8500, monthlyExpenses: 3200, purchaseDate: "2018-06-30", status: "Occupied", image: "SS", capRate: 7.0, cashOnCash: 6.8, color: "#ef4444", photo: null },
+  { id: 1, name: "Maple Ridge Duplex", address: "2847 Maple Ridge Dr, Austin, TX 78701", type: "Multi-Family", units: 2, purchasePrice: 385000, currentValue: 462000, valueUpdatedAt: "2025-10-01", loanAmount: 308000, loanRate: 3.25, loanTermYears: 30, loanStartDate: "2021-03-15", closingCosts: 8470, monthlyRent: 3800, monthlyExpenses: 1640, purchaseDate: "2021-03-15", status: "Occupied", image: "MR", color: "#3b82f6", photo: null },
+  { id: 2, name: "Lakeview SFR", address: "518 Lakeview Terrace, Denver, CO 80203", type: "Single Family", units: 1, purchasePrice: 520000, currentValue: 598000, valueUpdatedAt: "2025-11-15", loanAmount: 416000, loanRate: 2.875, loanTermYears: 30, loanStartDate: "2020-07-22", closingCosts: 11440, monthlyRent: 2950, monthlyExpenses: 1120, purchaseDate: "2020-07-22", status: "Occupied", image: "LV", color: "#10b981", photo: null },
+  { id: 3, name: "Midtown Condo #4B", address: "1200 Peachtree St NE #4B, Atlanta, GA 30309", type: "Condo", units: 1, purchasePrice: 280000, currentValue: 315000, valueUpdatedAt: "2026-01-20", loanAmount: 224000, loanRate: 3.75, loanTermYears: 30, loanStartDate: "2022-01-10", closingCosts: 6160, monthlyRent: 2100, monthlyExpenses: 860, purchaseDate: "2022-01-10", status: "Occupied", image: "MC", color: "#8b5cf6", photo: null },
+  { id: 4, name: "Riverside Triplex", address: "744 Riverside Blvd, Portland, OR 97201", type: "Multi-Family", units: 3, purchasePrice: 670000, currentValue: 745000, valueUpdatedAt: "2025-08-30", loanAmount: 536000, loanRate: 4.0, loanTermYears: 30, loanStartDate: "2019-11-05", closingCosts: 14740, monthlyRent: 5700, monthlyExpenses: 2380, purchaseDate: "2019-11-05", status: "Partial Vacancy", image: "RT", color: "#f59e0b", photo: null },
+  { id: 5, name: "Sunset Strip Commercial", address: "9220 Sunset Blvd, West Hollywood, CA 90069", type: "Commercial", units: 1, purchasePrice: 1200000, currentValue: 1380000, valueUpdatedAt: "2025-12-05", loanAmount: 900000, loanRate: 4.5, loanTermYears: 25, loanStartDate: "2018-06-30", closingCosts: 26400, monthlyRent: 8500, monthlyExpenses: 3200, purchaseDate: "2018-06-30", status: "Occupied", image: "SS", color: "#ef4444", photo: null },
 ];
+
+// ── Derived metric helpers ──
+// Cap Rate = Annual NOI / Current Property Value × 100
+function calcCapRate(p) {
+  if (!p.currentValue) return 0;
+  const annualNOI = (p.monthlyRent - p.monthlyExpenses) * 12;
+  return parseFloat((annualNOI / p.currentValue * 100).toFixed(1));
+}
+
+// Cash-on-Cash = (Annual NOI − Annual Debt Service) / Total Cash Invested × 100
+// Total Cash Invested = Down Payment + Closing Costs
+function calcCashOnCash(p) {
+  const downPayment = p.purchasePrice - (p.loanAmount || 0);
+  const totalCashInvested = downPayment + (p.closingCosts || 0);
+  if (totalCashInvested <= 0) return 0;
+  const annualNOI = (p.monthlyRent - p.monthlyExpenses) * 12;
+  let annualDebtService = 0;
+  if (p.loanAmount && p.loanRate && p.loanTermYears) {
+    const r = p.loanRate / 100 / 12;
+    const n = p.loanTermYears * 12;
+    const M = p.loanAmount * r * Math.pow(1 + r, n) / (Math.pow(1 + r, n) - 1);
+    annualDebtService = M * 12;
+  }
+  return parseFloat(((annualNOI - annualDebtService) / totalCashInvested * 100).toFixed(1));
+}
 
 const TRANSACTIONS = [
   { id: 1,  date: "2026-03-20", property: "Maple Ridge Duplex",       category: "Rent Income", description: "March rent - Unit A",       amount:  1900, type: "income",  payee: "Jordan Williams" },
@@ -365,7 +390,7 @@ function Dashboard({ onNavigate, onNavigateToTx }) {
   const monthlyIncome = props.reduce((s, p) => s + p.monthlyRent, 0);
   const monthlyExpenses = props.reduce((s, p) => s + p.monthlyExpenses, 0);
   const netCashFlow = monthlyIncome - monthlyExpenses;
-  const avgCapRate = props.length > 0 ? (props.reduce((s, p) => s + p.capRate, 0) / props.length).toFixed(1) : "0.0";
+  const avgCapRate = props.length > 0 ? (props.reduce((s, p) => s + calcCapRate(p), 0) / props.length).toFixed(1) : "0.0";
 
   // Transactions filtered by property
   const filteredTx = isAll ? TRANSACTIONS : TRANSACTIONS.filter(t => {
@@ -730,7 +755,7 @@ function Properties({ onSelect }) {
                     </div>
                     <div style={{ background: "#f8fafc", borderRadius: 10, padding: "10px 12px" }}>
                       <p style={{ color: "#94a3b8", fontSize: 11, fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.04em" }}>Cap Rate</p>
-                      <p style={{ color: "#8b5cf6", fontSize: 15, fontWeight: 700 }}>{p.capRate}%</p>
+                      <p style={{ color: "#8b5cf6", fontSize: 15, fontWeight: 700 }}>{calcCapRate(p)}%</p>
                     </div>
                   </div>
                 </div>
@@ -778,7 +803,7 @@ function Properties({ onSelect }) {
                   <td style={{ padding: "16px 20px", fontSize: 14, fontWeight: 600, color: "#0f172a" }}>{fmt(p.monthlyRent)}</td>
                   <td style={{ padding: "16px 20px", fontSize: 14, fontWeight: 700, color: "#3b82f6" }}>{fmt(p.monthlyRent - p.monthlyExpenses)}</td>
                   <td style={{ padding: "16px 20px" }}>
-                    <span style={{ background: "#ede9fe", color: "#6d28d9", borderRadius: 20, padding: "3px 10px", fontSize: 12, fontWeight: 700 }}>{p.capRate}%</span>
+                    <span style={{ background: "#ede9fe", color: "#6d28d9", borderRadius: 20, padding: "3px 10px", fontSize: 12, fontWeight: 700 }}>{calcCapRate(p)}%</span>
                   </td>
                   <td style={{ padding: "16px 20px" }}><Badge status={p.status} /></td>
                   <td style={{ padding: "16px 20px" }}>
@@ -978,8 +1003,8 @@ function PropertyDetail({ property, onBack }) {
           { label: "Total Equity", value: fmt(equity), color: "#8b5cf6" },
           { label: "Purchase Price", value: fmt(property.purchasePrice), color: "#0f172a" },
           { label: calcBal !== null ? "Est. Mortgage Balance" : "Mortgage Balance", value: fmt(effectiveMortgage), color: "#f59e0b", sub: calcBal !== null ? "Auto-calculated" : null },
-          { label: "Cap Rate", value: `${property.capRate}%`, color: "#8b5cf6" },
-          { label: "Cash-on-Cash", value: `${property.cashOnCash}%`, color: "#10b981" },
+          { label: "Cap Rate", value: `${calcCapRate(property)}%`, color: "#8b5cf6" },
+          { label: "Cash-on-Cash", value: `${calcCashOnCash(property)}%`, color: "#10b981" },
         ].map((m, i) => (
           <div key={i} style={{ background: "#fff", borderRadius: 12, padding: "16px 18px", boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" }}>
             <p style={{ color: "#94a3b8", fontSize: 12, fontWeight: 500, marginBottom: 4 }}>{m.label}</p>
@@ -1435,8 +1460,8 @@ function Analytics() {
   const portfolioExpenses = PROPERTIES.reduce((s, p) => s + p.monthlyExpenses, 0);
   const portfolioNOI = (portfolioIncome - portfolioExpenses) * 12;
   const portfolioExpenseRatio = portfolioIncome > 0 ? ((portfolioExpenses / portfolioIncome) * 100).toFixed(1) : "0";
-  const avgCapRate = (PROPERTIES.reduce((s, p) => s + p.capRate, 0) / PROPERTIES.length).toFixed(1);
-  const avgCoC = (PROPERTIES.reduce((s, p) => s + p.cashOnCash, 0) / PROPERTIES.length).toFixed(1);
+  const avgCapRate = (PROPERTIES.reduce((s, p) => s + calcCapRate(p), 0) / PROPERTIES.length).toFixed(1);
+  const avgCoC = (PROPERTIES.reduce((s, p) => s + calcCashOnCash(p), 0) / PROPERTIES.length).toFixed(1);
   const totalAppreciation = PROPERTIES.reduce((s, p) => s + (p.currentValue - p.purchasePrice), 0);
 
   // DSCR = NOI / Annual Debt Service
@@ -1489,8 +1514,8 @@ function Analytics() {
     return tenants.length > 0 ? ((occupied / tenants.length) * 100).toFixed(0) : "100";
   })() : "100";
 
-  const sortedByCoc = [...PROPERTIES].sort((a, b) => b.cashOnCash - a.cashOnCash);
-  const sortedByCapRate = [...PROPERTIES].sort((a, b) => b.capRate - a.capRate);
+  const sortedByCoc = [...PROPERTIES].sort((a, b) => calcCashOnCash(b) - calcCashOnCash(a));
+  const sortedByCapRate = [...PROPERTIES].sort((a, b) => calcCapRate(b) - calcCapRate(a));
   const cocRank = selectedProp ? sortedByCoc.findIndex(p => p.id === selectedProp.id) + 1 : 0;
   const capRateRank = selectedProp ? sortedByCapRate.findIndex(p => p.id === selectedProp.id) + 1 : 0;
   const rankLabel = r => r === 1 ? "#1" : r === 2 ? "#2" : r === 3 ? "#3" : `#${r}`;
@@ -1536,7 +1561,7 @@ function Analytics() {
             {[
               { label: "Total Annual NOI", value: fmt(portfolioNOI), color: "#10b981", yoy: yoyNOI, tip: "Net Operating Income = (Monthly Rent \u2212 Monthly Expenses) \u00d7 12, summed across all properties. Excludes debt service." },
               { label: "Portfolio Cap Rate", value: `${avgCapRate}%`, color: "#3b82f6", yoy: yoyCapRate, tip: "Average Cap Rate across all properties. Cap Rate = Annual NOI \u00f7 Current Property Value." },
-              { label: "Avg Cash-on-Cash", value: `${avgCoC}%`, color: "#8b5cf6", yoy: yoyCoC, tip: "Average Cash-on-Cash return. CoC = Annual Pre-Tax Cash Flow \u00f7 Total Cash Invested (down payment + closing costs)." },
+              { label: "Avg Cash-on-Cash", value: `${avgCoC}%`, color: "#8b5cf6", yoy: yoyCoC, tip: "Average Cash-on-Cash return. CoC = (Annual NOI \u2212 Annual Debt Service) \u00f7 (Down Payment + Closing Costs). Down payment derived from Purchase Price \u2212 Loan Amount." },
             ].map((m, i) => (
               <div key={i} style={cardS}>
                 <p style={{ color: "#94a3b8", fontSize: 12, fontWeight: 600, textTransform: "uppercase", marginBottom: 6, display: "flex", alignItems: "center" }}>{m.label}<InfoTip text={m.tip} /></p>
@@ -1610,7 +1635,7 @@ function Analytics() {
                 const annualRent = p.monthlyRent * 12;
                 const annualExpenses = p.monthlyExpenses * 12;
                 const NOI = annualRent - annualExpenses;
-                const coC = p.cashOnCash;
+                const coC = calcCashOnCash(p);
                 const appreciation = ((p.currentValue - p.purchasePrice) / p.purchasePrice * 100).toFixed(1);
                 const expRatio = ((p.monthlyExpenses / p.monthlyRent) * 100).toFixed(0);
                 const propTen = TENANTS.filter(t => t.propertyId === p.id);
@@ -1641,7 +1666,7 @@ function Analytics() {
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
                       {[
                         { label: "Annual NOI", value: fmtK(NOI), color: "#10b981" },
-                        { label: "Cap Rate", value: `${p.capRate}%`, color: "#3b82f6" },
+                        { label: "Cap Rate", value: `${calcCapRate(p)}%`, color: "#3b82f6" },
                         { label: "Cash-on-Cash", value: `${coC}%`, color: "#8b5cf6" },
                         { label: "Appreciation", value: `+${appreciation}%`, color: "#f59e0b" },
                         { label: "Expense Ratio", value: `${expRatio}%`, color: "#ef4444" },
@@ -1680,7 +1705,7 @@ function Analytics() {
               <h3 style={{ color: "#0f172a", fontSize: 16, fontWeight: 700, marginBottom: 4 }}>Cap Rate Comparison</h3>
               <p style={{ color: "#94a3b8", fontSize: 13, marginBottom: 20 }}>Annual net operating income / property value</p>
               <ResponsiveContainer width="100%" height={220}>
-                <BarChart data={PROPERTIES.map(p => ({ name: p.image, rate: p.capRate, fill: p.color }))}>
+                <BarChart data={PROPERTIES.map(p => ({ name: p.image, rate: calcCapRate(p), fill: p.color }))}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                   <XAxis dataKey="name" tick={{ fontSize: 12, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
                   <YAxis tick={{ fontSize: 12, fill: "#94a3b8" }} axisLine={false} tickLine={false} domain={[0, 12]} tickFormatter={v => `${v}%`} />
@@ -1695,7 +1720,7 @@ function Analytics() {
               <h3 style={{ color: "#0f172a", fontSize: 16, fontWeight: 700, marginBottom: 4 }}>Cash-on-Cash Return</h3>
               <p style={{ color: "#94a3b8", fontSize: 13, marginBottom: 20 }}>Annual pre-tax cash flow / total cash invested</p>
               <ResponsiveContainer width="100%" height={220}>
-                <BarChart data={PROPERTIES.map(p => ({ name: p.image, coc: p.cashOnCash }))}>
+                <BarChart data={PROPERTIES.map(p => ({ name: p.image, coc: calcCashOnCash(p) }))}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                   <XAxis dataKey="name" tick={{ fontSize: 12, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
                   <YAxis tick={{ fontSize: 12, fill: "#94a3b8" }} axisLine={false} tickLine={false} domain={[0, 14]} tickFormatter={v => `${v}%`} />
@@ -1721,14 +1746,14 @@ function Analytics() {
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, marginBottom: 16 }}>
               {[
                 {
-                  label: "Cap Rate", value: `${selectedProp.capRate}%`,
+                  label: "Cap Rate", value: `${calcCapRate(selectedProp)}%`,
                   sub: `Ranked ${rankLabel(capRateRank)} of ${PROPERTIES.length}`, color: "#3b82f6",
                   tip: "Cap Rate = Annual NOI \u00f7 Current Property Value. Measures return independent of financing.",
                 },
                 {
-                  label: "Cash-on-Cash", value: `${selectedProp.cashOnCash}%`,
+                  label: "Cash-on-Cash", value: `${calcCashOnCash(selectedProp)}%`,
                   sub: `Ranked ${rankLabel(cocRank)} of ${PROPERTIES.length}`, color: "#8b5cf6",
-                  tip: "Annual Pre-Tax Cash Flow \u00f7 Total Cash Invested (down payment + closing costs).",
+                  tip: "(Annual NOI \u2212 Annual Debt Service) \u00f7 (Down Payment + Closing Costs). Down payment = Purchase Price \u2212 Loan Amount.",
                 },
                 (() => {
                   const daysSince = selectedProp.valueUpdatedAt ? Math.round((new Date() - new Date(selectedProp.valueUpdatedAt)) / (1000*60*60*24)) : 999;
