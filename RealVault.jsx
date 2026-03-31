@@ -1394,7 +1394,13 @@ function Analytics() {
 
   // Deterministic monthly expense variation (avoids Math.random re-renders)
   const EXP_FACTORS = [1.0, 0.88, 1.15, 0.92, 1.05, 1.18, 0.97, 1.22, 0.89, 1.08, 1.30, 0.95];
-  const MONTHS_SHORT = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  const ALL_MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  // Build trailing 12 months ending at current month
+  const currentMonth = new Date().getMonth(); // 0-indexed (Mar = 2)
+  const TRAILING_MONTHS = Array.from({ length: 12 }, (_, i) => {
+    const idx = (currentMonth - 11 + i + 12) % 12;
+    return { label: ALL_MONTHS[idx], idx };
+  });
 
   // ── Portfolio-level computations ──
   const totalUnits = PROPERTIES.reduce((s, p) => s + p.units, 0);
@@ -1419,10 +1425,10 @@ function Analytics() {
   const portfolioDSCR = annualDebtService > 0 ? (portfolioNOI / annualDebtService).toFixed(2) : "N/A";
 
   // ── Portfolio trailing 12-month trend (deterministic) ──
-  const portfolioMonthlyData = useMemo(() => MONTHS_SHORT.map((month, i) => {
+  const portfolioMonthlyData = useMemo(() => TRAILING_MONTHS.map(({ label, idx }, i) => {
     const income = Math.round(portfolioIncome * (0.92 + i * 0.015 + (i % 3) * 0.01));
-    const expenses = Math.round(portfolioExpenses * EXP_FACTORS[i]);
-    return { month, income, expenses, net: income - expenses };
+    const expenses = Math.round(portfolioExpenses * EXP_FACTORS[idx]);
+    return { month: label, income, expenses, net: income - expenses };
   }), []);
 
   // YoY simulated: last year values slightly lower
@@ -1431,10 +1437,10 @@ function Analytics() {
   const yoyCoC = 0.5;
   const yoyAppreciation = 14.7;
 
-  const propMonthlyData = selectedProp ? MONTHS_SHORT.map((month, i) => {
+  const propMonthlyData = selectedProp ? TRAILING_MONTHS.map(({ label, idx }, i) => {
     const income = selectedProp.monthlyRent;
-    const expenses = Math.round(selectedProp.monthlyExpenses * EXP_FACTORS[i]);
-    return { month, income, expenses, net: income - expenses };
+    const expenses = Math.round(selectedProp.monthlyExpenses * EXP_FACTORS[idx]);
+    return { month: label, income, expenses, net: income - expenses };
   }) : [];
 
   const propTenants = selectedProp ? TENANTS.filter(t => t.propertyId === selectedProp.id) : [];
@@ -1491,7 +1497,7 @@ function Analytics() {
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <label style={{ fontSize: 13, fontWeight: 600, color: "#475569", whiteSpace: "nowrap" }}>Viewing:</label>
           <select value={selectedPropId} onChange={e => setSelectedPropId(e.target.value)} style={{ ...iS, width: 240, fontWeight: 600 }}>
-            <option value="">Entire Portfolio</option>
+            <option value="">All Properties</option>
             {PROPERTIES.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
           </select>
         </div>
