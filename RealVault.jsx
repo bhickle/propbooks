@@ -3991,9 +3991,7 @@ function AppShell() {
       <div style={{ flex: 1, marginLeft: 240, display: "flex", flexDirection: "column" }}>
         <div style={{ background: "#fff", borderBottom: "1px solid #f1f5f9", padding: "0 32px", height: 64, display: "flex", alignItems: "center", justifyContent: "space-between", position: "sticky", top: 0, zIndex: 50 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <span style={{ color: "#94a3b8", fontSize: 14 }}>Portfolio</span>
-            <ChevronRight size={14} color="#cbd5e1" />
-            <span style={{ color: "#0f172a", fontSize: 14, fontWeight: 600 }}>
+            <span style={{ color: "#0f172a", fontSize: 15, fontWeight: 600 }}>
               {activeView === "propertyDetail" && selectedProperty ? selectedProperty.name :
                activeView === "flipDetail" && selectedFlip ? selectedFlip.name :
                activeView === "dashboard" ? "Dashboard" :
