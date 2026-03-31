@@ -88,6 +88,37 @@ function daysAgo(dateStr) {
   return m === 1 ? "1 month ago" : `${m} months ago`;
 }
 
+// Property data health check — returns array of actionable items
+function getPropertyHealth(p, transactions) {
+  const items = [];
+  // 1. Stale property value
+  const valDays = p.valueUpdatedAt ? Math.round((Date.now() - new Date(p.valueUpdatedAt)) / 86400000) : 999;
+  if (valDays > 90) items.push({ key: "value", severity: valDays > 180 ? "high" : "medium", label: "Property value", detail: `Last updated ${daysAgo(p.valueUpdatedAt) || "never"}`, action: "Update current market value", field: "currentValue" });
+  // 2. Missing closing costs
+  if (!p.closingCosts) items.push({ key: "closingCosts", severity: "low", label: "Closing costs", detail: "Not entered — Cash-on-Cash return may be inaccurate", action: "Add closing costs", field: "closingCosts" });
+  // 3. No loan details (if likely financed)
+  if (!p.loanAmount && p.purchasePrice > 100000) items.push({ key: "loan", severity: "low", label: "Loan details", detail: "No loan info — equity and DSCR cannot be calculated", action: "Add loan terms", field: "loanAmount" });
+  // 4. Missing loan start date (has loan but no start)
+  if (p.loanAmount && !p.loanStartDate) items.push({ key: "loanStart", severity: "medium", label: "Loan start date", detail: "Needed to estimate current mortgage balance", action: "Add loan start date", field: "loanStartDate" });
+  // 5. Missing purchase date
+  if (!p.purchaseDate) items.push({ key: "purchaseDate", severity: "low", label: "Purchase date", detail: "Needed for depreciation schedule and hold period", action: "Add purchase date", field: "purchaseDate" });
+  // 6. Income/expenses still estimated (no transactions)
+  const eff = getEffectiveMonthly(p, transactions);
+  if (eff.source === "estimate") items.push({ key: "transactions", severity: "low", label: "Income & expenses", detail: "Using manual estimates — no transaction history yet", action: "Log transactions for actual averages", field: null });
+  // 7. No estimated rent/expenses AND no transactions
+  if (!p.monthlyRent && eff.source === "estimate") items.push({ key: "rent", severity: "medium", label: "Monthly rent", detail: "No rent entered and no income transactions logged", action: "Add estimated rent or log income", field: "monthlyRent" });
+  return items;
+}
+
+function healthBadge(items) {
+  if (items.length === 0) return { color: "#10b981", bg: "#dcfce7", label: "Up to date" };
+  const hasHigh = items.some(i => i.severity === "high");
+  const hasMedium = items.some(i => i.severity === "medium");
+  if (hasHigh) return { color: "#b91c1c", bg: "#fee2e2", label: `${items.length} update${items.length > 1 ? "s" : ""} needed` };
+  if (hasMedium) return { color: "#b45309", bg: "#fef3c7", label: `${items.length} update${items.length > 1 ? "s" : ""} suggested` };
+  return { color: "#6366f1", bg: "#e0e7ff", label: `${items.length} optional update${items.length > 1 ? "s" : ""}` };
+}
+
 const PROPERTIES = [
   { id: 1, name: "Maple Ridge Duplex", address: "2847 Maple Ridge Dr, Austin, TX 78701", type: "Multi-Family", units: 2, purchasePrice: 385000, currentValue: 462000, valueUpdatedAt: "2025-10-01", loanAmount: 308000, loanRate: 3.25, loanTermYears: 30, loanStartDate: "2021-03-15", closingCosts: 8470, monthlyRent: 3800, monthlyExpenses: 1640, purchaseDate: "2021-03-15", status: "Occupied", image: "MR", color: "#3b82f6", photo: null },
   { id: 2, name: "Lakeview SFR", address: "518 Lakeview Terrace, Denver, CO 80203", type: "Single Family", units: 1, purchasePrice: 520000, currentValue: 598000, valueUpdatedAt: "2025-11-15", loanAmount: 416000, loanRate: 2.875, loanTermYears: 30, loanStartDate: "2020-07-22", closingCosts: 11440, monthlyRent: 2950, monthlyExpenses: 1120, purchaseDate: "2020-07-22", status: "Occupied", image: "LV", color: "#10b981", photo: null },
@@ -739,6 +770,8 @@ function Properties({ onSelect }) {
             const equity = p.currentValue - effectiveMortgage;
             const eff = getEffectiveMonthly(p, TRANSACTIONS);
             const monthlyNet = eff.monthlyIncome - eff.monthlyExpenses;
+            const pHealth = getPropertyHealth(p, TRANSACTIONS);
+            const pBadge = healthBadge(pHealth);
             return (
               <div key={p.id} onClick={() => onSelect(p)} style={{ background: "#fff", borderRadius: 16, overflow: "hidden", boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9", cursor: "pointer", transition: "transform 0.15s, box-shadow 0.15s" }}
                 onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-3px)"; e.currentTarget.style.boxShadow = "0 8px 24px rgba(0,0,0,0.1)"; }}
@@ -748,6 +781,9 @@ function Properties({ onSelect }) {
                     ? <img src={p.photo} alt={p.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                     : <div style={{ width: 56, height: 56, borderRadius: 16, background: p.color, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 18, fontWeight: 800 }}>{p.image}</div>
                   }
+                  <div style={{ position: "absolute", top: 10, left: 10 }}>
+                    <span style={{ fontSize: 10, fontWeight: 700, borderRadius: 20, padding: "3px 9px", background: pBadge.bg, color: pBadge.color, backdropFilter: "blur(4px)" }}>{pBadge.label}</span>
+                  </div>
                   <div style={{ position: "absolute", top: 10, right: 10, display: "flex", alignItems: "center", gap: 6 }}>
                     <Badge status={p.status} />
                     <button onClick={e => openEdit(e, p)} title="Edit property"
@@ -809,13 +845,18 @@ function Properties({ onSelect }) {
               {filtered.map((p, i) => {
                 const lBal = calcLoanBalance(p.loanAmount, p.loanRate, p.loanTermYears, p.loanStartDate);
                 const effMort = lBal !== null ? lBal : (p.mortgage || 0);
+                const tHealth = getPropertyHealth(p, TRANSACTIONS);
+                const tBadge = healthBadge(tHealth);
                 return (
                 <tr key={p.id} onClick={() => onSelect(p)} style={{ borderTop: "1px solid #f1f5f9", cursor: "pointer", background: i % 2 === 0 ? "#fff" : "#fafafa" }}
                   onMouseEnter={e => e.currentTarget.style.background = "#f0f9ff"}
                   onMouseLeave={e => e.currentTarget.style.background = i % 2 === 0 ? "#fff" : "#fafafa"}>
                   <td style={{ padding: "16px 20px" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                      <div style={{ width: 36, height: 36, borderRadius: 10, background: p.color, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 12, fontWeight: 700 }}>{p.image}</div>
+                      <div style={{ width: 36, height: 36, borderRadius: 10, background: p.color, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 12, fontWeight: 700, position: "relative" }}>
+                        {p.image}
+                        {tHealth.length > 0 && <span style={{ position: "absolute", top: -3, right: -3, width: 10, height: 10, borderRadius: "50%", background: tBadge.color, border: "2px solid #fff" }} />}
+                      </div>
                       <div>
                         <p style={{ fontSize: 14, fontWeight: 600, color: "#0f172a" }}>{p.name}</p>
                         <p style={{ fontSize: 12, color: "#94a3b8" }}>{p.units} unit{p.units > 1 ? "s" : ""}</p>
@@ -1001,12 +1042,50 @@ function PropertyDetail({ property, onBack }) {
   const eff = getEffectiveMonthly(property, TRANSACTIONS);
   const annualNOI = (eff.monthlyIncome - eff.monthlyExpenses) * 12;
   const propTransactions = TRANSACTIONS.filter(t => t.property === property.name);
+  const detailHealth = getPropertyHealth(property, TRANSACTIONS);
+  const [healthOpen, setHealthOpen] = useState(true);
 
   return (
     <div>
       <button onClick={onBack} style={{ display: "flex", alignItems: "center", gap: 6, color: "#3b82f6", fontWeight: 600, fontSize: 14, background: "none", border: "none", cursor: "pointer", marginBottom: 20 }}>
         Back to Properties
       </button>
+
+      {/* Recommended Updates Banner */}
+      {detailHealth.length > 0 && (
+        <div style={{ background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 14, padding: healthOpen ? "16px 20px" : "12px 20px", marginBottom: 20, transition: "all 0.2s" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer" }} onClick={() => setHealthOpen(h => !h)}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <AlertCircle size={16} color="#b45309" />
+              <span style={{ color: "#92400e", fontSize: 14, fontWeight: 700 }}>
+                {detailHealth.length} Recommended Update{detailHealth.length > 1 ? "s" : ""}
+              </span>
+              <span style={{ color: "#b45309", fontSize: 12 }}>— improve the accuracy of your analytics</span>
+            </div>
+            <ChevronDown size={16} color="#b45309" style={{ transform: healthOpen ? "rotate(180deg)" : "rotate(0)", transition: "transform 0.2s" }} />
+          </div>
+          {healthOpen && (
+            <div style={{ marginTop: 14, display: "flex", flexDirection: "column", gap: 10 }}>
+              {detailHealth.map(item => (
+                <div key={item.key} style={{ display: "flex", alignItems: "flex-start", gap: 12, background: "#fff", borderRadius: 10, padding: "12px 16px", border: "1px solid #fde68a" }}>
+                  <span style={{
+                    width: 8, height: 8, borderRadius: "50%", marginTop: 5, flexShrink: 0,
+                    background: item.severity === "high" ? "#dc2626" : item.severity === "medium" ? "#f59e0b" : "#6366f1"
+                  }} />
+                  <div style={{ flex: 1 }}>
+                    <p style={{ color: "#0f172a", fontSize: 13, fontWeight: 700, marginBottom: 2 }}>{item.label}</p>
+                    <p style={{ color: "#64748b", fontSize: 12, lineHeight: 1.5 }}>{item.detail}</p>
+                  </div>
+                  <span style={{
+                    fontSize: 11, fontWeight: 600, color: "#b45309", background: "#fef3c7", borderRadius: 6, padding: "3px 10px", whiteSpace: "nowrap", flexShrink: 0,
+                  }}>{item.field ? "Edit property to update" : "Log transactions"}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       <div style={{ background: `linear-gradient(135deg, ${property.color}18, ${property.color}30)`, borderRadius: 20, padding: 28, marginBottom: 24, border: `1px solid ${property.color}30` }}>
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
