@@ -11,7 +11,8 @@ import {
   Percent, ArrowUp, ArrowDown, Star, MapPin, Wallet, PieChartIcon,
   Hammer, Clock, Target, Flag, Wrench,
   Users, Route, Calculator, FileCheck, UserCheck, Truck, Layers, Car,
-  CheckSquare, Square, PlusCircle, Receipt, UploadCloud, Trash2, Pencil, Info, List
+  CheckSquare, Square, PlusCircle, Receipt, UploadCloud, Trash2, Pencil, Info, List,
+  CreditCard, MessageSquare, Copy, Camera, Image, AlertTriangle
 } from "lucide-react";
 import {
   newId, fmt, fmtK,
@@ -3567,6 +3568,8 @@ function FlipPipeline({ onSelect }) {
       rehabItems: [],
     };
     FLIPS.push(newDeal);
+    // Auto-populate milestones for the new deal
+    FLIP_MILESTONES[newDeal.id] = DEFAULT_MILESTONES.map(label => ({ label, done: false, date: null, targetDate: null }));
     setDealForm(emptyDeal);
     setShowAddDeal(false);
     forceRender(n => n + 1);
@@ -3711,11 +3714,29 @@ function FlipDetail({ flip, onBack, allFlips, setAllFlips }) {
   const sfM = k => e => setMilestoneForm(f => ({ ...f, [k]: e.target.value }));
   const [editingMilestoneId, setEditingMilestoneId] = useState(null); // index when editing
   const [showAddRehab, setShowAddRehab] = useState(false);
-  const emptyRehab = { category: "", budgeted: "", spent: "0", status: "pending" };
+  const emptyRehab = { category: "", budgeted: "", spent: "0", status: "pending", photos: [] };
   const [rehabForm, setRehabForm] = useState(emptyRehab);
   const sfR = k => e => setRehabForm(f => ({ ...f, [k]: e.target.value }));
   const [deleteConfirm, setDeleteConfirm] = useState(null); // { type: "expense"|"contractor"|"rehab"|"milestone", item, index? }
   const [stage, setStage] = useState(flip.stage);
+
+  // Deal notes & activity log
+  const [activityLog, setActivityLog] = useState(() => {
+    // Seed some demo activity from existing data
+    const logs = [];
+    if (flip.acquisitionDate) logs.push({ id: newId(), date: flip.acquisitionDate, type: "milestone", text: `Property acquired at ${fmt(flip.purchasePrice)}`, icon: "milestone" });
+    if (flip.rehabStartDate) logs.push({ id: newId(), date: flip.rehabStartDate, type: "milestone", text: "Rehab started", icon: "milestone" });
+    expData.slice(0, 3).forEach(e => logs.push({ id: newId(), date: e.date, type: "expense", text: `${e.vendor}: ${e.description} (${fmt(e.amount)})`, icon: "expense" }));
+    return logs.sort((a, b) => b.date.localeCompare(a.date));
+  });
+  const [showNoteInput, setShowNoteInput] = useState(false);
+  const [noteText, setNoteText] = useState("");
+  const addNote = () => {
+    if (!noteText.trim()) return;
+    setActivityLog(prev => [{ id: newId(), date: today, type: "note", text: noteText.trim(), icon: "note" }, ...prev]);
+    setNoteText("");
+    setShowNoteInput(false);
+  };
 
   // Edit deal state
   const [showEditDeal, setShowEditDeal] = useState(false);
@@ -3756,7 +3777,7 @@ function FlipDetail({ flip, onBack, allFlips, setAllFlips }) {
   };
 
   // Expense edit state
-  const emptyExp = { date: "", vendor: "", category: "Materials & Supplies", description: "", amount: "" };
+  const emptyExp = { date: "", vendor: "", category: "Materials & Supplies", description: "", amount: "", status: "paid", contractorId: "" };
   const [expForm, setExpForm] = useState(emptyExp);
   const sfE = k => e => setExpForm(f => ({ ...f, [k]: e.target.value }));
   const [editingExpId, setEditingExpId] = useState(null);
@@ -3764,7 +3785,7 @@ function FlipDetail({ flip, onBack, allFlips, setAllFlips }) {
   const allVendors = [...new Set(expData.map(e => e.vendor).filter(Boolean))].sort();
   const openEditExp = (e) => {
     setEditingExpId(e.id);
-    setExpForm({ date: e.date, vendor: e.vendor, category: e.category, description: e.description, amount: String(e.amount) });
+    setExpForm({ date: e.date, vendor: e.vendor, category: e.category, description: e.description, amount: String(e.amount), status: e.status || "paid", contractorId: e.contractorId || "" });
     setShowExpenseModal(true);
   };
 
@@ -3779,11 +3800,34 @@ function FlipDetail({ flip, onBack, allFlips, setAllFlips }) {
     setShowContractorModal(true);
   };
 
+  // Contractor payment state
+  const [showPaymentModal, setShowPaymentModal] = useState(null); // contractor id
+  const [paymentAmount, setPaymentAmount] = useState("");
+  const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split("T")[0]);
+  const [paymentNote, setPaymentNote] = useState("");
+  const handleRecordPayment = () => {
+    if (!paymentAmount || !showPaymentModal) return;
+    const amt = parseFloat(paymentAmount) || 0;
+    // Update contractor totalPaid
+    setConData(prev => prev.map(c => c.id === showPaymentModal ? { ...c, totalPaid: (c.totalPaid || 0) + amt } : c));
+    // Also log as an expense automatically (linked to contractor)
+    const con = conData.find(c => c.id === showPaymentModal);
+    if (con) {
+      setExpData(prev => [{ id: newId(), flipId: flip.id, date: paymentDate, vendor: con.name, category: con.trade === "General Contractor" ? "General Contractor" : "Subcontractor", description: paymentNote || `Payment to ${con.name}`, amount: amt, status: "paid", contractorId: showPaymentModal }, ...prev]);
+    }
+    // Add to activity log
+    if (con) setActivityLog(prev => [{ id: newId(), date: paymentDate, type: "payment", text: `Recorded ${fmt(amt)} payment to ${con.name}`, icon: "payment" }, ...prev]);
+    setShowPaymentModal(null);
+    setPaymentAmount("");
+    setPaymentNote("");
+    setPaymentDate(new Date().toISOString().split("T")[0]);
+  };
+
   // Rehab edit state
   const [editingRehabIdx, setEditingRehabIdx] = useState(null);
   const openEditRehab = (item, idx) => {
     setEditingRehabIdx(idx);
-    setRehabForm({ category: item.category, budgeted: String(item.budgeted), spent: String(item.spent), status: item.status });
+    setRehabForm({ category: item.category, budgeted: String(item.budgeted), spent: String(item.spent), status: item.status, photos: item.photos || [] });
     setShowAddRehab(true);
   };
 
@@ -3806,11 +3850,12 @@ function FlipDetail({ flip, onBack, allFlips, setAllFlips }) {
 
   const handleSaveExp = () => {
     if (!expForm.amount) return;
+    const parsed = { date: expForm.date || new Date().toISOString().split("T")[0], vendor: expForm.vendor || "Unknown", category: expForm.category, description: expForm.description, amount: parseFloat(expForm.amount) || 0, status: expForm.status || "paid", contractorId: expForm.contractorId || null };
     if (editingExpId) {
-      setExpData(prev => prev.map(e => e.id === editingExpId ? { ...e, date: expForm.date || e.date, vendor: expForm.vendor || "Unknown", category: expForm.category, description: expForm.description, amount: parseFloat(expForm.amount) || 0 } : e));
+      setExpData(prev => prev.map(e => e.id === editingExpId ? { ...e, ...parsed } : e));
       setEditingExpId(null);
     } else {
-      setExpData(prev => [{ id: newId(), flipId: flip.id, date: expForm.date || new Date().toISOString().split("T")[0], vendor: expForm.vendor || "Unknown", category: expForm.category, description: expForm.description, amount: parseFloat(expForm.amount) || 0 }, ...prev]);
+      setExpData(prev => [{ id: newId(), flipId: flip.id, ...parsed }, ...prev]);
     }
     setExpForm(emptyExp);
     setShowExpenseModal(false);
@@ -3869,6 +3914,7 @@ function FlipDetail({ flip, onBack, allFlips, setAllFlips }) {
     { id: "rehab", label: `Rehab (${rehabComplete}/${rehabItems.length})`, icon: Wrench },
     { id: "contractors", label: `Contractors (${flipContractors.length})`, icon: UserCheck },
     { id: "expenses", label: `Expenses (${flipExpenses.length})`, icon: Receipt },
+    { id: "notes", label: `Notes (${activityLog.filter(a => a.type === "note").length})`, icon: MessageSquare },
   ];
 
   return (
@@ -3892,9 +3938,28 @@ function FlipDetail({ flip, onBack, allFlips, setAllFlips }) {
             </div>
           </div>
           <div style={{ textAlign: "right" }}>
-            <button onClick={openEditDeal} style={{ background: "rgba(255,255,255,0.7)", border: "1px solid rgba(0,0,0,0.08)", borderRadius: 8, padding: "6px 12px", fontSize: 12, fontWeight: 600, color: "#475569", cursor: "pointer", marginBottom: 8, display: "flex", alignItems: "center", gap: 5, marginLeft: "auto" }}>
-              <Pencil size={12} /> Edit Deal
-            </button>
+            <div style={{ display: "flex", gap: 6, marginBottom: 8, justifyContent: "flex-end" }}>
+              <button onClick={() => {
+                const initials = flip.name.split(/\s+/).map(w => w[0]).join("").toUpperCase().slice(0, 2);
+                const colors = ["#f59e0b", "#3b82f6", "#10b981", "#8b5cf6", "#ef4444", "#ec4899"];
+                const cloned = {
+                  id: newId(), name: flip.name + " (Copy)", address: "", stage: "Under Contract",
+                  image: initials, color: colors[FLIPS.length % colors.length],
+                  purchasePrice: 0, arv: flip.arv, rehabBudget: flip.rehabBudget, rehabSpent: 0,
+                  holdingCostsPerMonth: flip.holdingCostsPerMonth, daysOwned: 0,
+                  rehabItems: rehabItems.map(r => ({ category: r.category, budgeted: r.budgeted, spent: 0, status: "pending", contractorIds: [], photos: [] })),
+                };
+                FLIPS.push(cloned);
+                FLIP_MILESTONES[cloned.id] = milestones.map(m => ({ label: m.label, done: false, date: null, targetDate: null }));
+                if (setAllFlips) setAllFlips([...FLIPS]);
+                setActivityLog(prev => [{ id: newId(), date: today, type: "note", text: `Deal cloned as "${cloned.name}"`, icon: "milestone" }, ...prev]);
+              }} style={{ background: "rgba(255,255,255,0.7)", border: "1px solid rgba(0,0,0,0.08)", borderRadius: 8, padding: "6px 12px", fontSize: 12, fontWeight: 600, color: "#475569", cursor: "pointer", display: "flex", alignItems: "center", gap: 5 }}>
+                <Copy size={12} /> Clone Deal
+              </button>
+              <button onClick={openEditDeal} style={{ background: "rgba(255,255,255,0.7)", border: "1px solid rgba(0,0,0,0.08)", borderRadius: 8, padding: "6px 12px", fontSize: 12, fontWeight: 600, color: "#475569", cursor: "pointer", display: "flex", alignItems: "center", gap: 5 }}>
+                <Pencil size={12} /> Edit Deal
+              </button>
+            </div>
             <p style={{ color: "#64748b", fontSize: 13 }}>{stage === "Sold" ? "Sale Price" : "ARV"}</p>
             <p style={{ color: "#0f172a", fontSize: 32, fontWeight: 800 }}>{fmt(saleOrARV)}</p>
             <p style={{ color: profit >= 0 ? "#10b981" : "#ef4444", fontSize: 15, fontWeight: 700 }}>
@@ -4025,6 +4090,32 @@ function FlipDetail({ flip, onBack, allFlips, setAllFlips }) {
           </div>
         </div>
       </div>
+      {/* Budget & Schedule Alerts */}
+      {(() => {
+        const alerts = [];
+        const rehabPct = rehabTotalBudget > 0 ? (rehabTotalSpent / rehabTotalBudget) * 100 : 0;
+        if (rehabPct >= 100) alerts.push({ severity: "critical", text: `Rehab spending is ${Math.round(rehabPct)}% of budget — ${fmt(rehabTotalSpent - rehabTotalBudget)} over budget`, icon: AlertTriangle });
+        else if (rehabPct >= 90) alerts.push({ severity: "warning", text: `Rehab spending is at ${Math.round(rehabPct)}% of budget — only ${fmt(rehabTotalBudget - rehabTotalSpent)} remaining`, icon: AlertTriangle });
+        if (overdueCount > 0) alerts.push({ severity: "warning", text: `${overdueCount} milestone${overdueCount > 1 ? "s" : ""} overdue — review your timeline`, icon: Clock });
+        if (flip.daysOwned > 120 && stage !== "Sold") alerts.push({ severity: "info", text: `Day ${flip.daysOwned} of ownership — holding costs est. ${fmt(holdingCosts)} and growing`, icon: Clock });
+        const pendingExpCount = expData.filter(e => e.status === "pending").length;
+        if (pendingExpCount > 0) alerts.push({ severity: "info", text: `${pendingExpCount} expense${pendingExpCount > 1 ? "s" : ""} still pending payment`, icon: CreditCard });
+        if (alerts.length === 0) return null;
+        const colors = { critical: { bg: "#fef2f2", border: "#fecaca", text: "#991b1b", icon: "#ef4444" }, warning: { bg: "#fffbeb", border: "#fde68a", text: "#92400e", icon: "#f59e0b" }, info: { bg: "#eff6ff", border: "#bfdbfe", text: "#1e40af", icon: "#3b82f6" } };
+        return (
+          <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 16 }}>
+            {alerts.map((a, i) => {
+              const c = colors[a.severity];
+              return (
+                <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 16px", background: c.bg, border: `1px solid ${c.border}`, borderRadius: 12 }}>
+                  <a.icon size={16} color={c.icon} style={{ flexShrink: 0 }} />
+                  <p style={{ fontSize: 13, color: c.text, fontWeight: 600, flex: 1 }}>{a.text}</p>
+                </div>
+              );
+            })}
+          </div>
+        );
+      })()}
       </>)}
 
       {activeTab === "rehab" && (
@@ -4056,7 +4147,10 @@ function FlipDetail({ flip, onBack, allFlips, setAllFlips }) {
                   const over = remaining < 0;
                   return (
                     <tr key={i} style={{ borderTop: "1px solid #f1f5f9" }}>
-                      <td style={{ padding: "12px 16px", fontSize: 14, fontWeight: 600, color: "#0f172a" }}>{item.category}</td>
+                      <td style={{ padding: "12px 16px", fontSize: 14, fontWeight: 600, color: "#0f172a" }}>
+                        {item.category}
+                        {(item.photos || []).length > 0 && <span style={{ marginLeft: 6, color: "#3b82f6", fontSize: 11 }} title={`${item.photos.length} photo(s)`}><Image size={12} style={{ display: "inline" }} /> {item.photos.length}</span>}
+                      </td>
                       <td style={{ padding: "12px 16px", fontSize: 13, color: "#475569" }}>{fmt(item.budgeted)}</td>
                       <td style={{ padding: "12px 16px", fontSize: 13, fontWeight: 600, color: "#0f172a" }}>{fmt(item.spent)}</td>
                       <td style={{ padding: "12px 16px", fontSize: 13, fontWeight: 700, color: over ? "#b91c1c" : "#15803d" }}>
@@ -4111,16 +4205,40 @@ function FlipDetail({ flip, onBack, allFlips, setAllFlips }) {
                     <option value="complete">Complete</option>
                   </select>
                 </div>
+                <div>
+                  <label style={{ display: "block", color: "#374151", fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Photos</label>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                    {(rehabForm.photos || []).map((p, pi) => (
+                      <div key={pi} style={{ position: "relative", width: 60, height: 60, borderRadius: 8, overflow: "hidden", border: "1px solid #e2e8f0" }}>
+                        <img src={p} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                        <button onClick={() => setRehabForm(f => ({ ...f, photos: f.photos.filter((_, ii) => ii !== pi) }))} style={{ position: "absolute", top: 2, right: 2, background: "rgba(0,0,0,0.6)", border: "none", borderRadius: "50%", width: 18, height: 18, color: "#fff", fontSize: 10, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><X size={10} /></button>
+                      </div>
+                    ))}
+                    <label style={{ width: 60, height: 60, borderRadius: 8, border: "2px dashed #e2e8f0", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#94a3b8", fontSize: 10, gap: 2 }}>
+                      <Camera size={16} />
+                      <span>Add</span>
+                      <input type="file" accept="image/*" multiple style={{ display: "none" }} onChange={e => {
+                        Array.from(e.target.files).forEach(file => {
+                          const reader = new FileReader();
+                          reader.onload = ev => setRehabForm(f => ({ ...f, photos: [...(f.photos || []), ev.target.result] }));
+                          reader.readAsDataURL(file);
+                        });
+                      }} />
+                    </label>
+                  </div>
+                  <p style={{ fontSize: 11, color: "#94a3b8", marginTop: 4 }}>Before/after photos for this scope of work</p>
+                </div>
               </div>
               <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 22 }}>
                 <button onClick={() => { setShowAddRehab(false); setRehabForm(emptyRehab); setEditingRehabIdx(null); }} style={{ padding: "10px 20px", borderRadius: 10, border: "1px solid #e2e8f0", background: "#fff", color: "#64748b", fontWeight: 600, fontSize: 14, cursor: "pointer" }}>Cancel</button>
                 <button onClick={() => {
                   if (!rehabForm.category || !rehabForm.budgeted) return;
+                  const photos = rehabForm.photos || [];
                   if (editingRehabIdx !== null) {
-                    setRehabItems(prev => prev.map((item, idx) => idx === editingRehabIdx ? { ...item, category: rehabForm.category, budgeted: parseFloat(rehabForm.budgeted) || 0, spent: parseFloat(rehabForm.spent) || 0, status: rehabForm.status } : item));
+                    setRehabItems(prev => prev.map((item, idx) => idx === editingRehabIdx ? { ...item, category: rehabForm.category, budgeted: parseFloat(rehabForm.budgeted) || 0, spent: parseFloat(rehabForm.spent) || 0, status: rehabForm.status, photos } : item));
                     setEditingRehabIdx(null);
                   } else {
-                    setRehabItems(prev => [...prev, { category: rehabForm.category, budgeted: parseFloat(rehabForm.budgeted) || 0, spent: parseFloat(rehabForm.spent) || 0, status: rehabForm.status, contractorIds: [] }]);
+                    setRehabItems(prev => [...prev, { category: rehabForm.category, budgeted: parseFloat(rehabForm.budgeted) || 0, spent: parseFloat(rehabForm.spent) || 0, status: rehabForm.status, contractorIds: [], photos }]);
                   }
                   setRehabForm(emptyRehab);
                   setShowAddRehab(false);
@@ -4144,14 +4262,14 @@ function FlipDetail({ flip, onBack, allFlips, setAllFlips }) {
               <Plus size={15} /> Log Expense
             </button>
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 20 }}>
-            {Object.keys(FLIP_EXPENSE_GROUPS).slice(0, 4).map(group => {
+          <div style={{ display: "flex", gap: 10, marginBottom: 20, overflowX: "auto", paddingBottom: 4 }}>
+            {Object.keys(FLIP_EXPENSE_GROUPS).map(group => {
               const subs = FLIP_EXPENSE_GROUPS[group];
               const total = flipExpenses.filter(e => subs.includes(e.category)).reduce((s, e) => s + e.amount, 0);
               return (
-                <div key={group} style={{ background: "#fff", borderRadius: 12, padding: "14px 16px", boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" }}>
-                  <p style={{ color: "#94a3b8", fontSize: 11, fontWeight: 600, textTransform: "uppercase", marginBottom: 4 }}>{group}</p>
-                  <p style={{ color: "#0f172a", fontSize: 18, fontWeight: 700 }}>{total > 0 ? fmt(total) : "-"}</p>
+                <div key={group} style={{ background: "#fff", borderRadius: 12, padding: "12px 16px", boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9", minWidth: 130, flex: "1 0 auto" }}>
+                  <p style={{ color: "#94a3b8", fontSize: 10, fontWeight: 600, textTransform: "uppercase", marginBottom: 4, whiteSpace: "nowrap" }}>{group}</p>
+                  <p style={{ color: total > 0 ? "#0f172a" : "#cbd5e1", fontSize: 16, fontWeight: 700 }}>{total > 0 ? fmt(total) : "-"}</p>
                 </div>
               );
             })}
@@ -4168,7 +4286,7 @@ function FlipDetail({ flip, onBack, allFlips, setAllFlips }) {
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead>
                   <tr style={{ background: "#f8fafc" }}>
-                    {["Date", "Vendor", "Category", "Description", "Amount"].map(h => (
+                    {["Date", "Vendor", "Category", "Description", "Amount", "Status", ""].map(h => (
                       <th key={h} style={{ padding: "12px 18px", textAlign: "left", color: "#94a3b8", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>{h}</th>
                     ))}
                   </tr>
@@ -4185,6 +4303,12 @@ function FlipDetail({ flip, onBack, allFlips, setAllFlips }) {
                       <td style={{ padding: "13px 18px", fontSize: 13, color: "#475569" }}>{e.description}</td>
                       <td style={{ padding: "13px 18px", fontSize: 14, fontWeight: 700, color: "#b91c1c" }}>{fmt(e.amount)}</td>
                       <td style={{ padding: "13px 18px" }}>
+                        <button onClick={() => setExpData(prev => prev.map(x => x.id === e.id ? { ...x, status: x.status === "paid" ? "pending" : "paid" } : x))} style={{ background: (e.status || "paid") === "paid" ? "#dcfce7" : "#fef9c3", color: (e.status || "paid") === "paid" ? "#15803d" : "#a16207", borderRadius: 20, padding: "3px 10px", fontSize: 11, fontWeight: 600, border: "none", cursor: "pointer", textTransform: "capitalize" }}>
+                          {(e.status || "paid") === "paid" ? "Paid" : "Pending"}
+                        </button>
+                        {e.contractorId && <span title={`Linked to ${(conData.find(c => c.id === e.contractorId) || {}).name || "contractor"}`} style={{ marginLeft: 6, color: "#3b82f6", fontSize: 10 }}><UserCheck size={11} style={{ display: "inline" }} /></span>}
+                      </td>
+                      <td style={{ padding: "13px 18px" }}>
                         <div style={{ display: "flex", gap: 4 }}>
                           <button onClick={() => openEditExp(e)} style={{ background: "#f1f5f9", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "#475569", display: "flex", alignItems: "center" }} title="Edit"><Pencil size={13} /></button>
                           <button onClick={() => setDeleteConfirm({ type: "expense", item: e })} style={{ background: "#fee2e2", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "#ef4444", display: "flex", alignItems: "center" }} title="Delete"><Trash2 size={13} /></button>
@@ -4197,6 +4321,9 @@ function FlipDetail({ flip, onBack, allFlips, setAllFlips }) {
                   <tr style={{ background: "#f8fafc", borderTop: "2px solid #e2e8f0" }}>
                     <td colSpan={4} style={{ padding: "12px 18px", fontSize: 13, fontWeight: 700, color: "#0f172a" }}>Total Expensed</td>
                     <td style={{ padding: "12px 18px", fontSize: 15, fontWeight: 800, color: "#b91c1c" }}>{fmt(totalExpensed)}</td>
+                    <td colSpan={2} style={{ padding: "12px 18px", fontSize: 12, color: "#94a3b8" }}>
+                      {expData.filter(e => (e.status || "paid") === "pending").length > 0 && <span style={{ color: "#a16207", fontWeight: 600 }}>{expData.filter(e => e.status === "pending").length} pending</span>}
+                    </td>
                   </tr>
                 </tfoot>
               </table>
@@ -4254,6 +4381,20 @@ function FlipDetail({ flip, onBack, allFlips, setAllFlips }) {
                         {subs.map(c => <option key={c} value={c}>{c}</option>)}
                       </optgroup>
                     ))}
+                  </select>
+                </div>
+                <div>
+                  <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Status</label>
+                  <select value={expForm.status} onChange={sfE("status")} style={iS}>
+                    <option value="paid">Paid</option>
+                    <option value="pending">Pending</option>
+                  </select>
+                </div>
+                <div>
+                  <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Linked Contractor</label>
+                  <select value={expForm.contractorId} onChange={sfE("contractorId")} style={iS}>
+                    <option value="">None</option>
+                    {conData.map(c => <option key={c.id} value={c.id}>{c.name} ({c.trade})</option>)}
                   </select>
                 </div>
               </div>
@@ -4333,11 +4474,16 @@ function FlipDetail({ flip, onBack, allFlips, setAllFlips }) {
                         </>
                       )}
                     </div>
-                    <div style={{ marginTop: 10 }}>
-                      <p style={{ color: "#94a3b8", fontSize: 11, fontWeight: 600, textTransform: "uppercase", marginBottom: 4 }}>Paid to Date</p>
-                      <div style={{ height: 6, background: "#f1f5f9", borderRadius: 99, overflow: "hidden" }}>
-                        <div style={{ height: "100%", width: `${c.paymentType === "Fixed Bid" ? Math.round((c.totalPaid / c.totalBid) * 100) : 100}%`, background: "#10b981", borderRadius: 99 }} />
+                    <div style={{ marginTop: 10, display: "flex", alignItems: "center", gap: 12 }}>
+                      <div style={{ flex: 1 }}>
+                        <p style={{ color: "#94a3b8", fontSize: 11, fontWeight: 600, textTransform: "uppercase", marginBottom: 4 }}>Paid to Date</p>
+                        <div style={{ height: 6, background: "#f1f5f9", borderRadius: 99, overflow: "hidden" }}>
+                          <div style={{ height: "100%", width: `${c.paymentType === "Fixed Bid" ? Math.min(100, Math.round((c.totalPaid / c.totalBid) * 100)) : 100}%`, background: "#10b981", borderRadius: 99 }} />
+                        </div>
                       </div>
+                      <button onClick={() => { setShowPaymentModal(c.id); setPaymentDate(new Date().toISOString().split("T")[0]); }} style={{ background: "#10b981", color: "#fff", border: "none", borderRadius: 8, padding: "6px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 5, whiteSpace: "nowrap", flexShrink: 0 }}>
+                        <CreditCard size={12} /> Record Payment
+                      </button>
                     </div>
                   </div>
                 );
@@ -4387,6 +4533,63 @@ function FlipDetail({ flip, onBack, allFlips, setAllFlips }) {
           </div>
         </Modal>
       )}
+      {showPaymentModal && (() => {
+        const con = conData.find(c => c.id === showPaymentModal);
+        if (!con) return null;
+        const owed = con.paymentType === "Fixed Bid" ? (con.totalBid - con.totalPaid) : null;
+        return (
+          <Modal title={`Record Payment — ${con.name}`} onClose={() => { setShowPaymentModal(null); setPaymentAmount(""); setPaymentNote(""); }}>
+            <div style={{ background: "#f8fafc", borderRadius: 12, padding: 14, marginBottom: 18 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                <span style={{ fontSize: 13, color: "#64748b" }}>Trade</span>
+                <span style={{ fontSize: 13, fontWeight: 600, color: "#0f172a" }}>{con.trade}</span>
+              </div>
+              {con.paymentType === "Fixed Bid" && <>
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                  <span style={{ fontSize: 13, color: "#64748b" }}>Total Bid</span>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: "#0f172a" }}>{fmt(con.totalBid)}</span>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                  <span style={{ fontSize: 13, color: "#64748b" }}>Paid to Date</span>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: "#0f172a" }}>{fmt(con.totalPaid)}</span>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between" }}>
+                  <span style={{ fontSize: 13, color: "#64748b", fontWeight: 600 }}>Balance Owed</span>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: owed > 0 ? "#b91c1c" : "#15803d" }}>{owed > 0 ? fmt(owed) : "Paid in full"}</span>
+                </div>
+              </>}
+              {con.paymentType === "Day Rate" && (
+                <div style={{ display: "flex", justifyContent: "space-between" }}>
+                  <span style={{ fontSize: 13, color: "#64748b" }}>Day Rate</span>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: "#0f172a" }}>{fmt(con.dayRate)}/day</span>
+                </div>
+              )}
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+              <div>
+                <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Payment Amount ($) *</label>
+                <input type="number" placeholder={owed ? String(owed) : "0.00"} value={paymentAmount} onChange={e => setPaymentAmount(e.target.value)} style={iS} />
+                {con.paymentType === "Fixed Bid" && owed > 0 && (
+                  <button onClick={() => setPaymentAmount(String(owed))} style={{ background: "none", border: "none", color: "#3b82f6", fontSize: 11, fontWeight: 600, cursor: "pointer", marginTop: 4, padding: 0 }}>Fill remaining balance ({fmt(owed)})</button>
+                )}
+              </div>
+              <div>
+                <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Date</label>
+                <input type="date" value={paymentDate} onChange={e => setPaymentDate(e.target.value)} style={iS} />
+              </div>
+            </div>
+            <div style={{ marginTop: 14 }}>
+              <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Note (optional)</label>
+              <input type="text" placeholder="e.g. Draw #2, final payment, materials advance" value={paymentNote} onChange={e => setPaymentNote(e.target.value)} style={iS} />
+            </div>
+            <p style={{ fontSize: 11, color: "#94a3b8", marginTop: 10 }}>This will also create a linked expense record automatically.</p>
+            <div style={{ display: "flex", gap: 10, marginTop: 18 }}>
+              <button onClick={() => { setShowPaymentModal(null); setPaymentAmount(""); setPaymentNote(""); }} style={{ flex: 1, padding: "12px", border: "1px solid #e2e8f0", borderRadius: 10, background: "#fff", color: "#475569", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
+              <button onClick={handleRecordPayment} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "#10b981", color: "#fff", fontWeight: 700, cursor: "pointer", opacity: paymentAmount ? 1 : 0.5 }}>Record Payment</button>
+            </div>
+          </Modal>
+        );
+      })()}
       {activeTab === "milestones" && (
         <div>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
@@ -4396,9 +4599,30 @@ function FlipDetail({ flip, onBack, allFlips, setAllFlips }) {
                 {overdueCount > 0 && <span style={{ color: "#ef4444", fontWeight: 700 }}> . {overdueCount} overdue</span>}
               </p>
             </div>
-            <button onClick={() => { setEditingMilestoneId(null); setMilestoneForm(emptyMilestone); setShowMilestoneModal(true); }} style={{ background: "#f59e0b", color: "#fff", border: "none", borderRadius: 10, padding: "10px 16px", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
-              <Plus size={15} /> Add Milestone
-            </button>
+            <div style={{ display: "flex", gap: 8 }}>
+              {milestones.some(m => !m.targetDate && !m.done) && (
+                <button onClick={() => {
+                  // Auto-fill target dates: spread remaining milestones evenly from today to projected close or +90 days
+                  const endDate = flip.projectedCloseDate || flip.closeDate;
+                  const end = endDate ? new Date(endDate) : new Date(Date.now() + 90 * 86400000);
+                  const pending = milestones.map((m, i) => ({ m, i })).filter(({ m }) => !m.done && !m.targetDate);
+                  if (pending.length === 0) return;
+                  const start = new Date();
+                  const interval = (end - start) / (pending.length + 1);
+                  const updated = [...milestones];
+                  pending.forEach(({ i }, idx) => {
+                    const d = new Date(start.getTime() + interval * (idx + 1));
+                    updated[i] = { ...updated[i], targetDate: d.toISOString().split("T")[0] };
+                  });
+                  setMilestones(updated);
+                }} style={{ background: "#eff6ff", color: "#3b82f6", border: "1px solid #bfdbfe", borderRadius: 10, padding: "10px 16px", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
+                  <Calendar size={15} /> Auto-Fill Dates
+                </button>
+              )}
+              <button onClick={() => { setEditingMilestoneId(null); setMilestoneForm(emptyMilestone); setShowMilestoneModal(true); }} style={{ background: "#f59e0b", color: "#fff", border: "none", borderRadius: 10, padding: "10px 16px", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
+                <Plus size={15} /> Add Milestone
+              </button>
+            </div>
           </div>
           {/* Progress bar */}
           <div style={{ background: "#fff", borderRadius: 12, padding: "14px 20px", marginBottom: 16, border: "1px solid #f1f5f9", display: "flex", alignItems: "center", gap: 16 }}>
@@ -4551,6 +4775,58 @@ function FlipDetail({ flip, onBack, allFlips, setAllFlips }) {
             <button onClick={handleSaveMilestone} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "#f59e0b", color: "#fff", fontWeight: 700, cursor: "pointer", opacity: milestoneForm.label.trim() ? 1 : 0.5 }}>{editingMilestoneId !== null ? "Save Changes" : "Add Milestone"}</button>
           </div>
         </Modal>
+      )}
+      {activeTab === "notes" && (
+        <div>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+            <p style={{ color: "#64748b", fontSize: 14 }}>
+              {activityLog.length} entries . {activityLog.filter(a => a.type === "note").length} notes
+            </p>
+            <button onClick={() => setShowNoteInput(true)} style={{ background: "#f59e0b", color: "#fff", border: "none", borderRadius: 10, padding: "10px 16px", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
+              <Plus size={15} /> Add Note
+            </button>
+          </div>
+          {showNoteInput && (
+            <div style={{ background: "#fff", borderRadius: 16, padding: 20, marginBottom: 16, border: "1px solid #f1f5f9", boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
+              <textarea value={noteText} onChange={e => setNoteText(e.target.value)} placeholder="Add a note about this deal... e.g. 'Spoke with inspector, needs structural review on back wall'" rows={3} style={{ ...iS, resize: "vertical", fontFamily: "inherit" }} autoFocus />
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 10 }}>
+                <button onClick={() => { setShowNoteInput(false); setNoteText(""); }} style={{ padding: "8px 16px", borderRadius: 8, border: "1px solid #e2e8f0", background: "#fff", color: "#64748b", fontWeight: 600, fontSize: 13, cursor: "pointer" }}>Cancel</button>
+                <button onClick={addNote} style={{ padding: "8px 16px", borderRadius: 8, border: "none", background: "#f59e0b", color: "#fff", fontWeight: 600, fontSize: 13, cursor: "pointer", opacity: noteText.trim() ? 1 : 0.5 }}>Save Note</button>
+              </div>
+            </div>
+          )}
+          <div style={{ background: "#fff", borderRadius: 16, border: "1px solid #f1f5f9", boxShadow: "0 1px 3px rgba(0,0,0,0.06)", overflow: "hidden" }}>
+            {activityLog.length === 0 ? (
+              <div style={{ textAlign: "center", padding: 48, color: "#94a3b8" }}>
+                <MessageSquare size={32} style={{ margin: "0 auto 12px", display: "block" }} />
+                <p style={{ fontWeight: 600, marginBottom: 4 }}>No notes or activity yet</p>
+                <p style={{ fontSize: 13 }}>Add notes to keep a running log of this deal.</p>
+              </div>
+            ) : (
+              <div style={{ position: "relative" }}>
+                {activityLog.map((entry, i) => {
+                  const iconMap = { note: { icon: MessageSquare, bg: "#dbeafe", color: "#3b82f6" }, expense: { icon: Receipt, bg: "#fee2e2", color: "#b91c1c" }, payment: { icon: CreditCard, bg: "#dcfce7", color: "#15803d" }, milestone: { icon: Flag, bg: "#fef9c3", color: "#a16207" } };
+                  const config = iconMap[entry.icon] || iconMap.note;
+                  const IconComp = config.icon;
+                  return (
+                    <div key={entry.id} style={{ display: "flex", gap: 14, padding: "16px 20px", borderBottom: i < activityLog.length - 1 ? "1px solid #f1f5f9" : "none" }}>
+                      <div style={{ width: 36, height: 36, borderRadius: 10, background: config.bg, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                        <IconComp size={16} color={config.color} />
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <p style={{ fontSize: 14, color: "#0f172a", fontWeight: entry.type === "note" ? 500 : 400, lineHeight: 1.5 }}>{entry.text}</p>
+                        <p style={{ fontSize: 12, color: "#94a3b8", marginTop: 4 }}>{entry.date}</p>
+                      </div>
+                      {entry.type === "note" && (
+                        <button onClick={() => setActivityLog(prev => prev.filter(a => a.id !== entry.id))} style={{ background: "#fee2e2", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "#ef4444", display: "flex", alignItems: "center", alignSelf: "flex-start" }} title="Delete"><Trash2 size={13} /></button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
       )}
       {showEditDeal && (
         <Modal title="Edit Deal" onClose={() => setShowEditDeal(false)}>
