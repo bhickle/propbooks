@@ -329,39 +329,89 @@ function Badge({ status }) {
 // ---------------------------------------------
 
 function Dashboard() {
-  const totalValue = PROPERTIES.reduce((s, p) => s + p.currentValue, 0);
-  const totalEquity = PROPERTIES.reduce((s, p) => s + (p.currentValue - (calcLoanBalance(p.loanAmount, p.loanRate, p.loanTermYears, p.loanStartDate) ?? p.loanAmount ?? 0)), 0);
-  const monthlyIncome = PROPERTIES.reduce((s, p) => s + p.monthlyRent, 0);
-  const monthlyExpenses = PROPERTIES.reduce((s, p) => s + p.monthlyExpenses, 0);
+  const [dashProp, setDashProp] = useState("all");
+  const isAll = dashProp === "all";
+  const props = isAll ? PROPERTIES : PROPERTIES.filter(p => String(p.id) === dashProp);
+  const selectedProp = !isAll ? PROPERTIES.find(p => String(p.id) === dashProp) : null;
+
+  // KPIs — filtered by selected property
+  const totalValue = props.reduce((s, p) => s + p.currentValue, 0);
+  const totalEquity = props.reduce((s, p) => s + (p.currentValue - (calcLoanBalance(p.loanAmount, p.loanRate, p.loanTermYears, p.loanStartDate) ?? p.loanAmount ?? 0)), 0);
+  const monthlyIncome = props.reduce((s, p) => s + p.monthlyRent, 0);
+  const monthlyExpenses = props.reduce((s, p) => s + p.monthlyExpenses, 0);
   const netCashFlow = monthlyIncome - monthlyExpenses;
-  const avgCapRate = (PROPERTIES.reduce((s, p) => s + p.capRate, 0) / PROPERTIES.length).toFixed(1);
+  const avgCapRate = props.length > 0 ? (props.reduce((s, p) => s + p.capRate, 0) / props.length).toFixed(1) : "0.0";
+
+  // Transactions filtered by property
+  const filteredTx = isAll ? TRANSACTIONS : TRANSACTIONS.filter(t => {
+    const propNames = props.map(p => p.name);
+    return propNames.some(n => t.property === n);
+  });
+
+  // Cash flow chart — derive from filtered transactions by month
+  const monthNames = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  const cfByMonth = {};
+  filteredTx.forEach(t => {
+    const d = new Date(t.date);
+    const key = monthNames[d.getMonth()];
+    if (!cfByMonth[key]) cfByMonth[key] = { month: key, income: 0, expenses: 0, net: 0, _order: d.getMonth() };
+    if (t.type === "income") cfByMonth[key].income += t.amount;
+    else cfByMonth[key].expenses += Math.abs(t.amount);
+  });
+  Object.values(cfByMonth).forEach(m => { m.net = m.income - m.expenses; });
+  const dashCashFlow = Object.values(cfByMonth).sort((a, b) => a._order - b._order);
+  // Fallback to global data if no transactions found
+  const chartCashFlow = dashCashFlow.length > 0 ? dashCashFlow : MONTHLY_CASH_FLOW;
+
+  // Expense breakdown — derive from filtered transactions
+  const expCatColors = { "Mortgage Payment": "#3b82f6", "Mortgage": "#3b82f6", "Maintenance": "#10b981", "Repairs & Maintenance": "#10b981", "Property Tax": "#8b5cf6", "Insurance": "#f59e0b", "HOA Fees": "#ef4444", "Utilities": "#06b6d4", "Landscaping": "#84cc16", "Management Fees": "#ec4899" };
+  const expTotals = {};
+  filteredTx.filter(t => t.type === "expense").forEach(t => {
+    const cat = t.category;
+    expTotals[cat] = (expTotals[cat] || 0) + Math.abs(t.amount);
+  });
+  const totalExpAmt = Object.values(expTotals).reduce((s, v) => s + v, 0) || 1;
+  const dashExpCats = Object.entries(expTotals).map(([name, val]) => ({
+    name, value: Math.round(val / totalExpAmt * 100), color: expCatColors[name] || "#94a3b8",
+  })).sort((a, b) => b.value - a.value);
+  const chartExpCats = dashExpCats.length > 0 ? dashExpCats : EXPENSE_CATEGORIES;
+
+  // Subtitle
+  const subtitle = isAll
+    ? "Welcome back, Brandon — here's your portfolio at a glance."
+    : `Showing ${selectedProp?.name || "property"} performance.`;
 
   return (
     <div>
-      <div style={{ marginBottom: 28 }}>
-        <h1 style={{ color: "#0f172a", fontSize: 26, fontWeight: 700, marginBottom: 4 }}>Dashboard</h1>
-        <p style={{ color: "#64748b", fontSize: 15 }}>Welcome back, Brandon — here's your portfolio at a glance.</p>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 28 }}>
+        <div>
+          <h1 style={{ color: "#0f172a", fontSize: 26, fontWeight: 700, marginBottom: 4 }}>Dashboard</h1>
+          <p style={{ color: "#64748b", fontSize: 15 }}>{subtitle}</p>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <Building2 size={16} color="#94a3b8" />
+          <select value={dashProp} onChange={e => setDashProp(e.target.value)} style={{ border: "1px solid #e2e8f0", borderRadius: 10, padding: "8px 14px", fontSize: 14, color: "#0f172a", background: "#fff", cursor: "pointer", fontWeight: 600, minWidth: 200 }}>
+            <option value="all">All Properties</option>
+            {PROPERTIES.map(p => <option key={p.id} value={String(p.id)}>{p.name}</option>)}
+          </select>
+        </div>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 20, marginBottom: 28 }}>
-        <StatCard icon={Building2} label="Portfolio Value" value={fmtK(totalValue)} sub={`${PROPERTIES.length} properties`} trend="up" trendVal="+4.2%" color="#3b82f6" />
-        <StatCard icon={Wallet} label="Total Equity" value={fmtK(totalEquity)} sub="Net of mortgages" trend="up" trendVal="+$12K" color="#10b981" />
-        <StatCard icon={DollarSign} label="Monthly Cash Flow" value={fmt(netCashFlow)} sub="Net income" trend="up" trendVal="+$1,200" color="#8b5cf6" />
-        <StatCard icon={Percent} label="Avg. Cap Rate" value={`${avgCapRate}%`} sub="Across portfolio" trend="up" trendVal="+0.3%" color="#f59e0b" />
+        <StatCard icon={Building2} label={isAll ? "Portfolio Value" : "Property Value"} value={fmtK(totalValue)} sub={isAll ? `${props.length} properties` : (selectedProp?.type || "")} trend="up" trendVal={isAll ? `${props.length} properties` : ""} color="#3b82f6" />
+        <StatCard icon={Wallet} label="Total Equity" value={fmtK(totalEquity)} sub="Net of mortgages" color="#10b981" />
+        <StatCard icon={DollarSign} label="Monthly Cash Flow" value={fmt(netCashFlow)} sub={`${fmt(monthlyIncome)} income - ${fmt(monthlyExpenses)} exp`} color="#8b5cf6" />
+        <StatCard icon={Percent} label={isAll ? "Avg. Cap Rate" : "Cap Rate"} value={`${avgCapRate}%`} sub={isAll ? "Across portfolio" : "This property"} color="#f59e0b" />
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 20, marginBottom: 28 }}>
         <div style={{ background: "#fff", borderRadius: 16, padding: 24, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
             <div>
-              <h3 style={{ color: "#0f172a", fontSize: 16, fontWeight: 700 }}>Cash Flow - 6 Months</h3>
+              <h3 style={{ color: "#0f172a", fontSize: 16, fontWeight: 700 }}>Cash Flow</h3>
               <p style={{ color: "#94a3b8", fontSize: 13, marginTop: 2 }}>Income vs. expenses vs. net</p>
             </div>
-            <select style={{ border: "1px solid #e2e8f0", borderRadius: 8, padding: "6px 12px", fontSize: 13, color: "#475569", background: "#fff", cursor: "pointer" }}>
-              <option>Last 6 months</option>
-              <option>Last 12 months</option>
-            </select>
           </div>
           <ResponsiveContainer width="100%" height={220}>
-            <AreaChart data={MONTHLY_CASH_FLOW}>
+            <AreaChart data={chartCashFlow}>
               <defs>
                 <linearGradient id="colorIncome" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.15}/>
@@ -384,17 +434,17 @@ function Dashboard() {
         </div>
         <div style={{ background: "#fff", borderRadius: 16, padding: 24, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" }}>
           <h3 style={{ color: "#0f172a", fontSize: 16, fontWeight: 700, marginBottom: 4 }}>Expense Breakdown</h3>
-          <p style={{ color: "#94a3b8", fontSize: 13, marginBottom: 16 }}>By category this month</p>
+          <p style={{ color: "#94a3b8", fontSize: 13, marginBottom: 16 }}>By category</p>
           <ResponsiveContainer width="100%" height={160}>
             <PieChart>
-              <Pie data={EXPENSE_CATEGORIES} cx="50%" cy="50%" innerRadius={45} outerRadius={75} paddingAngle={3} dataKey="value">
-                {EXPENSE_CATEGORIES.map((e, i) => <Cell key={i} fill={e.color} />)}
+              <Pie data={chartExpCats} cx="50%" cy="50%" innerRadius={45} outerRadius={75} paddingAngle={3} dataKey="value">
+                {chartExpCats.map((e, i) => <Cell key={i} fill={e.color} />)}
               </Pie>
               <Tooltip formatter={(v) => `${v}%`} contentStyle={{ borderRadius: 8, fontSize: 12 }} />
             </PieChart>
           </ResponsiveContainer>
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            {EXPENSE_CATEGORIES.slice(0, 4).map((c, i) => (
+            {chartExpCats.slice(0, 4).map((c, i) => (
               <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                   <div style={{ width: 8, height: 8, borderRadius: 2, background: c.color }} />
@@ -409,7 +459,7 @@ function Dashboard() {
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
         <div style={{ background: "#fff", borderRadius: 16, padding: 24, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" }}>
           <h3 style={{ color: "#0f172a", fontSize: 16, fontWeight: 700, marginBottom: 4 }}>Equity Growth</h3>
-          <p style={{ color: "#94a3b8", fontSize: 13, marginBottom: 20 }}>Total portfolio equity over time</p>
+          <p style={{ color: "#94a3b8", fontSize: 13, marginBottom: 20 }}>{isAll ? "Total portfolio equity over time" : `${selectedProp?.name || ""} equity over time`}</p>
           <ResponsiveContainer width="100%" height={180}>
             <AreaChart data={EQUITY_GROWTH}>
               <defs>
@@ -429,10 +479,11 @@ function Dashboard() {
         <div style={{ background: "#fff", borderRadius: 16, padding: 24, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
             <h3 style={{ color: "#0f172a", fontSize: 16, fontWeight: 700 }}>Recent Transactions</h3>
-            <button style={{ color: "#3b82f6", fontSize: 13, fontWeight: 600, background: "none", border: "none", cursor: "pointer" }}>View all  / </button>
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            {TRANSACTIONS.slice(0, 5).map(t => (
+            {filteredTx.length === 0 ? (
+              <p style={{ color: "#94a3b8", fontSize: 13, textAlign: "center", padding: 24 }}>No transactions for this property yet.</p>
+            ) : filteredTx.slice(0, 5).map(t => (
               <div key={t.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                   <div style={{ width: 36, height: 36, borderRadius: 10, background: t.type === "income" ? "#dcfce7" : "#fee2e2", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -440,7 +491,7 @@ function Dashboard() {
                   </div>
                   <div>
                     <p style={{ fontSize: 13, fontWeight: 600, color: "#0f172a", marginBottom: 1 }}>{t.description}</p>
-                    <p style={{ fontSize: 12, color: "#94a3b8" }}>{t.property.split(" ").slice(0, 2).join(" ")} . {t.date}</p>
+                    <p style={{ fontSize: 12, color: "#94a3b8" }}>{isAll ? `${t.property.split(" ").slice(0, 2).join(" ")} · ` : ""}{t.date}</p>
                   </div>
                 </div>
                 <span style={{ fontWeight: 700, fontSize: 14, color: t.type === "income" ? "#15803d" : "#b91c1c" }}>
