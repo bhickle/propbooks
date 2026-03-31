@@ -3572,8 +3572,8 @@ function FlipPipeline({ onSelect }) {
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
         <div>
-          <h1 style={{ color: "#0f172a", fontSize: 26, fontWeight: 700, marginBottom: 4 }}>Flip Pipeline</h1>
-          <p style={{ color: "#64748b", fontSize: 15 }}>Track every deal from contract to close</p>
+          <h1 style={{ color: "#0f172a", fontSize: 26, fontWeight: 700, marginBottom: 4 }}>Deals</h1>
+          <p style={{ color: "#64748b", fontSize: 15 }}>Track every flip from contract to close</p>
         </div>
         <button onClick={() => setShowAddDeal(true)} style={{ background: "#f59e0b", color: "#fff", border: "none", borderRadius: 10, padding: "10px 18px", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
           <Plus size={16} /> Add Flip Deal
@@ -3751,8 +3751,10 @@ function FlipDetail({ flip, onBack, allFlips, setAllFlips }) {
   const totalExpensed = expData.reduce((s, e) => s + e.amount, 0);
   const doneCount = milestones.filter(m => m.done).length;
 
+  const rehabComplete = rehabItems.filter(i => i.status === "complete").length;
   const tabs = [
     { id: "overview", label: "Overview", icon: LayoutDashboard },
+    { id: "rehab", label: `Rehab (${rehabComplete}/${rehabItems.length})`, icon: Wrench },
     { id: "expenses", label: `Expenses (${flipExpenses.length})`, icon: Receipt },
     { id: "contractors", label: `Contractors (${flipContractors.length})`, icon: UserCheck },
     { id: "milestones", label: `Milestones (${doneCount}/${milestones.length})`, icon: CheckSquare },
@@ -3761,7 +3763,7 @@ function FlipDetail({ flip, onBack, allFlips, setAllFlips }) {
   return (
     <div>
       <button onClick={onBack} style={{ display: "flex", alignItems: "center", gap: 6, color: "#f59e0b", fontWeight: 600, fontSize: 14, background: "none", border: "none", cursor: "pointer", marginBottom: 20 }}>
-        Back to Pipeline
+        Back to Deals
       </button>
       <div style={{ background: `linear-gradient(135deg, ${flip.color}18, ${flip.color}30)`, borderRadius: 20, padding: 28, marginBottom: 20, border: `1px solid ${flip.color}30` }}>
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
@@ -3878,105 +3880,142 @@ function FlipDetail({ flip, onBack, allFlips, setAllFlips }) {
           </div>
         </div>
       </div>
-      <div style={{ background: "#fff", borderRadius: 16, padding: 24, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <Wrench size={18} color="#f59e0b" />
-              <h3 style={{ color: "#0f172a", fontSize: 16, fontWeight: 700 }}>Rehab Budget Tracker</h3>
-            </div>
-            <button onClick={() => setShowAddRehab(true)} style={{ background: "#f59e0b", color: "#fff", border: "none", borderRadius: 8, padding: "6px 12px", fontWeight: 600, fontSize: 12, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
-              <Plus size={13} /> Add Item
-            </button>
+      {/* Compact Rehab Summary */}
+      <div style={{ background: "#fff", borderRadius: 16, padding: 20, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <Wrench size={16} color="#f59e0b" />
+            <h3 style={{ color: "#0f172a", fontSize: 15, fontWeight: 700 }}>Rehab Progress</h3>
           </div>
-          <div style={{ display: "flex", gap: 16 }}>
-            <span style={{ fontSize: 13, color: "#64748b" }}>Budget: <strong style={{ color: "#0f172a" }}>{fmt(rehabTotalBudget)}</strong></span>
-            <span style={{ fontSize: 13, color: "#64748b" }}>Spent: <strong style={{ color: rehabTotalSpent > rehabTotalBudget ? "#b91c1c" : "#0f172a" }}>{fmt(rehabTotalSpent)}</strong></span>
-            <span style={{ fontSize: 13, color: "#64748b" }}>Remaining: <strong style={{ color: "#3b82f6" }}>{fmt(Math.max(0, rehabTotalBudget - rehabTotalSpent))}</strong></span>
-          </div>
+          <button onClick={() => setActiveTab("rehab")} style={{ background: "none", border: "none", color: "#3b82f6", fontSize: 13, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
+            View Details <ChevronRight size={14} />
+          </button>
         </div>
         <RehabProgress items={rehabItems} />
-        <div style={{ marginTop: 20 }}>
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
-            <thead>
-              <tr style={{ background: "#f8fafc" }}>
-                {["Category", "Budgeted", "Spent", "Remaining", "Status", ""].map(h => (
-                  <th key={h} style={{ padding: "10px 16px", textAlign: "left", color: "#94a3b8", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {rehabItems.map((item, i) => {
-                const remaining = item.budgeted - item.spent;
-                const over = remaining < 0;
-                return (
-                  <tr key={i} style={{ borderTop: "1px solid #f1f5f9" }}>
-                    <td style={{ padding: "12px 16px", fontSize: 14, fontWeight: 600, color: "#0f172a" }}>{item.category}</td>
-                    <td style={{ padding: "12px 16px", fontSize: 13, color: "#475569" }}>{fmt(item.budgeted)}</td>
-                    <td style={{ padding: "12px 16px", fontSize: 13, fontWeight: 600, color: "#0f172a" }}>{fmt(item.spent)}</td>
-                    <td style={{ padding: "12px 16px", fontSize: 13, fontWeight: 700, color: over ? "#b91c1c" : "#15803d" }}>
-                      {over ? `-${fmt(Math.abs(remaining))}` : fmt(remaining)}
-                    </td>
-                    <td style={{ padding: "12px 16px" }}>
-                      <button onClick={() => cycleRehabStatus(i)} title="Click to cycle status" style={{ background: statusBg[item.status], color: statusColors[item.status], borderRadius: 20, padding: "3px 10px", fontSize: 12, fontWeight: 600, border: "none", cursor: "pointer" }}>
-                        {statusIcons[item.status]} {item.status}
-                      </button>
-                    </td>
-                    <td style={{ padding: "12px 16px" }}>
-                      <button onClick={() => setDeleteConfirm({ type: "rehab", item: item, index: i })} style={{ background: "none", border: "none", cursor: "pointer", color: "#ef4444", opacity: 0.4, padding: 4 }} title="Remove item"><Trash2 size={13} /></button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {showAddRehab && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
-          <div style={{ background: "#fff", borderRadius: 20, width: 420, padding: 28 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-              <h2 style={{ color: "#0f172a", fontSize: 18, fontWeight: 700 }}>Add Rehab Item</h2>
-              <button onClick={() => { setShowAddRehab(false); setRehabForm(emptyRehab); }} style={{ background: "#f1f5f9", border: "none", borderRadius: 8, width: 32, height: 32, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><X size={16} color="#64748b" /></button>
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-              <div>
-                <label style={{ display: "block", color: "#374151", fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Category *</label>
-                <input value={rehabForm.category} onChange={sfR("category")} placeholder="e.g. Kitchen, Flooring, HVAC" style={iS} />
-              </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-                <div>
-                  <label style={{ display: "block", color: "#374151", fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Budget *</label>
-                  <input value={rehabForm.budgeted} onChange={sfR("budgeted")} type="number" placeholder="18000" style={iS} />
-                </div>
-                <div>
-                  <label style={{ display: "block", color: "#374151", fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Spent So Far</label>
-                  <input value={rehabForm.spent} onChange={sfR("spent")} type="number" placeholder="0" style={iS} />
-                </div>
-              </div>
-              <div>
-                <label style={{ display: "block", color: "#374151", fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Status</label>
-                <select value={rehabForm.status} onChange={sfR("status")} style={iS}>
-                  <option value="pending">Pending</option>
-                  <option value="in-progress">In Progress</option>
-                  <option value="complete">Complete</option>
-                </select>
-              </div>
-            </div>
-            <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 22 }}>
-              <button onClick={() => { setShowAddRehab(false); setRehabForm(emptyRehab); }} style={{ padding: "10px 20px", borderRadius: 10, border: "1px solid #e2e8f0", background: "#fff", color: "#64748b", fontWeight: 600, fontSize: 14, cursor: "pointer" }}>Cancel</button>
-              <button onClick={() => {
-                if (!rehabForm.category || !rehabForm.budgeted) return;
-                setRehabItems(prev => [...prev, { category: rehabForm.category, budgeted: parseFloat(rehabForm.budgeted) || 0, spent: parseFloat(rehabForm.spent) || 0, status: rehabForm.status, contractorIds: [] }]);
-                setRehabForm(emptyRehab);
-                setShowAddRehab(false);
-              }} style={{ padding: "10px 24px", borderRadius: 10, border: "none", background: "#f59e0b", color: "#fff", fontWeight: 600, fontSize: 14, cursor: "pointer", opacity: (!rehabForm.category || !rehabForm.budgeted) ? 0.5 : 1 }}>Add Item</button>
-            </div>
+        <div style={{ display: "flex", gap: 20, marginTop: 12 }}>
+          <div style={{ flex: 1, background: "#f8fafc", borderRadius: 10, padding: "10px 14px", textAlign: "center" }}>
+            <p style={{ color: "#94a3b8", fontSize: 11, fontWeight: 600, textTransform: "uppercase", marginBottom: 2 }}>Budget</p>
+            <p style={{ color: "#0f172a", fontSize: 16, fontWeight: 700 }}>{fmt(rehabTotalBudget)}</p>
+          </div>
+          <div style={{ flex: 1, background: "#f8fafc", borderRadius: 10, padding: "10px 14px", textAlign: "center" }}>
+            <p style={{ color: "#94a3b8", fontSize: 11, fontWeight: 600, textTransform: "uppercase", marginBottom: 2 }}>Spent</p>
+            <p style={{ color: rehabTotalSpent > rehabTotalBudget ? "#b91c1c" : "#0f172a", fontSize: 16, fontWeight: 700 }}>{fmt(rehabTotalSpent)}</p>
+          </div>
+          <div style={{ flex: 1, background: "#f8fafc", borderRadius: 10, padding: "10px 14px", textAlign: "center" }}>
+            <p style={{ color: "#94a3b8", fontSize: 11, fontWeight: 600, textTransform: "uppercase", marginBottom: 2 }}>Remaining</p>
+            <p style={{ color: "#3b82f6", fontSize: 16, fontWeight: 700 }}>{fmt(Math.max(0, rehabTotalBudget - rehabTotalSpent))}</p>
+          </div>
+          <div style={{ flex: 1, background: "#f8fafc", borderRadius: 10, padding: "10px 14px", textAlign: "center" }}>
+            <p style={{ color: "#94a3b8", fontSize: 11, fontWeight: 600, textTransform: "uppercase", marginBottom: 2 }}>Items</p>
+            <p style={{ color: "#0f172a", fontSize: 16, fontWeight: 700 }}>{rehabComplete}/{rehabItems.length} done</p>
           </div>
         </div>
-      )}
+      </div>
       </>)}
+
+      {activeTab === "rehab" && (
+      <div>
+        <div style={{ background: "#fff", borderRadius: 16, padding: 24, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <Wrench size={18} color="#f59e0b" />
+                <h3 style={{ color: "#0f172a", fontSize: 16, fontWeight: 700 }}>Rehab Budget Tracker</h3>
+              </div>
+              <button onClick={() => setShowAddRehab(true)} style={{ background: "#f59e0b", color: "#fff", border: "none", borderRadius: 8, padding: "6px 12px", fontWeight: 600, fontSize: 12, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
+                <Plus size={13} /> Add Item
+              </button>
+            </div>
+            <div style={{ display: "flex", gap: 16 }}>
+              <span style={{ fontSize: 13, color: "#64748b" }}>Budget: <strong style={{ color: "#0f172a" }}>{fmt(rehabTotalBudget)}</strong></span>
+              <span style={{ fontSize: 13, color: "#64748b" }}>Spent: <strong style={{ color: rehabTotalSpent > rehabTotalBudget ? "#b91c1c" : "#0f172a" }}>{fmt(rehabTotalSpent)}</strong></span>
+              <span style={{ fontSize: 13, color: "#64748b" }}>Remaining: <strong style={{ color: "#3b82f6" }}>{fmt(Math.max(0, rehabTotalBudget - rehabTotalSpent))}</strong></span>
+            </div>
+          </div>
+          <RehabProgress items={rehabItems} />
+          <div style={{ marginTop: 20 }}>
+            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+              <thead>
+                <tr style={{ background: "#f8fafc" }}>
+                  {["Category", "Budgeted", "Spent", "Remaining", "Status", ""].map(h => (
+                    <th key={h} style={{ padding: "10px 16px", textAlign: "left", color: "#94a3b8", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {rehabItems.map((item, i) => {
+                  const remaining = item.budgeted - item.spent;
+                  const over = remaining < 0;
+                  return (
+                    <tr key={i} style={{ borderTop: "1px solid #f1f5f9" }}>
+                      <td style={{ padding: "12px 16px", fontSize: 14, fontWeight: 600, color: "#0f172a" }}>{item.category}</td>
+                      <td style={{ padding: "12px 16px", fontSize: 13, color: "#475569" }}>{fmt(item.budgeted)}</td>
+                      <td style={{ padding: "12px 16px", fontSize: 13, fontWeight: 600, color: "#0f172a" }}>{fmt(item.spent)}</td>
+                      <td style={{ padding: "12px 16px", fontSize: 13, fontWeight: 700, color: over ? "#b91c1c" : "#15803d" }}>
+                        {over ? `-${fmt(Math.abs(remaining))}` : fmt(remaining)}
+                      </td>
+                      <td style={{ padding: "12px 16px" }}>
+                        <button onClick={() => cycleRehabStatus(i)} title="Click to cycle status" style={{ background: statusBg[item.status], color: statusColors[item.status], borderRadius: 20, padding: "3px 10px", fontSize: 12, fontWeight: 600, border: "none", cursor: "pointer" }}>
+                          {statusIcons[item.status]} {item.status}
+                        </button>
+                      </td>
+                      <td style={{ padding: "12px 16px" }}>
+                        <button onClick={() => setDeleteConfirm({ type: "rehab", item: item, index: i })} style={{ background: "none", border: "none", cursor: "pointer", color: "#ef4444", opacity: 0.4, padding: 4 }} title="Remove item"><Trash2 size={13} /></button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {showAddRehab && (
+          <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
+            <div style={{ background: "#fff", borderRadius: 20, width: 420, padding: 28 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+                <h2 style={{ color: "#0f172a", fontSize: 18, fontWeight: 700 }}>Add Rehab Item</h2>
+                <button onClick={() => { setShowAddRehab(false); setRehabForm(emptyRehab); }} style={{ background: "#f1f5f9", border: "none", borderRadius: 8, width: 32, height: 32, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><X size={16} color="#64748b" /></button>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                <div>
+                  <label style={{ display: "block", color: "#374151", fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Category *</label>
+                  <input value={rehabForm.category} onChange={sfR("category")} placeholder="e.g. Kitchen, Flooring, HVAC" style={iS} />
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                  <div>
+                    <label style={{ display: "block", color: "#374151", fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Budget *</label>
+                    <input value={rehabForm.budgeted} onChange={sfR("budgeted")} type="number" placeholder="18000" style={iS} />
+                  </div>
+                  <div>
+                    <label style={{ display: "block", color: "#374151", fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Spent So Far</label>
+                    <input value={rehabForm.spent} onChange={sfR("spent")} type="number" placeholder="0" style={iS} />
+                  </div>
+                </div>
+                <div>
+                  <label style={{ display: "block", color: "#374151", fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Status</label>
+                  <select value={rehabForm.status} onChange={sfR("status")} style={iS}>
+                    <option value="pending">Pending</option>
+                    <option value="in-progress">In Progress</option>
+                    <option value="complete">Complete</option>
+                  </select>
+                </div>
+              </div>
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 22 }}>
+                <button onClick={() => { setShowAddRehab(false); setRehabForm(emptyRehab); }} style={{ padding: "10px 20px", borderRadius: 10, border: "1px solid #e2e8f0", background: "#fff", color: "#64748b", fontWeight: 600, fontSize: 14, cursor: "pointer" }}>Cancel</button>
+                <button onClick={() => {
+                  if (!rehabForm.category || !rehabForm.budgeted) return;
+                  setRehabItems(prev => [...prev, { category: rehabForm.category, budgeted: parseFloat(rehabForm.budgeted) || 0, spent: parseFloat(rehabForm.spent) || 0, status: rehabForm.status, contractorIds: [] }]);
+                  setRehabForm(emptyRehab);
+                  setShowAddRehab(false);
+                }} style={{ padding: "10px 24px", borderRadius: 10, border: "none", background: "#f59e0b", color: "#fff", fontWeight: 600, fontSize: 14, cursor: "pointer", opacity: (!rehabForm.category || !rehabForm.budgeted) ? 0.5 : 1 }}>Add Item</button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+      )}
+
       {activeTab === "expenses" && (
         <div>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
@@ -5066,11 +5105,8 @@ function AppShell() {
   ];
 
   const flipNavItems = [
-    { id: "flipdashboard",   label: "Overview",       icon: LayoutDashboard },
-    { id: "flips",           label: "Pipeline",       icon: Hammer          },
-    { id: "rehabtracker",    label: "Rehab Tracker",  icon: Wrench          },
-    { id: "flipexpenses",    label: "Expenses",        icon: Receipt         },
-    { id: "flipcontractors", label: "Contractors",     icon: Users           },
+    { id: "flipdashboard",   label: "Dashboard",      icon: LayoutDashboard },
+    { id: "flips",           label: "Deals",           icon: Hammer          },
     { id: "flipanalytics",   label: "Analytics",       icon: BarChart3       },
   ];
 
@@ -5122,7 +5158,7 @@ function AppShell() {
           <div style={{ height: 1, background: "rgba(255,255,255,0.07)", margin: "14px 8px 12px" }} />
           <p style={{ color: "#475569", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", padding: "0 8px", marginBottom: 8 }}>Fix &amp; Flip</p>
           {flipNavItems.map(item => {
-            const active = activeView === item.id || (item.id === "flips" && activeView === "flipDetail") || (item.id === "flipdashboard" && activeView === "flipDetail");
+            const active = activeView === item.id || (item.id === "flips" && activeView === "flipDetail");
             return (
               <button key={item.id} onClick={() => { setActiveView(item.id); setSelectedFlip(null); setSelectedProperty(null); setHighlightTxId(null); setNavSource(null); }}
                 style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 10, border: "none", background: active ? "rgba(245,158,11,0.18)" : "transparent", color: active ? "#fcd34d" : "#64748b", fontWeight: active ? 700 : 500, fontSize: 14, cursor: "pointer", marginBottom: 2, textAlign: "left", transition: "all 0.15s" }}
@@ -5202,9 +5238,6 @@ function AppShell() {
           {activeView === "flipdashboard"   && <FlipDashboard onSelect={handleFlipSelect} />}
           {activeView === "flips"           && <FlipPipeline onSelect={handleFlipSelect} />}
           {activeView === "flipDetail"      && selectedFlip && <FlipDetail flip={selectedFlip} onBack={() => setActiveView("flips")} />}
-          {activeView === "rehabtracker"    && <RehabTracker />}
-          {activeView === "flipexpenses"    && <FlipExpenses />}
-          {activeView === "flipcontractors" && <FlipContractors />}
           {activeView === "flipanalytics"   && <FlipAnalytics />}
           {activeView === "rentroll" && <RentRoll />}
           {activeView === "mileage" && <MileageTracker />}
