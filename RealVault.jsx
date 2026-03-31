@@ -1253,8 +1253,8 @@ function Transactions({ highlightTxId, onBack, onClearHighlight }) {
   };
   // selectedGroup no longer needed — single grouped dropdown
 
-  const emptyIncome  = { date: "", property: PROPERTIES[0]?.name || "", type: "income",  category: "Rent Income",      description: "", amount: "", payee: "" };
-  const emptyExpense = { date: "", property: PROPERTIES[0]?.name || "", type: "expense", category: "Mortgage Payment", description: "", amount: "", payee: "" };
+  const emptyIncome  = { date: "", property: PROPERTIES[0]?.name || "", type: "income",  category: "Rent Income",      description: "", amount: "", payee: "", piOverride: false, piPrincipal: "", piInterest: "" };
+  const emptyExpense = { date: "", property: PROPERTIES[0]?.name || "", type: "expense", category: "Mortgage Payment", description: "", amount: "", payee: "", piOverride: false, piPrincipal: "", piInterest: "" };
   const [form, setForm] = useState(emptyIncome);
   const [payeeFocus, setPayeeFocus] = useState(false);
   const sf = k => e => setForm(f => ({ ...f, [k]: e.target.value }));
@@ -1264,7 +1264,7 @@ function Transactions({ highlightTxId, onBack, onClearHighlight }) {
   const openAddExpense = () => { setEditId(null); setForm(emptyExpense); setPayeeFocus(false); setShowModal("expense"); };
   const openEdit = t => {
     setEditId(t.id);
-    setForm({ date: t.date, property: t.property, type: t.type, category: t.category, description: t.description, amount: String(Math.abs(t.amount)), payee: t.payee || "" });
+    setForm({ date: t.date, property: t.property, type: t.type, category: t.category, description: t.description, amount: String(Math.abs(t.amount)), payee: t.payee || "", piOverride: !!(t.piPrincipal || t.piInterest), piPrincipal: t.piPrincipal ? String(t.piPrincipal) : "", piInterest: t.piInterest ? String(t.piInterest) : "" });
     setPayeeFocus(false);
     setShowModal(t.type);
   };
@@ -1313,7 +1313,24 @@ function Transactions({ highlightTxId, onBack, onClearHighlight }) {
   const handleSave = () => {
     if (!form.description || !form.amount) return;
     const amt = parseFloat(form.amount) || 0;
+    const isMortgage = ["Mortgage Payment", "Mortgage"].includes(form.category);
     const built = { date: form.date || new Date().toISOString().split("T")[0], property: form.property, category: form.category || "Other", description: form.description, amount: form.type === "income" ? Math.abs(amt) : -Math.abs(amt), type: form.type, payee: (form.payee || "").trim() };
+    // Store P&I split if mortgage transaction
+    if (isMortgage && form.piOverride && form.piPrincipal && form.piInterest) {
+      built.piPrincipal = parseFloat(form.piPrincipal) || 0;
+      built.piInterest = parseFloat(form.piInterest) || 0;
+    } else if (isMortgage) {
+      // Auto-calculate and store
+      const prop = PROPERTIES.find(p => p.name === form.property);
+      if (prop) {
+        const payDate = form.date || new Date().toISOString().split("T")[0];
+        const interest = calcPaymentInterest(prop.loanAmount, prop.loanRate, prop.loanTermYears, prop.loanStartDate, payDate);
+        if (interest !== null) {
+          built.piInterest = interest;
+          built.piPrincipal = Math.max(0, Math.round(amt - interest));
+        }
+      }
+    }
     if (editId !== null) {
       setTxData(prev => prev.map(t => t.id === editId ? { ...t, ...built } : t));
     } else {
@@ -1510,6 +1527,53 @@ function Transactions({ highlightTxId, onBack, onClearHighlight }) {
                 <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Amount ($)</label>
                 <input type="number" placeholder="0.00" value={form.amount} onChange={sf("amount")} style={iS} />
               </div>
+
+              {/* P&I Split for mortgage payments */}
+              {["Mortgage Payment", "Mortgage"].includes(form.category) && form.amount && (() => {
+                const prop = PROPERTIES.find(p => p.name === form.property);
+                const amt = parseFloat(form.amount) || 0;
+                const payDate = form.date || new Date().toISOString().split("T")[0];
+                const autoInterest = prop ? calcPaymentInterest(prop.loanAmount, prop.loanRate, prop.loanTermYears, prop.loanStartDate, payDate) : null;
+                const autoPrincipal = autoInterest !== null ? Math.max(0, Math.round(amt - autoInterest)) : null;
+                const hasLoanTerms = prop && prop.loanAmount && prop.loanRate && prop.loanTermYears && prop.loanStartDate;
+                return (
+                  <div style={{ gridColumn: "1 / -1", background: "#f0f9ff", borderRadius: 10, padding: "12px 14px", border: "1px solid #bae6fd" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: form.piOverride ? 10 : 0 }}>
+                      <div>
+                        <p style={{ fontSize: 12, fontWeight: 700, color: "#0c4a6e", marginBottom: 2 }}>Principal & Interest Split</p>
+                        {hasLoanTerms && !form.piOverride ? (
+                          <p style={{ fontSize: 12, color: "#475569" }}>
+                            <span style={{ fontWeight: 700, color: "#3b82f6" }}>{fmt(autoPrincipal)}</span> principal + <span style={{ fontWeight: 700, color: "#f59e0b" }}>{fmt(autoInterest)}</span> interest
+                            <span style={{ color: "#94a3b8", marginLeft: 6 }}>(auto from loan terms)</span>
+                          </p>
+                        ) : !hasLoanTerms && !form.piOverride ? (
+                          <p style={{ fontSize: 12, color: "#94a3b8" }}>Add loan terms to this property for auto-calculation, or enter manually below</p>
+                        ) : null}
+                      </div>
+                      <button onClick={() => setForm(f => ({ ...f, piOverride: !f.piOverride, piPrincipal: f.piOverride ? "" : String(autoPrincipal ?? ""), piInterest: f.piOverride ? "" : String(autoInterest ?? "") }))} style={{ background: form.piOverride ? "#dbeafe" : "#fff", border: "1px solid #bae6fd", borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 600, color: "#3b82f6", cursor: "pointer", whiteSpace: "nowrap" }}>
+                        {form.piOverride ? "Use Auto" : "Override"}
+                      </button>
+                    </div>
+                    {form.piOverride && (
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                        <div>
+                          <label style={{ display: "block", color: "#3b82f6", fontSize: 11, fontWeight: 600, marginBottom: 4 }}>Principal ($)</label>
+                          <input type="number" placeholder="0.00" value={form.piPrincipal} onChange={e => setForm(f => ({ ...f, piPrincipal: e.target.value }))} style={{ ...iS, fontSize: 13 }} />
+                        </div>
+                        <div>
+                          <label style={{ display: "block", color: "#f59e0b", fontSize: 11, fontWeight: 600, marginBottom: 4 }}>Interest ($)</label>
+                          <input type="number" placeholder="0.00" value={form.piInterest} onChange={e => setForm(f => ({ ...f, piInterest: e.target.value }))} style={{ ...iS, fontSize: 13 }} />
+                        </div>
+                        {form.piPrincipal && form.piInterest && Math.abs((parseFloat(form.piPrincipal) + parseFloat(form.piInterest)) - amt) > 1 && (
+                          <p style={{ gridColumn: "1 / -1", fontSize: 11, color: "#b91c1c", fontWeight: 600 }}>
+                            P+I ({fmt(parseFloat(form.piPrincipal) + parseFloat(form.piInterest))}) doesn't match total ({fmt(amt)})
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
 
               {/* Payee / Received From — typeahead */}
               <div style={{ gridColumn: "1 / -1", position: "relative" }}>
@@ -2325,21 +2389,26 @@ function Reports() {
       lines[m.line] = (lines[m.line] || 0) + Math.abs(t.amount);
     });
 
-    // Line 12: Mortgage Interest — derived from actual payment transactions via amortization
-    // Each "Mortgage" transaction amount = principal + interest; we calculate the interest
-    // portion precisely from the amortization schedule for that payment date.
+    // Line 12: Mortgage Interest — prefer stored P&I split from transactions, then amortization calc, then estimate
     const mortgageTx = TRANSACTIONS.filter(t =>
       new Date(t.date).getFullYear() === Number(taxYear) &&
       t.property === p.name &&
       (t.category === "Mortgage" || t.category === "Mortgage Payment")
     );
     let interestSource = "estimated";
+    let totalPrincipal = 0;
     if (mortgageTx.length > 0) {
       lines["12"] = mortgageTx.reduce((s, t) => {
-        const interest = calcPaymentInterest(p.loanAmount, p.loanRate, p.loanTermYears, p.loanStartDate, t.date);
-        return s + (interest ?? 0);
+        // Use stored piInterest if available (user-entered or auto-calculated at save time), otherwise calc on the fly
+        const interest = t.piInterest != null ? t.piInterest : (calcPaymentInterest(p.loanAmount, p.loanRate, p.loanTermYears, p.loanStartDate, t.date) ?? 0);
+        return s + interest;
       }, 0);
-      interestSource = `${mortgageTx.length} payment${mortgageTx.length > 1 ? "s" : ""}`;
+      totalPrincipal = mortgageTx.reduce((s, t) => {
+        const principal = t.piPrincipal != null ? t.piPrincipal : Math.max(0, Math.abs(t.amount) - (calcPaymentInterest(p.loanAmount, p.loanRate, p.loanTermYears, p.loanStartDate, t.date) ?? 0));
+        return s + principal;
+      }, 0);
+      const hasOverrides = mortgageTx.some(t => t.piInterest != null);
+      interestSource = hasOverrides ? `${mortgageTx.length} payment${mortgageTx.length > 1 ? "s" : ""} (P&I split)` : `${mortgageTx.length} payment${mortgageTx.length > 1 ? "s" : ""}`;
     } else {
       // Fallback: rough annual estimate from current balance × rate
       const bal = calcLoanBalance(p.loanAmount, p.loanRate, p.loanTermYears, p.loanStartDate) ?? (p.loanAmount || 0);
@@ -2357,7 +2426,7 @@ function Reports() {
     const grossRent = txIncome > 0 ? txIncome : rEff.monthlyIncome * 12;
     const totalExp = Object.values(lines).reduce((s, v) => s + v, 0);
     const net = grossRent - totalExp;
-    return { lines, grossRent, totalExp, net, hasActual: txIncome > 0, interestSource };
+    return { lines, grossRent, totalExp, net, hasActual: txIncome > 0, interestSource, totalPrincipal };
   };
 
   // Per-property calc (for year-end) — uses transaction-derived financials
@@ -3019,8 +3088,14 @@ function Reports() {
             const propTaxActual = propTaxTx.reduce((s, t) => s + Math.abs(t.amount), 0);
             const propTaxHasActual = propTaxTx.length > 0;
 
+            // Use calcPropLines for accurate P&I split across all properties
+            const allPropCalc = reportProps.map(p => calcPropLines(p));
+            const actualInterest = allPropCalc.reduce((s, c) => s + (c.lines["12"] || 0), 0);
+            const actualPrincipal = allPropCalc.reduce((s, c) => s + (c.totalPrincipal || 0), 0);
+            const hasMortgageTx = allPropCalc.some(c => c.interestSource !== "estimated");
+
             const totalGross = totIncome + otherIncome;
-            const totalDeductions = totExpenses + totInt + totDepr;
+            const totalDeductions = totExpenses + actualInterest + totDepr;
             const rate = taxRate / 100;
 
             return (
@@ -3057,16 +3132,17 @@ function Reports() {
                   <tbody>
                     {[
                       { label: "Operating Expenses (repairs, insurance, mgmt, etc.)", value: totExpenses },
-                      { label: "Mortgage Interest — Line 12 (est.)", value: totInt },
+                      { label: hasMortgageTx ? "Mortgage Interest — Line 12 (from P&I split)" : "Mortgage Interest — Line 12 (est.)", value: actualInterest },
+                      ...(hasMortgageTx && actualPrincipal > 0 ? [{ label: "Mortgage Principal (not deductible — equity building)", value: actualPrincipal, isInfo: true }] : []),
                       { label: `Depreciation — straight-line`, value: totDepr },
                       { label: propTaxHasActual ? "Property Taxes (from transactions)" : "Property Taxes (no transactions logged)", value: propTaxActual, note: !propTaxHasActual },
                     ].map((row, i) => (
-                      <tr key={i} style={{ borderBottom: "1px solid #f1f5f9" }}>
-                        <td style={{ padding: "10px 0", fontSize: 14, color: "#0f172a" }}>
+                      <tr key={i} style={{ borderBottom: "1px solid #f1f5f9", background: row.isInfo ? "#f8fafc" : "transparent" }}>
+                        <td style={{ padding: "10px 0", fontSize: row.isInfo ? 13 : 14, color: row.isInfo ? "#64748b" : "#0f172a", paddingLeft: row.isInfo ? 16 : 0 }}>
                           {row.label}
                           {row.note && <span style={{ color: "#f59e0b", fontSize: 12, marginLeft: 8 }}>— log property tax payments for accuracy</span>}
                         </td>
-                        <td style={{ padding: "10px 0", fontSize: 14, fontWeight: 600, color: "#b91c1c", textAlign: "right" }}>-{fmt(row.value)}</td>
+                        <td style={{ padding: "10px 0", fontSize: row.isInfo ? 13 : 14, fontWeight: 600, color: row.isInfo ? "#94a3b8" : "#b91c1c", textAlign: "right" }}>{row.isInfo ? fmt(row.value) : `-${fmt(row.value)}`}</td>
                       </tr>
                     ))}
                     <tr style={{ borderBottom: "2px solid #e2e8f0" }}>
