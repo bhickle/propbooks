@@ -769,7 +769,11 @@ function Properties({ onSelect }) {
                     <div style={{ background: "#f8fafc", borderRadius: 10, padding: "10px 12px" }}>
                       <p style={{ color: "#94a3b8", fontSize: 11, fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.04em" }}>Value</p>
                       <p style={{ color: "#0f172a", fontSize: 15, fontWeight: 700 }}>{fmtK(p.currentValue)}</p>
-                      {p.valueUpdatedAt && <p style={{ color: "#cbd5e1", fontSize: 10, marginTop: 1 }}>Updated {daysAgo(p.valueUpdatedAt)}</p>}
+                      {p.valueUpdatedAt && (() => {
+                        const staleD = Math.round((new Date() - new Date(p.valueUpdatedAt)) / 86400000);
+                        const staleV = staleD > 90;
+                        return <p style={{ color: staleV ? "#b45309" : "#cbd5e1", fontSize: 10, marginTop: 1 }}>{staleV ? "⚠ Value may be outdated" : `Value as of ${daysAgo(p.valueUpdatedAt)}`}</p>;
+                      })()}
                     </div>
                     <div style={{ background: "#f8fafc", borderRadius: 10, padding: "10px 12px" }}>
                       <p style={{ color: "#94a3b8", fontSize: 11, fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.04em" }}>Equity</p>
@@ -821,7 +825,11 @@ function Properties({ onSelect }) {
                   <td style={{ padding: "16px 20px", fontSize: 13, color: "#475569" }}>{p.type}</td>
                   <td style={{ padding: "16px 20px" }}>
                     <p style={{ fontSize: 14, fontWeight: 600, color: "#0f172a" }}>{fmtK(p.currentValue)}</p>
-                    {p.valueUpdatedAt && <p style={{ fontSize: 11, color: "#cbd5e1" }}>Updated {daysAgo(p.valueUpdatedAt)}</p>}
+                    {p.valueUpdatedAt && (() => {
+                      const staleD = Math.round((new Date() - new Date(p.valueUpdatedAt)) / 86400000);
+                      const staleV = staleD > 90;
+                      return <p style={{ fontSize: 11, color: staleV ? "#b45309" : "#cbd5e1" }}>{staleV ? "⚠ Value may be outdated" : `Value as of ${daysAgo(p.valueUpdatedAt)}`}</p>;
+                    })()}
                   </td>
                   <td style={{ padding: "16px 20px" }}>
                     <p style={{ fontSize: 14, fontWeight: 600, color: "#10b981" }}>{fmtK(p.currentValue - effMort)}</p>
@@ -1020,19 +1028,25 @@ function PropertyDetail({ property, onBack }) {
             <p style={{ color: "#64748b", fontSize: 13 }}>Current Value</p>
             <p style={{ color: "#0f172a", fontSize: 32, fontWeight: 800 }}>{fmt(property.currentValue)}</p>
             <p style={{ color: "#10b981", fontSize: 14, fontWeight: 600 }}>+{fmt(appreciation)} since purchase</p>
-            {property.valueUpdatedAt && <p style={{ color: "#94a3b8", fontSize: 12, marginTop: 2 }}>Value updated {daysAgo(property.valueUpdatedAt)}</p>}
+            {property.valueUpdatedAt && (() => {
+              const staleD = Math.round((new Date() - new Date(property.valueUpdatedAt)) / 86400000);
+              const staleV = staleD > 90;
+              return <p style={{ color: staleV ? "#b45309" : "#94a3b8", fontSize: 12, marginTop: 2 }}>
+                {staleV ? "⚠ Property value may be outdated — edit property to update" : `Value as of ${daysAgo(property.valueUpdatedAt)}`}
+              </p>;
+            })()}
           </div>
         </div>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 24 }}>
         {[
-          { label: "Monthly Income", value: fmt(eff.monthlyIncome), color: "#10b981", sub: eff.source === "transactions" ? `From ${eff.months}mo avg` : "Estimated" },
-          { label: "Monthly Expenses", value: fmt(eff.monthlyExpenses), color: "#ef4444", sub: eff.source === "transactions" ? `From ${eff.months}mo avg` : "Estimated" },
+          { label: "Monthly Income", value: fmt(eff.monthlyIncome), color: "#10b981", sub: eff.source === "transactions" ? `Avg from ${eff.months}mo of transactions` : "Manual estimate — log transactions for actuals" },
+          { label: "Monthly Expenses", value: fmt(eff.monthlyExpenses), color: "#ef4444", sub: eff.source === "transactions" ? `Avg from ${eff.months}mo of transactions` : "Manual estimate — log transactions for actuals" },
           { label: "Net Cash Flow", value: fmt(eff.monthlyIncome - eff.monthlyExpenses), color: "#3b82f6" },
           { label: "Total Equity", value: fmt(equity), color: "#8b5cf6" },
           { label: "Purchase Price", value: fmt(property.purchasePrice), color: "#0f172a" },
           { label: "Closing Costs", value: property.closingCosts ? fmt(property.closingCosts) : "—", color: "#64748b" },
-          { label: calcBal !== null ? "Est. Mortgage Balance" : "Mortgage Balance", value: fmt(effectiveMortgage), color: "#f59e0b", sub: calcBal !== null ? "Auto-calculated" : null },
+          { label: calcBal !== null ? "Est. Mortgage Balance" : "Mortgage Balance", value: fmt(effectiveMortgage), color: "#f59e0b", sub: calcBal !== null ? "Calculated from loan terms" : null },
           { label: "Cap Rate", value: `${calcCapRate(property, TRANSACTIONS)}%`, color: "#8b5cf6" },
           { label: "Cash-on-Cash", value: `${calcCashOnCash(property, TRANSACTIONS)}%`, color: "#10b981" },
         ].map((m, i) => (
@@ -1794,9 +1808,9 @@ function Analytics() {
                   return {
                     label: "Appreciation",
                     value: `+${((selectedProp.currentValue - selectedProp.purchasePrice) / selectedProp.purchasePrice * 100).toFixed(1)}%`,
-                    sub: stale ? `${fmt(selectedProp.currentValue - selectedProp.purchasePrice)} gain \u00b7 \u26a0\ufe0f Updated ${daysSince}d ago` : `${fmt(selectedProp.currentValue - selectedProp.purchasePrice)} total gain`,
-                    color: "#f59e0b",
-                    tip: `(Current Value \u2212 Purchase Price) \u00f7 Purchase Price. Value last updated ${selectedProp.valueUpdatedAt || "unknown"}.`,
+                    sub: stale ? `${fmt(selectedProp.currentValue - selectedProp.purchasePrice)} gain · Value may be outdated` : `${fmt(selectedProp.currentValue - selectedProp.purchasePrice)} total gain`,
+                    color: stale ? "#b45309" : "#f59e0b",
+                    tip: `(Current Value − Purchase Price) ÷ Purchase Price. Based on a manually entered property value${selectedProp.valueUpdatedAt ? ` last updated ${daysAgo(selectedProp.valueUpdatedAt)}` : ""}. Edit the property to update.`,
                   };
                 })(),
               ].map((m, i) => (
