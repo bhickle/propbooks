@@ -595,6 +595,7 @@ export function FlipExpenses() {
   const [showModal, setShowModal]       = useState(false);
   const [editId, setEditId]             = useState(null);
   const [search, setSearch]             = useState("");
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
 
   const emptyForm = { flipId: "", date: "", vendor: "", category: "Materials/Supplies", description: "", amount: "" };
   const [form, setForm]   = useState(emptyForm);
@@ -701,7 +702,7 @@ export function FlipExpenses() {
                   <td style={{ padding: "12px 16px" }}>
                     <div style={{ display: "flex", gap: 4 }}>
                       <button onClick={() => openEdit(e)} style={{ background: "#f1f5f9", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "#475569", display: "flex", alignItems: "center" }} title="Edit"><Pencil size={13} /></button>
-                      <button onClick={() => setExpenses(prev => prev.filter(x => x.id !== e.id))} style={{ background: "#fee2e2", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "#ef4444", display: "flex", alignItems: "center" }} title="Delete"><Trash2 size={13} /></button>
+                      <button onClick={() => setDeleteConfirm(e)} style={{ background: "#fee2e2", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "#ef4444", display: "flex", alignItems: "center" }} title="Delete"><Trash2 size={13} /></button>
                     </div>
                   </td>
                 </tr>
@@ -765,6 +766,23 @@ export function FlipExpenses() {
           </div>
         </div>
       )}
+      {deleteConfirm && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
+          <div style={{ background: "#fff", borderRadius: 20, width: 420, padding: 28 }}>
+            <h2 style={{ color: "#0f172a", fontSize: 18, fontWeight: 700, marginBottom: 14 }}>Delete Expense</h2>
+            <p style={{ color: "#475569", fontSize: 14, marginBottom: 8 }}>Are you sure you want to delete this expense?</p>
+            <div style={{ background: "#f8fafc", borderRadius: 10, padding: 14, marginBottom: 18 }}>
+              <p style={{ fontSize: 13, fontWeight: 600, color: "#0f172a" }}>{deleteConfirm.description}</p>
+              <p style={{ fontSize: 12, color: "#64748b", marginTop: 4 }}>{deleteConfirm.vendor} · {deleteConfirm.date} · <span style={{ color: "#b91c1c", fontWeight: 700 }}>${deleteConfirm.amount?.toLocaleString()}</span></p>
+            </div>
+            <p style={{ color: "#94a3b8", fontSize: 12, marginBottom: 18 }}>This action cannot be undone.</p>
+            <div style={{ display: "flex", gap: 10 }}>
+              <button onClick={() => setDeleteConfirm(null)} style={{ flex: 1, padding: "12px", border: "1px solid #e2e8f0", borderRadius: 10, background: "#fff", color: "#475569", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
+              <button onClick={() => { setExpenses(prev => prev.filter(x => x.id !== deleteConfirm.id)); setDeleteConfirm(null); }} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "#ef4444", color: "#fff", fontWeight: 700, cursor: "pointer" }}>Delete</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -785,6 +803,7 @@ export function FlipContractors() {
   const [filterStatus, setFilterStatus] = useState("all");
   const [showModal, setShowModal]       = useState(false);
   const [editId, setEditId]             = useState(null); // null = add mode
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [selectedItems, setSelectedItems] = useState(new Set()); // Set of "flipIdx:itemIdx" keys
 
   const emptyForm = { flipId: "", name: "", trade: "", paymentType: "Fixed Bid", totalBid: "", dayRate: "", phone: "", status: "pending" };
@@ -940,7 +959,7 @@ export function FlipContractors() {
                   <button onClick={() => openEdit(c)} style={{ background: "#f1f5f9", border: "none", borderRadius: 8, padding: "5px 8px", cursor: "pointer", color: "#64748b", display: "flex", alignItems: "center", gap: 4, fontSize: 12, fontWeight: 600 }}>
                     <Pencil size={12} /> Edit
                   </button>
-                  <button onClick={() => { setContractors(prev => prev.filter(x => x.id !== c.id)); const ci = _CON.findIndex(x => x.id === c.id); if (ci !== -1) _CON.splice(ci, 1); }} style={{ background: "#fee2e2", border: "none", borderRadius: 8, padding: "5px 8px", cursor: "pointer", color: "#ef4444", display: "flex", alignItems: "center" }} title="Delete">
+                  <button onClick={() => setDeleteConfirm(c)} style={{ background: "#fee2e2", border: "none", borderRadius: 8, padding: "5px 8px", cursor: "pointer", color: "#ef4444", display: "flex", alignItems: "center" }} title="Delete">
                     <Trash2 size={12} />
                   </button>
                 </div>
@@ -1101,6 +1120,23 @@ export function FlipContractors() {
                 {editId ? "Save Changes" : "Add Contractor"}
               </button>
               <button onClick={() => setShowModal(false)} style={{ padding: "11px 18px", borderRadius: 10, border: "1.5px solid #e2e8f0", background: "#fff", fontWeight: 600, fontSize: 14, cursor: "pointer", color: "#64748b" }}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+      {deleteConfirm && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
+          <div style={{ background: "#fff", borderRadius: 20, width: 420, padding: 28 }}>
+            <h2 style={{ color: "#0f172a", fontSize: 18, fontWeight: 700, marginBottom: 14 }}>Delete Contractor</h2>
+            <p style={{ color: "#475569", fontSize: 14, marginBottom: 8 }}>Are you sure you want to remove this contractor?</p>
+            <div style={{ background: "#f8fafc", borderRadius: 10, padding: 14, marginBottom: 18 }}>
+              <p style={{ fontSize: 13, fontWeight: 600, color: "#0f172a" }}>{deleteConfirm.name}</p>
+              <p style={{ fontSize: 12, color: "#64748b", marginTop: 4 }}>{deleteConfirm.trade} · {deleteConfirm.paymentType}</p>
+            </div>
+            <p style={{ color: "#94a3b8", fontSize: 12, marginBottom: 18 }}>This action cannot be undone.</p>
+            <div style={{ display: "flex", gap: 10 }}>
+              <button onClick={() => setDeleteConfirm(null)} style={{ flex: 1, padding: "12px", border: "1px solid #e2e8f0", borderRadius: 10, background: "#fff", color: "#475569", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
+              <button onClick={() => { setContractors(prev => prev.filter(x => x.id !== deleteConfirm.id)); const ci = _CON.findIndex(x => x.id === deleteConfirm.id); if (ci !== -1) _CON.splice(ci, 1); setDeleteConfirm(null); }} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "#ef4444", color: "#fff", fontWeight: 700, cursor: "pointer" }}>Delete</button>
             </div>
           </div>
         </div>

@@ -1002,6 +1002,7 @@ function Transactions() {
   const [catFilter, setCatFilter] = useState("all");
   const [dateFilter, setDateFilter] = useState("all");
   const [dateFrom, setDateFrom] = useState("");
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [dateTo, setDateTo] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [editId, setEditId] = useState(null);
@@ -1226,7 +1227,7 @@ function Transactions() {
                 <td style={{ padding: "14px 20px" }}>
                   <div style={{ display: "flex", gap: 4 }}>
                     <button onClick={() => openEdit(t)} style={{ background: "#f1f5f9", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "#475569", display: "flex", alignItems: "center" }} title="Edit"><Pencil size={13} /></button>
-                    <button onClick={() => setTxData(prev => prev.filter(x => x.id !== t.id))} style={{ background: "#fee2e2", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "#ef4444", display: "flex", alignItems: "center" }} title="Delete"><Trash2 size={13} /></button>
+                    <button onClick={() => setDeleteConfirm(t)} style={{ background: "#fee2e2", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "#ef4444", display: "flex", alignItems: "center" }} title="Delete"><Trash2 size={13} /></button>
                   </div>
                 </td>
               </tr>
@@ -1343,6 +1344,20 @@ function Transactions() {
           </Modal>
         );
       })()}
+      {deleteConfirm && (
+        <Modal title="Delete Transaction" onClose={() => setDeleteConfirm(null)}>
+          <p style={{ color: "#475569", fontSize: 14, marginBottom: 8 }}>Are you sure you want to delete this transaction?</p>
+          <div style={{ background: "#f8fafc", borderRadius: 10, padding: 14, marginBottom: 18 }}>
+            <p style={{ fontSize: 13, fontWeight: 600, color: "#0f172a" }}>{deleteConfirm.description}</p>
+            <p style={{ fontSize: 12, color: "#64748b", marginTop: 4 }}>{deleteConfirm.property} · {deleteConfirm.date} · <span style={{ color: deleteConfirm.type === "income" ? "#15803d" : "#b91c1c", fontWeight: 700 }}>{deleteConfirm.type === "income" ? "+" : "-"}{fmt(Math.abs(deleteConfirm.amount))}</span></p>
+          </div>
+          <p style={{ color: "#94a3b8", fontSize: 12, marginBottom: 18 }}>This action cannot be undone.</p>
+          <div style={{ display: "flex", gap: 10 }}>
+            <button onClick={() => setDeleteConfirm(null)} style={{ flex: 1, padding: "12px", border: "1px solid #e2e8f0", borderRadius: 10, background: "#fff", color: "#475569", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
+            <button onClick={() => { setTxData(prev => prev.filter(x => x.id !== deleteConfirm.id)); setDeleteConfirm(null); }} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "#ef4444", color: "#fff", fontWeight: 700, cursor: "pointer" }}>Delete</button>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }
@@ -2640,6 +2655,7 @@ function FlipDetail({ flip, onBack, allFlips, setAllFlips }) {
   const emptyRehab = { category: "", budgeted: "", spent: "0", status: "pending" };
   const [rehabForm, setRehabForm] = useState(emptyRehab);
   const sfR = k => e => setRehabForm(f => ({ ...f, [k]: e.target.value }));
+  const [deleteConfirm, setDeleteConfirm] = useState(null); // { type: "expense"|"contractor"|"rehab"|"milestone", item, index? }
   const [stage, setStage] = useState(flip.stage);
 
   const emptyExp = { date: "", vendor: "", category: "Materials/Supplies", description: "", amount: "" };
@@ -2868,7 +2884,7 @@ function FlipDetail({ flip, onBack, allFlips, setAllFlips }) {
                       </button>
                     </td>
                     <td style={{ padding: "12px 16px" }}>
-                      <button onClick={() => setRehabItems(prev => prev.filter((_, idx) => idx !== i))} style={{ background: "none", border: "none", cursor: "pointer", color: "#ef4444", opacity: 0.4, padding: 4 }} title="Remove item"><Trash2 size={13} /></button>
+                      <button onClick={() => setDeleteConfirm({ type: "rehab", item: item, index: i })} style={{ background: "none", border: "none", cursor: "pointer", color: "#ef4444", opacity: 0.4, padding: 4 }} title="Remove item"><Trash2 size={13} /></button>
                     </td>
                   </tr>
                 );
@@ -2973,7 +2989,7 @@ function FlipDetail({ flip, onBack, allFlips, setAllFlips }) {
                       <td style={{ padding: "13px 18px", fontSize: 13, color: "#475569" }}>{e.description}</td>
                       <td style={{ padding: "13px 18px", fontSize: 14, fontWeight: 700, color: "#b91c1c" }}>{fmt(e.amount)}</td>
                       <td style={{ padding: "13px 18px" }}>
-                        <button onClick={() => setExpData(prev => prev.filter(x => x.id !== e.id))} style={{ background: "none", border: "none", cursor: "pointer", color: "#ef4444", opacity: 0.6, padding: 4 }}><Trash2 size={13} /></button>
+                        <button onClick={() => setDeleteConfirm({ type: "expense", item: e })} style={{ background: "none", border: "none", cursor: "pointer", color: "#ef4444", opacity: 0.6, padding: 4 }}><Trash2 size={13} /></button>
                       </td>
                     </tr>
                   ))}
@@ -3049,7 +3065,7 @@ function FlipDetail({ flip, onBack, allFlips, setAllFlips }) {
                       </div>
                       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                         <span style={{ background: s.bg, color: s.text, borderRadius: 20, padding: "4px 12px", fontSize: 12, fontWeight: 700, textTransform: "capitalize" }}>{c.status}</span>
-                        <button onClick={() => setConData(prev => prev.filter(x => x.id !== c.id))} style={{ background: "none", border: "none", cursor: "pointer", color: "#ef4444", opacity: 0.5, padding: 4 }}><Trash2 size={14} /></button>
+                        <button onClick={() => setDeleteConfirm({ type: "contractor", item: c })} style={{ background: "none", border: "none", cursor: "pointer", color: "#ef4444", opacity: 0.5, padding: 4 }}><Trash2 size={14} /></button>
                       </div>
                     </div>
                     <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
@@ -3168,7 +3184,7 @@ function FlipDetail({ flip, onBack, allFlips, setAllFlips }) {
                   ) : (
                     <span style={{ fontSize: 12, color: "#cbd5e1" }}>Pending</span>
                   )}
-                  <button onClick={(e) => { e.stopPropagation(); setMilestones(prev => prev.filter((_, idx) => idx !== i)); }} style={{ background: "none", border: "none", cursor: "pointer", color: "#ef4444", opacity: 0.4, padding: 4 }} title="Remove milestone">
+                  <button onClick={(e) => { e.stopPropagation(); setDeleteConfirm({ type: "milestone", item: m, index: i }); }} style={{ background: "none", border: "none", cursor: "pointer", color: "#ef4444", opacity: 0.4, padding: 4 }} title="Remove milestone">
                     <Trash2 size={13} />
                   </button>
                 </div>
@@ -3192,6 +3208,37 @@ function FlipDetail({ flip, onBack, allFlips, setAllFlips }) {
             </div>
           </div>
         </div>
+      )}
+      {deleteConfirm && (
+        <Modal title={`Delete ${deleteConfirm.type === "expense" ? "Expense" : deleteConfirm.type === "contractor" ? "Contractor" : deleteConfirm.type === "rehab" ? "Rehab Item" : "Milestone"}`} onClose={() => setDeleteConfirm(null)}>
+          <p style={{ color: "#475569", fontSize: 14, marginBottom: 8 }}>Are you sure you want to delete this {deleteConfirm.type === "rehab" ? "rehab item" : deleteConfirm.type}?</p>
+          <div style={{ background: "#f8fafc", borderRadius: 10, padding: 14, marginBottom: 18 }}>
+            {deleteConfirm.type === "expense" && <>
+              <p style={{ fontSize: 13, fontWeight: 600, color: "#0f172a" }}>{deleteConfirm.item.description}</p>
+              <p style={{ fontSize: 12, color: "#64748b", marginTop: 4 }}>{deleteConfirm.item.vendor} · {deleteConfirm.item.date} · <span style={{ color: "#b91c1c", fontWeight: 700 }}>{fmt(deleteConfirm.item.amount)}</span></p>
+            </>}
+            {deleteConfirm.type === "contractor" && <>
+              <p style={{ fontSize: 13, fontWeight: 600, color: "#0f172a" }}>{deleteConfirm.item.name}</p>
+              <p style={{ fontSize: 12, color: "#64748b", marginTop: 4 }}>{deleteConfirm.item.trade} · {deleteConfirm.item.paymentType}</p>
+            </>}
+            {deleteConfirm.type === "rehab" && <>
+              <p style={{ fontSize: 13, fontWeight: 600, color: "#0f172a" }}>{deleteConfirm.item.category}</p>
+              <p style={{ fontSize: 12, color: "#64748b", marginTop: 4 }}>Budget: {fmt(deleteConfirm.item.budgeted)} · Spent: {fmt(deleteConfirm.item.spent)}</p>
+            </>}
+            {deleteConfirm.type === "milestone" && <p style={{ fontSize: 13, fontWeight: 600, color: "#0f172a" }}>{deleteConfirm.item.label}</p>}
+          </div>
+          <p style={{ color: "#94a3b8", fontSize: 12, marginBottom: 18 }}>This action cannot be undone.</p>
+          <div style={{ display: "flex", gap: 10 }}>
+            <button onClick={() => setDeleteConfirm(null)} style={{ flex: 1, padding: "12px", border: "1px solid #e2e8f0", borderRadius: 10, background: "#fff", color: "#475569", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
+            <button onClick={() => {
+              if (deleteConfirm.type === "expense") setExpData(prev => prev.filter(x => x.id !== deleteConfirm.item.id));
+              if (deleteConfirm.type === "contractor") setConData(prev => prev.filter(x => x.id !== deleteConfirm.item.id));
+              if (deleteConfirm.type === "rehab") setRehabItems(prev => prev.filter((_, idx) => idx !== deleteConfirm.index));
+              if (deleteConfirm.type === "milestone") setMilestones(prev => prev.filter((_, idx) => idx !== deleteConfirm.index));
+              setDeleteConfirm(null);
+            }} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "#ef4444", color: "#fff", fontWeight: 700, cursor: "pointer" }}>Delete</button>
+          </div>
+        </Modal>
       )}
     </div>
   );
@@ -3557,6 +3604,7 @@ function MileageTracker() {
   const [tripData, setTripData] = useState(MILEAGE_TRIPS);
   const [showModal, setShowModal] = useState(false);
   const [editId, setEditId] = useState(null);
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [purposeFilter, setPurposeFilter] = useState("all");
   const [dateFilter, setDateFilter] = useState("thisYear");
   const emptyTrip = { date: "", description: "", from: "Home", to: "", miles: "", purpose: "Rental", businessPct: "100" };
@@ -3691,7 +3739,7 @@ function MileageTracker() {
                 <td style={{ padding: "13px 18px" }}>
                   <div style={{ display: "flex", gap: 4 }}>
                     <button onClick={() => openEdit(t)} style={{ background: "#f1f5f9", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "#475569", display: "flex", alignItems: "center" }} title="Edit"><Pencil size={13} /></button>
-                    <button onClick={() => setTripData(prev => prev.filter(x => x.id !== t.id))} style={{ background: "#fee2e2", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "#ef4444", display: "flex", alignItems: "center" }} title="Delete"><Trash2 size={13} /></button>
+                    <button onClick={() => setDeleteConfirm(t)} style={{ background: "#fee2e2", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "#ef4444", display: "flex", alignItems: "center" }} title="Delete"><Trash2 size={13} /></button>
                   </div>
                 </td>
               </tr>
@@ -3731,6 +3779,20 @@ function MileageTracker() {
           <div style={{ display: "flex", gap: 10 }}>
             <button onClick={() => setShowModal(false)} style={{ flex: 1, padding: "12px", border: "1px solid #e2e8f0", borderRadius: 10, background: "#fff", color: "#475569", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
             <button onClick={handleSave} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "#3b82f6", color: "#fff", fontWeight: 600, cursor: "pointer" }}>{editId ? "Save Changes" : "Save Trip"}</button>
+          </div>
+        </Modal>
+      )}
+      {deleteConfirm && (
+        <Modal title="Delete Trip" onClose={() => setDeleteConfirm(null)}>
+          <p style={{ color: "#475569", fontSize: 14, marginBottom: 8 }}>Are you sure you want to delete this trip?</p>
+          <div style={{ background: "#f8fafc", borderRadius: 10, padding: 14, marginBottom: 18 }}>
+            <p style={{ fontSize: 13, fontWeight: 600, color: "#0f172a" }}>{deleteConfirm.from} → {deleteConfirm.to}</p>
+            <p style={{ fontSize: 12, color: "#64748b", marginTop: 4 }}>{deleteConfirm.date} · {deleteConfirm.miles} mi · {deleteConfirm.purpose}</p>
+          </div>
+          <p style={{ color: "#94a3b8", fontSize: 12, marginBottom: 18 }}>This action cannot be undone.</p>
+          <div style={{ display: "flex", gap: 10 }}>
+            <button onClick={() => setDeleteConfirm(null)} style={{ flex: 1, padding: "12px", border: "1px solid #e2e8f0", borderRadius: 10, background: "#fff", color: "#475569", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
+            <button onClick={() => { setTripData(prev => prev.filter(x => x.id !== deleteConfirm.id)); setDeleteConfirm(null); }} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "#ef4444", color: "#fff", fontWeight: 700, cursor: "pointer" }}>Delete</button>
           </div>
         </Modal>
       )}
