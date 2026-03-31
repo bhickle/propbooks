@@ -10,7 +10,7 @@ import {
 } from "recharts";
 import {
   Hammer, DollarSign, TrendingUp, Star, Plus, Search, Filter,
-  CheckCircle, Clock, AlertCircle, ChevronRight, X, Trash2,
+  CheckCircle, Clock, AlertCircle, ChevronRight, X, Trash2, Pencil,
   Wrench, Users, Receipt, BarChart3, Target, Calendar, Flag,
   ArrowUp, ArrowDown, Truck, Building2,
 } from "lucide-react";
@@ -593,11 +593,19 @@ export function FlipExpenses() {
   const [filterFlip, setFilterFlip]     = useState("all");
   const [filterCat, setFilterCat]       = useState("all");
   const [showModal, setShowModal]       = useState(false);
+  const [editId, setEditId]             = useState(null);
   const [search, setSearch]             = useState("");
 
   const emptyForm = { flipId: "", date: "", vendor: "", category: "Materials/Supplies", description: "", amount: "" };
   const [form, setForm]   = useState(emptyForm);
   const sf = k => e => setForm(f => ({ ...f, [k]: e.target.value }));
+
+  const openAdd = () => { setEditId(null); setForm(emptyForm); setShowModal(true); };
+  const openEdit = exp => {
+    setEditId(exp.id);
+    setForm({ flipId: String(exp.flipId), date: exp.date, vendor: exp.vendor || "", category: exp.category, description: exp.description || "", amount: String(exp.amount) });
+    setShowModal(true);
+  };
 
   const filtered = expenses.filter(e => {
     if (filterFlip !== "all" && e.flipId !== parseInt(filterFlip)) return false;
@@ -616,8 +624,13 @@ export function FlipExpenses() {
   const handleSave = () => {
     if (!form.amount || !form.flipId) return;
     const flip = _FLIPS.find(f => f.id === parseInt(form.flipId));
-    setExpenses(prev => [{ id: newId(), flipId: parseInt(form.flipId), flipName: flip?.name, date: form.date || new Date().toISOString().split("T")[0], vendor: form.vendor || "Unknown", category: form.category, description: form.description, amount: parseFloat(form.amount) }, ...prev]);
-    setForm(emptyForm); setShowModal(false);
+    const built = { flipId: parseInt(form.flipId), flipName: flip?.name, date: form.date || new Date().toISOString().split("T")[0], vendor: form.vendor || "Unknown", category: form.category, description: form.description, amount: parseFloat(form.amount) };
+    if (editId !== null) {
+      setExpenses(prev => prev.map(e => e.id === editId ? { ...e, ...built } : e));
+    } else {
+      setExpenses(prev => [{ id: newId(), ...built }, ...prev]);
+    }
+    setForm(emptyForm); setEditId(null); setShowModal(false);
   };
 
   return (
@@ -626,7 +639,7 @@ export function FlipExpenses() {
         title="Flip Expenses"
         sub="All costs across every fix & flip project"
         action={
-          <button onClick={() => setShowModal(true)} style={{ background: "#f59e0b", color: "#fff", border: "none", borderRadius: 10, padding: "10px 18px", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
+          <button onClick={openAdd} style={{ background: "#f59e0b", color: "#fff", border: "none", borderRadius: 10, padding: "10px 18px", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
             <Plus size={16} /> Add Expense
           </button>
         }
@@ -660,7 +673,7 @@ export function FlipExpenses() {
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
             <tr style={{ background: "#f8fafc" }}>
-              {["Date", "Flip", "Vendor", "Category", "Description", "Amount"].map(h => (
+              {["Date", "Flip", "Vendor", "Category", "Description", "Amount", ""].map(h => (
                 <th key={h} style={{ textAlign: "left", color: "#94a3b8", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", padding: "12px 16px" }}>{h}</th>
               ))}
             </tr>
@@ -685,11 +698,17 @@ export function FlipExpenses() {
                   </td>
                   <td style={{ padding: "12px 16px", color: "#64748b", fontSize: 13 }}>{e.description}</td>
                   <td style={{ padding: "12px 16px", color: "#0f172a", fontSize: 13, fontWeight: 700 }}>{fmt(e.amount)}</td>
+                  <td style={{ padding: "12px 16px" }}>
+                    <div style={{ display: "flex", gap: 4 }}>
+                      <button onClick={() => openEdit(e)} style={{ background: "#f1f5f9", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "#475569", display: "flex", alignItems: "center" }} title="Edit"><Pencil size={13} /></button>
+                      <button onClick={() => setExpenses(prev => prev.filter(x => x.id !== e.id))} style={{ background: "#fee2e2", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "#ef4444", display: "flex", alignItems: "center" }} title="Delete"><Trash2 size={13} /></button>
+                    </div>
+                  </td>
                 </tr>
               );
             })}
             {filtered.length === 0 && (
-              <tr><td colSpan={6} style={{ padding: 32, textAlign: "center", color: "#94a3b8", fontSize: 13 }}>No expenses found</td></tr>
+              <tr><td colSpan={7} style={{ padding: 32, textAlign: "center", color: "#94a3b8", fontSize: 13 }}>No expenses found</td></tr>
             )}
           </tbody>
         </table>
@@ -703,8 +722,8 @@ export function FlipExpenses() {
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
           <div style={{ background: "#fff", borderRadius: 20, padding: 32, width: 480, boxShadow: "0 20px 60px rgba(0,0,0,0.18)" }}>
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 20 }}>
-              <h2 style={{ color: "#0f172a", fontSize: 19, fontWeight: 700 }}>Add Expense</h2>
-              <button onClick={() => setShowModal(false)} style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8" }}><X size={20} /></button>
+              <h2 style={{ color: "#0f172a", fontSize: 19, fontWeight: 700 }}>{editId ? "Edit Expense" : "Add Expense"}</h2>
+              <button onClick={() => { setShowModal(false); setEditId(null); }} style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8" }}><X size={20} /></button>
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               <div>
@@ -740,8 +759,8 @@ export function FlipExpenses() {
               </div>
             </div>
             <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
-              <button onClick={handleSave} style={{ flex: 1, padding: "11px", borderRadius: 10, border: "none", background: "#f59e0b", color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer" }}>Save Expense</button>
-              <button onClick={() => setShowModal(false)} style={{ padding: "11px 18px", borderRadius: 10, border: "1.5px solid #e2e8f0", background: "#fff", fontWeight: 600, fontSize: 14, cursor: "pointer", color: "#64748b" }}>Cancel</button>
+              <button onClick={handleSave} style={{ flex: 1, padding: "11px", borderRadius: 10, border: "none", background: "#f59e0b", color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer" }}>{editId ? "Save Changes" : "Save Expense"}</button>
+              <button onClick={() => { setShowModal(false); setEditId(null); }} style={{ padding: "11px 18px", borderRadius: 10, border: "1.5px solid #e2e8f0", background: "#fff", fontWeight: 600, fontSize: 14, cursor: "pointer", color: "#64748b" }}>Cancel</button>
             </div>
           </div>
         </div>

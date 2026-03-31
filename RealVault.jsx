@@ -2862,6 +2862,7 @@ function RentRoll() {
   const [tenantData, setTenantData] = useState(TENANTS);
   const [showModal, setShowModal] = useState(false);
   const [editId, setEditId] = useState(null);
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [propFilter, setPropFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const emptyT = { propertyId: PROPERTIES[0]?.id || 1, unit: "", name: "", rent: "", securityDeposit: "", lateFeePct: "5", renewalTerms: "Annual", notes: "", leaseStart: "", leaseEnd: "", status: "active-lease", phone: "", email: "", leaseDoc: null };
@@ -2916,6 +2917,12 @@ function RentRoll() {
     }
     setForm(emptyT);
     setShowModal(false);
+  };
+
+  const handleDeleteTenant = () => {
+    if (!deleteConfirm) return;
+    setTenantData(prev => prev.filter(t => t.id !== deleteConfirm.id));
+    setDeleteConfirm(null);
   };
 
   const leaseStatusStyle = {
@@ -3058,9 +3065,14 @@ function RentRoll() {
                   </td>
                   <td style={{ padding: "14px 16px", fontSize: 13, color: "#64748b" }}>{t.lastPayment || "-"}</td>
                   <td style={{ padding: "14px 16px" }}>
-                    <button onClick={() => openEdit(t)} style={{ background: "#f1f5f9", border: "none", borderRadius: 8, padding: "6px 10px", cursor: "pointer", display: "flex", alignItems: "center", gap: 5, color: "#475569", fontSize: 12, fontWeight: 600, whiteSpace: "nowrap" }}>
-                      <Pencil size={12} /> Edit
-                    </button>
+                    <div style={{ display: "flex", gap: 4 }}>
+                      <button onClick={() => openEdit(t)} style={{ background: "#f1f5f9", border: "none", borderRadius: 8, padding: "6px 10px", cursor: "pointer", display: "flex", alignItems: "center", gap: 5, color: "#475569", fontSize: 12, fontWeight: 600, whiteSpace: "nowrap" }}>
+                        <Pencil size={12} /> Edit
+                      </button>
+                      <button onClick={() => setDeleteConfirm(t)} style={{ background: "#fee2e2", border: "none", borderRadius: 8, padding: "6px 10px", cursor: "pointer", display: "flex", alignItems: "center", color: "#ef4444" }} title="Delete">
+                        <Trash2 size={12} />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               );
@@ -3167,6 +3179,28 @@ function RentRoll() {
             <button onClick={handleSaveTenant} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "#3b82f6", color: "#fff", fontWeight: 600, cursor: "pointer" }}>
               {editId ? "Save Changes" : "Add Tenant"}
             </button>
+          </div>
+        </Modal>
+      )}
+      {deleteConfirm && (
+        <Modal title="Remove Tenant" onClose={() => setDeleteConfirm(null)} width={440}>
+          <div style={{ textAlign: "center", padding: "8px 0" }}>
+            <div style={{ width: 48, height: 48, borderRadius: 14, background: "#fee2e2", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 16 }}>
+              <Trash2 size={22} color="#ef4444" />
+            </div>
+            <p style={{ color: "#0f172a", fontSize: 15, fontWeight: 600, marginBottom: 8 }}>
+              Remove <strong>{deleteConfirm.name || "Vacant Unit"}</strong> from {PROPERTIES.find(p => p.id === deleteConfirm.propertyId)?.name || "property"}?
+            </p>
+            <p style={{ color: "#64748b", fontSize: 13, marginBottom: 6 }}>
+              Unit {deleteConfirm.unit} · {deleteConfirm.status === "vacant" ? "Vacant" : `Rent ${fmt(deleteConfirm.rent)}/mo`}
+            </p>
+            <p style={{ color: "#94a3b8", fontSize: 12, marginBottom: 24 }}>
+              This will remove the tenant record and any associated lease data. This action cannot be undone.
+            </p>
+            <div style={{ display: "flex", gap: 10 }}>
+              <button onClick={() => setDeleteConfirm(null)} style={{ flex: 1, padding: "12px", border: "1px solid #e2e8f0", borderRadius: 10, background: "#fff", color: "#475569", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
+              <button onClick={handleDeleteTenant} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "#ef4444", color: "#fff", fontWeight: 700, cursor: "pointer" }}>Remove Tenant</button>
+            </div>
           </div>
         </Modal>
       )}
