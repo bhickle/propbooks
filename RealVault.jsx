@@ -1036,7 +1036,7 @@ function Transactions() {
     for (const [parent, subs] of Object.entries(groups)) { if (subs.includes(cat)) return parent; }
     return "";
   };
-  const [selectedGroup, setSelectedGroup] = useState("");
+  // selectedGroup no longer needed — single grouped dropdown
 
   const emptyIncome  = { date: "", property: PROPERTIES[0]?.name || "", type: "income",  category: "Rent Income",      description: "", amount: "", payee: "" };
   const emptyExpense = { date: "", property: PROPERTIES[0]?.name || "", type: "expense", category: "Mortgage Payment", description: "", amount: "", payee: "" };
@@ -1044,13 +1044,12 @@ function Transactions() {
   const [payeeFocus, setPayeeFocus] = useState(false);
   const sf = k => e => setForm(f => ({ ...f, [k]: e.target.value }));
 
-  const closeModal = () => { setShowModal(false); setPayeeFocus(false); setSelectedGroup(""); };
-  const openAddIncome  = () => { setEditId(null); setForm(emptyIncome);  setSelectedGroup("Rent"); setPayeeFocus(false); setShowModal("income");  };
-  const openAddExpense = () => { setEditId(null); setForm(emptyExpense); setSelectedGroup("Mortgage & Financing"); setPayeeFocus(false); setShowModal("expense"); };
+  const closeModal = () => { setShowModal(false); setPayeeFocus(false); };
+  const openAddIncome  = () => { setEditId(null); setForm(emptyIncome);  setPayeeFocus(false); setShowModal("income");  };
+  const openAddExpense = () => { setEditId(null); setForm(emptyExpense); setPayeeFocus(false); setShowModal("expense"); };
   const openEdit = t => {
     setEditId(t.id);
     setForm({ date: t.date, property: t.property, type: t.type, category: t.category, description: t.description, amount: String(Math.abs(t.amount)), payee: t.payee || "" });
-    setSelectedGroup(parentOf(t.category, t.type));
     setPayeeFocus(false);
     setShowModal(t.type);
   };
@@ -1319,17 +1318,14 @@ function Transactions() {
                   {PROPERTIES.map(p => <option key={p.id} value={p.name}>{p.name}</option>)}
                 </select>
               </div>
-              <div>
+              <div style={{ gridColumn: "1 / -1" }}>
                 <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Category</label>
-                <select value={selectedGroup} onChange={e => { setSelectedGroup(e.target.value); const subs = groupsForType(form.type)[e.target.value]; if (subs && subs.length > 0) setForm(f => ({ ...f, category: subs[0] })); }} style={iS}>
-                  <option value="">Select category...</option>
-                  {Object.keys(groupsForType(form.type)).map(g => <option key={g} value={g}>{g}</option>)}
-                </select>
-              </div>
-              <div>
-                <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Subcategory</label>
-                <select value={form.category} onChange={sf("category")} style={{ ...iS, opacity: selectedGroup ? 1 : 0.5 }} disabled={!selectedGroup}>
-                  {(groupsForType(form.type)[selectedGroup] || []).map(c => <option key={c} value={c}>{c}</option>)}
+                <select value={form.category} onChange={sf("category")} style={iS}>
+                  {Object.entries(groupsForType(form.type)).map(([group, subs]) => (
+                    <optgroup key={group} label={group}>
+                      {subs.map(c => <option key={c} value={c}>{c}</option>)}
+                    </optgroup>
+                  ))}
                 </select>
               </div>
             </div>
