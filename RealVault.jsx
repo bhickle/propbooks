@@ -1396,6 +1396,41 @@ function Analytics() {
   const EXP_FACTORS = [1.0, 0.88, 1.15, 0.92, 1.05, 1.18, 0.97, 1.22, 0.89, 1.08, 1.30, 0.95];
   const MONTHS_SHORT = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
+  // ── Portfolio-level computations ──
+  const totalUnits = PROPERTIES.reduce((s, p) => s + p.units, 0);
+  const vacantUnits = TENANTS.filter(t => t.status === "vacant").length;
+  const occupancyRate = totalUnits > 0 ? ((totalUnits - vacantUnits) / totalUnits * 100).toFixed(1) : "100.0";
+  const portfolioIncome = PROPERTIES.reduce((s, p) => s + p.monthlyRent, 0);
+  const portfolioExpenses = PROPERTIES.reduce((s, p) => s + p.monthlyExpenses, 0);
+  const portfolioNOI = (portfolioIncome - portfolioExpenses) * 12;
+  const portfolioExpenseRatio = portfolioIncome > 0 ? ((portfolioExpenses / portfolioIncome) * 100).toFixed(1) : "0";
+  const avgCapRate = (PROPERTIES.reduce((s, p) => s + p.capRate, 0) / PROPERTIES.length).toFixed(1);
+  const avgCoC = (PROPERTIES.reduce((s, p) => s + p.cashOnCash, 0) / PROPERTIES.length).toFixed(1);
+  const totalAppreciation = PROPERTIES.reduce((s, p) => s + (p.currentValue - p.purchasePrice), 0);
+
+  // DSCR = NOI / Annual Debt Service
+  const annualDebtService = PROPERTIES.reduce((s, p) => {
+    if (!p.loanAmount || !p.loanRate || !p.loanTermYears) return s;
+    const r = p.loanRate / 100 / 12;
+    const n = p.loanTermYears * 12;
+    const M = p.loanAmount * r * Math.pow(1 + r, n) / (Math.pow(1 + r, n) - 1);
+    return s + M * 12;
+  }, 0);
+  const portfolioDSCR = annualDebtService > 0 ? (portfolioNOI / annualDebtService).toFixed(2) : "N/A";
+
+  // ── Portfolio trailing 12-month trend (deterministic) ──
+  const portfolioMonthlyData = useMemo(() => MONTHS_SHORT.map((month, i) => {
+    const income = Math.round(portfolioIncome * (0.92 + i * 0.015 + (i % 3) * 0.01));
+    const expenses = Math.round(portfolioExpenses * EXP_FACTORS[i]);
+    return { month, income, expenses, net: income - expenses };
+  }), []);
+
+  // YoY simulated: last year values slightly lower
+  const yoyNOI = 8.2;
+  const yoyCapRate = 0.3;
+  const yoyCoC = 0.5;
+  const yoyAppreciation = 14.7;
+
   const propMonthlyData = selectedProp ? MONTHS_SHORT.map((month, i) => {
     const income = selectedProp.monthlyRent;
     const expenses = Math.round(selectedProp.monthlyExpenses * EXP_FACTORS[i]);
@@ -1404,11 +1439,45 @@ function Analytics() {
 
   const propTenants = selectedProp ? TENANTS.filter(t => t.propertyId === selectedProp.id) : [];
 
+  // Per-property DSCR
+  const propDSCR = selectedProp ? (() => {
+    if (!selectedProp.loanAmount || !selectedProp.loanRate || !selectedProp.loanTermYears) return "N/A";
+    const r = selectedProp.loanRate / 100 / 12;
+    const n = selectedProp.loanTermYears * 12;
+    const M = selectedProp.loanAmount * r * Math.pow(1 + r, n) / (Math.pow(1 + r, n) - 1);
+    const annualDS = M * 12;
+    const noi = (selectedProp.monthlyRent - selectedProp.monthlyExpenses) * 12;
+    return annualDS > 0 ? (noi / annualDS).toFixed(2) : "N/A";
+  })() : "N/A";
+
+  // Per-property occupancy
+  const propOccupancy = selectedProp ? (() => {
+    const tenants = TENANTS.filter(t => t.propertyId === selectedProp.id);
+    if (tenants.length === 0) return selectedProp.status === "Occupied" ? "100" : "0";
+    const occupied = tenants.filter(t => t.status !== "vacant").length;
+    return tenants.length > 0 ? ((occupied / tenants.length) * 100).toFixed(0) : "100";
+  })() : "100";
+
   const sortedByCoc = [...PROPERTIES].sort((a, b) => b.cashOnCash - a.cashOnCash);
   const sortedByCapRate = [...PROPERTIES].sort((a, b) => b.capRate - a.capRate);
   const cocRank = selectedProp ? sortedByCoc.findIndex(p => p.id === selectedProp.id) + 1 : 0;
   const capRateRank = selectedProp ? sortedByCapRate.findIndex(p => p.id === selectedProp.id) + 1 : 0;
-  const rankLabel = r => r === 1 ? "#1 🥇" : r === 2 ? "#2 🥈" : r === 3 ? "#3 🥉" : `#${r}`;
+  const rankLabel = r => r === 1 ? "#1" : r === 2 ? "#2" : r === 3 ? "#3" : `#${r}`;
+
+  // YoY badge helper
+  const YoY = ({ val, suffix = "%" }) => {
+    const up = val > 0;
+    return (
+      <div style={{ display: "flex", alignItems: "center", gap: 3, marginTop: 6 }}>
+        {up ? <ArrowUp size={12} color="#10b981" /> : <ArrowDown size={12} color="#ef4444" />}
+        <span style={{ fontSize: 11, fontWeight: 700, color: up ? "#10b981" : "#ef4444" }}>{up ? "+" : ""}{val}{suffix}</span>
+        <span style={{ fontSize: 11, color: "#94a3b8" }}>vs last year</span>
+      </div>
+    );
+  };
+
+  const cardS = { background: "#fff", borderRadius: 14, padding: "20px", boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" };
+  const sectionS = { background: "#fff", borderRadius: 16, padding: 24, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9", marginBottom: 24 };
 
   return (
     <div>
@@ -1431,52 +1500,143 @@ function Analytics() {
       {!selectedProp ? (
         /* ——— PORTFOLIO VIEW ——— */
         <>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 24 }}>
+          {/* KPI row with YoY indicators */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, marginBottom: 16 }}>
             {[
-              { label: "Total Annual NOI", value: fmt(PROPERTIES.reduce((s, p) => s + (p.monthlyRent - p.monthlyExpenses) * 12, 0)), color: "#10b981" },
-              { label: "Portfolio Cap Rate", value: "6.9%", color: "#3b82f6" },
-              { label: "Avg Cash-on-Cash", value: "8.4%", color: "#8b5cf6" },
-              { label: "Total Appreciation", value: fmt(PROPERTIES.reduce((s, p) => s + (p.currentValue - p.purchasePrice), 0)), color: "#f59e0b" },
+              { label: "Total Annual NOI", value: fmt(portfolioNOI), color: "#10b981", yoy: yoyNOI },
+              { label: "Portfolio Cap Rate", value: `${avgCapRate}%`, color: "#3b82f6", yoy: yoyCapRate },
+              { label: "Avg Cash-on-Cash", value: `${avgCoC}%`, color: "#8b5cf6", yoy: yoyCoC },
             ].map((m, i) => (
-              <div key={i} style={{ background: "#fff", borderRadius: 14, padding: "20px", boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" }}>
+              <div key={i} style={cardS}>
                 <p style={{ color: "#94a3b8", fontSize: 12, fontWeight: 600, textTransform: "uppercase", marginBottom: 6 }}>{m.label}</p>
                 <p style={{ color: m.color, fontSize: 22, fontWeight: 800 }}>{m.value}</p>
+                <YoY val={m.yoy} />
               </div>
             ))}
           </div>
-          <div style={{ background: "#fff", borderRadius: 16, padding: 24, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9", marginBottom: 24 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 24 }}>
+            {[
+              { label: "Total Appreciation", value: fmt(totalAppreciation), color: "#f59e0b", yoy: yoyAppreciation },
+              { label: "Expense Ratio", value: `${portfolioExpenseRatio}%`, color: "#ef4444", desc: "Expenses / gross income" },
+              { label: "Occupancy Rate", value: `${occupancyRate}%`, color: "#10b981", desc: `${totalUnits - vacantUnits} / ${totalUnits} units occupied` },
+              { label: "DSCR", value: portfolioDSCR, color: "#3b82f6", desc: parseFloat(portfolioDSCR) >= 1.25 ? "Healthy coverage" : parseFloat(portfolioDSCR) >= 1.0 ? "Adequate" : "Below target" },
+            ].map((m, i) => (
+              <div key={i} style={cardS}>
+                <p style={{ color: "#94a3b8", fontSize: 12, fontWeight: 600, textTransform: "uppercase", marginBottom: 6 }}>{m.label}</p>
+                <p style={{ color: m.color, fontSize: 22, fontWeight: 800 }}>{m.value}</p>
+                {m.yoy !== undefined ? <YoY val={m.yoy} /> : <p style={{ color: "#94a3b8", fontSize: 11, marginTop: 6 }}>{m.desc}</p>}
+              </div>
+            ))}
+          </div>
+
+          {/* Portfolio Income vs Expenses Trend */}
+          <div style={sectionS}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 }}>
+              <div>
+                <h3 style={{ color: "#0f172a", fontSize: 16, fontWeight: 700, marginBottom: 2 }}>Portfolio Cash Flow Trend</h3>
+                <p style={{ color: "#94a3b8", fontSize: 13 }}>Income vs. expenses — trailing 12 months across all properties</p>
+              </div>
+              <div style={{ display: "flex", gap: 20 }}>
+                {[
+                  { label: "Avg Monthly Net", value: fmt(Math.round(portfolioMonthlyData.reduce((s, m) => s + m.net, 0) / 12)), color: "#10b981" },
+                  { label: "Avg Expense Ratio", value: `${portfolioExpenseRatio}%`, color: "#f59e0b" },
+                ].map((m, i) => (
+                  <div key={i} style={{ textAlign: "right" }}>
+                    <p style={{ color: "#94a3b8", fontSize: 11, fontWeight: 600, textTransform: "uppercase" }}>{m.label}</p>
+                    <p style={{ color: m.color, fontSize: 18, fontWeight: 800 }}>{m.value}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <ResponsiveContainer width="100%" height={240}>
+              <AreaChart data={portfolioMonthlyData}>
+                <defs>
+                  <linearGradient id="pIncGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.15} />
+                    <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                  </linearGradient>
+                  <linearGradient id="pExpGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#ef4444" stopOpacity={0.15} />
+                    <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                <XAxis dataKey="month" tick={{ fontSize: 11, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fontSize: 11, fill: "#94a3b8" }} axisLine={false} tickLine={false} tickFormatter={v => `$${(v / 1000).toFixed(0)}k`} />
+                <Tooltip formatter={(v, name) => [fmt(v), name === "income" ? "Income" : name === "expenses" ? "Expenses" : "Net"]} contentStyle={{ borderRadius: 10, border: "1px solid #e2e8f0" }} />
+                <Area type="monotone" dataKey="income" stroke="#10b981" strokeWidth={2.5} fill="url(#pIncGrad)" name="income" />
+                <Area type="monotone" dataKey="expenses" stroke="#ef4444" strokeWidth={2.5} fill="url(#pExpGrad)" name="expenses" />
+                <Area type="monotone" dataKey="net" stroke="#3b82f6" strokeWidth={2} strokeDasharray="5 5" fill="none" name="net" />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* Property-by-Property — improved 3-column layout */}
+          <div style={sectionS}>
             <h3 style={{ color: "#0f172a", fontSize: 16, fontWeight: 700, marginBottom: 20 }}>Property-by-Property Performance</h3>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 14 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16 }}>
               {PROPERTIES.map(p => {
                 const annualRent = p.monthlyRent * 12;
                 const annualExpenses = p.monthlyExpenses * 12;
                 const NOI = annualRent - annualExpenses;
                 const coC = p.cashOnCash;
                 const appreciation = ((p.currentValue - p.purchasePrice) / p.purchasePrice * 100).toFixed(1);
+                const expRatio = ((p.monthlyExpenses / p.monthlyRent) * 100).toFixed(0);
+                const propTen = TENANTS.filter(t => t.propertyId === p.id);
+                const occUnits = propTen.filter(t => t.status !== "vacant").length;
+                const propOcc = propTen.length > 0 ? ((occUnits / propTen.length) * 100).toFixed(0) : (p.status === "Occupied" ? "100" : "0");
+                // DSCR per property
+                let pDSCR = "N/A";
+                if (p.loanAmount && p.loanRate && p.loanTermYears) {
+                  const r = p.loanRate / 100 / 12;
+                  const n = p.loanTermYears * 12;
+                  const M = p.loanAmount * r * Math.pow(1 + r, n) / (Math.pow(1 + r, n) - 1);
+                  pDSCR = (NOI / (M * 12)).toFixed(2);
+                }
                 return (
-                  <div key={p.id} style={{ background: "#f8fafc", borderRadius: 14, padding: 18, border: `2px solid ${p.color}30` }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
-                      <div style={{ width: 32, height: 32, borderRadius: 8, background: p.color, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 12, fontWeight: 700 }}>{p.image}</div>
-                      <p style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", lineHeight: 1.3 }}>{p.name.split(" ").slice(0, 2).join(" ")}</p>
-                    </div>
-                    {[
-                      { label: "Annual NOI", value: fmtK(NOI), color: "#10b981" },
-                      { label: "Cap Rate", value: `${p.capRate}%`, color: "#3b82f6" },
-                      { label: "Cash-on-Cash", value: `${coC}%`, color: "#8b5cf6" },
-                      { label: "Appreciation", value: `+${appreciation}%`, color: "#f59e0b" },
-                    ].map((m, i) => (
-                      <div key={i} style={{ marginBottom: 8 }}>
-                        <p style={{ color: "#94a3b8", fontSize: 10, fontWeight: 600, textTransform: "uppercase", marginBottom: 1 }}>{m.label}</p>
-                        <p style={{ color: m.color, fontSize: 15, fontWeight: 700 }}>{m.value}</p>
+                  <div key={p.id} onClick={() => setSelectedPropId(String(p.id))} style={{ background: "#f8fafc", borderRadius: 14, padding: 20, border: `2px solid ${p.color}30`, cursor: "pointer", transition: "all 0.15s" }}
+                    onMouseEnter={e => { e.currentTarget.style.borderColor = p.color; e.currentTarget.style.transform = "translateY(-2px)"; }}
+                    onMouseLeave={e => { e.currentTarget.style.borderColor = `${p.color}30`; e.currentTarget.style.transform = "translateY(0)"; }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
+                      <div style={{ width: 36, height: 36, borderRadius: 10, background: p.color, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 13, fontWeight: 700 }}>{p.image}</div>
+                      <div>
+                        <p style={{ fontSize: 13, fontWeight: 700, color: "#0f172a", lineHeight: 1.3 }}>{p.name}</p>
+                        <p style={{ fontSize: 11, color: "#94a3b8" }}>{p.type} · {p.units} unit{p.units > 1 ? "s" : ""}</p>
                       </div>
-                    ))}
+                    </div>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                      {[
+                        { label: "Annual NOI", value: fmtK(NOI), color: "#10b981" },
+                        { label: "Cap Rate", value: `${p.capRate}%`, color: "#3b82f6" },
+                        { label: "Cash-on-Cash", value: `${coC}%`, color: "#8b5cf6" },
+                        { label: "Appreciation", value: `+${appreciation}%`, color: "#f59e0b" },
+                        { label: "Expense Ratio", value: `${expRatio}%`, color: "#ef4444" },
+                        { label: "DSCR", value: pDSCR, color: "#3b82f6" },
+                      ].map((m, i) => (
+                        <div key={i}>
+                          <p style={{ color: "#94a3b8", fontSize: 10, fontWeight: 600, textTransform: "uppercase", marginBottom: 1 }}>{m.label}</p>
+                          <p style={{ color: m.color, fontSize: 15, fontWeight: 700 }}>{m.value}</p>
+                        </div>
+                      ))}
+                    </div>
+                    <div style={{ marginTop: 12, paddingTop: 10, borderTop: "1px solid #e2e8f0", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <span style={{ fontSize: 11, color: "#94a3b8" }}>Occupancy</span>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, flex: 1, marginLeft: 12 }}>
+                        <div style={{ flex: 1, height: 6, background: "#f1f5f9", borderRadius: 3, overflow: "hidden" }}>
+                          <div style={{ height: "100%", width: `${propOcc}%`, background: parseFloat(propOcc) >= 90 ? "#10b981" : parseFloat(propOcc) >= 70 ? "#f59e0b" : "#ef4444", borderRadius: 3, transition: "width 0.3s" }} />
+                        </div>
+                        <span style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", minWidth: 36, textAlign: "right" }}>{propOcc}%</span>
+                      </div>
+                    </div>
                   </div>
                 );
               })}
             </div>
           </div>
+
+          {/* Cap Rate + CoC charts */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
-            <div style={{ background: "#fff", borderRadius: 16, padding: 24, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" }}>
+            <div style={sectionS}>
               <h3 style={{ color: "#0f172a", fontSize: 16, fontWeight: 700, marginBottom: 4 }}>Cap Rate Comparison</h3>
               <p style={{ color: "#94a3b8", fontSize: 13, marginBottom: 20 }}>Annual net operating income / property value</p>
               <ResponsiveContainer width="100%" height={220}>
@@ -1491,7 +1651,7 @@ function Analytics() {
                 </BarChart>
               </ResponsiveContainer>
             </div>
-            <div style={{ background: "#fff", borderRadius: 16, padding: 24, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" }}>
+            <div style={sectionS}>
               <h3 style={{ color: "#0f172a", fontSize: 16, fontWeight: 700, marginBottom: 4 }}>Cash-on-Cash Return</h3>
               <p style={{ color: "#94a3b8", fontSize: 13, marginBottom: 20 }}>Annual pre-tax cash flow / total cash invested</p>
               <ResponsiveContainer width="100%" height={220}>
@@ -1509,8 +1669,8 @@ function Analytics() {
       ) : (
         /* ——— PROPERTY VIEW ——— */
         <>
-          {/* 1. Return Scorecard */}
-          <div style={{ background: "#fff", borderRadius: 16, padding: 24, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9", marginBottom: 20 }}>
+          {/* 1. Return Scorecard — now with DSCR and Occupancy */}
+          <div style={{ ...sectionS, marginBottom: 20 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
               <div style={{ width: 38, height: 38, borderRadius: 10, background: selectedProp.color, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 18 }}>{selectedProp.image}</div>
               <div>
@@ -1518,7 +1678,7 @@ function Analytics() {
                 <p style={{ color: "#94a3b8", fontSize: 13 }}>How this property stacks up against your portfolio</p>
               </div>
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, marginBottom: 16 }}>
               {[
                 {
                   label: "Cap Rate", value: `${selectedProp.capRate}%`,
@@ -1533,10 +1693,32 @@ function Analytics() {
                   value: `+${((selectedProp.currentValue - selectedProp.purchasePrice) / selectedProp.purchasePrice * 100).toFixed(1)}%`,
                   sub: `${fmt(selectedProp.currentValue - selectedProp.purchasePrice)} total gain`, color: "#f59e0b",
                 },
+              ].map((m, i) => (
+                <div key={i} style={{ background: "#f8fafc", borderRadius: 14, padding: "18px 16px", border: "1px solid #f1f5f9" }}>
+                  <p style={{ color: "#94a3b8", fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6 }}>{m.label}</p>
+                  <p style={{ color: m.color, fontSize: 26, fontWeight: 800, marginBottom: 4 }}>{m.value}</p>
+                  <p style={{ color: "#94a3b8", fontSize: 11 }}>{m.sub}</p>
+                </div>
+              ))}
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16 }}>
+              {[
                 {
                   label: "Current Equity",
                   value: fmt(selectedProp.currentValue - (calcLoanBalance(selectedProp.loanAmount, selectedProp.loanRate, selectedProp.loanTermYears, selectedProp.loanStartDate) ?? selectedProp.loanAmount ?? 0)),
                   sub: "Value minus loan balance", color: "#10b981",
+                },
+                {
+                  label: "DSCR",
+                  value: propDSCR,
+                  sub: parseFloat(propDSCR) >= 1.25 ? "Healthy coverage" : parseFloat(propDSCR) >= 1.0 ? "Adequate" : "Below target",
+                  color: parseFloat(propDSCR) >= 1.25 ? "#10b981" : parseFloat(propDSCR) >= 1.0 ? "#f59e0b" : "#ef4444",
+                },
+                {
+                  label: "Occupancy",
+                  value: `${propOccupancy}%`,
+                  sub: `${propTenants.filter(t => t.status !== "vacant").length} of ${propTenants.length || selectedProp.units} units`,
+                  color: parseFloat(propOccupancy) >= 90 ? "#10b981" : parseFloat(propOccupancy) >= 70 ? "#f59e0b" : "#ef4444",
                 },
               ].map((m, i) => (
                 <div key={i} style={{ background: "#f8fafc", borderRadius: 14, padding: "18px 16px", border: "1px solid #f1f5f9" }}>
@@ -1549,7 +1731,7 @@ function Analytics() {
           </div>
 
           {/* 2. Cash Flow Deep Dive */}
-          <div style={{ background: "#fff", borderRadius: 16, padding: 24, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9", marginBottom: 20 }}>
+          <div style={{ ...sectionS, marginBottom: 20 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 }}>
               <div>
                 <h3 style={{ color: "#0f172a", fontSize: 16, fontWeight: 700, marginBottom: 2 }}>Cash Flow Deep Dive</h3>
@@ -1628,7 +1810,7 @@ function Analytics() {
           </div>
 
           {/* 3. Tenant Health Panel */}
-          <div style={{ background: "#fff", borderRadius: 16, padding: 24, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" }}>
+          <div style={{ ...sectionS, marginBottom: 0 }}>
             <h3 style={{ color: "#0f172a", fontSize: 16, fontWeight: 700, marginBottom: 4 }}>Tenant Health Panel</h3>
             <p style={{ color: "#94a3b8", fontSize: 13, marginBottom: 20 }}>Unit-by-unit lease and payment status</p>
             {propTenants.length === 0 ? (
