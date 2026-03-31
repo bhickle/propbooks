@@ -328,7 +328,7 @@ function Badge({ status }) {
 // VIEWS
 // ---------------------------------------------
 
-function Dashboard() {
+function Dashboard({ onNavigate }) {
   const [dashProp, setDashProp] = useState("all");
   const isAll = dashProp === "all";
   const props = isAll ? PROPERTIES : PROPERTIES.filter(p => String(p.id) === dashProp);
@@ -526,12 +526,15 @@ function Dashboard() {
         <div style={{ background: "#fff", borderRadius: 16, padding: 24, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
             <h3 style={{ color: "#0f172a", fontSize: 16, fontWeight: 700 }}>Recent Transactions</h3>
+            {onNavigate && <button onClick={() => onNavigate("transactions")} style={{ color: "#3b82f6", fontSize: 13, fontWeight: 600, background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>View all <ChevronRight size={14} /></button>}
           </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
             {filteredTx.length === 0 ? (
               <p style={{ color: "#94a3b8", fontSize: 13, textAlign: "center", padding: 24 }}>No transactions for this property yet.</p>
             ) : filteredTx.slice(0, 5).map(t => (
-              <div key={t.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <div key={t.id} onClick={() => onNavigate && onNavigate("transactions")} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer", padding: "10px 8px", borderRadius: 10, transition: "background 0.15s" }}
+                onMouseEnter={e => e.currentTarget.style.background = "#f8fafc"}
+                onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                   <div style={{ width: 36, height: 36, borderRadius: 10, background: t.type === "income" ? "#dcfce7" : "#fee2e2", display: "flex", alignItems: "center", justifyContent: "center" }}>
                     {t.type === "income" ? <ArrowUp size={16} color="#15803d" /> : <ArrowDown size={16} color="#b91c1c" />}
@@ -4145,7 +4148,7 @@ function AppShell() {
           </div>
         </div>
         <div style={{ flex: 1, padding: 32, maxWidth: 1400, width: "100%" }}>
-          {activeView === "dashboard" && <Dashboard />}
+          {activeView === "dashboard" && <Dashboard onNavigate={setActiveView} />}
           {activeView === "properties" && <Properties onSelect={handlePropertySelect} />}
           {activeView === "propertyDetail" && selectedProperty && <PropertyDetail property={selectedProperty} onBack={() => setActiveView("properties")} />}
           {activeView === "transactions" && <Transactions />}
