@@ -11,7 +11,7 @@ import {
   Percent, ArrowUp, ArrowDown, Star, MapPin, Wallet, PieChartIcon,
   Hammer, Clock, Target, Flag, Wrench,
   Users, Route, Calculator, FileCheck, UserCheck, Truck, Layers, Car,
-  CheckSquare, Square, PlusCircle, Receipt, UploadCloud, Trash2, Pencil
+  CheckSquare, Square, PlusCircle, Receipt, UploadCloud, Trash2, Pencil, Info
 } from "lucide-react";
 import {
   newId, fmt, fmtK,
@@ -284,6 +284,31 @@ const MILEAGE_TRIPS = [
 // ---------------------------------------------
 // COMPONENTS
 // ---------------------------------------------
+
+function InfoTip({ text }) {
+  const [show, setShow] = useState(false);
+  return (
+    <span style={{ position: "relative", display: "inline-flex", alignItems: "center", marginLeft: 4, cursor: "pointer" }}
+      onMouseEnter={() => setShow(true)} onMouseLeave={() => setShow(false)}
+      onClick={e => { e.stopPropagation(); setShow(s => !s); }}>
+      <Info size={13} color="#94a3b8" />
+      {show && (
+        <span style={{
+          position: "absolute", bottom: "calc(100% + 8px)", left: "50%", transform: "translateX(-50%)",
+          background: "#0f172a", color: "#f8fafc", fontSize: 12, lineHeight: 1.5, fontWeight: 400,
+          padding: "10px 14px", borderRadius: 10, width: 240, zIndex: 50,
+          boxShadow: "0 8px 24px rgba(0,0,0,0.2)", pointerEvents: "none", whiteSpace: "normal",
+        }}>
+          {text}
+          <span style={{
+            position: "absolute", top: "100%", left: "50%", transform: "translateX(-50%)",
+            border: "6px solid transparent", borderTopColor: "#0f172a",
+          }} />
+        </span>
+      )}
+    </span>
+  );
+}
 
 function StatCard({ icon: Icon, label, value, sub, trend, trendVal, color = "#3b82f6" }) {
   const up = trend === "up";
@@ -1509,12 +1534,12 @@ function Analytics() {
           {/* KPI row with YoY indicators */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, marginBottom: 16 }}>
             {[
-              { label: "Total Annual NOI", value: fmt(portfolioNOI), color: "#10b981", yoy: yoyNOI },
-              { label: "Portfolio Cap Rate", value: `${avgCapRate}%`, color: "#3b82f6", yoy: yoyCapRate },
-              { label: "Avg Cash-on-Cash", value: `${avgCoC}%`, color: "#8b5cf6", yoy: yoyCoC },
+              { label: "Total Annual NOI", value: fmt(portfolioNOI), color: "#10b981", yoy: yoyNOI, tip: "Net Operating Income = (Monthly Rent \u2212 Monthly Expenses) \u00d7 12, summed across all properties. Excludes debt service." },
+              { label: "Portfolio Cap Rate", value: `${avgCapRate}%`, color: "#3b82f6", yoy: yoyCapRate, tip: "Average Cap Rate across all properties. Cap Rate = Annual NOI \u00f7 Current Property Value." },
+              { label: "Avg Cash-on-Cash", value: `${avgCoC}%`, color: "#8b5cf6", yoy: yoyCoC, tip: "Average Cash-on-Cash return. CoC = Annual Pre-Tax Cash Flow \u00f7 Total Cash Invested (down payment + closing costs)." },
             ].map((m, i) => (
               <div key={i} style={cardS}>
-                <p style={{ color: "#94a3b8", fontSize: 12, fontWeight: 600, textTransform: "uppercase", marginBottom: 6 }}>{m.label}</p>
+                <p style={{ color: "#94a3b8", fontSize: 12, fontWeight: 600, textTransform: "uppercase", marginBottom: 6, display: "flex", alignItems: "center" }}>{m.label}<InfoTip text={m.tip} /></p>
                 <p style={{ color: m.color, fontSize: 22, fontWeight: 800 }}>{m.value}</p>
                 <YoY val={m.yoy} />
               </div>
@@ -1522,13 +1547,13 @@ function Analytics() {
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 24 }}>
             {[
-              { label: "Total Appreciation", value: fmt(totalAppreciation), color: "#f59e0b", yoy: yoyAppreciation },
-              { label: "Expense Ratio", value: `${portfolioExpenseRatio}%`, color: "#ef4444", desc: "Expenses / gross income" },
-              { label: "Occupancy Rate", value: `${occupancyRate}%`, color: "#10b981", desc: `${totalUnits - vacantUnits} / ${totalUnits} units occupied` },
-              { label: "DSCR", value: portfolioDSCR, color: "#3b82f6", desc: parseFloat(portfolioDSCR) >= 1.25 ? "Healthy coverage" : parseFloat(portfolioDSCR) >= 1.0 ? "Adequate" : "Below target" },
+              { label: "Total Appreciation", value: fmt(totalAppreciation), color: "#f59e0b", yoy: yoyAppreciation, tip: "Sum of (Current Value \u2212 Purchase Price) across all properties. Values are manually updated by the owner." },
+              { label: "Expense Ratio", value: `${portfolioExpenseRatio}%`, color: "#ef4444", desc: "Expenses / gross income", tip: "Total Monthly Expenses \u00f7 Total Monthly Rent \u00d7 100. Lower is better \u2014 under 40% is considered healthy." },
+              { label: "Occupancy Rate", value: `${occupancyRate}%`, color: "#10b981", desc: `${totalUnits - vacantUnits} / ${totalUnits} units occupied`, tip: "Occupied Units \u00f7 Total Units \u00d7 100. Based on current tenant records." },
+              { label: "DSCR", value: portfolioDSCR, color: "#3b82f6", desc: parseFloat(portfolioDSCR) >= 1.25 ? "Healthy coverage" : parseFloat(portfolioDSCR) >= 1.0 ? "Adequate" : "Below target", tip: "Debt Service Coverage Ratio = Annual NOI \u00f7 Annual Mortgage Payments. Above 1.25 is healthy; below 1.0 means income doesn\u2019t cover debt." },
             ].map((m, i) => (
               <div key={i} style={cardS}>
-                <p style={{ color: "#94a3b8", fontSize: 12, fontWeight: 600, textTransform: "uppercase", marginBottom: 6 }}>{m.label}</p>
+                <p style={{ color: "#94a3b8", fontSize: 12, fontWeight: 600, textTransform: "uppercase", marginBottom: 6, display: "flex", alignItems: "center" }}>{m.label}<InfoTip text={m.tip} /></p>
                 <p style={{ color: m.color, fontSize: 22, fontWeight: 800 }}>{m.value}</p>
                 {m.yoy !== undefined ? <YoY val={m.yoy} /> : <p style={{ color: "#94a3b8", fontSize: 11, marginTop: 6 }}>{m.desc}</p>}
               </div>
@@ -1599,6 +1624,9 @@ function Analytics() {
                   const M = p.loanAmount * r * Math.pow(1 + r, n) / (Math.pow(1 + r, n) - 1);
                   pDSCR = (NOI / (M * 12)).toFixed(2);
                 }
+                // Stale value check
+                const daysSinceUpdate = p.valueUpdatedAt ? Math.round((new Date() - new Date(p.valueUpdatedAt)) / (1000 * 60 * 60 * 24)) : 999;
+                const isStale = daysSinceUpdate > 90;
                 return (
                   <div key={p.id} onClick={() => setSelectedPropId(String(p.id))} style={{ background: "#f8fafc", borderRadius: 14, padding: 20, border: `2px solid ${p.color}30`, cursor: "pointer", transition: "all 0.15s" }}
                     onMouseEnter={e => { e.currentTarget.style.borderColor = p.color; e.currentTarget.style.transform = "translateY(-2px)"; }}
@@ -1634,6 +1662,12 @@ function Analytics() {
                         <span style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", minWidth: 36, textAlign: "right" }}>{propOcc}%</span>
                       </div>
                     </div>
+                    {isStale && (
+                      <div style={{ marginTop: 8, paddingTop: 8, borderTop: "1px solid #e2e8f0", display: "flex", alignItems: "center", gap: 6 }}>
+                        <AlertCircle size={12} color="#f59e0b" />
+                        <span style={{ fontSize: 11, color: "#b45309" }}>Value updated {daysSinceUpdate}d ago</span>
+                      </div>
+                    )}
                   </div>
                 );
               })}
@@ -1689,19 +1723,27 @@ function Analytics() {
                 {
                   label: "Cap Rate", value: `${selectedProp.capRate}%`,
                   sub: `Ranked ${rankLabel(capRateRank)} of ${PROPERTIES.length}`, color: "#3b82f6",
+                  tip: "Cap Rate = Annual NOI \u00f7 Current Property Value. Measures return independent of financing.",
                 },
                 {
                   label: "Cash-on-Cash", value: `${selectedProp.cashOnCash}%`,
                   sub: `Ranked ${rankLabel(cocRank)} of ${PROPERTIES.length}`, color: "#8b5cf6",
+                  tip: "Annual Pre-Tax Cash Flow \u00f7 Total Cash Invested (down payment + closing costs).",
                 },
-                {
-                  label: "Appreciation",
-                  value: `+${((selectedProp.currentValue - selectedProp.purchasePrice) / selectedProp.purchasePrice * 100).toFixed(1)}%`,
-                  sub: `${fmt(selectedProp.currentValue - selectedProp.purchasePrice)} total gain`, color: "#f59e0b",
-                },
+                (() => {
+                  const daysSince = selectedProp.valueUpdatedAt ? Math.round((new Date() - new Date(selectedProp.valueUpdatedAt)) / (1000*60*60*24)) : 999;
+                  const stale = daysSince > 90;
+                  return {
+                    label: "Appreciation",
+                    value: `+${((selectedProp.currentValue - selectedProp.purchasePrice) / selectedProp.purchasePrice * 100).toFixed(1)}%`,
+                    sub: stale ? `${fmt(selectedProp.currentValue - selectedProp.purchasePrice)} gain \u00b7 \u26a0\ufe0f Updated ${daysSince}d ago` : `${fmt(selectedProp.currentValue - selectedProp.purchasePrice)} total gain`,
+                    color: "#f59e0b",
+                    tip: `(Current Value \u2212 Purchase Price) \u00f7 Purchase Price. Value last updated ${selectedProp.valueUpdatedAt || "unknown"}.`,
+                  };
+                })(),
               ].map((m, i) => (
                 <div key={i} style={{ background: "#f8fafc", borderRadius: 14, padding: "18px 16px", border: "1px solid #f1f5f9" }}>
-                  <p style={{ color: "#94a3b8", fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6 }}>{m.label}</p>
+                  <p style={{ color: "#94a3b8", fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6, display: "flex", alignItems: "center" }}>{m.label}<InfoTip text={m.tip} /></p>
                   <p style={{ color: m.color, fontSize: 26, fontWeight: 800, marginBottom: 4 }}>{m.value}</p>
                   <p style={{ color: "#94a3b8", fontSize: 11 }}>{m.sub}</p>
                 </div>
@@ -1713,22 +1755,25 @@ function Analytics() {
                   label: "Current Equity",
                   value: fmt(selectedProp.currentValue - (calcLoanBalance(selectedProp.loanAmount, selectedProp.loanRate, selectedProp.loanTermYears, selectedProp.loanStartDate) ?? selectedProp.loanAmount ?? 0)),
                   sub: "Value minus loan balance", color: "#10b981",
+                  tip: "Current Property Value \u2212 Remaining Loan Balance. Loan balance is amortized from the original loan terms.",
                 },
                 {
                   label: "DSCR",
                   value: propDSCR,
                   sub: parseFloat(propDSCR) >= 1.25 ? "Healthy coverage" : parseFloat(propDSCR) >= 1.0 ? "Adequate" : "Below target",
                   color: parseFloat(propDSCR) >= 1.25 ? "#10b981" : parseFloat(propDSCR) >= 1.0 ? "#f59e0b" : "#ef4444",
+                  tip: "Debt Service Coverage Ratio = Annual NOI \u00f7 Annual Mortgage Payments. Lenders typically want 1.25+.",
                 },
                 {
                   label: "Occupancy",
                   value: `${propOccupancy}%`,
                   sub: `${propTenants.filter(t => t.status !== "vacant").length} of ${propTenants.length || selectedProp.units} units`,
                   color: parseFloat(propOccupancy) >= 90 ? "#10b981" : parseFloat(propOccupancy) >= 70 ? "#f59e0b" : "#ef4444",
+                  tip: "Occupied Units \u00f7 Total Units \u00d7 100. Based on current tenant lease status records.",
                 },
               ].map((m, i) => (
                 <div key={i} style={{ background: "#f8fafc", borderRadius: 14, padding: "18px 16px", border: "1px solid #f1f5f9" }}>
-                  <p style={{ color: "#94a3b8", fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6 }}>{m.label}</p>
+                  <p style={{ color: "#94a3b8", fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6, display: "flex", alignItems: "center" }}>{m.label}<InfoTip text={m.tip} /></p>
                   <p style={{ color: m.color, fontSize: 26, fontWeight: 800, marginBottom: 4 }}>{m.value}</p>
                   <p style={{ color: "#94a3b8", fontSize: 11 }}>{m.sub}</p>
                 </div>
