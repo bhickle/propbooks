@@ -363,22 +363,22 @@ const CONTRACTORS = [
 
 const FLIP_MILESTONES = {
   1: [
-    { label: "Contract Executed", done: true, date: "2026-01-06" },
-    { label: "Inspection Complete", done: true, date: "2026-01-07" },
-    { label: "Purchased / Closed", done: true, date: "2026-01-08" },
-    { label: "Demo Complete", done: true, date: "2026-01-22" },
-    { label: "Rough-In (Plumbing/Electric)", done: true, date: "2026-02-10" },
-    { label: "Drywall", done: true, date: "2026-02-24" },
-    { label: "Paint", done: false, date: null },
-    { label: "Flooring", done: false, date: null },
-    { label: "Kitchen & Baths", done: false, date: null },
-    { label: "Punch List", done: false, date: null },
-    { label: "Listed for Sale", done: false, date: null },
-    { label: "Sold / Closed", done: false, date: null },
+    { label: "Contract Executed", done: true, date: "2026-01-06", targetDate: "2026-01-06" },
+    { label: "Inspection Complete", done: true, date: "2026-01-07", targetDate: "2026-01-10" },
+    { label: "Purchased / Closed", done: true, date: "2026-01-08", targetDate: "2026-01-08" },
+    { label: "Demo Complete", done: true, date: "2026-01-22", targetDate: "2026-01-20" },
+    { label: "Rough-In (Plumbing/Electric)", done: true, date: "2026-02-10", targetDate: "2026-02-07" },
+    { label: "Drywall", done: true, date: "2026-02-24", targetDate: "2026-02-21" },
+    { label: "Paint", done: false, date: null, targetDate: "2026-03-14" },
+    { label: "Flooring", done: false, date: null, targetDate: "2026-03-21" },
+    { label: "Kitchen & Baths", done: false, date: null, targetDate: "2026-03-28" },
+    { label: "Punch List", done: false, date: null, targetDate: "2026-04-04" },
+    { label: "Listed for Sale", done: false, date: null, targetDate: "2026-04-15" },
+    { label: "Sold / Closed", done: false, date: null, targetDate: "2026-05-30" },
   ],
-  2: DEFAULT_MILESTONES.map((label, i) => ({ label, done: i < 11, date: i < 11 ? "2026-01-15" : null })),
-  3: DEFAULT_MILESTONES.slice(0, 3).map((label, i) => ({ label, done: i < 2, date: i < 2 ? "2026-03-12" : null })),
-  4: DEFAULT_MILESTONES.map(label => ({ label, done: true, date: "2025-08-29" })),
+  2: DEFAULT_MILESTONES.map((label, i) => ({ label, done: i < 11, date: i < 11 ? "2026-01-15" : null, targetDate: null })),
+  3: DEFAULT_MILESTONES.slice(0, 3).map((label, i) => ({ label, done: i < 2, date: i < 2 ? "2026-03-12" : null, targetDate: null })),
+  4: DEFAULT_MILESTONES.map(label => ({ label, done: true, date: "2025-08-29", targetDate: null })),
 };
 
 const TENANTS = [
@@ -3703,8 +3703,12 @@ function FlipDetail({ flip, onBack, allFlips, setAllFlips }) {
   const [expData, setExpData] = useState(FLIP_EXPENSES.filter(e => e.flipId === flip.id));
   const [conData, setConData] = useState(CONTRACTORS.filter(c => c.flipId === flip.id));
   const [rehabItems, setRehabItems] = useState(flip.rehabItems || []);
-  const [milestones, setMilestones] = useState(FLIP_MILESTONES[flip.id] || DEFAULT_MILESTONES.map(label => ({ label, done: false, date: null })));
-  const [newMilestone, setNewMilestone] = useState("");
+  const [milestones, setMilestones] = useState(FLIP_MILESTONES[flip.id] || DEFAULT_MILESTONES.map(label => ({ label, done: false, date: null, targetDate: null })));
+  const [showMilestoneModal, setShowMilestoneModal] = useState(false);
+  const emptyMilestone = { label: "", targetDate: "", date: "" };
+  const [milestoneForm, setMilestoneForm] = useState(emptyMilestone);
+  const sfM = k => e => setMilestoneForm(f => ({ ...f, [k]: e.target.value }));
+  const [editingMilestoneId, setEditingMilestoneId] = useState(null); // index when editing
   const [showAddRehab, setShowAddRehab] = useState(false);
   const emptyRehab = { category: "", budgeted: "", spent: "0", status: "pending" };
   const [rehabForm, setRehabForm] = useState(emptyRehab);
@@ -3780,9 +3784,22 @@ function FlipDetail({ flip, onBack, allFlips, setAllFlips }) {
     setShowAddRehab(true);
   };
 
-  // Milestone rename state
-  const [editingMilestoneIdx, setEditingMilestoneIdx] = useState(null);
-  const [milestoneEditText, setMilestoneEditText] = useState("");
+  const openEditMilestone = (m, idx) => {
+    setEditingMilestoneId(idx);
+    setMilestoneForm({ label: m.label, targetDate: m.targetDate || "", date: m.date || "" });
+    setShowMilestoneModal(true);
+  };
+  const handleSaveMilestone = () => {
+    if (!milestoneForm.label.trim()) return;
+    if (editingMilestoneId !== null) {
+      setMilestones(prev => prev.map((item, idx) => idx === editingMilestoneId ? { ...item, label: milestoneForm.label.trim(), targetDate: milestoneForm.targetDate || null, date: milestoneForm.date || item.date, done: milestoneForm.date ? true : item.done } : item));
+      setEditingMilestoneId(null);
+    } else {
+      setMilestones(prev => [...prev, { label: milestoneForm.label.trim(), done: false, date: null, targetDate: milestoneForm.targetDate || null }]);
+    }
+    setMilestoneForm(emptyMilestone);
+    setShowMilestoneModal(false);
+  };
 
   const handleSaveExp = () => {
     if (!expForm.amount) return;
@@ -3839,6 +3856,8 @@ function FlipDetail({ flip, onBack, allFlips, setAllFlips }) {
   const flipExpenses = expData;
   const totalExpensed = expData.reduce((s, e) => s + e.amount, 0);
   const doneCount = milestones.filter(m => m.done).length;
+  const today = new Date().toISOString().split("T")[0];
+  const overdueCount = milestones.filter(m => !m.done && m.targetDate && m.targetDate < today).length;
 
   const rehabComplete = rehabItems.filter(i => i.status === "complete").length;
   const tabs = [
@@ -4007,23 +4026,17 @@ function FlipDetail({ flip, onBack, allFlips, setAllFlips }) {
 
       {activeTab === "rehab" && (
       <div>
-        <div style={{ background: "#fff", borderRadius: 16, padding: 24, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <Wrench size={18} color="#f59e0b" />
-                <h3 style={{ color: "#0f172a", fontSize: 16, fontWeight: 700 }}>Rehab Budget Tracker</h3>
-              </div>
-              <button onClick={() => { setEditingRehabIdx(null); setRehabForm(emptyRehab); setShowAddRehab(true); }} style={{ background: "#f59e0b", color: "#fff", border: "none", borderRadius: 8, padding: "6px 12px", fontWeight: 600, fontSize: 12, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
-                <Plus size={13} /> Add Item
-              </button>
-            </div>
-            <div style={{ display: "flex", gap: 16 }}>
-              <span style={{ fontSize: 13, color: "#64748b" }}>Budget: <strong style={{ color: "#0f172a" }}>{fmt(rehabTotalBudget)}</strong></span>
-              <span style={{ fontSize: 13, color: "#64748b" }}>Spent: <strong style={{ color: rehabTotalSpent > rehabTotalBudget ? "#b91c1c" : "#0f172a" }}>{fmt(rehabTotalSpent)}</strong></span>
-              <span style={{ fontSize: 13, color: "#64748b" }}>Remaining: <strong style={{ color: "#3b82f6" }}>{fmt(Math.max(0, rehabTotalBudget - rehabTotalSpent))}</strong></span>
-            </div>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+          <div>
+            <p style={{ color: "#64748b", fontSize: 14 }}>
+              {rehabItems.length} item{rehabItems.length !== 1 ? "s" : ""} . <strong style={{ color: "#0f172a" }}>{fmt(rehabTotalBudget)}</strong> budget . <strong style={{ color: rehabTotalSpent > rehabTotalBudget ? "#b91c1c" : "#0f172a" }}>{fmt(rehabTotalSpent)}</strong> spent
+            </p>
           </div>
+          <button onClick={() => { setEditingRehabIdx(null); setRehabForm(emptyRehab); setShowAddRehab(true); }} style={{ background: "#f59e0b", color: "#fff", border: "none", borderRadius: 10, padding: "10px 16px", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
+            <Plus size={15} /> Add Rehab Item
+          </button>
+        </div>
+        <div style={{ background: "#fff", borderRadius: 16, padding: 24, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" }}>
           <RehabProgress items={rehabItems} />
           <div style={{ marginTop: 20 }}>
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
@@ -4342,73 +4355,110 @@ function FlipDetail({ flip, onBack, allFlips, setAllFlips }) {
         <div>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
             <div>
-              <p style={{ color: "#64748b", fontSize: 14 }}>{doneCount} of {milestones.length} milestones complete</p>
-              <div style={{ height: 6, background: "#f1f5f9", borderRadius: 99, overflow: "hidden", width: 200, marginTop: 6 }}>
-                <div style={{ height: "100%", width: `${Math.round((doneCount / milestones.length) * 100)}%`, background: "#10b981", borderRadius: 99, transition: "width 0.3s" }} />
-              </div>
+              <p style={{ color: "#64748b", fontSize: 14 }}>
+                {doneCount} of {milestones.length} complete
+                {overdueCount > 0 && <span style={{ color: "#ef4444", fontWeight: 700 }}> . {overdueCount} overdue</span>}
+              </p>
             </div>
+            <button onClick={() => { setEditingMilestoneId(null); setMilestoneForm(emptyMilestone); setShowMilestoneModal(true); }} style={{ background: "#f59e0b", color: "#fff", border: "none", borderRadius: 10, padding: "10px 16px", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
+              <Plus size={15} /> Add Milestone
+            </button>
           </div>
-          <div style={{ background: "#fff", borderRadius: 16, padding: 24, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" }}>
-            {milestones.map((m, i) => (
-              <div key={i} style={{ display: "flex", alignItems: "center", gap: 14, padding: "13px 0", borderBottom: "1px solid #f8fafc" }}
-                onMouseEnter={e => e.currentTarget.style.background = "#f8fafc"}
-                onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
-                <div onClick={() => {
-                  const updated = milestones.map((item, idx) => idx === i ? { ...item, done: !item.done, date: !item.done ? new Date().toISOString().split("T")[0] : null } : item);
-                  setMilestones(updated);
-                }} style={{ color: m.done ? "#10b981" : "#cbd5e1", flexShrink: 0, cursor: "pointer" }}>
-                  {m.done ? <CheckSquare size={20} /> : <Square size={20} />}
-                </div>
-                <div onClick={() => {
-                  if (editingMilestoneIdx === i) return;
-                  const updated = milestones.map((item, idx) => idx === i ? { ...item, done: !item.done, date: !item.done ? new Date().toISOString().split("T")[0] : null } : item);
-                  setMilestones(updated);
-                }} style={{ flex: 1, cursor: "pointer" }}>
-                  {editingMilestoneIdx === i ? (
-                    <input value={milestoneEditText} onChange={e => setMilestoneEditText(e.target.value)} onBlur={() => {
-                      if (milestoneEditText.trim()) setMilestones(prev => prev.map((item, idx) => idx === i ? { ...item, label: milestoneEditText.trim() } : item));
-                      setEditingMilestoneIdx(null);
-                    }} onKeyDown={e => {
-                      if (e.key === "Enter") { e.target.blur(); }
-                      if (e.key === "Escape") setEditingMilestoneIdx(null);
-                    }} autoFocus style={{ ...iS, padding: "4px 8px", fontSize: 14 }} onClick={e => e.stopPropagation()} />
-                  ) : (
-                    <p style={{ fontSize: 14, fontWeight: m.done ? 600 : 500, color: m.done ? "#0f172a" : "#475569" }}>{m.label}</p>
-                  )}
-                </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                  {m.done && m.date ? (
-                    <span style={{ fontSize: 12, color: "#10b981", fontWeight: 600 }}>&#10003; {m.date}</span>
-                  ) : (
-                    <span style={{ fontSize: 12, color: "#cbd5e1" }}>Pending</span>
-                  )}
-                  <button onClick={(e) => { e.stopPropagation(); setEditingMilestoneIdx(i); setMilestoneEditText(m.label); }} style={{ background: "#f1f5f9", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "#475569", display: "flex", alignItems: "center" }} title="Rename">
-                    <Pencil size={13} />
-                  </button>
-                  <button onClick={(e) => { e.stopPropagation(); setDeleteConfirm({ type: "milestone", item: m, index: i }); }} style={{ background: "#fee2e2", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "#ef4444", display: "flex", alignItems: "center" }} title="Delete">
-                    <Trash2 size={13} />
-                  </button>
-                </div>
-              </div>
-            ))}
-            {/* Add custom milestone inline */}
-            <div style={{ display: "flex", gap: 8, marginTop: 12, paddingTop: 12, borderTop: "1px solid #f1f5f9" }}>
-              <input value={newMilestone} onChange={e => setNewMilestone(e.target.value)} onKeyDown={e => {
-                if (e.key === "Enter" && newMilestone.trim()) {
-                  setMilestones(prev => [...prev, { label: newMilestone.trim(), done: false, date: null }]);
-                  setNewMilestone("");
-                }
-              }} placeholder="Add custom milestone..." style={{ ...iS, flex: 1 }} />
-              <button onClick={() => {
-                if (!newMilestone.trim()) return;
-                setMilestones(prev => [...prev, { label: newMilestone.trim(), done: false, date: null }]);
-                setNewMilestone("");
-              }} style={{ background: "#10b981", color: "#fff", border: "none", borderRadius: 10, padding: "10px 16px", fontWeight: 600, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6, whiteSpace: "nowrap", opacity: newMilestone.trim() ? 1 : 0.5 }}>
-                <Plus size={14} /> Add
-              </button>
+          {/* Progress bar */}
+          <div style={{ background: "#fff", borderRadius: 12, padding: "14px 20px", marginBottom: 16, border: "1px solid #f1f5f9", display: "flex", alignItems: "center", gap: 16 }}>
+            <div style={{ flex: 1, height: 8, background: "#f1f5f9", borderRadius: 99, overflow: "hidden" }}>
+              <div style={{ height: "100%", width: `${milestones.length > 0 ? Math.round((doneCount / milestones.length) * 100) : 0}%`, background: "#10b981", borderRadius: 99, transition: "width 0.3s" }} />
             </div>
+            <span style={{ fontSize: 13, fontWeight: 700, color: "#0f172a", whiteSpace: "nowrap" }}>{milestones.length > 0 ? Math.round((doneCount / milestones.length) * 100) : 0}%</span>
+          </div>
+          <div style={{ background: "#fff", borderRadius: 16, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9", overflow: "hidden" }}>
+            {milestones.length === 0 ? (
+              <div style={{ textAlign: "center", padding: 48, color: "#94a3b8" }}>
+                <CheckSquare size={32} style={{ margin: "0 auto 12px", display: "block" }} />
+                <p style={{ fontWeight: 600, marginBottom: 4 }}>No milestones yet</p>
+                <p style={{ fontSize: 13 }}>Add milestones to track your flip's progress.</p>
+              </div>
+            ) : (
+              <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                <thead>
+                  <tr style={{ background: "#f8fafc" }}>
+                    {["", "Milestone", "Target Date", "Completed", "Status", ""].map(h => (
+                      <th key={h} style={{ padding: "10px 16px", textAlign: "left", color: "#94a3b8", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {milestones.map((m, i) => {
+                    const isOverdue = !m.done && m.targetDate && m.targetDate < today;
+                    const completedLate = m.done && m.date && m.targetDate && m.date > m.targetDate;
+                    return (
+                      <tr key={i} style={{ borderTop: "1px solid #f1f5f9" }}>
+                        <td style={{ padding: "12px 16px", width: 40 }}>
+                          <div onClick={() => {
+                            const updated = milestones.map((item, idx) => idx === i ? { ...item, done: !item.done, date: !item.done ? today : null } : item);
+                            setMilestones(updated);
+                          }} style={{ color: m.done ? "#10b981" : "#cbd5e1", cursor: "pointer" }}>
+                            {m.done ? <CheckSquare size={20} /> : <Square size={20} />}
+                          </div>
+                        </td>
+                        <td style={{ padding: "12px 16px" }}>
+                          <p style={{ fontSize: 14, fontWeight: m.done ? 600 : 500, color: m.done ? "#0f172a" : isOverdue ? "#b91c1c" : "#475569", textDecoration: m.done ? "line-through" : "none", textDecorationColor: "#cbd5e1" }}>{m.label}</p>
+                        </td>
+                        <td style={{ padding: "12px 16px", fontSize: 13, color: isOverdue ? "#b91c1c" : "#64748b", fontWeight: isOverdue ? 700 : 400 }}>
+                          {m.targetDate || <span style={{ color: "#cbd5e1" }}>-</span>}
+                        </td>
+                        <td style={{ padding: "12px 16px", fontSize: 13, color: completedLate ? "#f59e0b" : "#64748b" }}>
+                          {m.date || <span style={{ color: "#cbd5e1" }}>-</span>}
+                          {completedLate && <span style={{ fontSize: 11, color: "#f59e0b", fontWeight: 600, marginLeft: 6 }}>late</span>}
+                        </td>
+                        <td style={{ padding: "12px 16px" }}>
+                          {m.done ? (
+                            <span style={{ background: "#dcfce7", color: "#15803d", borderRadius: 20, padding: "3px 10px", fontSize: 12, fontWeight: 600 }}>Done</span>
+                          ) : isOverdue ? (
+                            <span style={{ background: "#fee2e2", color: "#b91c1c", borderRadius: 20, padding: "3px 10px", fontSize: 12, fontWeight: 600 }}>Overdue</span>
+                          ) : (
+                            <span style={{ background: "#f1f5f9", color: "#64748b", borderRadius: 20, padding: "3px 10px", fontSize: 12, fontWeight: 600 }}>Pending</span>
+                          )}
+                        </td>
+                        <td style={{ padding: "12px 16px" }}>
+                          <div style={{ display: "flex", gap: 4 }}>
+                            <button onClick={() => openEditMilestone(m, i)} style={{ background: "#f1f5f9", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "#475569", display: "flex", alignItems: "center" }} title="Edit"><Pencil size={13} /></button>
+                            <button onClick={() => setDeleteConfirm({ type: "milestone", item: m, index: i })} style={{ background: "#fee2e2", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "#ef4444", display: "flex", alignItems: "center" }} title="Delete"><Trash2 size={13} /></button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            )}
           </div>
         </div>
+      )}
+      {showMilestoneModal && (
+        <Modal title={editingMilestoneId !== null ? "Edit Milestone" : "Add Milestone"} onClose={() => { setShowMilestoneModal(false); setEditingMilestoneId(null); setMilestoneForm(emptyMilestone); }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            <div>
+              <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Milestone Name *</label>
+              <input value={milestoneForm.label} onChange={sfM("label")} placeholder="e.g. Demo Complete, Listed for Sale" style={iS} />
+            </div>
+            <div>
+              <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Target Date</label>
+              <input type="date" value={milestoneForm.targetDate} onChange={sfM("targetDate")} style={iS} />
+            </div>
+            {editingMilestoneId !== null && (
+              <div>
+                <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Completion Date</label>
+                <input type="date" value={milestoneForm.date} onChange={sfM("date")} style={iS} />
+                <p style={{ fontSize: 11, color: "#94a3b8", marginTop: 4 }}>Set to mark as complete, or clear to reopen</p>
+              </div>
+            )}
+          </div>
+          <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
+            <button onClick={() => { setShowMilestoneModal(false); setEditingMilestoneId(null); setMilestoneForm(emptyMilestone); }} style={{ flex: 1, padding: "12px", border: "1px solid #e2e8f0", borderRadius: 10, background: "#fff", color: "#475569", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
+            <button onClick={handleSaveMilestone} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "#f59e0b", color: "#fff", fontWeight: 700, cursor: "pointer", opacity: milestoneForm.label.trim() ? 1 : 0.5 }}>{editingMilestoneId !== null ? "Save Changes" : "Add Milestone"}</button>
+          </div>
+        </Modal>
       )}
       {showEditDeal && (
         <Modal title="Edit Deal" onClose={() => setShowEditDeal(false)}>
