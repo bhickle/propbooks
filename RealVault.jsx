@@ -1723,7 +1723,7 @@ function Analytics() {
                     {isStale && (
                       <div style={{ marginTop: 8, paddingTop: 8, borderTop: "1px solid #e2e8f0", display: "flex", alignItems: "center", gap: 6 }}>
                         <AlertCircle size={12} color="#f59e0b" />
-                        <span style={{ fontSize: 11, color: "#b45309" }}>Value updated {daysSinceUpdate}d ago</span>
+                        <span style={{ fontSize: 11, color: "#b45309" }}>Stale value — last updated {daysSinceUpdate}d ago. Update property value to improve accuracy.</span>
                       </div>
                     )}
                   </div>
