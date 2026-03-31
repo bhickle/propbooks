@@ -11,7 +11,7 @@ import {
   Percent, ArrowUp, ArrowDown, Star, MapPin, Wallet, PieChartIcon,
   Hammer, Clock, Target, Flag, Wrench,
   Users, Route, Calculator, FileCheck, UserCheck, Truck, Layers, Car,
-  CheckSquare, Square, PlusCircle, Receipt, UploadCloud, Trash2, Pencil, Info, List
+  CheckSquare, Square, PlusCircle, Receipt, UploadCloud, Trash2, Pencil, Info, List, Edit3
 } from "lucide-react";
 import {
   newId, fmt, fmtK,
@@ -3697,24 +3697,98 @@ function FlipDetail({ flip, onBack, allFlips, setAllFlips }) {
   const [deleteConfirm, setDeleteConfirm] = useState(null); // { type: "expense"|"contractor"|"rehab"|"milestone", item, index? }
   const [stage, setStage] = useState(flip.stage);
 
+  // Edit deal state
+  const [showEditDeal, setShowEditDeal] = useState(false);
+  const [dealEditForm, setDealEditForm] = useState({});
+  const sfD = k => e => setDealEditForm(f => ({ ...f, [k]: e.target.value }));
+  const openEditDeal = () => {
+    setDealEditForm({
+      name: flip.name || "", address: flip.address || "",
+      purchasePrice: String(flip.purchasePrice || ""), arv: String(flip.arv || ""),
+      rehabBudget: String(flip.rehabBudget || ""), holdingCostsPerMonth: String(flip.holdingCostsPerMonth || ""),
+      acquisitionDate: flip.acquisitionDate || flip.contractDate || "",
+      rehabStartDate: flip.rehabStartDate || "", rehabEndDate: flip.rehabEndDate || "",
+      listDate: flip.listDate || "", projectedListDate: flip.projectedListDate || "",
+      closeDate: flip.closeDate || "", projectedCloseDate: flip.projectedCloseDate || "",
+      salePrice: String(flip.salePrice || ""),
+    });
+    setShowEditDeal(true);
+  };
+  const handleSaveDeal = () => {
+    if (!dealEditForm.name) return;
+    const updated = {
+      ...flip, name: dealEditForm.name, address: dealEditForm.address,
+      purchasePrice: parseFloat(dealEditForm.purchasePrice) || 0,
+      arv: parseFloat(dealEditForm.arv) || 0,
+      rehabBudget: parseFloat(dealEditForm.rehabBudget) || 0,
+      holdingCostsPerMonth: parseFloat(dealEditForm.holdingCostsPerMonth) || 0,
+      acquisitionDate: dealEditForm.acquisitionDate, rehabStartDate: dealEditForm.rehabStartDate,
+      rehabEndDate: dealEditForm.rehabEndDate, listDate: dealEditForm.listDate,
+      projectedListDate: dealEditForm.projectedListDate, closeDate: dealEditForm.closeDate,
+      projectedCloseDate: dealEditForm.projectedCloseDate,
+      salePrice: parseFloat(dealEditForm.salePrice) || 0,
+    };
+    // Update the global FLIPS array directly
+    const idx = FLIPS.findIndex(f => f.id === flip.id);
+    if (idx !== -1) Object.assign(FLIPS[idx], updated);
+    if (setAllFlips) setAllFlips(prev => prev.map(f => f.id === flip.id ? { ...f, ...updated } : f));
+    setShowEditDeal(false);
+  };
+
+  // Expense edit state
   const emptyExp = { date: "", vendor: "", category: "Materials/Supplies", description: "", amount: "" };
   const [expForm, setExpForm] = useState(emptyExp);
   const sfE = k => e => setExpForm(f => ({ ...f, [k]: e.target.value }));
+  const [editingExpId, setEditingExpId] = useState(null);
+  const openEditExp = (e) => {
+    setEditingExpId(e.id);
+    setExpForm({ date: e.date, vendor: e.vendor, category: e.category, description: e.description, amount: String(e.amount) });
+    setShowExpenseModal(true);
+  };
 
+  // Contractor edit state
   const emptyCon = { name: "", trade: "", paymentType: "Fixed Bid", totalBid: "", dayRate: "", phone: "", status: "pending" };
   const [conForm, setConForm] = useState(emptyCon);
   const sfC = k => e => setConForm(f => ({ ...f, [k]: e.target.value }));
+  const [editingConId, setEditingConId] = useState(null);
+  const openEditCon = (c) => {
+    setEditingConId(c.id);
+    setConForm({ name: c.name, trade: c.trade, paymentType: c.paymentType, totalBid: String(c.totalBid || ""), dayRate: String(c.dayRate || ""), phone: c.phone, status: c.status });
+    setShowContractorModal(true);
+  };
+
+  // Rehab edit state
+  const [editingRehabIdx, setEditingRehabIdx] = useState(null);
+  const openEditRehab = (item, idx) => {
+    setEditingRehabIdx(idx);
+    setRehabForm({ category: item.category, budgeted: String(item.budgeted), spent: String(item.spent), status: item.status });
+    setShowAddRehab(true);
+  };
+
+  // Milestone rename state
+  const [editingMilestoneIdx, setEditingMilestoneIdx] = useState(null);
+  const [milestoneEditText, setMilestoneEditText] = useState("");
 
   const handleSaveExp = () => {
     if (!expForm.amount) return;
-    setExpData(prev => [{ id: newId(), flipId: flip.id, date: expForm.date || new Date().toISOString().split("T")[0], vendor: expForm.vendor || "Unknown", category: expForm.category, description: expForm.description, amount: parseFloat(expForm.amount) || 0 }, ...prev]);
+    if (editingExpId) {
+      setExpData(prev => prev.map(e => e.id === editingExpId ? { ...e, date: expForm.date || e.date, vendor: expForm.vendor || "Unknown", category: expForm.category, description: expForm.description, amount: parseFloat(expForm.amount) || 0 } : e));
+      setEditingExpId(null);
+    } else {
+      setExpData(prev => [{ id: newId(), flipId: flip.id, date: expForm.date || new Date().toISOString().split("T")[0], vendor: expForm.vendor || "Unknown", category: expForm.category, description: expForm.description, amount: parseFloat(expForm.amount) || 0 }, ...prev]);
+    }
     setExpForm(emptyExp);
     setShowExpenseModal(false);
   };
 
   const handleSaveCon = () => {
     if (!conForm.name) return;
-    setConData(prev => [...prev, { id: newId(), flipId: flip.id, name: conForm.name, trade: conForm.trade, paymentType: conForm.paymentType, totalBid: parseFloat(conForm.totalBid) || 0, dayRate: parseFloat(conForm.dayRate) || 0, totalPaid: 0, status: conForm.status, phone: conForm.phone }]);
+    if (editingConId) {
+      setConData(prev => prev.map(c => c.id === editingConId ? { ...c, name: conForm.name, trade: conForm.trade, paymentType: conForm.paymentType, totalBid: parseFloat(conForm.totalBid) || 0, dayRate: parseFloat(conForm.dayRate) || 0, status: conForm.status, phone: conForm.phone } : c));
+      setEditingConId(null);
+    } else {
+      setConData(prev => [...prev, { id: newId(), flipId: flip.id, name: conForm.name, trade: conForm.trade, paymentType: conForm.paymentType, totalBid: parseFloat(conForm.totalBid) || 0, dayRate: parseFloat(conForm.dayRate) || 0, totalPaid: 0, status: conForm.status, phone: conForm.phone }]);
+    }
     setConForm(emptyCon);
     setShowContractorModal(false);
   };
@@ -3781,6 +3855,9 @@ function FlipDetail({ flip, onBack, allFlips, setAllFlips }) {
             </div>
           </div>
           <div style={{ textAlign: "right" }}>
+            <button onClick={openEditDeal} style={{ background: "rgba(255,255,255,0.7)", border: "1px solid rgba(0,0,0,0.08)", borderRadius: 8, padding: "6px 12px", fontSize: 12, fontWeight: 600, color: "#475569", cursor: "pointer", marginBottom: 8, display: "flex", alignItems: "center", gap: 5, marginLeft: "auto" }}>
+              <Edit3 size={12} /> Edit Deal
+            </button>
             <p style={{ color: "#64748b", fontSize: 13 }}>{stage === "Sold" ? "Sale Price" : "ARV"}</p>
             <p style={{ color: "#0f172a", fontSize: 32, fontWeight: 800 }}>{fmt(saleOrARV)}</p>
             <p style={{ color: profit >= 0 ? "#10b981" : "#ef4444", fontSize: 15, fontWeight: 700 }}>
@@ -3922,7 +3999,7 @@ function FlipDetail({ flip, onBack, allFlips, setAllFlips }) {
                 <Wrench size={18} color="#f59e0b" />
                 <h3 style={{ color: "#0f172a", fontSize: 16, fontWeight: 700 }}>Rehab Budget Tracker</h3>
               </div>
-              <button onClick={() => setShowAddRehab(true)} style={{ background: "#f59e0b", color: "#fff", border: "none", borderRadius: 8, padding: "6px 12px", fontWeight: 600, fontSize: 12, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
+              <button onClick={() => { setEditingRehabIdx(null); setRehabForm(emptyRehab); setShowAddRehab(true); }} style={{ background: "#f59e0b", color: "#fff", border: "none", borderRadius: 8, padding: "6px 12px", fontWeight: 600, fontSize: 12, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
                 <Plus size={13} /> Add Item
               </button>
             </div>
@@ -3960,7 +4037,10 @@ function FlipDetail({ flip, onBack, allFlips, setAllFlips }) {
                         </button>
                       </td>
                       <td style={{ padding: "12px 16px" }}>
-                        <button onClick={() => setDeleteConfirm({ type: "rehab", item: item, index: i })} style={{ background: "none", border: "none", cursor: "pointer", color: "#ef4444", opacity: 0.4, padding: 4 }} title="Remove item"><Trash2 size={13} /></button>
+                        <div style={{ display: "flex", gap: 4 }}>
+                          <button onClick={() => openEditRehab(item, i)} style={{ background: "none", border: "none", cursor: "pointer", color: "#3b82f6", opacity: 0.4, padding: 4 }} title="Edit item"><Edit3 size={13} /></button>
+                          <button onClick={() => setDeleteConfirm({ type: "rehab", item: item, index: i })} style={{ background: "none", border: "none", cursor: "pointer", color: "#ef4444", opacity: 0.4, padding: 4 }} title="Remove item"><Trash2 size={13} /></button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -3974,8 +4054,8 @@ function FlipDetail({ flip, onBack, allFlips, setAllFlips }) {
           <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
             <div style={{ background: "#fff", borderRadius: 20, width: 420, padding: 28 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-                <h2 style={{ color: "#0f172a", fontSize: 18, fontWeight: 700 }}>Add Rehab Item</h2>
-                <button onClick={() => { setShowAddRehab(false); setRehabForm(emptyRehab); }} style={{ background: "#f1f5f9", border: "none", borderRadius: 8, width: 32, height: 32, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><X size={16} color="#64748b" /></button>
+                <h2 style={{ color: "#0f172a", fontSize: 18, fontWeight: 700 }}>{editingRehabIdx !== null ? "Edit Rehab Item" : "Add Rehab Item"}</h2>
+                <button onClick={() => { setShowAddRehab(false); setRehabForm(emptyRehab); setEditingRehabIdx(null); }} style={{ background: "#f1f5f9", border: "none", borderRadius: 8, width: 32, height: 32, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><X size={16} color="#64748b" /></button>
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
                 <div>
@@ -4002,13 +4082,18 @@ function FlipDetail({ flip, onBack, allFlips, setAllFlips }) {
                 </div>
               </div>
               <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 22 }}>
-                <button onClick={() => { setShowAddRehab(false); setRehabForm(emptyRehab); }} style={{ padding: "10px 20px", borderRadius: 10, border: "1px solid #e2e8f0", background: "#fff", color: "#64748b", fontWeight: 600, fontSize: 14, cursor: "pointer" }}>Cancel</button>
+                <button onClick={() => { setShowAddRehab(false); setRehabForm(emptyRehab); setEditingRehabIdx(null); }} style={{ padding: "10px 20px", borderRadius: 10, border: "1px solid #e2e8f0", background: "#fff", color: "#64748b", fontWeight: 600, fontSize: 14, cursor: "pointer" }}>Cancel</button>
                 <button onClick={() => {
                   if (!rehabForm.category || !rehabForm.budgeted) return;
-                  setRehabItems(prev => [...prev, { category: rehabForm.category, budgeted: parseFloat(rehabForm.budgeted) || 0, spent: parseFloat(rehabForm.spent) || 0, status: rehabForm.status, contractorIds: [] }]);
+                  if (editingRehabIdx !== null) {
+                    setRehabItems(prev => prev.map((item, idx) => idx === editingRehabIdx ? { ...item, category: rehabForm.category, budgeted: parseFloat(rehabForm.budgeted) || 0, spent: parseFloat(rehabForm.spent) || 0, status: rehabForm.status } : item));
+                    setEditingRehabIdx(null);
+                  } else {
+                    setRehabItems(prev => [...prev, { category: rehabForm.category, budgeted: parseFloat(rehabForm.budgeted) || 0, spent: parseFloat(rehabForm.spent) || 0, status: rehabForm.status, contractorIds: [] }]);
+                  }
                   setRehabForm(emptyRehab);
                   setShowAddRehab(false);
-                }} style={{ padding: "10px 24px", borderRadius: 10, border: "none", background: "#f59e0b", color: "#fff", fontWeight: 600, fontSize: 14, cursor: "pointer", opacity: (!rehabForm.category || !rehabForm.budgeted) ? 0.5 : 1 }}>Add Item</button>
+                }} style={{ padding: "10px 24px", borderRadius: 10, border: "none", background: "#f59e0b", color: "#fff", fontWeight: 600, fontSize: 14, cursor: "pointer", opacity: (!rehabForm.category || !rehabForm.budgeted) ? 0.5 : 1 }}>{editingRehabIdx !== null ? "Save Changes" : "Add Item"}</button>
               </div>
             </div>
           </div>
@@ -4024,7 +4109,7 @@ function FlipDetail({ flip, onBack, allFlips, setAllFlips }) {
                 {flipExpenses.length} transactions . <strong style={{ color: "#b91c1c" }}>{fmt(totalExpensed)}</strong> total spent
               </p>
             </div>
-            <button onClick={() => setShowExpenseModal(true)} style={{ background: "#f59e0b", color: "#fff", border: "none", borderRadius: 10, padding: "10px 16px", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
+            <button onClick={() => { setEditingExpId(null); setExpForm(emptyExp); setShowExpenseModal(true); }} style={{ background: "#f59e0b", color: "#fff", border: "none", borderRadius: 10, padding: "10px 16px", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
               <Plus size={15} /> Log Expense
             </button>
           </div>
@@ -4067,7 +4152,10 @@ function FlipDetail({ flip, onBack, allFlips, setAllFlips }) {
                       <td style={{ padding: "13px 18px", fontSize: 13, color: "#475569" }}>{e.description}</td>
                       <td style={{ padding: "13px 18px", fontSize: 14, fontWeight: 700, color: "#b91c1c" }}>{fmt(e.amount)}</td>
                       <td style={{ padding: "13px 18px" }}>
-                        <button onClick={() => setDeleteConfirm({ type: "expense", item: e })} style={{ background: "none", border: "none", cursor: "pointer", color: "#ef4444", opacity: 0.6, padding: 4 }}><Trash2 size={13} /></button>
+                        <div style={{ display: "flex", gap: 4 }}>
+                          <button onClick={() => openEditExp(e)} style={{ background: "none", border: "none", cursor: "pointer", color: "#3b82f6", opacity: 0.6, padding: 4 }} title="Edit"><Edit3 size={13} /></button>
+                          <button onClick={() => setDeleteConfirm({ type: "expense", item: e })} style={{ background: "none", border: "none", cursor: "pointer", color: "#ef4444", opacity: 0.6, padding: 4 }} title="Delete"><Trash2 size={13} /></button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -4082,7 +4170,7 @@ function FlipDetail({ flip, onBack, allFlips, setAllFlips }) {
             )}
           </div>
           {showExpenseModal && (
-            <Modal title="Log Expense" onClose={() => setShowExpenseModal(false)}>
+            <Modal title={editingExpId ? "Edit Expense" : "Log Expense"} onClose={() => { setShowExpenseModal(false); setEditingExpId(null); setExpForm(emptyExp); }}>
               <p style={{ color: "#64748b", fontSize: 13, marginBottom: 16, marginTop: -12 }}>For: <strong>{flip.name}</strong></p>
               {[
                 { label: "Date", type: "date", key: "date" },
@@ -4102,8 +4190,8 @@ function FlipDetail({ flip, onBack, allFlips, setAllFlips }) {
                 </select>
               </div>
               <div style={{ display: "flex", gap: 10 }}>
-                <button onClick={() => setShowExpenseModal(false)} style={{ flex: 1, padding: "12px", border: "1px solid #e2e8f0", borderRadius: 10, background: "#fff", color: "#475569", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
-                <button onClick={handleSaveExp} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "#f59e0b", color: "#fff", fontWeight: 600, cursor: "pointer" }}>Save Expense</button>
+                <button onClick={() => { setShowExpenseModal(false); setEditingExpId(null); setExpForm(emptyExp); }} style={{ flex: 1, padding: "12px", border: "1px solid #e2e8f0", borderRadius: 10, background: "#fff", color: "#475569", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
+                <button onClick={handleSaveExp} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "#f59e0b", color: "#fff", fontWeight: 600, cursor: "pointer" }}>{editingExpId ? "Save Changes" : "Save Expense"}</button>
               </div>
             </Modal>
           )}
@@ -4113,7 +4201,7 @@ function FlipDetail({ flip, onBack, allFlips, setAllFlips }) {
         <div>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
             <p style={{ color: "#64748b", fontSize: 14 }}>{flipContractors.length} contractor{flipContractors.length !== 1 ? "s" : ""} on this project</p>
-            <button onClick={() => setShowContractorModal(true)} style={{ background: "#f59e0b", color: "#fff", border: "none", borderRadius: 10, padding: "10px 16px", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
+            <button onClick={() => { setEditingConId(null); setConForm(emptyCon); setShowContractorModal(true); }} style={{ background: "#f59e0b", color: "#fff", border: "none", borderRadius: 10, padding: "10px 16px", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
               <Plus size={15} /> Add Contractor
             </button>
           </div>
@@ -4143,7 +4231,8 @@ function FlipDetail({ flip, onBack, allFlips, setAllFlips }) {
                       </div>
                       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                         <span style={{ background: s.bg, color: s.text, borderRadius: 20, padding: "4px 12px", fontSize: 12, fontWeight: 700, textTransform: "capitalize" }}>{c.status}</span>
-                        <button onClick={() => setDeleteConfirm({ type: "contractor", item: c })} style={{ background: "none", border: "none", cursor: "pointer", color: "#ef4444", opacity: 0.5, padding: 4 }}><Trash2 size={14} /></button>
+                        <button onClick={() => openEditCon(c)} style={{ background: "none", border: "none", cursor: "pointer", color: "#3b82f6", opacity: 0.5, padding: 4 }} title="Edit"><Edit3 size={14} /></button>
+                        <button onClick={() => setDeleteConfirm({ type: "contractor", item: c })} style={{ background: "none", border: "none", cursor: "pointer", color: "#ef4444", opacity: 0.5, padding: 4 }} title="Delete"><Trash2 size={14} /></button>
                       </div>
                     </div>
                     <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
@@ -4189,7 +4278,7 @@ function FlipDetail({ flip, onBack, allFlips, setAllFlips }) {
         </div>
       )}
       {showContractorModal && (
-        <Modal title="Add Contractor" onClose={() => setShowContractorModal(false)}>
+        <Modal title={editingConId ? "Edit Contractor" : "Add Contractor"} onClose={() => { setShowContractorModal(false); setEditingConId(null); setConForm(emptyCon); }}>
           {[
             { label: "Name / Company", key: "name", type: "text", placeholder: "e.g. ABC Plumbing" },
             { label: "Trade", key: "trade", type: "text", placeholder: "e.g. Plumbing, Electrical" },
@@ -4224,8 +4313,8 @@ function FlipDetail({ flip, onBack, allFlips, setAllFlips }) {
             </select>
           </div>
           <div style={{ display: "flex", gap: 10 }}>
-            <button onClick={() => setShowContractorModal(false)} style={{ flex: 1, padding: "12px", border: "1px solid #e2e8f0", borderRadius: 10, background: "#fff", color: "#475569", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
-            <button onClick={handleSaveCon} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "#f59e0b", color: "#fff", fontWeight: 600, cursor: "pointer" }}>Add Contractor</button>
+            <button onClick={() => { setShowContractorModal(false); setEditingConId(null); setConForm(emptyCon); }} style={{ flex: 1, padding: "12px", border: "1px solid #e2e8f0", borderRadius: 10, background: "#fff", color: "#475569", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
+            <button onClick={handleSaveCon} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "#f59e0b", color: "#fff", fontWeight: 600, cursor: "pointer" }}>{editingConId ? "Save Changes" : "Add Contractor"}</button>
           </div>
         </Modal>
       )}
@@ -4251,17 +4340,31 @@ function FlipDetail({ flip, onBack, allFlips, setAllFlips }) {
                   {m.done ? <CheckSquare size={20} /> : <Square size={20} />}
                 </div>
                 <div onClick={() => {
+                  if (editingMilestoneIdx === i) return;
                   const updated = milestones.map((item, idx) => idx === i ? { ...item, done: !item.done, date: !item.done ? new Date().toISOString().split("T")[0] : null } : item);
                   setMilestones(updated);
                 }} style={{ flex: 1, cursor: "pointer" }}>
-                  <p style={{ fontSize: 14, fontWeight: m.done ? 600 : 500, color: m.done ? "#0f172a" : "#475569" }}>{m.label}</p>
+                  {editingMilestoneIdx === i ? (
+                    <input value={milestoneEditText} onChange={e => setMilestoneEditText(e.target.value)} onBlur={() => {
+                      if (milestoneEditText.trim()) setMilestones(prev => prev.map((item, idx) => idx === i ? { ...item, label: milestoneEditText.trim() } : item));
+                      setEditingMilestoneIdx(null);
+                    }} onKeyDown={e => {
+                      if (e.key === "Enter") { e.target.blur(); }
+                      if (e.key === "Escape") setEditingMilestoneIdx(null);
+                    }} autoFocus style={{ ...iS, padding: "4px 8px", fontSize: 14 }} onClick={e => e.stopPropagation()} />
+                  ) : (
+                    <p style={{ fontSize: 14, fontWeight: m.done ? 600 : 500, color: m.done ? "#0f172a" : "#475569" }}>{m.label}</p>
+                  )}
                 </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                   {m.done && m.date ? (
                     <span style={{ fontSize: 12, color: "#10b981", fontWeight: 600 }}>&#10003; {m.date}</span>
                   ) : (
                     <span style={{ fontSize: 12, color: "#cbd5e1" }}>Pending</span>
                   )}
+                  <button onClick={(e) => { e.stopPropagation(); setEditingMilestoneIdx(i); setMilestoneEditText(m.label); }} style={{ background: "none", border: "none", cursor: "pointer", color: "#3b82f6", opacity: 0.4, padding: 4 }} title="Rename milestone">
+                    <Edit3 size={13} />
+                  </button>
                   <button onClick={(e) => { e.stopPropagation(); setDeleteConfirm({ type: "milestone", item: m, index: i }); }} style={{ background: "none", border: "none", cursor: "pointer", color: "#ef4444", opacity: 0.4, padding: 4 }} title="Remove milestone">
                     <Trash2 size={13} />
                   </button>
@@ -4286,6 +4389,60 @@ function FlipDetail({ flip, onBack, allFlips, setAllFlips }) {
             </div>
           </div>
         </div>
+      )}
+      {showEditDeal && (
+        <Modal title="Edit Deal" onClose={() => setShowEditDeal(false)}>
+          <div style={{ maxHeight: "60vh", overflowY: "auto", paddingRight: 4 }}>
+            {[
+              { label: "Deal Name", key: "name", type: "text", placeholder: "e.g. Oakdale Craftsman" },
+              { label: "Address", key: "address", type: "text", placeholder: "Full address" },
+            ].map(f => (
+              <div key={f.key} style={{ marginBottom: 14 }}>
+                <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>{f.label}</label>
+                <input type={f.type} placeholder={f.placeholder} value={dealEditForm[f.key] || ""} onChange={sfD(f.key)} style={iS} />
+              </div>
+            ))}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14 }}>
+              {[
+                { label: "Purchase Price ($)", key: "purchasePrice", placeholder: "195000" },
+                { label: "ARV ($)", key: "arv", placeholder: "310000" },
+                { label: "Rehab Budget ($)", key: "rehabBudget", placeholder: "62000" },
+                { label: "Holding Costs / Month ($)", key: "holdingCostsPerMonth", placeholder: "1850" },
+              ].map(f => (
+                <div key={f.key}>
+                  <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>{f.label}</label>
+                  <input type="number" placeholder={f.placeholder} value={dealEditForm[f.key] || ""} onChange={sfD(f.key)} style={iS} />
+                </div>
+              ))}
+            </div>
+            {stage === "Sold" && (
+              <div style={{ marginBottom: 14 }}>
+                <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Sale Price ($)</label>
+                <input type="number" placeholder="361500" value={dealEditForm.salePrice || ""} onChange={sfD("salePrice")} style={iS} />
+              </div>
+            )}
+            <p style={{ color: "#94a3b8", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 10, marginTop: 8 }}>Key Dates</p>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14 }}>
+              {[
+                { label: "Acquisition Date", key: "acquisitionDate" },
+                { label: "Rehab Start", key: "rehabStartDate" },
+                { label: "Rehab Complete", key: "rehabEndDate" },
+                { label: "Listed Date", key: "listDate" },
+                { label: "Projected List Date", key: "projectedListDate" },
+                { label: stage === "Sold" ? "Close Date" : "Projected Close", key: stage === "Sold" ? "closeDate" : "projectedCloseDate" },
+              ].map(f => (
+                <div key={f.key}>
+                  <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>{f.label}</label>
+                  <input type="date" value={dealEditForm[f.key] || ""} onChange={sfD(f.key)} style={iS} />
+                </div>
+              ))}
+            </div>
+          </div>
+          <div style={{ display: "flex", gap: 10, marginTop: 8 }}>
+            <button onClick={() => setShowEditDeal(false)} style={{ flex: 1, padding: "12px", border: "1px solid #e2e8f0", borderRadius: 10, background: "#fff", color: "#475569", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
+            <button onClick={handleSaveDeal} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "#f59e0b", color: "#fff", fontWeight: 700, cursor: "pointer" }}>Save Changes</button>
+          </div>
+        </Modal>
       )}
       {deleteConfirm && (
         <Modal title={`Delete ${deleteConfirm.type === "expense" ? "Expense" : deleteConfirm.type === "contractor" ? "Contractor" : deleteConfirm.type === "rehab" ? "Rehab Item" : "Milestone"}`} onClose={() => setDeleteConfirm(null)}>
