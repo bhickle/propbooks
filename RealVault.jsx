@@ -2452,23 +2452,25 @@ function Reports() {
           <p style={{ color: "#64748b", fontSize: 15 }}>Financial summaries, tax reports, and lender packages</p>
         </div>
         <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-          <select value={taxYear} onChange={e => setTaxYear(e.target.value)} style={{ ...iS, width: 110, fontWeight: 700 }}>
-            {isTaxReport ? (
-              <>
-                <option value="2026">TY 2026</option>
-                <option value="2025">TY 2025</option>
-                <option value="2024">TY 2024</option>
-                <option value="2023">TY 2023</option>
-              </>
-            ) : (
-              <>
-                <option value="2026">2026</option>
-                <option value="2025">2025</option>
-                <option value="2024">2024</option>
-                <option value="2023">2023</option>
-              </>
-            )}
-          </select>
+          {activeReport !== "transactions" && (
+            <select value={taxYear} onChange={e => setTaxYear(e.target.value)} style={{ ...iS, width: 110, fontWeight: 700 }}>
+              {isTaxReport ? (
+                <>
+                  <option value="2026">TY 2026</option>
+                  <option value="2025">TY 2025</option>
+                  <option value="2024">TY 2024</option>
+                  <option value="2023">TY 2023</option>
+                </>
+              ) : (
+                <>
+                  <option value="2026">2026</option>
+                  <option value="2025">2025</option>
+                  <option value="2024">2024</option>
+                  <option value="2023">2023</option>
+                </>
+              )}
+            </select>
+          )}
           <select value={propFilter} onChange={e => setPropFilter(e.target.value)} style={{ ...iS, width: 220 }}>
             <option value="all">All Properties</option>
             {PROPERTIES.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
@@ -2528,7 +2530,7 @@ function Reports() {
           <div style={{ borderTop: "1px solid #f1f5f9", marginTop: 12, paddingTop: 12 }}>
             <p style={{ fontSize: 11, color: "#94a3b8", fontWeight: 600, textTransform: "uppercase", padding: "0 14px", marginBottom: 6 }}>Scope</p>
             <p style={{ fontSize: 12, color: "#475569", padding: "0 14px", fontWeight: 600 }}>{propFilter === "all" ? `All ${PROPERTIES.length} properties` : PROPERTIES.find(p => p.id === Number(propFilter))?.name}</p>
-            <p style={{ fontSize: 12, color: "#94a3b8", padding: "0 14px" }}>{isTaxReport ? `Tax Year ${taxYear}` : `Year ${taxYear}`}</p>
+            <p style={{ fontSize: 12, color: "#94a3b8", padding: "0 14px" }}>{activeReport === "transactions" ? `${txDateFrom} – ${txDateTo}` : isTaxReport ? `Tax Year ${taxYear}` : `Year ${taxYear}`}</p>
           </div>
         </div>
 
