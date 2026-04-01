@@ -5,14 +5,14 @@
 
 import { useState, useMemo } from "react";
 import {
-  BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid,
-  Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend,
+  BarChart, Bar, LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid,
+  Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, ReferenceLine,
 } from "recharts";
 import {
   Hammer, DollarSign, TrendingUp, Star, Plus, Search, Filter,
   CheckCircle, Clock, AlertCircle, ChevronRight, X, Trash2, Pencil,
   Wrench, Users, Receipt, BarChart3, Target, Calendar, Flag,
-  ArrowUp, ArrowDown, Truck, Building2,
+  ArrowUp, ArrowDown, Truck, Building2, MapPin, Home,
 } from "lucide-react";
 import {
   fmt, fmtK, newId, STAGE_ORDER, STAGE_COLORS,
@@ -1264,16 +1264,61 @@ export function FlipAnalytics() {
   const avgDays   = timelineData.length ? Math.round(timelineData.reduce((s, d) => s + d.days, 0) / timelineData.length) : 0;
   const totalProfit = sold.reduce((s, f) => s + (f.netProfit || 0), 0);
 
+  // Single-deal mode
+  const singleDeal = filterDeal !== "all" ? allFlips.find(f => f.id === parseInt(filterDeal)) : null;
+
+  // Single-deal computed data
+  const dealExpenses = singleDeal ? _FE.filter(e => e.flipId === singleDeal.id).sort((a, b) => a.date.localeCompare(b.date)) : [];
+  const dealCatSpend = singleDeal ? dealExpenses.reduce((acc, e) => { acc[e.category] = (acc[e.category] || 0) + e.amount; return acc; }, {}) : {};
+  const dealCatChart = Object.entries(dealCatSpend).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value);
+
+  // Cumulative spend curve for single deal
+  const spendCurve = useMemo(() => {
+    if (!singleDeal || dealExpenses.length === 0) return [];
+    let cumulative = 0;
+    const points = dealExpenses.map(e => {
+      cumulative += e.amount;
+      const d = new Date(e.date);
+      return { date: d.toLocaleDateString("en-US", { month: "short", day: "numeric" }), spent: cumulative, budget: singleDeal.rehabBudget };
+    });
+    return points;
+  }, [singleDeal, dealExpenses]);
+
+  // Single-deal scorecard metrics
+  const dealROI = singleDeal ? roiData.find(r => r.fullName === singleDeal.name) : null;
+  const dealHolding = singleDeal ? (singleDeal.stage === "Sold" ? singleDeal.totalHoldingCosts : Math.round(singleDeal.holdingCostsPerMonth * ((singleDeal.daysOwned || 0) / 30))) : 0;
+  const dealCostPerDay = singleDeal && singleDeal.daysOwned > 0 ? Math.round((singleDeal.rehabSpent + dealHolding) / singleDeal.daysOwned) : 0;
+
+  // Rehab item progress for single deal
+  const rehabProgress = singleDeal ? (singleDeal.rehabItems || []).map(item => ({
+    name: item.category.length > 14 ? item.category.substring(0, 14) + "..." : item.category,
+    fullName: item.category,
+    budgeted: item.budgeted,
+    spent: item.spent,
+    pct: item.budgeted > 0 ? Math.round((item.spent / item.budgeted) * 100) : 0,
+    status: item.status,
+  })) : [];
+
   return (
     <div>
-      <PageHeader title="Flip Analytics" sub="Performance metrics across all deals" />
+      <PageHeader title="Flip Analytics" sub={singleDeal ? singleDeal.name : "Performance metrics across all deals"} />
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 28 }}>
-        <StatCard icon={TrendingUp}  label="Avg ROI"          value={`${avgROI}%`}          sub={isFiltered ? "Filtered" : "All deals"}         color="#10b981" />
-        <StatCard icon={Clock}       label="Avg Hold Time"    value={`${avgDays} days`}      sub={isFiltered ? "Filtered" : "Active deals"}      color="#3b82f6" />
-        <StatCard icon={Star}        label="Total Realized"   value={fmt(totalProfit)}       sub={isFiltered ? "Filtered" : "Closed deals"}      color="#8b5cf6" />
-        <StatCard icon={BarChart3}   label="Deals Analyzed"   value={flips.length}           sub={`${sold.length} closed`} color="#f59e0b" />
-      </div>
+      {/* Stat cards — portfolio vs single-deal */}
+      {singleDeal ? (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 28 }}>
+          <StatCard icon={TrendingUp} label="Projected ROI" value={`${dealROI?.roi || 0}%`} sub={singleDeal.stage} color="#10b981" />
+          <StatCard icon={Clock} label="Days Owned" value={singleDeal.daysOwned || 0} sub={dealCostPerDay > 0 ? `${fmt(dealCostPerDay)}/day` : "Not started"} color="#3b82f6" />
+          <StatCard icon={DollarSign} label="Rehab Spent" value={fmt(singleDeal.rehabSpent)} sub={`of ${fmt(singleDeal.rehabBudget)} budget`} color="#f59e0b" />
+          <StatCard icon={Star} label="Proj. Profit" value={fmt(dealROI?.profit || 0)} sub={singleDeal.stage === "Sold" ? "Realized" : "Estimated"} color="#8b5cf6" />
+        </div>
+      ) : (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 28 }}>
+          <StatCard icon={TrendingUp}  label="Avg ROI"          value={`${avgROI}%`}          sub={isFiltered ? "Filtered" : "All deals"}         color="#10b981" />
+          <StatCard icon={Clock}       label="Avg Hold Time"    value={`${avgDays} days`}      sub={isFiltered ? "Filtered" : "Active deals"}      color="#3b82f6" />
+          <StatCard icon={Star}        label="Total Realized"   value={fmt(totalProfit)}       sub={isFiltered ? "Filtered" : "Closed deals"}      color="#8b5cf6" />
+          <StatCard icon={BarChart3}   label="Deals Analyzed"   value={flips.length}           sub={`${sold.length} closed`} color="#f59e0b" />
+        </div>
+      )}
 
       {/* Filter bar */}
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20, flexWrap: "wrap" }}>
@@ -1300,6 +1345,152 @@ export function FlipAnalytics() {
         )}
       </div>
 
+      {/* ======== SINGLE-DEAL VIEW ======== */}
+      {singleDeal ? (<>
+        {/* Deal Scorecard */}
+        <div style={{ background: "#fff", borderRadius: 16, padding: 22, border: "1px solid #f1f5f9", marginBottom: 20 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
+            <div style={{ width: 36, height: 36, borderRadius: 10, background: singleDeal.color + "20", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, color: singleDeal.color }}>{singleDeal.image}</div>
+            <div>
+              <p style={{ color: "#0f172a", fontSize: 16, fontWeight: 700, margin: 0 }}>{singleDeal.name}</p>
+              <p style={{ color: "#94a3b8", fontSize: 12, margin: 0, display: "flex", alignItems: "center", gap: 4 }}><MapPin size={11} /> {singleDeal.address}</p>
+            </div>
+            <div style={{ marginLeft: "auto" }}><StageDot stage={singleDeal.stage} /></div>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 12 }}>
+            {[
+              { label: "Purchase Price", value: fmt(singleDeal.purchasePrice) },
+              { label: "Rehab Budget", value: fmt(singleDeal.rehabBudget) },
+              { label: "ARV / Sale", value: fmt(singleDeal.stage === "Sold" ? singleDeal.salePrice : singleDeal.arv) },
+              { label: "Holding Costs", value: fmt(dealHolding) },
+              { label: "Total Invested", value: fmt(singleDeal.purchasePrice + singleDeal.rehabSpent + dealHolding) },
+            ].map(item => (
+              <div key={item.label} style={{ background: "#f8fafc", borderRadius: 10, padding: "10px 14px" }}>
+                <p style={{ color: "#94a3b8", fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.04em", margin: 0 }}>{item.label}</p>
+                <p style={{ color: "#0f172a", fontSize: 16, fontWeight: 700, margin: "4px 0 0" }}>{item.value}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 20 }}>
+          {/* Cumulative Spend Curve */}
+          <div style={{ background: "#fff", borderRadius: 16, padding: 22, border: "1px solid #f1f5f9" }}>
+            <p style={{ color: "#0f172a", fontSize: 15, fontWeight: 700, marginBottom: 4 }}>Rehab Spend Curve</p>
+            <p style={{ color: "#94a3b8", fontSize: 12, marginBottom: 16 }}>Cumulative spend vs budget over time</p>
+            {spendCurve.length > 0 ? (
+              <ResponsiveContainer width="100%" height={200}>
+                <AreaChart data={spendCurve}>
+                  <defs>
+                    <linearGradient id="spendGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.15} />
+                      <stop offset="95%" stopColor="#f59e0b" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                  <XAxis dataKey="date" tick={{ fontSize: 11, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 12, fill: "#94a3b8" }} axisLine={false} tickLine={false} tickFormatter={v => `$${(v/1000).toFixed(0)}K`} />
+                  <Tooltip formatter={v => fmt(v)} contentStyle={{ borderRadius: 10, border: "1px solid #e2e8f0", fontSize: 12 }} />
+                  <ReferenceLine y={singleDeal.rehabBudget} stroke="#ef4444" strokeDasharray="6 4" label={{ value: "Budget", position: "right", fontSize: 11, fill: "#ef4444" }} />
+                  <Area type="monotone" dataKey="spent" stroke="#f59e0b" strokeWidth={2.5} fill="url(#spendGrad)" dot={{ fill: "#f59e0b", r: 3 }} />
+                </AreaChart>
+              </ResponsiveContainer>
+            ) : (
+              <div style={{ height: 200, display: "flex", alignItems: "center", justifyContent: "center", color: "#94a3b8", fontSize: 13 }}>No expenses recorded yet</div>
+            )}
+          </div>
+
+          {/* Expense Category Breakdown (single deal) */}
+          <div style={{ background: "#fff", borderRadius: 16, padding: 22, border: "1px solid #f1f5f9" }}>
+            <p style={{ color: "#0f172a", fontSize: 15, fontWeight: 700, marginBottom: 4 }}>Cost Breakdown</p>
+            <p style={{ color: "#94a3b8", fontSize: 12, marginBottom: 16 }}>Expenses by category</p>
+            {dealCatChart.length > 0 ? (
+              <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+                <ResponsiveContainer width={160} height={160}>
+                  <PieChart>
+                    <Pie data={dealCatChart} cx="50%" cy="50%" innerRadius={45} outerRadius={70} dataKey="value" paddingAngle={2}>
+                      {dealCatChart.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                    </Pie>
+                  </PieChart>
+                </ResponsiveContainer>
+                <div style={{ flex: 1 }}>
+                  {dealCatChart.map((d, i) => (
+                    <div key={d.name} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                        <div style={{ width: 8, height: 8, borderRadius: 2, background: COLORS[i % COLORS.length], flexShrink: 0 }} />
+                        <span style={{ fontSize: 12, color: "#374151" }}>{d.name}</span>
+                      </div>
+                      <span style={{ fontSize: 12, fontWeight: 600, color: "#0f172a" }}>{fmt(d.value)}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div style={{ height: 160, display: "flex", alignItems: "center", justifyContent: "center", color: "#94a3b8", fontSize: 13 }}>No expenses recorded yet</div>
+            )}
+          </div>
+        </div>
+
+        {/* Rehab Item Progress */}
+        <div style={{ background: "#fff", borderRadius: 16, padding: 22, border: "1px solid #f1f5f9", marginBottom: 20 }}>
+          <p style={{ color: "#0f172a", fontSize: 15, fontWeight: 700, marginBottom: 4 }}>Rehab Item Progress</p>
+          <p style={{ color: "#94a3b8", fontSize: 12, marginBottom: 16 }}>Budget consumed per line item</p>
+          {rehabProgress.length > 0 ? (
+            <div style={{ display: "grid", gap: 10 }}>
+              {rehabProgress.map((item, i) => {
+                const overBudget = item.pct > 100;
+                const barColor = item.status === "complete" ? "#10b981" : overBudget ? "#ef4444" : "#f59e0b";
+                return (
+                  <div key={i} style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                    <span style={{ fontSize: 12, color: "#374151", fontWeight: 500, width: 130, flexShrink: 0 }} title={item.fullName}>{item.name}</span>
+                    <div style={{ flex: 1, background: "#f1f5f9", borderRadius: 6, height: 22, position: "relative", overflow: "hidden" }}>
+                      <div style={{ width: `${Math.min(item.pct, 100)}%`, height: "100%", background: barColor, borderRadius: 6, transition: "width 0.3s" }} />
+                      <span style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", fontSize: 11, fontWeight: 600, color: item.pct > 60 ? "#fff" : "#374151" }}>{item.pct}%</span>
+                    </div>
+                    <span style={{ fontSize: 12, color: "#94a3b8", width: 100, textAlign: "right", flexShrink: 0 }}>{fmt(item.spent)} / {fmt(item.budgeted)}</span>
+                    <span style={{ fontSize: 10, fontWeight: 600, textTransform: "uppercase", padding: "2px 8px", borderRadius: 6, background: item.status === "complete" ? "#dcfce7" : item.status === "in-progress" ? "#fef3c7" : "#f1f5f9", color: item.status === "complete" ? "#16a34a" : item.status === "in-progress" ? "#d97706" : "#94a3b8", flexShrink: 0 }}>{item.status}</span>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div style={{ padding: 20, textAlign: "center", color: "#94a3b8", fontSize: 13 }}>No rehab items configured</div>
+          )}
+        </div>
+
+        {/* Expense Log */}
+        <div style={{ background: "#fff", borderRadius: 16, border: "1px solid #f1f5f9", overflow: "hidden" }}>
+          <div style={{ padding: "16px 22px", borderBottom: "1px solid #f1f5f9" }}>
+            <p style={{ color: "#0f172a", fontSize: 15, fontWeight: 700 }}>Expense Log</p>
+          </div>
+          {dealExpenses.length > 0 ? (
+            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+              <thead>
+                <tr style={{ background: "#f8fafc" }}>
+                  {["Date", "Paid To", "Category", "Description", "Amount"].map(h => (
+                    <th key={h} style={{ textAlign: "left", color: "#94a3b8", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.04em", padding: "10px 16px" }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {dealExpenses.map(e => (
+                  <tr key={e.id} style={{ borderTop: "1px solid #f1f5f9" }}>
+                    <td style={{ padding: "10px 16px", color: "#64748b", fontSize: 13 }}>{new Date(e.date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</td>
+                    <td style={{ padding: "10px 16px", color: "#0f172a", fontSize: 13, fontWeight: 500 }}>{e.vendor}</td>
+                    <td style={{ padding: "10px 16px" }}><span style={{ fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 6, background: "#f1f5f9", color: "#64748b" }}>{e.category}</span></td>
+                    <td style={{ padding: "10px 16px", color: "#64748b", fontSize: 13 }}>{e.description}</td>
+                    <td style={{ padding: "10px 16px", color: "#0f172a", fontSize: 13, fontWeight: 600 }}>{fmt(e.amount)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : (
+            <div style={{ padding: 30, textAlign: "center", color: "#94a3b8", fontSize: 13 }}>No expenses recorded for this deal</div>
+          )}
+        </div>
+      </>) : (<>
+
+      {/* ======== PORTFOLIO VIEW (existing) ======== */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 20 }}>
         {/* ROI by Deal */}
         <div style={{ background: "#fff", borderRadius: 16, padding: 22, border: "1px solid #f1f5f9" }}>
@@ -1460,6 +1651,7 @@ export function FlipAnalytics() {
           </tbody>
         </table>
       </div>
+      </>)}
     </div>
   );
 }
