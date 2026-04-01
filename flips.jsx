@@ -667,6 +667,9 @@ export function FlipExpenses() {
   const [expenses, setExpenses] = useState([..._FE]);
   const [filterFlip, setFilterFlip]     = useState("all");
   const [filterCat, setFilterCat]       = useState("all");
+  const [dateFilter, setDateFilter]     = useState("all");
+  const [dateFrom, setDateFrom]         = useState("");
+  const [dateTo, setDateTo]             = useState("");
   const [showModal, setShowModal]       = useState(false);
   const [editId, setEditId]             = useState(null);
   const [search, setSearch]             = useState("");
@@ -694,10 +697,36 @@ export function FlipExpenses() {
     setShowModal(true);
   };
 
+  // Date filter
+  const now = new Date();
+  const thisYear = now.getFullYear();
+  const thisMonthIdx = now.getMonth();
+  const matchesDate = e => {
+    if (dateFilter === "all") return true;
+    const d = new Date(e.date);
+    if (dateFilter === "thisMonth") return d.getFullYear() === thisYear && d.getMonth() === thisMonthIdx;
+    if (dateFilter === "lastMonth") {
+      const lm = thisMonthIdx === 0 ? 11 : thisMonthIdx - 1;
+      const ly = thisMonthIdx === 0 ? thisYear - 1 : thisYear;
+      return d.getFullYear() === ly && d.getMonth() === lm;
+    }
+    if (dateFilter === "thisYear") return d.getFullYear() === thisYear;
+    if (dateFilter === "lastYear") return d.getFullYear() === thisYear - 1;
+    if (dateFilter === "custom") {
+      if (dateFrom && e.date < dateFrom) return false;
+      if (dateTo && e.date > dateTo) return false;
+      return true;
+    }
+    return true;
+  };
+  const clearAllFilters = () => { setFilterFlip("all"); setFilterCat("all"); setDateFilter("all"); setDateFrom(""); setDateTo(""); setSearch(""); };
+  const hasActiveFilters = filterFlip !== "all" || filterCat !== "all" || dateFilter !== "all" || search;
+
   const filtered = expenses.filter(e => {
     if (filterFlip !== "all" && e.flipId !== parseInt(filterFlip)) return false;
     if (filterCat  !== "all" && e.category !== filterCat) return false;
     if (search && !e.description.toLowerCase().includes(search.toLowerCase()) && !e.vendor.toLowerCase().includes(search.toLowerCase())) return false;
+    if (!matchesDate(e)) return false;
     return true;
   });
 
@@ -751,22 +780,48 @@ export function FlipExpenses() {
         <StatCard icon={Hammer}     label="Largest Category"  value={catTotals[0]?.cat || "—"} sub={catTotals[0] ? fmt(catTotals[0].total) : ""}  color="#8b5cf6" />
       </div>
 
-      {/* Filters */}
-      <div style={{ display: "flex", gap: 10, marginBottom: 18, flexWrap: "wrap" }}>
-        <div style={{ background: "#f1f5f9", borderRadius: 10, padding: "8px 14px", display: "flex", alignItems: "center", gap: 8, flex: 1, minWidth: 200 }}>
-          <Search size={13} color="#94a3b8" />
-          <input placeholder="Search paid to or description..." value={search} onChange={e => setSearch(e.target.value)}
-            style={{ border: "none", background: "transparent", fontSize: 13, color: "#475569", outline: "none", width: "100%" }} />
+      {/* Filter bar */}
+      <div style={{ display: "flex", gap: 10, marginBottom: hasActiveFilters ? 10 : 20, flexWrap: "wrap", alignItems: "center" }}>
+        <div style={{ position: "relative", flex: "1 1 200px", minWidth: 180 }}>
+          <Search size={15} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "#94a3b8" }} />
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search..."
+            style={{ width: "100%", paddingLeft: 36, paddingRight: 12, paddingTop: 9, paddingBottom: 9, border: "1px solid #e2e8f0", borderRadius: 10, fontSize: 13, color: "#0f172a", background: "#fff", outline: "none", boxSizing: "border-box" }} />
         </div>
-        <select value={filterFlip} onChange={e => setFilterFlip(e.target.value)} style={{ ...iS, width: "auto", padding: "8px 12px", fontSize: 13 }}>
+        <select value={filterFlip} onChange={e => setFilterFlip(e.target.value)} style={{ ...iS, width: "auto", minWidth: 160, fontSize: 13, padding: "9px 12px" }}>
           <option value="all">All Flips</option>
           {_FLIPS.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
         </select>
-        <select value={filterCat} onChange={e => setFilterCat(e.target.value)} style={{ ...iS, width: "auto", padding: "8px 12px", fontSize: 13 }}>
+        <select value={filterCat} onChange={e => setFilterCat(e.target.value)} style={{ ...iS, width: "auto", minWidth: 160, fontSize: 13, padding: "9px 12px" }}>
           <option value="all">All Categories</option>
           {EXPENSE_CATS.map(c => <option key={c} value={c}>{c}</option>)}
         </select>
+        <select value={dateFilter} onChange={e => { setDateFilter(e.target.value); if (e.target.value !== "custom") { setDateFrom(""); setDateTo(""); } }} style={{ ...iS, width: "auto", minWidth: 140, fontSize: 13, padding: "9px 12px" }}>
+          <option value="all">All Time</option>
+          <option value="thisMonth">This Month</option>
+          <option value="lastMonth">Last Month</option>
+          <option value="thisYear">This Year</option>
+          <option value="lastYear">Last Year</option>
+          <option value="custom">Custom Range</option>
+        </select>
+        {dateFilter === "custom" && (
+          <>
+            <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} style={{ ...iS, width: "auto", fontSize: 13, padding: "9px 12px" }} />
+            <span style={{ color: "#94a3b8", fontSize: 13, alignSelf: "center" }}>to</span>
+            <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} style={{ ...iS, width: "auto", fontSize: 13, padding: "9px 12px" }} />
+          </>
+        )}
       </div>
+      {/* Active filter chips */}
+      {hasActiveFilters && (
+        <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap", alignItems: "center" }}>
+          <span style={{ fontSize: 12, color: "#94a3b8", fontWeight: 600 }}>Filtered:</span>
+          {filterFlip !== "all" && <span style={{ background: "#eff6ff", color: "#3b82f6", borderRadius: 20, padding: "3px 10px", fontSize: 12, fontWeight: 600 }}>{_FLIPS.find(f => f.id === parseInt(filterFlip))?.name || filterFlip}</span>}
+          {filterCat !== "all" && <span style={{ background: "#fef9c3", color: "#854d0e", borderRadius: 20, padding: "3px 10px", fontSize: 12, fontWeight: 600 }}>{filterCat}</span>}
+          {dateFilter !== "all" && <span style={{ background: "#f0fdf4", color: "#15803d", borderRadius: 20, padding: "3px 10px", fontSize: 12, fontWeight: 600 }}>{{ thisMonth: "This Month", lastMonth: "Last Month", thisYear: "This Year", lastYear: "Last Year", custom: dateFrom && dateTo ? `${dateFrom} – ${dateTo}` : "Custom Range" }[dateFilter]}</span>}
+          {search && <span style={{ background: "#f1f5f9", color: "#475569", borderRadius: 20, padding: "3px 10px", fontSize: 12, fontWeight: 600 }}>&ldquo;{search}&rdquo;</span>}
+          <button onClick={clearAllFilters} style={{ background: "none", border: "none", color: "#94a3b8", fontSize: 12, cursor: "pointer", textDecoration: "underline", padding: 0 }}>Clear all</button>
+        </div>
+      )}
 
       {/* Table */}
       <div style={{ background: "#fff", borderRadius: 16, border: "1px solid #f1f5f9", overflow: "hidden" }}>
@@ -779,6 +834,12 @@ export function FlipExpenses() {
             </tr>
           </thead>
           <tbody>
+            {filtered.length === 0 && (
+              <tr><td colSpan={7} style={{ padding: "48px 20px", textAlign: "center", color: "#94a3b8", fontSize: 14 }}>
+                No expenses match your filters.{" "}
+                <button onClick={clearAllFilters} style={{ background: "none", border: "none", color: "#f59e0b", fontSize: 14, cursor: "pointer", textDecoration: "underline", padding: 0 }}>Clear filters</button>
+              </td></tr>
+            )}
             {filtered.map((e, i) => {
               const flip = _FLIPS.find(f => f.id === e.flipId);
               return (
