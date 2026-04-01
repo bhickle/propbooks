@@ -78,7 +78,16 @@ function PageHeader({ title, sub, action }) {
 // 1. FLIP DASHBOARD
 // ---------------------------------------------------------------------------
 export function FlipDashboard({ onSelect }) {
-  const flips = _FLIPS;
+  const [filterStage, setFilterStage] = useState("all");
+  const [filterDeal, setFilterDeal] = useState("all");
+
+  const allFlips = _FLIPS;
+  const flips = allFlips.filter(f => {
+    if (filterStage !== "all" && f.stage !== filterStage) return false;
+    if (filterDeal !== "all" && f.id !== parseInt(filterDeal)) return false;
+    return true;
+  });
+
   const active = flips.filter(f => f.stage !== "Sold");
   const sold   = flips.filter(f => f.stage === "Sold");
 
@@ -103,9 +112,36 @@ export function FlipDashboard({ onSelect }) {
     { text: "Birchwood Colonial – closed at $361,500",        date: "Aug 29", icon: Star,     color: "#6b7280" },
   ];
 
+  const isFiltered = filterStage !== "all" || filterDeal !== "all";
+
   return (
     <div>
       <PageHeader title="Overview" sub="All fix & flip deals at a glance" />
+
+      {/* Filter bar */}
+      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20, flexWrap: "wrap" }}>
+        <div style={{ display: "flex", gap: 4, background: "#f8fafc", borderRadius: 10, padding: 4, border: "1px solid #e2e8f0" }}>
+          {["all", ...STAGE_ORDER].map(s => {
+            const active2 = filterStage === s;
+            const label = s === "all" ? "All Stages" : s;
+            const count = s === "all" ? allFlips.length : allFlips.filter(f => f.stage === s).length;
+            return (
+              <button key={s} onClick={() => setFilterStage(s)} style={{ padding: "6px 14px", borderRadius: 8, border: "none", background: active2 ? "#f59e0b" : "transparent", color: active2 ? "#fff" : "#64748b", fontWeight: active2 ? 700 : 500, fontSize: 12, cursor: "pointer", whiteSpace: "nowrap", transition: "all 0.15s" }}>
+                {label} ({count})
+              </button>
+            );
+          })}
+        </div>
+        <select value={filterDeal} onChange={e => setFilterDeal(e.target.value)} style={{ ...iS, width: "auto", minWidth: 180, fontSize: 13, padding: "7px 12px" }}>
+          <option value="all">All Deals</option>
+          {allFlips.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
+        </select>
+        {isFiltered && (
+          <button onClick={() => { setFilterStage("all"); setFilterDeal("all"); }} style={{ background: "none", border: "none", color: "#94a3b8", fontSize: 12, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
+            <X size={13} /> Clear filters
+          </button>
+        )}
+      </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 28 }}>
         <StatCard icon={Hammer}     label="Active Deals"     value={active.length}              sub="In pipeline"        color="#f59e0b" trend="up" trendVal="+1 this quarter" />
@@ -1167,8 +1203,17 @@ export function FlipContractors() {
 // 5. FLIP ANALYTICS
 // ---------------------------------------------------------------------------
 export function FlipAnalytics() {
-  const flips = _FLIPS;
+  const [filterStage, setFilterStage] = useState("all");
+  const [filterDeal, setFilterDeal] = useState("all");
+
+  const allFlips = _FLIPS;
+  const flips = allFlips.filter(f => {
+    if (filterStage !== "all" && f.stage !== filterStage) return false;
+    if (filterDeal !== "all" && f.id !== parseInt(filterDeal)) return false;
+    return true;
+  });
   const sold  = flips.filter(f => f.stage === "Sold");
+  const isFiltered = filterStage !== "all" || filterDeal !== "all";
 
   const roiData = flips.map(f => {
     const cost = f.purchasePrice + (f.stage === "Sold" ? f.rehabSpent : f.rehabBudget);
@@ -1187,7 +1232,8 @@ export function FlipAnalytics() {
     name: f.image, days: f.daysOwned, stage: f.stage, color: f.color,
   }));
 
-  const catSpend = _FE.reduce((acc, e) => {
+  const flipIds = new Set(flips.map(f => f.id));
+  const catSpend = _FE.filter(e => flipIds.has(e.flipId)).reduce((acc, e) => {
     acc[e.category] = (acc[e.category] || 0) + e.amount;
     return acc;
   }, {});
@@ -1202,10 +1248,35 @@ export function FlipAnalytics() {
     <div>
       <PageHeader title="Flip Analytics" sub="Performance metrics across all deals" />
 
+      {/* Filter bar */}
+      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20, flexWrap: "wrap" }}>
+        <div style={{ display: "flex", gap: 4, background: "#f8fafc", borderRadius: 10, padding: 4, border: "1px solid #e2e8f0" }}>
+          {["all", ...STAGE_ORDER].map(s => {
+            const active2 = filterStage === s;
+            const label = s === "all" ? "All Stages" : s;
+            const count = s === "all" ? allFlips.length : allFlips.filter(f => f.stage === s).length;
+            return (
+              <button key={s} onClick={() => setFilterStage(s)} style={{ padding: "6px 14px", borderRadius: 8, border: "none", background: active2 ? "#f59e0b" : "transparent", color: active2 ? "#fff" : "#64748b", fontWeight: active2 ? 700 : 500, fontSize: 12, cursor: "pointer", whiteSpace: "nowrap", transition: "all 0.15s" }}>
+                {label} ({count})
+              </button>
+            );
+          })}
+        </div>
+        <select value={filterDeal} onChange={e => setFilterDeal(e.target.value)} style={{ ...iS, width: "auto", minWidth: 180, fontSize: 13, padding: "7px 12px" }}>
+          <option value="all">All Deals</option>
+          {allFlips.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
+        </select>
+        {isFiltered && (
+          <button onClick={() => { setFilterStage("all"); setFilterDeal("all"); }} style={{ background: "none", border: "none", color: "#94a3b8", fontSize: 12, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
+            <X size={13} /> Clear filters
+          </button>
+        )}
+      </div>
+
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 28 }}>
-        <StatCard icon={TrendingUp}  label="Avg ROI"          value={`${avgROI}%`}          sub="All deals"         color="#10b981" />
-        <StatCard icon={Clock}       label="Avg Hold Time"    value={`${avgDays} days`}      sub="Active deals"      color="#3b82f6" />
-        <StatCard icon={Star}        label="Total Realized"   value={fmt(totalProfit)}       sub="Closed deals"      color="#8b5cf6" />
+        <StatCard icon={TrendingUp}  label="Avg ROI"          value={`${avgROI}%`}          sub={isFiltered ? "Filtered" : "All deals"}         color="#10b981" />
+        <StatCard icon={Clock}       label="Avg Hold Time"    value={`${avgDays} days`}      sub={isFiltered ? "Filtered" : "Active deals"}      color="#3b82f6" />
+        <StatCard icon={Star}        label="Total Realized"   value={fmt(totalProfit)}       sub={isFiltered ? "Filtered" : "Closed deals"}      color="#8b5cf6" />
         <StatCard icon={BarChart3}   label="Deals Analyzed"   value={flips.length}           sub={`${sold.length} closed`} color="#f59e0b" />
       </div>
 
@@ -1230,7 +1301,7 @@ export function FlipAnalytics() {
         {/* Expense Category Breakdown */}
         <div style={{ background: "#fff", borderRadius: 16, padding: 22, border: "1px solid #f1f5f9" }}>
           <p style={{ color: "#0f172a", fontSize: 15, fontWeight: 700, marginBottom: 4 }}>Expense Breakdown</p>
-          <p style={{ color: "#94a3b8", fontSize: 12, marginBottom: 16 }}>By category across all flips</p>
+          <p style={{ color: "#94a3b8", fontSize: 12, marginBottom: 16 }}>By category{isFiltered ? " (filtered)" : " across all flips"}</p>
           <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
             <ResponsiveContainer width={160} height={160}>
               <PieChart>
