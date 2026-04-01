@@ -672,14 +672,25 @@ export function FlipExpenses() {
   const [search, setSearch]             = useState("");
   const [deleteConfirm, setDeleteConfirm] = useState(null);
 
-  const emptyForm = { flipId: "", date: "", vendor: "", category: "Materials/Supplies", description: "", amount: "" };
+  const emptyForm = { flipId: "", date: "", vendor: "", category: "Materials/Supplies", description: "", amount: "", rehabItemIdx: "" };
   const [form, setForm]   = useState(emptyForm);
   const sf = k => e => setForm(f => ({ ...f, [k]: e.target.value }));
+  const [vendorFocus, setVendorFocus] = useState(false);
+
+  // Unique vendor names for typeahead
+  const allVendors = useMemo(() => {
+    const names = new Set([..._FE.map(e => e.vendor), ..._CON.map(c => c.name)]);
+    return [...names].filter(Boolean).sort();
+  }, [expenses]);
+
+  // Rehab items for selected flip
+  const expFlip = _FLIPS.find(f => f.id === parseInt(form.flipId));
+  const expRehabItems = expFlip?.rehabItems || [];
 
   const openAdd = () => { setEditId(null); setForm(emptyForm); setShowModal(true); };
   const openEdit = exp => {
     setEditId(exp.id);
-    setForm({ flipId: String(exp.flipId), date: exp.date, vendor: exp.vendor || "", category: exp.category, description: exp.description || "", amount: String(exp.amount) });
+    setForm({ flipId: String(exp.flipId), date: exp.date, vendor: exp.vendor || "", category: exp.category, description: exp.description || "", amount: String(exp.amount), rehabItemIdx: exp.rehabItemIdx != null ? String(exp.rehabItemIdx) : "" });
     setShowModal(true);
   };
 
@@ -700,11 +711,24 @@ export function FlipExpenses() {
   const handleSave = () => {
     if (!form.amount || !form.flipId) return;
     const flip = _FLIPS.find(f => f.id === parseInt(form.flipId));
-    const built = { flipId: parseInt(form.flipId), flipName: flip?.name, date: form.date || new Date().toISOString().split("T")[0], vendor: form.vendor || "Unknown", category: form.category, description: form.description, amount: parseFloat(form.amount) };
+    const amt = parseFloat(form.amount);
+    const riIdx = form.rehabItemIdx !== "" ? parseInt(form.rehabItemIdx) : null;
+    const built = { flipId: parseInt(form.flipId), flipName: flip?.name, date: form.date || new Date().toISOString().split("T")[0], vendor: form.vendor || "Unknown", category: form.category, description: form.description, amount: amt, rehabItemIdx: riIdx };
+
     if (editId !== null) {
+      // Reverse the old rehab item link before applying new one
+      const oldExp = expenses.find(e => e.id === editId);
+      if (oldExp && oldExp.rehabItemIdx != null && flip) {
+        const oldItem = flip.rehabItems[oldExp.rehabItemIdx];
+        if (oldItem) oldItem.spent = Math.max(0, oldItem.spent - oldExp.amount);
+      }
       setExpenses(prev => prev.map(e => e.id === editId ? { ...e, ...built } : e));
     } else {
       setExpenses(prev => [{ id: newId(), ...built }, ...prev]);
+    }
+    // Update rehab item spent
+    if (riIdx != null && flip && flip.rehabItems[riIdx]) {
+      flip.rehabItems[riIdx].spent += amt;
     }
     setForm(emptyForm); setEditId(null); setShowModal(false);
   };
@@ -731,7 +755,7 @@ export function FlipExpenses() {
       <div style={{ display: "flex", gap: 10, marginBottom: 18, flexWrap: "wrap" }}>
         <div style={{ background: "#f1f5f9", borderRadius: 10, padding: "8px 14px", display: "flex", alignItems: "center", gap: 8, flex: 1, minWidth: 200 }}>
           <Search size={13} color="#94a3b8" />
-          <input placeholder="Search vendor or description..." value={search} onChange={e => setSearch(e.target.value)}
+          <input placeholder="Search paid to or description..." value={search} onChange={e => setSearch(e.target.value)}
             style={{ border: "none", background: "transparent", fontSize: 13, color: "#475569", outline: "none", width: "100%" }} />
         </div>
         <select value={filterFlip} onChange={e => setFilterFlip(e.target.value)} style={{ ...iS, width: "auto", padding: "8px 12px", fontSize: 13 }}>
@@ -749,7 +773,7 @@ export function FlipExpenses() {
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
             <tr style={{ background: "#f8fafc" }}>
-              {["Date", "Flip", "Vendor", "Category", "Description", "Amount", ""].map(h => (
+              {["Date", "Flip", "Paid To", "Category", "Description", "Amount", ""].map(h => (
                 <th key={h} style={{ textAlign: "left", color: "#94a3b8", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", padding: "12px 16px" }}>{h}</th>
               ))}
             </tr>
@@ -819,15 +843,52 @@ export function FlipExpenses() {
                   <input type="number" style={iS} placeholder="0.00" value={form.amount} onChange={sf("amount")} />
                 </div>
               </div>
-              <div>
-                <p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Vendor</p>
-                <input style={iS} placeholder="Vendor name" value={form.vendor} onChange={sf("vendor")} />
+              <div style={{ position: "relative" }}>
+                <p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Paid To</p>
+                <input style={iS} placeholder="e.g. Home Depot, ABC Plumbing" value={form.vendor}
+                  onChange={e => { setForm(f => ({ ...f, vendor: e.target.value })); setVendorFocus(true); }}
+                  onFocus={() => setVendorFocus(true)} onBlur={() => setTimeout(() => setVendorFocus(false), 150)} />
+                {vendorFocus && (() => {
+                  const q = form.vendor.toLowerCase();
+                  const matches = q ? allVendors.filter(v => v.toLowerCase().includes(q) && v.toLowerCase() !== q) : allVendors;
+                  const exactExists = allVendors.some(v => v.toLowerCase() === q);
+                  const showNew = q && !exactExists;
+                  if (matches.length === 0 && !showNew) return null;
+                  return (
+                    <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, background: "#fff", border: "1px solid #e2e8f0", borderRadius: 12, boxShadow: "0 8px 24px rgba(0,0,0,0.10)", zIndex: 200, overflow: "hidden", maxHeight: 200, overflowY: "auto" }}>
+                      {matches.slice(0, 6).map(v => (
+                        <button key={v} onMouseDown={() => { setForm(f => ({ ...f, vendor: v })); setVendorFocus(false); }}
+                          style={{ width: "100%", padding: "10px 14px", background: "none", border: "none", borderBottom: "1px solid #f1f5f9", textAlign: "left", cursor: "pointer", fontSize: 13, color: "#0f172a", display: "flex", alignItems: "center", gap: 8 }}>
+                          <Users size={13} style={{ color: "#94a3b8", flexShrink: 0 }} />
+                          <span>{v}</span>
+                        </button>
+                      ))}
+                      {showNew && (
+                        <div style={{ padding: "10px 14px", display: "flex", alignItems: "center", gap: 8, background: "#fffbeb", borderTop: matches.length > 0 ? "1px solid #e2e8f0" : "none" }}>
+                          <Plus size={13} style={{ color: "#f59e0b", flexShrink: 0 }} />
+                          <span style={{ fontSize: 13, color: "#f59e0b", fontWeight: 600 }}>Add &ldquo;{form.vendor}&rdquo; as new</span>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
-              <div>
-                <p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Category</p>
-                <select style={iS} value={form.category} onChange={sf("category")}>
-                  {EXPENSE_CATS.map(c => <option key={c} value={c}>{c}</option>)}
-                </select>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                <div>
+                  <p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Category</p>
+                  <select style={iS} value={form.category} onChange={sf("category")}>
+                    {EXPENSE_CATS.map(c => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Rehab Item <span style={{ fontWeight: 400, color: "#94a3b8" }}>(optional)</span></p>
+                  <select style={iS} value={form.rehabItemIdx} onChange={sf("rehabItemIdx")}>
+                    <option value="">None — general expense</option>
+                    {expRehabItems.map((item, idx) => (
+                      <option key={idx} value={idx}>{item.category} ({fmt(item.spent)} / {fmt(item.budgeted)})</option>
+                    ))}
+                  </select>
+                </div>
               </div>
               <div>
                 <p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Description</p>
@@ -884,6 +945,13 @@ export function FlipContractors() {
   const emptyForm = { flipId: "", name: "", trade: "", paymentType: "Fixed Bid", totalBid: "", dayRate: "", phone: "", status: "pending" };
   const [form, setForm] = useState(emptyForm);
   const sf = k => e => setForm(f => ({ ...f, [k]: e.target.value }));
+  const [nameFocus, setNameFocus] = useState(false);
+
+  // Unique contractor names across all deals for typeahead
+  const allContractorNames = useMemo(() => {
+    const names = new Set(_CON.map(c => c.name));
+    return [...names].sort();
+  }, [contractors]);
 
   // Current flip's rehab items for the modal
   const modalFlip     = _FLIPS.find(f => f.id === parseInt(form.flipId));
@@ -1122,9 +1190,42 @@ export function FlipContractors() {
                 </select>
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-                <div>
+                <div style={{ position: "relative" }}>
                   <p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Company / Name *</p>
-                  <input style={iS} placeholder="ABC Plumbing" value={form.name} onChange={sf("name")} />
+                  <input style={iS} placeholder="ABC Plumbing" value={form.name}
+                    onChange={e => { setForm(f => ({ ...f, name: e.target.value })); setNameFocus(true); }}
+                    onFocus={() => setNameFocus(true)} onBlur={() => setTimeout(() => setNameFocus(false), 150)} />
+                  {nameFocus && (() => {
+                    const q = form.name.toLowerCase();
+                    const matches = q ? allContractorNames.filter(n => n.toLowerCase().includes(q) && n.toLowerCase() !== q) : allContractorNames;
+                    const exactExists = allContractorNames.some(n => n.toLowerCase() === q);
+                    const showNew = q && !exactExists;
+                    if (matches.length === 0 && !showNew) return null;
+                    return (
+                      <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, background: "#fff", border: "1px solid #e2e8f0", borderRadius: 12, boxShadow: "0 8px 24px rgba(0,0,0,0.10)", zIndex: 200, overflow: "hidden", maxHeight: 200, overflowY: "auto" }}>
+                        {matches.slice(0, 6).map(n => {
+                          const existing = _CON.find(c => c.name === n);
+                          return (
+                            <button key={n} onMouseDown={() => {
+                              setForm(f => ({ ...f, name: n, trade: existing?.trade || f.trade }));
+                              setNameFocus(false);
+                            }}
+                              style={{ width: "100%", padding: "10px 14px", background: "none", border: "none", borderBottom: "1px solid #f1f5f9", textAlign: "left", cursor: "pointer", fontSize: 13, color: "#0f172a", display: "flex", alignItems: "center", gap: 8 }}>
+                              <Wrench size={13} style={{ color: "#94a3b8", flexShrink: 0 }} />
+                              <span>{n}</span>
+                              {existing?.trade && <span style={{ fontSize: 11, color: "#94a3b8", marginLeft: "auto" }}>{existing.trade}</span>}
+                            </button>
+                          );
+                        })}
+                        {showNew && (
+                          <div style={{ padding: "10px 14px", display: "flex", alignItems: "center", gap: 8, background: "#fffbeb", borderTop: matches.length > 0 ? "1px solid #e2e8f0" : "none" }}>
+                            <Plus size={13} style={{ color: "#f59e0b", flexShrink: 0 }} />
+                            <span style={{ fontSize: 13, color: "#f59e0b", fontWeight: 600 }}>Add &ldquo;{form.name}&rdquo; as new</span>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </div>
                 <div>
                   <p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Trade</p>
