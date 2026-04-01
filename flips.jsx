@@ -79,12 +79,10 @@ function PageHeader({ title, sub, action }) {
 // ---------------------------------------------------------------------------
 export function FlipDashboard({ onSelect }) {
   const [filterStage, setFilterStage] = useState("all");
-  const [filterDeal, setFilterDeal] = useState("all");
 
   const allFlips = _FLIPS;
   const flips = allFlips.filter(f => {
     if (filterStage !== "all" && f.stage !== filterStage) return false;
-    if (filterDeal !== "all" && f.id !== parseInt(filterDeal)) return false;
     return true;
   });
 
@@ -112,7 +110,7 @@ export function FlipDashboard({ onSelect }) {
     { text: "Birchwood Colonial – closed at $361,500",        date: "Aug 29", icon: Star,     color: "#6b7280" },
   ];
 
-  const isFiltered = filterStage !== "all" || filterDeal !== "all";
+  const isFiltered = filterStage !== "all";
 
   return (
     <div>
@@ -139,13 +137,9 @@ export function FlipDashboard({ onSelect }) {
             );
           })}
         </div>
-        <select value={filterDeal} onChange={e => setFilterDeal(e.target.value)} style={{ ...iS, width: "auto", minWidth: 180, fontSize: 13, padding: "9px 12px" }}>
-          <option value="all">All Deals</option>
-          {allFlips.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
-        </select>
         {isFiltered && (
-          <button onClick={() => { setFilterStage("all"); setFilterDeal("all"); }} style={{ background: "none", border: "none", color: "#94a3b8", fontSize: 12, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
-            <X size={13} /> Clear filters
+          <button onClick={() => setFilterStage("all")} style={{ background: "none", border: "none", color: "#94a3b8", fontSize: 12, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
+            <X size={13} /> Clear filter
           </button>
         )}
       </div>
@@ -1240,6 +1234,32 @@ export function FlipAnalytics() {
   const catChartData = Object.entries(catSpend).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value);
   const COLORS = ["#f59e0b", "#3b82f6", "#10b981", "#8b5cf6", "#ef4444", "#06b6d4"];
 
+  // Monthly expense trend – group all flip expenses by month
+  const monthlyTrend = useMemo(() => {
+    const filtered = _FE.filter(e => flipIds.has(e.flipId));
+    const byMonth = {};
+    filtered.forEach(e => {
+      const m = e.date?.substring(0, 7); // "2026-03"
+      if (m) byMonth[m] = (byMonth[m] || 0) + e.amount;
+    });
+    return Object.entries(byMonth).sort((a, b) => a[0].localeCompare(b[0])).map(([month, total]) => {
+      const [y, m] = month.split("-");
+      const label = new Date(parseInt(y), parseInt(m) - 1).toLocaleDateString("en-US", { month: "short", year: "2-digit" });
+      return { month: label, total };
+    });
+  }, [flips, isFiltered]);
+
+  // Profit breakdown per deal – stacked components
+  const profitBreakdown = flips.map(f => {
+    const purchase = f.purchasePrice;
+    const rehab = f.stage === "Sold" ? f.rehabSpent : f.rehabBudget;
+    const holding = f.stage === "Sold" ? f.totalHoldingCosts : (f.holdingCostsPerMonth * ((f.daysOwned || 0) / 30));
+    const selling = f.stage === "Sold" ? f.sellingCosts : ((f.stage === "Sold" ? f.salePrice : f.arv) * 0.06);
+    const sale = f.stage === "Sold" ? f.salePrice : f.arv;
+    const profit = sale - purchase - rehab - holding - selling;
+    return { name: f.image, fullName: f.name, purchase, rehab, holding: Math.round(holding), selling: Math.round(selling), profit: Math.round(profit), color: f.color };
+  });
+
   const avgROI    = roiData.length ? (roiData.reduce((s, d) => s + d.roi, 0) / roiData.length).toFixed(1) : 0;
   const avgDays   = timelineData.length ? Math.round(timelineData.reduce((s, d) => s + d.days, 0) / timelineData.length) : 0;
   const totalProfit = sold.reduce((s, f) => s + (f.netProfit || 0), 0);
@@ -1338,6 +1358,64 @@ export function FlipAnalytics() {
             <Legend />
             <Bar dataKey="budget" fill="#3b82f6" name="Budgeted" radius={[4, 4, 0, 0]} />
             <Bar dataKey="actual" fill="#f59e0b" name="Actual"   radius={[4, 4, 0, 0]} />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 20 }}>
+        {/* Hold Time by Deal */}
+        <div style={{ background: "#fff", borderRadius: 16, padding: 22, border: "1px solid #f1f5f9" }}>
+          <p style={{ color: "#0f172a", fontSize: 15, fontWeight: 700, marginBottom: 4 }}>Hold Time by Deal</p>
+          <p style={{ color: "#94a3b8", fontSize: 12, marginBottom: 16 }}>Days owned per property{avgDays > 0 ? ` (avg ${avgDays}d)` : ""}</p>
+          <ResponsiveContainer width="100%" height={200}>
+            <BarChart data={timelineData} layout="vertical">
+              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" horizontal={false} />
+              <XAxis type="number" tick={{ fontSize: 12, fill: "#94a3b8" }} axisLine={false} tickLine={false} tickFormatter={v => `${v}d`} />
+              <YAxis type="category" dataKey="name" tick={{ fontSize: 12, fill: "#94a3b8" }} axisLine={false} tickLine={false} width={40} />
+              <Tooltip formatter={v => [`${v} days`, "Hold Time"]} contentStyle={{ borderRadius: 10, border: "1px solid #e2e8f0", fontSize: 12 }} />
+              <Bar dataKey="days" radius={[0, 5, 5, 0]}>
+                {timelineData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Monthly Expense Trend */}
+        <div style={{ background: "#fff", borderRadius: 16, padding: 22, border: "1px solid #f1f5f9" }}>
+          <p style={{ color: "#0f172a", fontSize: 15, fontWeight: 700, marginBottom: 4 }}>Monthly Expense Trend</p>
+          <p style={{ color: "#94a3b8", fontSize: 12, marginBottom: 16 }}>Total spend by month{isFiltered ? " (filtered)" : ""}</p>
+          {monthlyTrend.length > 0 ? (
+            <ResponsiveContainer width="100%" height={200}>
+              <LineChart data={monthlyTrend}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                <XAxis dataKey="month" tick={{ fontSize: 11, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fontSize: 12, fill: "#94a3b8" }} axisLine={false} tickLine={false} tickFormatter={v => `$${(v/1000).toFixed(0)}K`} />
+                <Tooltip formatter={v => [fmt(v), "Spent"]} contentStyle={{ borderRadius: 10, border: "1px solid #e2e8f0", fontSize: 12 }} />
+                <Line type="monotone" dataKey="total" stroke="#f59e0b" strokeWidth={2.5} dot={{ fill: "#f59e0b", r: 4 }} activeDot={{ r: 6 }} />
+              </LineChart>
+            </ResponsiveContainer>
+          ) : (
+            <div style={{ height: 200, display: "flex", alignItems: "center", justifyContent: "center", color: "#94a3b8", fontSize: 13 }}>No expense data available</div>
+          )}
+        </div>
+      </div>
+
+      {/* Profit Breakdown by Deal */}
+      <div style={{ background: "#fff", borderRadius: 16, padding: 22, border: "1px solid #f1f5f9", marginBottom: 20 }}>
+        <p style={{ color: "#0f172a", fontSize: 15, fontWeight: 700, marginBottom: 4 }}>Profit Breakdown by Deal</p>
+        <p style={{ color: "#94a3b8", fontSize: 12, marginBottom: 16 }}>Where the money goes — purchase, rehab, holding, selling, and net profit</p>
+        <ResponsiveContainer width="100%" height={220}>
+          <BarChart data={profitBreakdown}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+            <XAxis dataKey="name" tick={{ fontSize: 12, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
+            <YAxis tick={{ fontSize: 12, fill: "#94a3b8" }} axisLine={false} tickLine={false} tickFormatter={v => `$${(v/1000).toFixed(0)}K`} />
+            <Tooltip formatter={v => fmt(v)} contentStyle={{ borderRadius: 10, border: "1px solid #e2e8f0", fontSize: 12 }} />
+            <Legend iconType="circle" />
+            <Bar dataKey="purchase" stackId="cost" fill="#3b82f6" name="Purchase" />
+            <Bar dataKey="rehab"    stackId="cost" fill="#f59e0b" name="Rehab" />
+            <Bar dataKey="holding"  stackId="cost" fill="#8b5cf6" name="Holding" />
+            <Bar dataKey="selling"  stackId="cost" fill="#94a3b8" name="Selling" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="profit"   fill="#10b981" name="Net Profit" radius={[4, 4, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </div>
