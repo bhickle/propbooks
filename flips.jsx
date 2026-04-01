@@ -1197,17 +1197,11 @@ export function FlipContractors() {
 // 5. FLIP ANALYTICS
 // ---------------------------------------------------------------------------
 export function FlipAnalytics() {
-  const [filterStage, setFilterStage] = useState("all");
   const [filterDeal, setFilterDeal] = useState("all");
 
   const allFlips = _FLIPS;
-  const flips = allFlips.filter(f => {
-    if (filterStage !== "all" && f.stage !== filterStage) return false;
-    if (filterDeal !== "all" && f.id !== parseInt(filterDeal)) return false;
-    return true;
-  });
+  const flips = allFlips;
   const sold  = flips.filter(f => f.stage === "Sold");
-  const isFiltered = filterStage !== "all" || filterDeal !== "all";
 
   const roiData = flips.map(f => {
     const cost = f.purchasePrice + (f.stage === "Sold" ? f.rehabSpent : f.rehabBudget);
@@ -1247,7 +1241,7 @@ export function FlipAnalytics() {
       const label = new Date(parseInt(y), parseInt(m) - 1).toLocaleDateString("en-US", { month: "short", year: "2-digit" });
       return { month: label, total };
     });
-  }, [flips, isFiltered]);
+  }, [flips]);
 
   // Profit breakdown per deal – stacked components
   const profitBreakdown = flips.map(f => {
@@ -1301,49 +1295,37 @@ export function FlipAnalytics() {
 
   return (
     <div>
-      <PageHeader title="Flip Analytics" sub={singleDeal ? singleDeal.name : "Performance metrics across all deals"} />
+      <PageHeader title="Flip Analytics" sub={singleDeal ? `Performance details — ${singleDeal.name}` : "Performance metrics across all deals"} />
+
+      {/* Deal selector — matches rental Analytics pattern */}
+      <div style={{ display: "flex", gap: 10, marginBottom: 20, flexWrap: "wrap", alignItems: "center" }}>
+        <select value={filterDeal} onChange={e => setFilterDeal(e.target.value)} style={{ ...iS, width: "auto", minWidth: 220, fontSize: 13, padding: "9px 12px", fontWeight: 600 }}>
+          <option value="all">All Deals</option>
+          {allFlips.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
+        </select>
+        {filterDeal !== "all" && (
+          <button onClick={() => setFilterDeal("all")} style={{ background: "none", border: "none", color: "#94a3b8", fontSize: 12, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
+            <X size={13} /> Clear filter
+          </button>
+        )}
+      </div>
 
       {/* Stat cards — portfolio vs single-deal */}
       {singleDeal ? (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 28 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 24 }}>
           <StatCard icon={TrendingUp} label="Projected ROI" value={`${dealROI?.roi || 0}%`} sub={singleDeal.stage} color="#10b981" />
           <StatCard icon={Clock} label="Days Owned" value={singleDeal.daysOwned || 0} sub={dealCostPerDay > 0 ? `${fmt(dealCostPerDay)}/day` : "Not started"} color="#3b82f6" />
           <StatCard icon={DollarSign} label="Rehab Spent" value={fmt(singleDeal.rehabSpent)} sub={`of ${fmt(singleDeal.rehabBudget)} budget`} color="#f59e0b" />
           <StatCard icon={Star} label="Proj. Profit" value={fmt(dealROI?.profit || 0)} sub={singleDeal.stage === "Sold" ? "Realized" : "Estimated"} color="#8b5cf6" />
         </div>
       ) : (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 28 }}>
-          <StatCard icon={TrendingUp}  label="Avg ROI"          value={`${avgROI}%`}          sub={isFiltered ? "Filtered" : "All deals"}         color="#10b981" />
-          <StatCard icon={Clock}       label="Avg Hold Time"    value={`${avgDays} days`}      sub={isFiltered ? "Filtered" : "Active deals"}      color="#3b82f6" />
-          <StatCard icon={Star}        label="Total Realized"   value={fmt(totalProfit)}       sub={isFiltered ? "Filtered" : "Closed deals"}      color="#8b5cf6" />
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 24 }}>
+          <StatCard icon={TrendingUp}  label="Avg ROI"          value={`${avgROI}%`}          sub="All deals"         color="#10b981" />
+          <StatCard icon={Clock}       label="Avg Hold Time"    value={`${avgDays} days`}      sub="Active deals"      color="#3b82f6" />
+          <StatCard icon={Star}        label="Total Realized"   value={fmt(totalProfit)}       sub="Closed deals"      color="#8b5cf6" />
           <StatCard icon={BarChart3}   label="Deals Analyzed"   value={flips.length}           sub={`${sold.length} closed`} color="#f59e0b" />
         </div>
       )}
-
-      {/* Filter bar */}
-      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20, flexWrap: "wrap" }}>
-        <div style={{ display: "flex", gap: 4, background: "#f8fafc", borderRadius: 10, padding: 4, border: "1px solid #e2e8f0" }}>
-          {["all", ...STAGE_ORDER].map(s => {
-            const active2 = filterStage === s;
-            const label = s === "all" ? "All Stages" : s;
-            const count = s === "all" ? allFlips.length : allFlips.filter(f => f.stage === s).length;
-            return (
-              <button key={s} onClick={() => setFilterStage(s)} style={{ padding: "6px 14px", borderRadius: 8, border: "none", background: active2 ? "#f59e0b" : "transparent", color: active2 ? "#fff" : "#64748b", fontWeight: active2 ? 700 : 500, fontSize: 12, cursor: "pointer", whiteSpace: "nowrap", transition: "all 0.15s" }}>
-                {label} ({count})
-              </button>
-            );
-          })}
-        </div>
-        <select value={filterDeal} onChange={e => setFilterDeal(e.target.value)} style={{ ...iS, width: "auto", minWidth: 180, fontSize: 13, padding: "7px 12px" }}>
-          <option value="all">All Deals</option>
-          {allFlips.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
-        </select>
-        {isFiltered && (
-          <button onClick={() => { setFilterStage("all"); setFilterDeal("all"); }} style={{ background: "none", border: "none", color: "#94a3b8", fontSize: 12, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
-            <X size={13} /> Clear filters
-          </button>
-        )}
-      </div>
 
       {/* ======== SINGLE-DEAL VIEW ======== */}
       {singleDeal ? (<>
@@ -1512,7 +1494,7 @@ export function FlipAnalytics() {
         {/* Expense Category Breakdown */}
         <div style={{ background: "#fff", borderRadius: 16, padding: 22, border: "1px solid #f1f5f9" }}>
           <p style={{ color: "#0f172a", fontSize: 15, fontWeight: 700, marginBottom: 4 }}>Expense Breakdown</p>
-          <p style={{ color: "#94a3b8", fontSize: 12, marginBottom: 16 }}>By category{isFiltered ? " (filtered)" : " across all flips"}</p>
+          <p style={{ color: "#94a3b8", fontSize: 12, marginBottom: 16 }}>By category across all flips</p>
           <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
             <ResponsiveContainer width={160} height={160}>
               <PieChart>
@@ -1574,7 +1556,7 @@ export function FlipAnalytics() {
         {/* Monthly Expense Trend */}
         <div style={{ background: "#fff", borderRadius: 16, padding: 22, border: "1px solid #f1f5f9" }}>
           <p style={{ color: "#0f172a", fontSize: 15, fontWeight: 700, marginBottom: 4 }}>Monthly Expense Trend</p>
-          <p style={{ color: "#94a3b8", fontSize: 12, marginBottom: 16 }}>Total spend by month{isFiltered ? " (filtered)" : ""}</p>
+          <p style={{ color: "#94a3b8", fontSize: 12, marginBottom: 16 }}>Total spend by month</p>
           {monthlyTrend.length > 0 ? (
             <ResponsiveContainer width="100%" height={200}>
               <LineChart data={monthlyTrend}>
