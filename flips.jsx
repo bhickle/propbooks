@@ -12,7 +12,7 @@ import {
   Hammer, DollarSign, TrendingUp, Star, Plus, Search, Filter,
   CheckCircle, Clock, AlertCircle, ChevronRight, X, Trash2, Pencil,
   Wrench, Users, Receipt, BarChart3, Target, Calendar, Flag,
-  ArrowUp, ArrowDown, Truck, Building2, MapPin, Home,
+  ArrowUp, ArrowDown, Truck, Building2, MapPin, Home, Info,
 } from "lucide-react";
 import {
   fmt, fmtK, newId, STAGE_ORDER, STAGE_COLORS,
@@ -73,6 +73,33 @@ function PageHeader({ title, sub, action }) {
     </div>
   );
 }
+
+function InfoTip({ text }) {
+  const [show, setShow] = useState(false);
+  return (
+    <span style={{ position: "relative", display: "inline-flex", alignItems: "center", marginLeft: 4, cursor: "pointer" }}
+      onMouseEnter={() => setShow(true)} onMouseLeave={() => setShow(false)}
+      onClick={e => { e.stopPropagation(); setShow(s => !s); }}>
+      <Info size={13} color="#94a3b8" />
+      {show && (
+        <span style={{
+          position: "absolute", bottom: "calc(100% + 8px)", left: "50%", transform: "translateX(-50%)",
+          background: "#0f172a", color: "#f8fafc", fontSize: 12, lineHeight: 1.5, fontWeight: 400,
+          padding: "10px 14px", borderRadius: 10, width: 240, zIndex: 50,
+          boxShadow: "0 8px 24px rgba(0,0,0,0.2)", pointerEvents: "none", whiteSpace: "normal",
+        }}>
+          {text}
+          <span style={{
+            position: "absolute", top: "100%", left: "50%", transform: "translateX(-50%)",
+            border: "6px solid transparent", borderTopColor: "#0f172a",
+          }} />
+        </span>
+      )}
+    </span>
+  );
+}
+
+const sectionS = { background: "#fff", borderRadius: 16, padding: 24, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9", marginBottom: 24 };
 
 // ---------------------------------------------------------------------------
 // 1. FLIP DASHBOARD
@@ -1293,11 +1320,21 @@ export function FlipAnalytics() {
     status: item.status,
   })) : [];
 
+  const cardS = { background: "#fff", borderRadius: 14, padding: "20px", boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" };
+
   return (
     <div>
-      <PageHeader title="Flip Analytics" sub={singleDeal ? `Performance details — ${singleDeal.name}` : "Performance metrics across all deals"} />
+      {/* Header — matches rental Analytics pattern */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24 }}>
+        <div>
+          <h1 style={{ color: "#0f172a", fontSize: 26, fontWeight: 700, marginBottom: 4 }}>Flip Analytics</h1>
+          <p style={{ color: "#64748b", fontSize: 15 }}>
+            {singleDeal ? `Performance details — ${singleDeal.name}` : "Performance metrics across all deals"}
+          </p>
+        </div>
+      </div>
 
-      {/* Deal selector — matches rental Analytics pattern */}
+      {/* Deal selector */}
       <div style={{ display: "flex", gap: 10, marginBottom: 20, flexWrap: "wrap", alignItems: "center" }}>
         <select value={filterDeal} onChange={e => setFilterDeal(e.target.value)} style={{ ...iS, width: "auto", minWidth: 220, fontSize: 13, padding: "9px 12px", fontWeight: 600 }}>
           <option value="all">All Deals</option>
@@ -1310,45 +1347,41 @@ export function FlipAnalytics() {
         )}
       </div>
 
-      {/* Stat cards — portfolio vs single-deal */}
-      {singleDeal ? (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 24 }}>
-          <StatCard icon={TrendingUp} label="Projected ROI" value={`${dealROI?.roi || 0}%`} sub={singleDeal.stage} color="#10b981" />
-          <StatCard icon={Clock} label="Days Owned" value={singleDeal.daysOwned || 0} sub={dealCostPerDay > 0 ? `${fmt(dealCostPerDay)}/day` : "Not started"} color="#3b82f6" />
-          <StatCard icon={DollarSign} label="Rehab Spent" value={fmt(singleDeal.rehabSpent)} sub={`of ${fmt(singleDeal.rehabBudget)} budget`} color="#f59e0b" />
-          <StatCard icon={Star} label="Proj. Profit" value={fmt(dealROI?.profit || 0)} sub={singleDeal.stage === "Sold" ? "Realized" : "Estimated"} color="#8b5cf6" />
-        </div>
-      ) : (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 24 }}>
-          <StatCard icon={TrendingUp}  label="Avg ROI"          value={`${avgROI}%`}          sub="All deals"         color="#10b981" />
-          <StatCard icon={Clock}       label="Avg Hold Time"    value={`${avgDays} days`}      sub="Active deals"      color="#3b82f6" />
-          <StatCard icon={Star}        label="Total Realized"   value={fmt(totalProfit)}       sub="Closed deals"      color="#8b5cf6" />
-          <StatCard icon={BarChart3}   label="Deals Analyzed"   value={flips.length}           sub={`${sold.length} closed`} color="#f59e0b" />
-        </div>
-      )}
-
       {/* ======== SINGLE-DEAL VIEW ======== */}
       {singleDeal ? (<>
-        {/* Deal Scorecard */}
-        <div style={{ background: "#fff", borderRadius: 16, padding: 22, border: "1px solid #f1f5f9", marginBottom: 20 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
-            <div style={{ width: 36, height: 36, borderRadius: 10, background: singleDeal.color + "20", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, color: singleDeal.color }}>{singleDeal.image}</div>
+        {/* Deal Return Scorecard — matches rental property scorecard */}
+        <div style={{ ...sectionS, marginBottom: 20 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
+            <div style={{ width: 38, height: 38, borderRadius: 10, background: singleDeal.color + "20", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700, color: singleDeal.color }}>{singleDeal.image}</div>
             <div>
-              <p style={{ color: "#0f172a", fontSize: 16, fontWeight: 700, margin: 0 }}>{singleDeal.name}</p>
-              <p style={{ color: "#94a3b8", fontSize: 12, margin: 0, display: "flex", alignItems: "center", gap: 4 }}><MapPin size={11} /> {singleDeal.address}</p>
+              <h3 style={{ color: "#0f172a", fontSize: 16, fontWeight: 700, marginBottom: 2 }}>Deal Scorecard</h3>
+              <p style={{ color: "#94a3b8", fontSize: 13, display: "flex", alignItems: "center", gap: 4 }}><MapPin size={11} /> {singleDeal.address}</p>
             </div>
             <div style={{ marginLeft: "auto" }}><StageDot stage={singleDeal.stage} /></div>
           </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, marginBottom: 16 }}>
+            {[
+              { label: "Projected ROI", value: `${dealROI?.roi || 0}%`, color: "#10b981", sub: singleDeal.stage === "Sold" ? "Realized return" : "Estimated return", tip: "Return on Investment = (Sale Price \u2212 Total Cost) \u00f7 Total Cost \u00d7 100. Total Cost includes purchase, rehab, holding, and selling costs." },
+              { label: "Projected Profit", value: fmt(dealROI?.profit || 0), color: "#8b5cf6", sub: singleDeal.stage === "Sold" ? "Realized" : "Based on ARV", tip: "ARV (or Sale Price) minus all costs: purchase price, rehab, holding costs, and estimated 6% selling costs." },
+              { label: "Cost Per Day", value: dealCostPerDay > 0 ? `${fmt(dealCostPerDay)}/day` : "N/A", color: "#f59e0b", sub: `${singleDeal.daysOwned || 0} days owned`, tip: "Total spend (rehab + holding costs) divided by days owned. Helps quantify the daily burn rate on this deal." },
+            ].map((m, i) => (
+              <div key={i} style={{ background: "#f8fafc", borderRadius: 14, padding: "18px 16px", border: "1px solid #f1f5f9" }}>
+                <p style={{ color: "#94a3b8", fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6, display: "flex", alignItems: "center" }}>{m.label}<InfoTip text={m.tip} /></p>
+                <p style={{ color: m.color, fontSize: 26, fontWeight: 800, marginBottom: 4 }}>{m.value}</p>
+                <p style={{ color: "#94a3b8", fontSize: 11 }}>{m.sub}</p>
+              </div>
+            ))}
+          </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 12 }}>
             {[
-              { label: "Purchase Price", value: fmt(singleDeal.purchasePrice) },
-              { label: "Rehab Budget", value: fmt(singleDeal.rehabBudget) },
-              { label: "ARV / Sale", value: fmt(singleDeal.stage === "Sold" ? singleDeal.salePrice : singleDeal.arv) },
-              { label: "Holding Costs", value: fmt(dealHolding) },
-              { label: "Total Invested", value: fmt(singleDeal.purchasePrice + singleDeal.rehabSpent + dealHolding) },
+              { label: "Purchase Price", value: fmt(singleDeal.purchasePrice), tip: "Original acquisition price at closing." },
+              { label: "Rehab Budget", value: fmt(singleDeal.rehabBudget), tip: "Total planned renovation budget across all line items." },
+              { label: "ARV / Sale", value: fmt(singleDeal.stage === "Sold" ? singleDeal.salePrice : singleDeal.arv), tip: singleDeal.stage === "Sold" ? "Actual sale price at closing." : "After Repair Value \u2014 estimated market value once rehab is complete." },
+              { label: "Holding Costs", value: fmt(dealHolding), tip: "Monthly holding cost \u00d7 months owned. Includes mortgage, insurance, taxes, and utilities while you hold the property." },
+              { label: "Total Invested", value: fmt(singleDeal.purchasePrice + singleDeal.rehabSpent + dealHolding), tip: "Purchase price + rehab spent to date + holding costs accrued. This is your total cash outlay so far." },
             ].map(item => (
               <div key={item.label} style={{ background: "#f8fafc", borderRadius: 10, padding: "10px 14px" }}>
-                <p style={{ color: "#94a3b8", fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.04em", margin: 0 }}>{item.label}</p>
+                <p style={{ color: "#94a3b8", fontSize: 10, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.04em", margin: 0, display: "flex", alignItems: "center" }}>{item.label}<InfoTip text={item.tip} /></p>
                 <p style={{ color: "#0f172a", fontSize: 16, fontWeight: 700, margin: "4px 0 0" }}>{item.value}</p>
               </div>
             ))}
@@ -1357,9 +1390,9 @@ export function FlipAnalytics() {
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 20 }}>
           {/* Cumulative Spend Curve */}
-          <div style={{ background: "#fff", borderRadius: 16, padding: 22, border: "1px solid #f1f5f9" }}>
-            <p style={{ color: "#0f172a", fontSize: 15, fontWeight: 700, marginBottom: 4 }}>Rehab Spend Curve</p>
-            <p style={{ color: "#94a3b8", fontSize: 12, marginBottom: 16 }}>Cumulative spend vs budget over time</p>
+          <div style={sectionS}>
+            <h3 style={{ color: "#0f172a", fontSize: 16, fontWeight: 700, marginBottom: 4 }}>Rehab Spend Curve</h3>
+            <p style={{ color: "#94a3b8", fontSize: 13, marginBottom: 20 }}>Cumulative spend vs budget over time</p>
             {spendCurve.length > 0 ? (
               <ResponsiveContainer width="100%" height={200}>
                 <AreaChart data={spendCurve}>
@@ -1383,9 +1416,9 @@ export function FlipAnalytics() {
           </div>
 
           {/* Expense Category Breakdown (single deal) */}
-          <div style={{ background: "#fff", borderRadius: 16, padding: 22, border: "1px solid #f1f5f9" }}>
-            <p style={{ color: "#0f172a", fontSize: 15, fontWeight: 700, marginBottom: 4 }}>Cost Breakdown</p>
-            <p style={{ color: "#94a3b8", fontSize: 12, marginBottom: 16 }}>Expenses by category</p>
+          <div style={sectionS}>
+            <h3 style={{ color: "#0f172a", fontSize: 16, fontWeight: 700, marginBottom: 4 }}>Cost Breakdown</h3>
+            <p style={{ color: "#94a3b8", fontSize: 13, marginBottom: 20 }}>Expenses by category</p>
             {dealCatChart.length > 0 ? (
               <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
                 <ResponsiveContainer width={160} height={160}>
@@ -1414,9 +1447,9 @@ export function FlipAnalytics() {
         </div>
 
         {/* Rehab Item Progress */}
-        <div style={{ background: "#fff", borderRadius: 16, padding: 22, border: "1px solid #f1f5f9", marginBottom: 20 }}>
-          <p style={{ color: "#0f172a", fontSize: 15, fontWeight: 700, marginBottom: 4 }}>Rehab Item Progress</p>
-          <p style={{ color: "#94a3b8", fontSize: 12, marginBottom: 16 }}>Budget consumed per line item</p>
+        <div style={{ ...sectionS, marginBottom: 20 }}>
+          <h3 style={{ color: "#0f172a", fontSize: 16, fontWeight: 700, marginBottom: 4 }}>Rehab Item Progress</h3>
+          <p style={{ color: "#94a3b8", fontSize: 13, marginBottom: 20 }}>Budget consumed per line item</p>
           {rehabProgress.length > 0 ? (
             <div style={{ display: "grid", gap: 10 }}>
               {rehabProgress.map((item, i) => {
@@ -1441,9 +1474,9 @@ export function FlipAnalytics() {
         </div>
 
         {/* Expense Log */}
-        <div style={{ background: "#fff", borderRadius: 16, border: "1px solid #f1f5f9", overflow: "hidden" }}>
-          <div style={{ padding: "16px 22px", borderBottom: "1px solid #f1f5f9" }}>
-            <p style={{ color: "#0f172a", fontSize: 15, fontWeight: 700 }}>Expense Log</p>
+        <div style={{ background: "#fff", borderRadius: 16, border: "1px solid #f1f5f9", boxShadow: "0 1px 3px rgba(0,0,0,0.06)", overflow: "hidden" }}>
+          <div style={{ padding: "16px 24px", borderBottom: "1px solid #f1f5f9" }}>
+            <h3 style={{ color: "#0f172a", fontSize: 16, fontWeight: 700 }}>Expense Log</h3>
           </div>
           {dealExpenses.length > 0 ? (
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
@@ -1472,19 +1505,35 @@ export function FlipAnalytics() {
         </div>
       </>) : (<>
 
-      {/* ======== PORTFOLIO VIEW (existing) ======== */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 20 }}>
+      {/* ======== PORTFOLIO VIEW ======== */}
+      {/* KPI cards with InfoTips — matches rental Analytics pattern */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 24 }}>
+        {[
+          { label: "Avg ROI", value: `${avgROI}%`, color: "#10b981", sub: "All deals", tip: "Average Return on Investment across all deals. ROI = (Sale/ARV \u2212 Total Cost) \u00f7 Total Cost \u00d7 100. Active deals use projected ARV and estimated costs." },
+          { label: "Avg Hold Time", value: `${avgDays} days`, color: "#3b82f6", sub: "Active deals", tip: "Average number of days properties have been owned. Shorter hold times mean less carrying cost and faster capital recycling." },
+          { label: "Total Realized", value: fmt(totalProfit), color: "#8b5cf6", sub: "Closed deals", tip: "Sum of net profit from all sold deals. Net Profit = Sale Price \u2212 Purchase Price \u2212 Rehab Spent \u2212 Holding Costs \u2212 Selling Costs." },
+          { label: "Deals Analyzed", value: flips.length, color: "#f59e0b", sub: `${sold.length} closed`, tip: "Total number of deals in your pipeline. Includes active, listed, under contract, and sold properties." },
+        ].map((m, i) => (
+          <div key={i} style={cardS}>
+            <p style={{ color: "#94a3b8", fontSize: 12, fontWeight: 600, textTransform: "uppercase", marginBottom: 6, display: "flex", alignItems: "center" }}>{m.label}<InfoTip text={m.tip} /></p>
+            <p style={{ color: m.color, fontSize: 22, fontWeight: 800 }}>{m.value}</p>
+            <p style={{ color: "#94a3b8", fontSize: 11, marginTop: 6 }}>{m.sub}</p>
+          </div>
+        ))}
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
         {/* ROI by Deal */}
-        <div style={{ background: "#fff", borderRadius: 16, padding: 22, border: "1px solid #f1f5f9" }}>
-          <p style={{ color: "#0f172a", fontSize: 15, fontWeight: 700, marginBottom: 4 }}>ROI by Deal</p>
-          <p style={{ color: "#94a3b8", fontSize: 12, marginBottom: 16 }}>Actual (sold) vs projected (active)</p>
-          <ResponsiveContainer width="100%" height={200}>
+        <div style={sectionS}>
+          <h3 style={{ color: "#0f172a", fontSize: 16, fontWeight: 700, marginBottom: 4 }}>ROI by Deal</h3>
+          <p style={{ color: "#94a3b8", fontSize: 13, marginBottom: 20 }}>Actual (sold) vs projected (active)</p>
+          <ResponsiveContainer width="100%" height={220}>
             <BarChart data={roiData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
               <XAxis dataKey="name" tick={{ fontSize: 12, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fontSize: 12, fill: "#94a3b8" }} axisLine={false} tickLine={false} tickFormatter={v => `${v}%`} />
               <Tooltip formatter={(v, n, p) => [`${v}%`, "ROI"]} contentStyle={{ borderRadius: 10, border: "1px solid #e2e8f0", fontSize: 12 }} />
-              <Bar dataKey="roi" radius={[5, 5, 0, 0]}>
+              <Bar dataKey="roi" radius={[6, 6, 0, 0]}>
                 {roiData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
               </Bar>
             </BarChart>
@@ -1492,9 +1541,9 @@ export function FlipAnalytics() {
         </div>
 
         {/* Expense Category Breakdown */}
-        <div style={{ background: "#fff", borderRadius: 16, padding: 22, border: "1px solid #f1f5f9" }}>
-          <p style={{ color: "#0f172a", fontSize: 15, fontWeight: 700, marginBottom: 4 }}>Expense Breakdown</p>
-          <p style={{ color: "#94a3b8", fontSize: 12, marginBottom: 16 }}>By category across all flips</p>
+        <div style={sectionS}>
+          <h3 style={{ color: "#0f172a", fontSize: 16, fontWeight: 700, marginBottom: 4 }}>Expense Breakdown</h3>
+          <p style={{ color: "#94a3b8", fontSize: 13, marginBottom: 20 }}>By category across all flips</p>
           <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
             <ResponsiveContainer width={160} height={160}>
               <PieChart>
@@ -1519,9 +1568,9 @@ export function FlipAnalytics() {
       </div>
 
       {/* Budget vs Actual */}
-      <div style={{ background: "#fff", borderRadius: 16, padding: 22, border: "1px solid #f1f5f9", marginBottom: 20 }}>
-        <p style={{ color: "#0f172a", fontSize: 15, fontWeight: 700, marginBottom: 4 }}>Rehab Budget vs Actual</p>
-        <p style={{ color: "#94a3b8", fontSize: 12, marginBottom: 16 }}>How well rehab budgets are holding</p>
+      <div style={sectionS}>
+        <h3 style={{ color: "#0f172a", fontSize: 16, fontWeight: 700, marginBottom: 4 }}>Rehab Budget vs Actual</h3>
+        <p style={{ color: "#94a3b8", fontSize: 13, marginBottom: 20 }}>How well rehab budgets are holding</p>
         <ResponsiveContainer width="100%" height={180}>
           <BarChart data={budgetVsActual}>
             <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
@@ -1535,18 +1584,18 @@ export function FlipAnalytics() {
         </ResponsiveContainer>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 20 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
         {/* Hold Time by Deal */}
-        <div style={{ background: "#fff", borderRadius: 16, padding: 22, border: "1px solid #f1f5f9" }}>
-          <p style={{ color: "#0f172a", fontSize: 15, fontWeight: 700, marginBottom: 4 }}>Hold Time by Deal</p>
-          <p style={{ color: "#94a3b8", fontSize: 12, marginBottom: 16 }}>Days owned per property{avgDays > 0 ? ` (avg ${avgDays}d)` : ""}</p>
+        <div style={sectionS}>
+          <h3 style={{ color: "#0f172a", fontSize: 16, fontWeight: 700, marginBottom: 4 }}>Hold Time by Deal</h3>
+          <p style={{ color: "#94a3b8", fontSize: 13, marginBottom: 20 }}>Days owned per property{avgDays > 0 ? ` (avg ${avgDays}d)` : ""}</p>
           <ResponsiveContainer width="100%" height={200}>
             <BarChart data={timelineData} layout="vertical">
               <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" horizontal={false} />
               <XAxis type="number" tick={{ fontSize: 12, fill: "#94a3b8" }} axisLine={false} tickLine={false} tickFormatter={v => `${v}d`} />
               <YAxis type="category" dataKey="name" tick={{ fontSize: 12, fill: "#94a3b8" }} axisLine={false} tickLine={false} width={40} />
               <Tooltip formatter={v => [`${v} days`, "Hold Time"]} contentStyle={{ borderRadius: 10, border: "1px solid #e2e8f0", fontSize: 12 }} />
-              <Bar dataKey="days" radius={[0, 5, 5, 0]}>
+              <Bar dataKey="days" radius={[0, 6, 6, 0]}>
                 {timelineData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
               </Bar>
             </BarChart>
@@ -1554,9 +1603,9 @@ export function FlipAnalytics() {
         </div>
 
         {/* Monthly Expense Trend */}
-        <div style={{ background: "#fff", borderRadius: 16, padding: 22, border: "1px solid #f1f5f9" }}>
-          <p style={{ color: "#0f172a", fontSize: 15, fontWeight: 700, marginBottom: 4 }}>Monthly Expense Trend</p>
-          <p style={{ color: "#94a3b8", fontSize: 12, marginBottom: 16 }}>Total spend by month</p>
+        <div style={sectionS}>
+          <h3 style={{ color: "#0f172a", fontSize: 16, fontWeight: 700, marginBottom: 4 }}>Monthly Expense Trend</h3>
+          <p style={{ color: "#94a3b8", fontSize: 13, marginBottom: 20 }}>Total spend by month</p>
           {monthlyTrend.length > 0 ? (
             <ResponsiveContainer width="100%" height={200}>
               <LineChart data={monthlyTrend}>
@@ -1574,9 +1623,9 @@ export function FlipAnalytics() {
       </div>
 
       {/* Profit Breakdown by Deal */}
-      <div style={{ background: "#fff", borderRadius: 16, padding: 22, border: "1px solid #f1f5f9", marginBottom: 20 }}>
-        <p style={{ color: "#0f172a", fontSize: 15, fontWeight: 700, marginBottom: 4 }}>Profit Breakdown by Deal</p>
-        <p style={{ color: "#94a3b8", fontSize: 12, marginBottom: 16 }}>Where the money goes — purchase, rehab, holding, selling, and net profit</p>
+      <div style={sectionS}>
+        <h3 style={{ color: "#0f172a", fontSize: 16, fontWeight: 700, marginBottom: 4 }}>Profit Breakdown by Deal</h3>
+        <p style={{ color: "#94a3b8", fontSize: 13, marginBottom: 20 }}>Where the money goes — purchase, rehab, holding, selling, and net profit</p>
         <ResponsiveContainer width="100%" height={220}>
           <BarChart data={profitBreakdown}>
             <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
@@ -1594,9 +1643,9 @@ export function FlipAnalytics() {
       </div>
 
       {/* Deal Summary Table */}
-      <div style={{ background: "#fff", borderRadius: 16, border: "1px solid #f1f5f9", overflow: "hidden" }}>
-        <div style={{ padding: "16px 22px", borderBottom: "1px solid #f1f5f9" }}>
-          <p style={{ color: "#0f172a", fontSize: 15, fontWeight: 700 }}>Deal Summary</p>
+      <div style={{ background: "#fff", borderRadius: 16, border: "1px solid #f1f5f9", boxShadow: "0 1px 3px rgba(0,0,0,0.06)", overflow: "hidden" }}>
+        <div style={{ padding: "16px 24px", borderBottom: "1px solid #f1f5f9" }}>
+          <h3 style={{ color: "#0f172a", fontSize: 16, fontWeight: 700 }}>Deal Summary</h3>
         </div>
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
