@@ -1785,13 +1785,17 @@ function Analytics() {
             {selectedProp ? `Performance details — ${selectedProp.name}` : "Detailed performance metrics for every property"}
           </p>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <label style={{ fontSize: 13, fontWeight: 600, color: "#475569", whiteSpace: "nowrap" }}>Viewing:</label>
-          <select value={selectedPropId} onChange={e => setSelectedPropId(e.target.value)} style={{ ...iS, width: 240, fontWeight: 600 }}>
-            <option value="">All Properties</option>
-            {PROPERTIES.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-          </select>
-        </div>
+      </div>
+      <div style={{ display: "flex", gap: 10, marginBottom: 20, flexWrap: "wrap", alignItems: "center" }}>
+        <select value={selectedPropId} onChange={e => setSelectedPropId(e.target.value)} style={{ ...iS, width: "auto", minWidth: 220, fontSize: 13, padding: "9px 12px", fontWeight: 600 }}>
+          <option value="">All Properties</option>
+          {PROPERTIES.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+        </select>
+        {selectedPropId && (
+          <button onClick={() => setSelectedPropId("")} style={{ background: "none", border: "none", color: "#94a3b8", fontSize: 12, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
+            <X size={13} /> Clear filter
+          </button>
+        )}
       </div>
 
       {!selectedProp ? (
@@ -3618,16 +3622,22 @@ function FlipPipeline({ onSelect }) {
           </div>
         ))}
       </div>
-      <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
-        {["all", ...STAGE_ORDER].map(s => {
-          const active = activeStage === s;
-          const sc = STAGE_COLORS[s];
-          return (
-            <button key={s} onClick={() => setActiveStage(s)} style={{ padding: "8px 16px", borderRadius: 10, border: active ? "none" : "1px solid #e2e8f0", background: active ? (sc ? sc.bg : "#0f172a") : "#fff", color: active ? (sc ? sc.text : "#fff") : "#64748b", fontWeight: active ? 700 : 500, fontSize: 13, cursor: "pointer" }}>
-              {s === "all" ? `All (${FLIPS.length})` : `${s} (${FLIPS.filter(f => f.stage === s).length})`}
-            </button>
-          );
-        })}
+      <div style={{ display: "flex", gap: 10, marginBottom: 20, flexWrap: "wrap", alignItems: "center" }}>
+        <div style={{ display: "flex", gap: 4, background: "#f8fafc", borderRadius: 10, padding: 4, border: "1px solid #e2e8f0" }}>
+          {["all", ...STAGE_ORDER].map(s => {
+            const active = activeStage === s;
+            return (
+              <button key={s} onClick={() => setActiveStage(s)} style={{ padding: "7px 14px", borderRadius: 8, border: "none", background: active ? "#f59e0b" : "transparent", color: active ? "#fff" : "#64748b", fontWeight: active ? 700 : 500, fontSize: 12, cursor: "pointer", whiteSpace: "nowrap", transition: "all 0.15s" }}>
+                {s === "all" ? `All (${FLIPS.length})` : `${s} (${FLIPS.filter(f => f.stage === s).length})`}
+              </button>
+            );
+          })}
+        </div>
+        {activeStage !== "all" && (
+          <button onClick={() => setActiveStage("all")} style={{ background: "none", border: "none", color: "#94a3b8", fontSize: 12, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
+            <X size={13} /> Clear filter
+          </button>
+        )}
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 20 }}>
         {filtered.map(f => <FlipCard key={f.id} flip={f} onSelect={onSelect} />)}
@@ -5100,7 +5110,7 @@ function RentRoll() {
           <option value="all">All Properties</option>
           {PROPERTIES.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
         </select>
-        <div style={{ display: "flex", gap: 6 }}>
+        <div style={{ display: "flex", gap: 4, background: "#f8fafc", borderRadius: 10, padding: 4, border: "1px solid #e2e8f0" }}>
           {[
             ["all", "All"],
             ["active-lease", "Active Lease"],
@@ -5109,15 +5119,18 @@ function RentRoll() {
             ["expiring", "Expiring Soon"],
           ].map(([val, label]) => {
             const active = statusFilter === val;
-            const accentMap = { all: "#3b82f6", "active-lease": "#10b981", "month-to-month": "#f59e0b", vacant: "#ef4444", expiring: "#a16207" };
-            const accent = accentMap[val];
             return (
-              <button key={val} onClick={() => setStatusFilter(val)} style={{ padding: "9px 14px", borderRadius: 10, border: active ? "none" : "1px solid #e2e8f0", background: active ? accent + "20" : "#fff", color: active ? accent : "#475569", fontWeight: active ? 700 : 500, fontSize: 13, cursor: "pointer", whiteSpace: "nowrap" }}>
+              <button key={val} onClick={() => setStatusFilter(val)} style={{ padding: "7px 14px", borderRadius: 8, border: "none", background: active ? "#f59e0b" : "transparent", color: active ? "#fff" : "#64748b", fontWeight: active ? 700 : 500, fontSize: 12, cursor: "pointer", whiteSpace: "nowrap", transition: "all 0.15s" }}>
                 {label}{val === "expiring" && expiringIn90.length > 0 ? ` (${expiringIn90.length})` : ""}
               </button>
             );
           })}
         </div>
+        {(propFilter !== "all" || statusFilter !== "all") && (
+          <button onClick={() => { setPropFilter("all"); setStatusFilter("all"); }} style={{ background: "none", border: "none", color: "#94a3b8", fontSize: 12, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
+            <X size={13} /> Clear filters
+          </button>
+        )}
       </div>
 
       {expiringIn90.length > 0 && statusFilter !== "expiring" && (
@@ -5416,12 +5429,11 @@ function MileageTracker() {
       </div>
       {/* Mileage filters */}
       <div style={{ display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap", alignItems: "center" }}>
-        <div style={{ display: "flex", gap: 6 }}>
+        <div style={{ display: "flex", gap: 4, background: "#f8fafc", borderRadius: 10, padding: 4, border: "1px solid #e2e8f0" }}>
           {[["all", "All Purposes"], ["Rental", "Rental"], ["Flip", "Flip"], ["Business", "Business"]].map(([val, label]) => {
             const active = purposeFilter === val;
-            const color = val === "all" ? "#3b82f6" : (purposeColors[val] || "#475569");
             return (
-              <button key={val} onClick={() => setPurposeFilter(val)} style={{ padding: "9px 14px", borderRadius: 10, border: active ? "none" : "1px solid #e2e8f0", background: active ? color + "20" : "#fff", color: active ? color : "#475569", fontWeight: active ? 700 : 500, fontSize: 13, cursor: "pointer" }}>
+              <button key={val} onClick={() => setPurposeFilter(val)} style={{ padding: "7px 14px", borderRadius: 8, border: "none", background: active ? "#f59e0b" : "transparent", color: active ? "#fff" : "#64748b", fontWeight: active ? 700 : 500, fontSize: 12, cursor: "pointer", whiteSpace: "nowrap", transition: "all 0.15s" }}>
                 {label}
               </button>
             );
@@ -5433,6 +5445,11 @@ function MileageTracker() {
           <option value="lastMonth">Last Month</option>
           <option value="all">All Time</option>
         </select>
+        {(purposeFilter !== "all" || dateFilter !== "thisYear") && (
+          <button onClick={() => { setPurposeFilter("all"); setDateFilter("thisYear"); }} style={{ background: "none", border: "none", color: "#94a3b8", fontSize: 12, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
+            <X size={13} /> Clear filters
+          </button>
+        )}
       </div>
 
       <div style={{ background: "#fff", borderRadius: 16, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9", overflow: "hidden" }}>

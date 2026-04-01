@@ -118,21 +118,28 @@ export function FlipDashboard({ onSelect }) {
     <div>
       <PageHeader title="Overview" sub="All fix & flip deals at a glance" />
 
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 20 }}>
+        <StatCard icon={Hammer}     label="Active Deals"     value={active.length}              sub={isFiltered ? "Filtered" : "In pipeline"}        color="#f59e0b" trend={!isFiltered ? "up" : undefined} trendVal="+1 this quarter" />
+        <StatCard icon={DollarSign} label="Capital Deployed" value={fmtK(totalDeployed)}        sub={isFiltered ? "Filtered" : "Purchase + rehab"}   color="#3b82f6" />
+        <StatCard icon={TrendingUp} label="Projected Profit" value={fmtK(Math.round(projectedProfit))} sub={isFiltered ? "Filtered" : "Active deals"}  color="#10b981" />
+        <StatCard icon={Star}       label="Realized Profit"  value={fmt(realizedProfit)}        sub={isFiltered ? "Filtered" : "Closed deals YTD"}   color="#8b5cf6" trend={!isFiltered ? "up" : undefined} trendVal="+$61K YTD" />
+      </div>
+
       {/* Filter bar */}
-      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20, flexWrap: "wrap" }}>
+      <div style={{ display: "flex", gap: 10, marginBottom: 20, flexWrap: "wrap", alignItems: "center" }}>
         <div style={{ display: "flex", gap: 4, background: "#f8fafc", borderRadius: 10, padding: 4, border: "1px solid #e2e8f0" }}>
           {["all", ...STAGE_ORDER].map(s => {
             const active2 = filterStage === s;
             const label = s === "all" ? "All Stages" : s;
             const count = s === "all" ? allFlips.length : allFlips.filter(f => f.stage === s).length;
             return (
-              <button key={s} onClick={() => setFilterStage(s)} style={{ padding: "6px 14px", borderRadius: 8, border: "none", background: active2 ? "#f59e0b" : "transparent", color: active2 ? "#fff" : "#64748b", fontWeight: active2 ? 700 : 500, fontSize: 12, cursor: "pointer", whiteSpace: "nowrap", transition: "all 0.15s" }}>
+              <button key={s} onClick={() => setFilterStage(s)} style={{ padding: "7px 14px", borderRadius: 8, border: "none", background: active2 ? "#f59e0b" : "transparent", color: active2 ? "#fff" : "#64748b", fontWeight: active2 ? 700 : 500, fontSize: 12, cursor: "pointer", whiteSpace: "nowrap", transition: "all 0.15s" }}>
                 {label} ({count})
               </button>
             );
           })}
         </div>
-        <select value={filterDeal} onChange={e => setFilterDeal(e.target.value)} style={{ ...iS, width: "auto", minWidth: 180, fontSize: 13, padding: "7px 12px" }}>
+        <select value={filterDeal} onChange={e => setFilterDeal(e.target.value)} style={{ ...iS, width: "auto", minWidth: 180, fontSize: 13, padding: "9px 12px" }}>
           <option value="all">All Deals</option>
           {allFlips.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
         </select>
@@ -141,13 +148,6 @@ export function FlipDashboard({ onSelect }) {
             <X size={13} /> Clear filters
           </button>
         )}
-      </div>
-
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 28 }}>
-        <StatCard icon={Hammer}     label="Active Deals"     value={active.length}              sub="In pipeline"        color="#f59e0b" trend="up" trendVal="+1 this quarter" />
-        <StatCard icon={DollarSign} label="Capital Deployed" value={fmtK(totalDeployed)}        sub="Purchase + rehab"   color="#3b82f6" />
-        <StatCard icon={TrendingUp} label="Projected Profit" value={fmtK(Math.round(projectedProfit))} sub="Active deals"  color="#10b981" />
-        <StatCard icon={Star}       label="Realized Profit"  value={fmt(realizedProfit)}        sub="Closed deals YTD"   color="#8b5cf6" trend="up" trendVal="+$61K YTD" />
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 20, marginBottom: 20 }}>
@@ -1248,6 +1248,13 @@ export function FlipAnalytics() {
     <div>
       <PageHeader title="Flip Analytics" sub="Performance metrics across all deals" />
 
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 28 }}>
+        <StatCard icon={TrendingUp}  label="Avg ROI"          value={`${avgROI}%`}          sub={isFiltered ? "Filtered" : "All deals"}         color="#10b981" />
+        <StatCard icon={Clock}       label="Avg Hold Time"    value={`${avgDays} days`}      sub={isFiltered ? "Filtered" : "Active deals"}      color="#3b82f6" />
+        <StatCard icon={Star}        label="Total Realized"   value={fmt(totalProfit)}       sub={isFiltered ? "Filtered" : "Closed deals"}      color="#8b5cf6" />
+        <StatCard icon={BarChart3}   label="Deals Analyzed"   value={flips.length}           sub={`${sold.length} closed`} color="#f59e0b" />
+      </div>
+
       {/* Filter bar */}
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20, flexWrap: "wrap" }}>
         <div style={{ display: "flex", gap: 4, background: "#f8fafc", borderRadius: 10, padding: 4, border: "1px solid #e2e8f0" }}>
@@ -1271,13 +1278,6 @@ export function FlipAnalytics() {
             <X size={13} /> Clear filters
           </button>
         )}
-      </div>
-
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 28 }}>
-        <StatCard icon={TrendingUp}  label="Avg ROI"          value={`${avgROI}%`}          sub={isFiltered ? "Filtered" : "All deals"}         color="#10b981" />
-        <StatCard icon={Clock}       label="Avg Hold Time"    value={`${avgDays} days`}      sub={isFiltered ? "Filtered" : "Active deals"}      color="#3b82f6" />
-        <StatCard icon={Star}        label="Total Realized"   value={fmt(totalProfit)}       sub={isFiltered ? "Filtered" : "Closed deals"}      color="#8b5cf6" />
-        <StatCard icon={BarChart3}   label="Deals Analyzed"   value={flips.length}           sub={`${sold.length} closed`} color="#f59e0b" />
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 20 }}>
