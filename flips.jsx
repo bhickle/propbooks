@@ -3,7 +3,7 @@
 // FlipDashboard | RehabTracker | FlipExpenses | FlipContractors | FlipAnalytics
 // =============================================================================
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import {
   BarChart, Bar, LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, ReferenceLine,
@@ -663,7 +663,7 @@ export function RehabTracker() {
 // ---------------------------------------------------------------------------
 const EXPENSE_CATS = ["Materials/Supplies", "Subcontractor", "Permits & Inspections", "Appliances", "Dump Fees", "Holding Costs", "Closing Costs", "Other"];
 
-export function FlipExpenses() {
+export function FlipExpenses({ highlightExpId, onBack, onClearHighlight }) {
   const [expenses, setExpenses] = useState([..._FE]);
   const [filterFlip, setFilterFlip]     = useState("all");
   const [filterCat, setFilterCat]       = useState("all");
@@ -671,6 +671,25 @@ export function FlipExpenses() {
   const [dateFrom, setDateFrom]         = useState("");
   const [dateTo, setDateTo]             = useState("");
   const [showModal, setShowModal]       = useState(false);
+
+  // Highlight / flash support (linked from deal detail)
+  const [flashId, setFlashId] = useState(highlightExpId);
+  const highlightRef = useRef(null);
+  useEffect(() => {
+    if (highlightExpId) {
+      setFlashId(highlightExpId);
+      setTimeout(() => {
+        if (highlightRef.current) {
+          highlightRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+      }, 100);
+      const timer = setTimeout(() => {
+        setFlashId(null);
+        onClearHighlight && onClearHighlight();
+      }, 2500);
+      return () => clearTimeout(timer);
+    }
+  }, [highlightExpId]);
   const [editId, setEditId]             = useState(null);
   const [search, setSearch]             = useState("");
   const [deleteConfirm, setDeleteConfirm] = useState(null);
@@ -764,6 +783,11 @@ export function FlipExpenses() {
 
   return (
     <div>
+      {onBack && (
+        <button onClick={onBack} style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: "none", color: "#f59e0b", fontSize: 13, fontWeight: 600, cursor: "pointer", padding: "0 0 12px" }}>
+          <ChevronRight size={14} style={{ transform: "rotate(180deg)" }} /> Back to Deal
+        </button>
+      )}
       <PageHeader
         title="Flip Expenses"
         sub="All costs across every fix & flip project"
@@ -843,7 +867,7 @@ export function FlipExpenses() {
             {filtered.map((e, i) => {
               const flip = _FLIPS.find(f => f.id === e.flipId);
               return (
-                <tr key={e.id} style={{ borderTop: "1px solid #f1f5f9" }}>
+                <tr key={e.id} ref={e.id === flashId ? highlightRef : undefined} style={{ borderTop: "1px solid #f1f5f9", background: e.id === flashId ? "#fef9c3" : "transparent", transition: "background 1.5s ease" }}>
                   <td style={{ padding: "12px 16px", color: "#64748b", fontSize: 13 }}>{e.date}</td>
                   <td style={{ padding: "12px 16px" }}>
                     {flip && (

@@ -3709,7 +3709,7 @@ function FlipPipeline({ onSelect }) {
   );
 }
 
-function FlipDetail({ flip, onBack, allFlips, setAllFlips }) {
+function FlipDetail({ flip, onBack, allFlips, setAllFlips, onNavigateToExpense }) {
   const [activeTab, setActiveTab] = useState("overview");
   const [showExpenseModal, setShowExpenseModal] = useState(false);
   const [showContractorModal, setShowContractorModal] = useState(false);
@@ -4392,7 +4392,9 @@ function FlipDetail({ flip, onBack, allFlips, setAllFlips }) {
                 </thead>
                 <tbody>
                   {flipExpenses.map((e, i) => (
-                    <tr key={e.id} style={{ borderTop: "1px solid #f1f5f9", background: i % 2 === 0 ? "#fff" : "#fafafa" }}>
+                    <tr key={e.id} onClick={() => onNavigateToExpense && onNavigateToExpense(e.id)} style={{ borderTop: "1px solid #f1f5f9", background: i % 2 === 0 ? "#fff" : "#fafafa", cursor: onNavigateToExpense ? "pointer" : "default", transition: "background 0.15s" }}
+                      onMouseEnter={ev => { if (onNavigateToExpense) ev.currentTarget.style.background = "#f0f9ff"; }}
+                      onMouseLeave={ev => { ev.currentTarget.style.background = i % 2 === 0 ? "#fff" : "#fafafa"; }}>
                       <td style={{ padding: "13px 18px", fontSize: 13, color: "#64748b" }}>{e.date}</td>
                       <td style={{ padding: "13px 18px", fontSize: 13, fontWeight: 600, color: "#0f172a" }}>
                         {e.vendor}
@@ -4430,6 +4432,11 @@ function FlipDetail({ flip, onBack, allFlips, setAllFlips }) {
               </table>
             )}
           </div>
+          {onNavigateToExpense && flipExpenses.length > 0 && (
+            <button onClick={() => onNavigateToExpense(flipExpenses[0].id)} style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: "none", color: "#f59e0b", fontSize: 13, fontWeight: 600, cursor: "pointer", padding: "12px 0 0", marginLeft: "auto" }}>
+              View all expenses across deals <ChevronRight size={14} />
+            </button>
+          )}
           {showExpenseModal && (() => {
             const PaidToDropdown = () => {
               const q = (expForm.vendor || "").toLowerCase();
@@ -5837,6 +5844,7 @@ function AppShell() {
   const [showSettings, setShowSettings] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(user?.plan === "trial");
   const [highlightTxId, setHighlightTxId] = useState(null);
+  const [highlightExpId, setHighlightExpId] = useState(null);
   const [navSource, setNavSource] = useState(null);
   const [editPropertyId, setEditPropertyId] = useState(null); // triggers edit modal in Properties
 
@@ -5844,6 +5852,12 @@ function AppShell() {
     setHighlightTxId(txId);
     setNavSource("dashboard");
     setActiveView("transactions");
+  };
+
+  const navigateToFlipExpense = (expId) => {
+    setHighlightExpId(expId);
+    setNavSource("flipDetail");
+    setActiveView("flipexpenses");
   };
 
   const rentalNavItems = [
@@ -5990,8 +6004,8 @@ function AppShell() {
           {activeView === "reports" && <Reports />}
           {activeView === "flipdashboard"   && <FlipDashboard onSelect={handleFlipSelect} />}
           {activeView === "flips"           && <FlipPipeline onSelect={handleFlipSelect} />}
-          {activeView === "flipDetail"      && selectedFlip && <FlipDetail flip={selectedFlip} onBack={() => setActiveView("flips")} />}
-          {activeView === "flipexpenses"    && <FlipExpenses />}
+          {activeView === "flipDetail"      && selectedFlip && <FlipDetail flip={selectedFlip} onBack={() => setActiveView("flips")} onNavigateToExpense={navigateToFlipExpense} />}
+          {activeView === "flipexpenses"    && <FlipExpenses highlightExpId={highlightExpId} onBack={navSource === "flipDetail" ? () => { setActiveView("flipDetail"); setHighlightExpId(null); setNavSource(null); } : null} onClearHighlight={() => setHighlightExpId(null)} />}
           {activeView === "flipcontractors" && <FlipContractors />}
           {activeView === "flipanalytics"   && <FlipAnalytics />}
           {activeView === "rentroll" && <RentRoll />}
