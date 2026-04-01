@@ -1277,8 +1277,10 @@ export function FlipAnalytics() {
     const holding = f.stage === "Sold" ? f.totalHoldingCosts : (f.holdingCostsPerMonth * ((f.daysOwned || 0) / 30));
     const selling = f.stage === "Sold" ? f.sellingCosts : ((f.stage === "Sold" ? f.salePrice : f.arv) * 0.06);
     const sale = f.stage === "Sold" ? f.salePrice : f.arv;
-    const profit = sale - purchase - rehab - holding - selling;
-    return { name: f.image, fullName: f.name, purchase, rehab, holding: Math.round(holding), selling: Math.round(selling), profit: Math.round(profit), color: f.color };
+    const totalCost = purchase + rehab + holding + selling;
+    const profit = sale - totalCost;
+    const margin = sale > 0 ? ((profit / sale) * 100).toFixed(1) : 0;
+    return { name: f.image, fullName: f.name, purchase, rehab, holding: Math.round(holding), selling: Math.round(selling), profit: Math.round(profit), totalCost: Math.round(totalCost), sale: Math.round(sale), margin, color: f.color, stage: f.stage };
   });
 
   const avgROI    = roiData.length ? (roiData.reduce((s, d) => s + d.roi, 0) / roiData.length).toFixed(1) : 0;
@@ -1448,22 +1450,66 @@ export function FlipAnalytics() {
 
         {/* Rehab Item Progress */}
         <div style={{ ...sectionS, marginBottom: 20 }}>
-          <h3 style={{ color: "#0f172a", fontSize: 16, fontWeight: 700, marginBottom: 4 }}>Rehab Item Progress</h3>
-          <p style={{ color: "#94a3b8", fontSize: 13, marginBottom: 20 }}>Budget consumed per line item</p>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 }}>
+            <div>
+              <h3 style={{ color: "#0f172a", fontSize: 16, fontWeight: 700, marginBottom: 4 }}>Rehab Item Progress</h3>
+              <p style={{ color: "#94a3b8", fontSize: 13 }}>Budget consumed per line item</p>
+            </div>
+            {rehabProgress.length > 0 && (() => {
+              const done = rehabProgress.filter(r => r.status === "complete").length;
+              const over = rehabProgress.filter(r => r.pct > 100).length;
+              return (
+                <div style={{ display: "flex", gap: 16 }}>
+                  {[
+                    { color: "#10b981", label: `${done} Complete` },
+                    { color: "#f59e0b", label: `${rehabProgress.length - done - over} In Progress` },
+                    ...(over > 0 ? [{ color: "#ef4444", label: `${over} Over Budget` }] : []),
+                  ].map(l => (
+                    <div key={l.label} style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                      <div style={{ width: 8, height: 8, borderRadius: 2, background: l.color, flexShrink: 0 }} />
+                      <span style={{ fontSize: 11, color: "#64748b", fontWeight: 500 }}>{l.label}</span>
+                    </div>
+                  ))}
+                </div>
+              );
+            })()}
+          </div>
           {rehabProgress.length > 0 ? (
-            <div style={{ display: "grid", gap: 10 }}>
+            <div style={{ display: "grid", gap: 14 }}>
               {rehabProgress.map((item, i) => {
                 const overBudget = item.pct > 100;
                 const barColor = item.status === "complete" ? "#10b981" : overBudget ? "#ef4444" : "#f59e0b";
+                const statusIcon = item.status === "complete" ? CheckCircle : item.status === "in-progress" ? Clock : AlertCircle;
+                const StatusIcon = statusIcon;
+                const remaining = item.budgeted - item.spent;
                 return (
-                  <div key={i} style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                    <span style={{ fontSize: 12, color: "#374151", fontWeight: 500, width: 130, flexShrink: 0 }} title={item.fullName}>{item.name}</span>
-                    <div style={{ flex: 1, background: "#f1f5f9", borderRadius: 6, height: 22, position: "relative", overflow: "hidden" }}>
-                      <div style={{ width: `${Math.min(item.pct, 100)}%`, height: "100%", background: barColor, borderRadius: 6, transition: "width 0.3s" }} />
-                      <span style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", fontSize: 11, fontWeight: 600, color: item.pct > 60 ? "#fff" : "#374151" }}>{item.pct}%</span>
+                  <div key={i} style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                    {/* Status icon + category name */}
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, width: 160, flexShrink: 0 }}>
+                      <div style={{ width: 28, height: 28, borderRadius: 7, background: item.status === "complete" ? "#dcfce7" : item.status === "in-progress" ? "#fef3c7" : "#f1f5f9", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                        <StatusIcon size={13} color={item.status === "complete" ? "#16a34a" : item.status === "in-progress" ? "#d97706" : "#94a3b8"} />
+                      </div>
+                      <div style={{ minWidth: 0 }}>
+                        <p style={{ fontSize: 12, fontWeight: 600, color: "#0f172a", lineHeight: 1.2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }} title={item.fullName}>{item.fullName}</p>
+                        <p style={{ fontSize: 10, color: "#94a3b8", textTransform: "capitalize" }}>{item.status.replace("-", " ")}</p>
+                      </div>
                     </div>
-                    <span style={{ fontSize: 12, color: "#94a3b8", width: 100, textAlign: "right", flexShrink: 0 }}>{fmt(item.spent)} / {fmt(item.budgeted)}</span>
-                    <span style={{ fontSize: 10, fontWeight: 600, textTransform: "uppercase", padding: "2px 8px", borderRadius: 6, background: item.status === "complete" ? "#dcfce7" : item.status === "in-progress" ? "#fef3c7" : "#f1f5f9", color: item.status === "complete" ? "#16a34a" : item.status === "in-progress" ? "#d97706" : "#94a3b8", flexShrink: 0 }}>{item.status}</span>
+                    {/* Progress bar */}
+                    <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 4 }}>
+                      <div style={{ display: "flex", alignItems: "center", height: 24, background: "#f8fafc", borderRadius: 6, overflow: "hidden", position: "relative" }}>
+                        <div style={{ width: `${Math.min(item.pct, 100)}%`, height: "100%", background: barColor, borderRadius: 6, transition: "width 0.3s", minWidth: item.pct > 0 ? 2 : 0 }} />
+                      </div>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <span style={{ fontSize: 10, color: "#94a3b8" }}>{fmt(item.spent)} of {fmt(item.budgeted)}</span>
+                        <span style={{ fontSize: 10, color: overBudget ? "#ef4444" : "#94a3b8", fontWeight: overBudget ? 600 : 400 }}>
+                          {overBudget ? `${fmt(Math.abs(remaining))} over` : remaining > 0 ? `${fmt(remaining)} left` : "On budget"}
+                        </span>
+                      </div>
+                    </div>
+                    {/* Percentage */}
+                    <div style={{ width: 56, textAlign: "right", flexShrink: 0 }}>
+                      <p style={{ fontSize: 16, fontWeight: 700, color: barColor, lineHeight: 1 }}>{item.pct}%</p>
+                    </div>
                   </div>
                 );
               })}
@@ -1624,22 +1670,66 @@ export function FlipAnalytics() {
 
       {/* Profit Breakdown by Deal */}
       <div style={sectionS}>
-        <h3 style={{ color: "#0f172a", fontSize: 16, fontWeight: 700, marginBottom: 4 }}>Profit Breakdown by Deal</h3>
-        <p style={{ color: "#94a3b8", fontSize: 13, marginBottom: 20 }}>Where the money goes — purchase, rehab, holding, selling, and net profit</p>
-        <ResponsiveContainer width="100%" height={220}>
-          <BarChart data={profitBreakdown}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-            <XAxis dataKey="name" tick={{ fontSize: 12, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
-            <YAxis tick={{ fontSize: 12, fill: "#94a3b8" }} axisLine={false} tickLine={false} tickFormatter={v => `$${(v/1000).toFixed(0)}K`} />
-            <Tooltip formatter={v => fmt(v)} contentStyle={{ borderRadius: 10, border: "1px solid #e2e8f0", fontSize: 12 }} />
-            <Legend iconType="circle" />
-            <Bar dataKey="purchase" stackId="cost" fill="#3b82f6" name="Purchase" />
-            <Bar dataKey="rehab"    stackId="cost" fill="#f59e0b" name="Rehab" />
-            <Bar dataKey="holding"  stackId="cost" fill="#8b5cf6" name="Holding" />
-            <Bar dataKey="selling"  stackId="cost" fill="#94a3b8" name="Selling" radius={[4, 4, 0, 0]} />
-            <Bar dataKey="profit"   fill="#10b981" name="Net Profit" radius={[4, 4, 0, 0]} />
-          </BarChart>
-        </ResponsiveContainer>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 }}>
+          <div>
+            <h3 style={{ color: "#0f172a", fontSize: 16, fontWeight: 700, marginBottom: 4 }}>Profit Breakdown by Deal</h3>
+            <p style={{ color: "#94a3b8", fontSize: 13 }}>Cost components vs sale price — hover segments for details</p>
+          </div>
+          <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
+            {[
+              { color: "#3b82f6", label: "Purchase" },
+              { color: "#f59e0b", label: "Rehab" },
+              { color: "#8b5cf6", label: "Holding" },
+              { color: "#94a3b8", label: "Selling" },
+              { color: "#10b981", label: "Profit" },
+            ].map(l => (
+              <div key={l.label} style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                <div style={{ width: 8, height: 8, borderRadius: 2, background: l.color, flexShrink: 0 }} />
+                <span style={{ fontSize: 11, color: "#64748b", fontWeight: 500 }}>{l.label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div style={{ display: "grid", gap: 14 }}>
+          {profitBreakdown.map((d, i) => {
+            const maxVal = Math.max(...profitBreakdown.map(x => x.sale));
+            const segments = [
+              { key: "purchase", value: d.purchase, color: "#3b82f6", label: "Purchase" },
+              { key: "rehab", value: d.rehab, color: "#f59e0b", label: "Rehab" },
+              { key: "holding", value: d.holding, color: "#8b5cf6", label: "Holding" },
+              { key: "selling", value: d.selling, color: "#94a3b8", label: "Selling" },
+            ];
+            const profitPct = maxVal > 0 ? (Math.max(d.profit, 0) / maxVal) * 100 : 0;
+            const costPct = maxVal > 0 ? (d.totalCost / maxVal) * 100 : 0;
+            return (
+              <div key={i} style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, width: 120, flexShrink: 0 }}>
+                  <div style={{ width: 28, height: 28, borderRadius: 7, background: d.color + "20", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 700, color: d.color }}>{d.name}</div>
+                  <div>
+                    <p style={{ fontSize: 12, fontWeight: 600, color: "#0f172a", lineHeight: 1.2 }}>{d.fullName.split(" ")[0]}</p>
+                    <p style={{ fontSize: 10, color: "#94a3b8" }}>{d.stage}</p>
+                  </div>
+                </div>
+                <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 2, height: 28, background: "#f8fafc", borderRadius: 6, overflow: "hidden", position: "relative" }}>
+                  {segments.map(seg => {
+                    const pct = maxVal > 0 ? (seg.value / maxVal) * 100 : 0;
+                    if (pct < 0.5) return null;
+                    return (
+                      <div key={seg.key} title={`${seg.label}: ${fmt(seg.value)}`} style={{ width: `${pct}%`, height: "100%", background: seg.color, transition: "width 0.3s", cursor: "default", minWidth: pct > 0 ? 2 : 0 }} />
+                    );
+                  })}
+                  {d.profit > 0 && (
+                    <div title={`Net Profit: ${fmt(d.profit)}`} style={{ width: `${profitPct}%`, height: "100%", background: "#10b981", borderRadius: "0 6px 6px 0", transition: "width 0.3s", cursor: "default", minWidth: 2 }} />
+                  )}
+                </div>
+                <div style={{ width: 100, textAlign: "right", flexShrink: 0 }}>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: d.profit > 0 ? "#10b981" : "#ef4444" }}>{fmt(d.profit)}</span>
+                  <p style={{ fontSize: 10, color: "#94a3b8", marginTop: 1 }}>{d.margin}% margin</p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       {/* Deal Summary Table */}
