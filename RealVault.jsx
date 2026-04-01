@@ -3730,6 +3730,13 @@ function FlipDetail({ flip, onBack, allFlips, setAllFlips }) {
   const [deleteConfirm, setDeleteConfirm] = useState(null); // { type: "expense"|"contractor"|"rehab"|"milestone", item, index? }
   const [stage, setStage] = useState(flip.stage);
 
+  // Expense tab filters
+  const [expSearch, setExpSearch] = useState("");
+  const [expCatFilter, setExpCatFilter] = useState("all");
+  const [expDateFilter, setExpDateFilter] = useState("all");
+  const [expDateFrom, setExpDateFrom] = useState("");
+  const [expDateTo, setExpDateTo] = useState("");
+
   // Deal notes
   const [dealNotes, setDealNotes] = useState(() => {
     // Seed a couple demo notes for flip 1
@@ -3916,8 +3923,39 @@ function FlipDetail({ flip, onBack, allFlips, setAllFlips }) {
   const statusBg = { "complete": "#dcfce7", "in-progress": "#fef9c3", "pending": "#f1f5f9" };
 
   const flipContractors = conData;
-  const flipExpenses = expData;
+  // Expense date filter
+  const expNow = new Date();
+  const expThisYear = expNow.getFullYear();
+  const expThisMonth = expNow.getMonth();
+  const expMatchesDate = e => {
+    if (expDateFilter === "all") return true;
+    const d = new Date(e.date);
+    if (expDateFilter === "thisMonth") return d.getFullYear() === expThisYear && d.getMonth() === expThisMonth;
+    if (expDateFilter === "lastMonth") {
+      const lm = expThisMonth === 0 ? 11 : expThisMonth - 1;
+      const ly = expThisMonth === 0 ? expThisYear - 1 : expThisYear;
+      return d.getFullYear() === ly && d.getMonth() === lm;
+    }
+    if (expDateFilter === "thisYear") return d.getFullYear() === expThisYear;
+    if (expDateFilter === "lastYear") return d.getFullYear() === expThisYear - 1;
+    if (expDateFilter === "custom") {
+      if (expDateFrom && e.date < expDateFrom) return false;
+      if (expDateTo && e.date > expDateTo) return false;
+      return true;
+    }
+    return true;
+  };
+  const clearExpFilters = () => { setExpSearch(""); setExpCatFilter("all"); setExpDateFilter("all"); setExpDateFrom(""); setExpDateTo(""); };
+  const hasExpFilters = expSearch || expCatFilter !== "all" || expDateFilter !== "all";
+
+  const flipExpenses = expData.filter(e => {
+    if (expSearch && !e.description?.toLowerCase().includes(expSearch.toLowerCase()) && !e.vendor?.toLowerCase().includes(expSearch.toLowerCase())) return false;
+    if (expCatFilter !== "all" && e.category !== expCatFilter) return false;
+    if (!expMatchesDate(e)) return false;
+    return true;
+  });
   const totalExpensed = expData.reduce((s, e) => s + e.amount, 0);
+  const filteredTotal = flipExpenses.reduce((s, e) => s + e.amount, 0);
   const doneCount = milestones.filter(m => m.done).length;
   const today = new Date().toISOString().split("T")[0];
   const overdueCount = milestones.filter(m => !m.done && m.targetDate && m.targetDate < today).length;
@@ -4267,16 +4305,53 @@ function FlipDetail({ flip, onBack, allFlips, setAllFlips }) {
 
       {activeTab === "expenses" && (
         <div>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
             <div>
               <p style={{ color: "#64748b", fontSize: 14 }}>
-                {flipExpenses.length} transactions . <strong style={{ color: "#b91c1c" }}>{fmt(totalExpensed)}</strong> total spent
+                {hasExpFilters ? `${flipExpenses.length} of ${expData.length}` : `${flipExpenses.length}`} transactions . <strong style={{ color: "#b91c1c" }}>{fmt(hasExpFilters ? filteredTotal : totalExpensed)}</strong> {hasExpFilters ? "filtered" : "total spent"}
               </p>
             </div>
             <button onClick={() => { setEditingExpId(null); setExpForm(emptyExp); setShowExpenseModal(true); }} style={{ background: "#f59e0b", color: "#fff", border: "none", borderRadius: 10, padding: "10px 16px", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
               <Plus size={15} /> Log Expense
             </button>
           </div>
+          {/* Filter bar */}
+          <div style={{ display: "flex", gap: 10, marginBottom: hasExpFilters ? 10 : 16, flexWrap: "wrap", alignItems: "center" }}>
+            <div style={{ position: "relative", flex: "1 1 160px", minWidth: 150 }}>
+              <Search size={14} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "#94a3b8" }} />
+              <input value={expSearch} onChange={e => setExpSearch(e.target.value)} placeholder="Search..."
+                style={{ width: "100%", paddingLeft: 32, paddingRight: 10, paddingTop: 8, paddingBottom: 8, border: "1px solid #e2e8f0", borderRadius: 10, fontSize: 13, color: "#0f172a", background: "#fff", outline: "none", boxSizing: "border-box" }} />
+            </div>
+            <select value={expCatFilter} onChange={e => setExpCatFilter(e.target.value)} style={{ ...iS, width: "auto", minWidth: 150, fontSize: 13, padding: "8px 10px" }}>
+              <option value="all">All Categories</option>
+              {FLIP_EXPENSE_CATS.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+            <select value={expDateFilter} onChange={e => { setExpDateFilter(e.target.value); if (e.target.value !== "custom") { setExpDateFrom(""); setExpDateTo(""); } }} style={{ ...iS, width: "auto", minWidth: 130, fontSize: 13, padding: "8px 10px" }}>
+              <option value="all">All Time</option>
+              <option value="thisMonth">This Month</option>
+              <option value="lastMonth">Last Month</option>
+              <option value="thisYear">This Year</option>
+              <option value="lastYear">Last Year</option>
+              <option value="custom">Custom Range</option>
+            </select>
+            {expDateFilter === "custom" && (
+              <>
+                <input type="date" value={expDateFrom} onChange={e => setExpDateFrom(e.target.value)} style={{ ...iS, width: "auto", fontSize: 13, padding: "8px 10px" }} />
+                <span style={{ color: "#94a3b8", fontSize: 13 }}>to</span>
+                <input type="date" value={expDateTo} onChange={e => setExpDateTo(e.target.value)} style={{ ...iS, width: "auto", fontSize: 13, padding: "8px 10px" }} />
+              </>
+            )}
+          </div>
+          {/* Active filter chips */}
+          {hasExpFilters && (
+            <div style={{ display: "flex", gap: 8, marginBottom: 14, flexWrap: "wrap", alignItems: "center" }}>
+              <span style={{ fontSize: 12, color: "#94a3b8", fontWeight: 600 }}>Filtered:</span>
+              {expCatFilter !== "all" && <span style={{ background: "#fef9c3", color: "#854d0e", borderRadius: 20, padding: "3px 10px", fontSize: 12, fontWeight: 600 }}>{expCatFilter}</span>}
+              {expDateFilter !== "all" && <span style={{ background: "#f0fdf4", color: "#15803d", borderRadius: 20, padding: "3px 10px", fontSize: 12, fontWeight: 600 }}>{{ thisMonth: "This Month", lastMonth: "Last Month", thisYear: "This Year", lastYear: "Last Year", custom: expDateFrom && expDateTo ? `${expDateFrom} – ${expDateTo}` : "Custom Range" }[expDateFilter]}</span>}
+              {expSearch && <span style={{ background: "#f1f5f9", color: "#475569", borderRadius: 20, padding: "3px 10px", fontSize: 12, fontWeight: 600 }}>&ldquo;{expSearch}&rdquo;</span>}
+              <button onClick={clearExpFilters} style={{ background: "none", border: "none", color: "#94a3b8", fontSize: 12, cursor: "pointer", textDecoration: "underline", padding: 0 }}>Clear all</button>
+            </div>
+          )}
           <div style={{ display: "flex", gap: 10, marginBottom: 20, overflowX: "auto", paddingBottom: 4 }}>
             {Object.keys(FLIP_EXPENSE_GROUPS).map(group => {
               const subs = FLIP_EXPENSE_GROUPS[group];
@@ -4294,8 +4369,17 @@ function FlipDetail({ flip, onBack, allFlips, setAllFlips }) {
             {flipExpenses.length === 0 ? (
               <div style={{ textAlign: "center", padding: 48, color: "#94a3b8" }}>
                 <Receipt size={32} style={{ margin: "0 auto 12px", display: "block" }} />
-                <p style={{ fontWeight: 600, marginBottom: 4 }}>No expenses logged yet</p>
-                <p style={{ fontSize: 13 }}>Click "Log Expense" to start tracking spend for this flip.</p>
+                {hasExpFilters ? (
+                  <>
+                    <p style={{ fontWeight: 600, marginBottom: 4 }}>No expenses match your filters</p>
+                    <button onClick={clearExpFilters} style={{ background: "none", border: "none", color: "#f59e0b", fontSize: 13, cursor: "pointer", textDecoration: "underline", padding: 0 }}>Clear filters</button>
+                  </>
+                ) : (
+                  <>
+                    <p style={{ fontWeight: 600, marginBottom: 4 }}>No expenses logged yet</p>
+                    <p style={{ fontSize: 13 }}>Click &ldquo;Log Expense&rdquo; to start tracking spend for this flip.</p>
+                  </>
+                )}
               </div>
             ) : (
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
@@ -5774,6 +5858,8 @@ function AppShell() {
   const flipNavItems = [
     { id: "flipdashboard",   label: "Dashboard",      icon: LayoutDashboard },
     { id: "flips",           label: "Deals",           icon: Hammer          },
+    { id: "flipexpenses",    label: "Expenses",        icon: Receipt         },
+    { id: "flipcontractors", label: "Contractors",     icon: Users           },
     { id: "flipanalytics",   label: "Analytics",       icon: BarChart3       },
   ];
 
@@ -5905,6 +5991,8 @@ function AppShell() {
           {activeView === "flipdashboard"   && <FlipDashboard onSelect={handleFlipSelect} />}
           {activeView === "flips"           && <FlipPipeline onSelect={handleFlipSelect} />}
           {activeView === "flipDetail"      && selectedFlip && <FlipDetail flip={selectedFlip} onBack={() => setActiveView("flips")} />}
+          {activeView === "flipexpenses"    && <FlipExpenses />}
+          {activeView === "flipcontractors" && <FlipContractors />}
           {activeView === "flipanalytics"   && <FlipAnalytics />}
           {activeView === "rentroll" && <RentRoll />}
           {activeView === "mileage" && <MileageTracker />}
