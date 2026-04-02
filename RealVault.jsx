@@ -1082,7 +1082,7 @@ function Properties({ onSelect, editPropertyId, onClearEditId }) {
   );
 }
 
-function PropertyDetail({ property, onBack, onEditProperty, onGoToTransactions }) {
+function PropertyDetail({ property, onBack, onEditProperty, onGoToTransactions, onNavigateToTransaction, onNavigateToRentRoll }) {
   const calcBal = calcLoanBalance(property.loanAmount, property.loanRate, property.loanTermYears, property.loanStartDate);
   const effectiveMortgage = calcBal !== null ? calcBal : (property.mortgage || 0);
   const equity = property.currentValue - effectiveMortgage;
@@ -1090,8 +1090,48 @@ function PropertyDetail({ property, onBack, onEditProperty, onGoToTransactions }
   const eff = getEffectiveMonthly(property, TRANSACTIONS);
   const annualNOI = (eff.monthlyIncome - eff.monthlyExpenses) * 12;
   const propTransactions = TRANSACTIONS.filter(t => t.property === property.name);
+  const propTenants = TENANTS.filter(t => t.propertyId === property.id);
   const detailHealth = getPropertyHealth(property, TRANSACTIONS);
   const [healthOpen, setHealthOpen] = useState(true);
+  const [activeTab, setActiveTab] = useState("overview");
+
+  // Transaction tab filters
+  const [txSearch, setTxSearch] = useState("");
+  const [txTypeFilter, setTxTypeFilter] = useState("all");
+  const [txCatFilter, setTxCatFilter] = useState("all");
+  const [txDateFilter, setTxDateFilter] = useState("all");
+  const [txDateFrom, setTxDateFrom] = useState("");
+  const [txDateTo, setTxDateTo] = useState("");
+
+  const filteredTx = useMemo(() => {
+    let list = propTransactions;
+    if (txTypeFilter !== "all") list = list.filter(t => t.type === txTypeFilter);
+    if (txCatFilter !== "all") list = list.filter(t => t.category === txCatFilter);
+    if (txSearch) { const q = txSearch.toLowerCase(); list = list.filter(t => t.description.toLowerCase().includes(q) || t.category.toLowerCase().includes(q) || (t.payee || "").toLowerCase().includes(q)); }
+    if (txDateFilter !== "all") {
+      const now = new Date(); const y = now.getFullYear(); const m = now.getMonth();
+      let from, to;
+      if (txDateFilter === "thisMonth")  { from = new Date(y, m, 1); to = new Date(y, m + 1, 0); }
+      if (txDateFilter === "lastMonth")  { from = new Date(y, m - 1, 1); to = new Date(y, m, 0); }
+      if (txDateFilter === "thisYear")   { from = new Date(y, 0, 1); to = new Date(y, 11, 31); }
+      if (txDateFilter === "lastYear")   { from = new Date(y - 1, 0, 1); to = new Date(y - 1, 11, 31); }
+      if (txDateFilter === "custom")     { from = txDateFrom ? new Date(txDateFrom) : null; to = txDateTo ? new Date(txDateTo) : null; }
+      if (from || to) list = list.filter(t => { const d = new Date(t.date); return (!from || d >= from) && (!to || d <= to); });
+    }
+    return list;
+  }, [propTransactions, txSearch, txTypeFilter, txCatFilter, txDateFilter, txDateFrom, txDateTo]);
+
+  const txHasFilters = txSearch || txTypeFilter !== "all" || txCatFilter !== "all" || txDateFilter !== "all";
+  const clearTxFilters = () => { setTxSearch(""); setTxTypeFilter("all"); setTxCatFilter("all"); setTxDateFilter("all"); setTxDateFrom(""); setTxDateTo(""); };
+
+  const txCategories = [...new Set(propTransactions.map(t => t.category))].sort();
+  const filteredTxTotal = filteredTx.reduce((s, t) => s + (t.type === "income" ? t.amount : -Math.abs(t.amount)), 0);
+
+  const tabs = [
+    { id: "overview", label: "Overview", icon: Home },
+    { id: "transactions", label: "Transactions", icon: Receipt, count: propTransactions.length },
+    { id: "tenants", label: "Tenants", icon: Users, count: propTenants.filter(t => t.status !== "vacant").length },
+  ];
 
   return (
     <div>
@@ -1099,45 +1139,7 @@ function PropertyDetail({ property, onBack, onEditProperty, onGoToTransactions }
         Back to Properties
       </button>
 
-      {/* Recommended Updates Banner */}
-      {detailHealth.length > 0 && (
-        <div style={{ background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 14, padding: healthOpen ? "16px 20px" : "12px 20px", marginBottom: 20, transition: "all 0.2s" }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer" }} onClick={() => setHealthOpen(h => !h)}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <AlertCircle size={16} color="#b45309" />
-              <span style={{ color: "#92400e", fontSize: 14, fontWeight: 700 }}>
-                {detailHealth.length} Recommended Update{detailHealth.length > 1 ? "s" : ""}
-              </span>
-              <span style={{ color: "#b45309", fontSize: 12 }}>— improve the accuracy of your analytics</span>
-            </div>
-            <ChevronDown size={16} color="#b45309" style={{ transform: healthOpen ? "rotate(180deg)" : "rotate(0)", transition: "transform 0.2s" }} />
-          </div>
-          {healthOpen && (
-            <div style={{ marginTop: 14, display: "flex", flexDirection: "column", gap: 10 }}>
-              {detailHealth.map(item => (
-                <div key={item.key} style={{ display: "flex", alignItems: "flex-start", gap: 12, background: "#fff", borderRadius: 10, padding: "12px 16px", border: "1px solid #fde68a" }}>
-                  <span style={{
-                    width: 8, height: 8, borderRadius: "50%", marginTop: 5, flexShrink: 0,
-                    background: item.severity === "high" ? "#dc2626" : item.severity === "medium" ? "#f59e0b" : "#6366f1"
-                  }} />
-                  <div style={{ flex: 1 }}>
-                    <p style={{ color: "#0f172a", fontSize: 13, fontWeight: 700, marginBottom: 2 }}>{item.label}</p>
-                    <p style={{ color: "#64748b", fontSize: 12, lineHeight: 1.5 }}>{item.detail}</p>
-                  </div>
-                  <button onClick={e => { e.stopPropagation(); item.field ? onEditProperty && onEditProperty(property) : onGoToTransactions && onGoToTransactions(); }} style={{
-                    fontSize: 11, fontWeight: 600, color: "#b45309", background: "#fef3c7", borderRadius: 6, padding: "5px 12px", whiteSpace: "nowrap", flexShrink: 0,
-                    border: "1px solid #fde68a", cursor: "pointer", transition: "all 0.15s",
-                  }}
-                  onMouseEnter={e => { e.currentTarget.style.background = "#fde68a"; e.currentTarget.style.color = "#92400e"; }}
-                  onMouseLeave={e => { e.currentTarget.style.background = "#fef3c7"; e.currentTarget.style.color = "#b45309"; }}
-                  >{item.field ? "Edit Property" : "Go to Transactions"}</button>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-
+      {/* Property header card */}
       <div style={{ background: `linear-gradient(135deg, ${property.color}18, ${property.color}30)`, borderRadius: 20, padding: 28, marginBottom: 24, border: `1px solid ${property.color}30` }}>
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
@@ -1169,60 +1171,279 @@ function PropertyDetail({ property, onBack, onEditProperty, onGoToTransactions }
           </div>
         </div>
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 24 }}>
-        {[
-          { label: "Monthly Income", value: fmt(eff.monthlyIncome), color: "#10b981", sub: eff.source === "transactions" ? `Avg from ${eff.months}mo of transactions` : "Manual estimate — log transactions for actuals" },
-          { label: "Monthly Expenses", value: fmt(eff.monthlyExpenses), color: "#ef4444", sub: eff.source === "transactions" ? `Avg from ${eff.months}mo of transactions` : "Manual estimate — log transactions for actuals" },
-          { label: "Net Cash Flow", value: fmt(eff.monthlyIncome - eff.monthlyExpenses), color: "#3b82f6" },
-          { label: "Total Equity", value: fmt(equity), color: "#8b5cf6" },
-          { label: "Purchase Price", value: fmt(property.purchasePrice), color: "#0f172a" },
-          { label: "Closing Costs", value: property.closingCosts ? fmt(property.closingCosts) : "—", color: "#64748b" },
-          { label: calcBal !== null ? "Est. Mortgage Balance" : "Mortgage Balance", value: fmt(effectiveMortgage), color: "#f59e0b", sub: calcBal !== null ? "Calculated from loan terms" : null },
-          { label: "Cap Rate", value: `${calcCapRate(property, TRANSACTIONS)}%`, color: "#8b5cf6" },
-          { label: "Cash-on-Cash", value: `${calcCashOnCash(property, TRANSACTIONS)}%`, color: "#10b981" },
-        ].map((m, i) => (
-          <div key={i} style={{ background: "#fff", borderRadius: 12, padding: "16px 18px", boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" }}>
-            <p style={{ color: "#94a3b8", fontSize: 12, fontWeight: 500, marginBottom: 4 }}>{m.label}</p>
-            <p style={{ color: m.color, fontSize: 18, fontWeight: 700 }}>{m.value}</p>
-            {m.sub && <p style={{ color: "#cbd5e1", fontSize: 10, marginTop: 2 }}>{m.sub}</p>}
+
+      {/* Tab bar */}
+      <div style={{ display: "flex", gap: 0, marginBottom: 24, borderBottom: "2px solid #f1f5f9" }}>
+        {tabs.map(tab => {
+          const active = activeTab === tab.id;
+          return (
+            <button key={tab.id} onClick={() => setActiveTab(tab.id)}
+              style={{ display: "flex", alignItems: "center", gap: 7, padding: "12px 20px", border: "none", background: "none", color: active ? "#f59e0b" : "#64748b", fontWeight: active ? 700 : 500, fontSize: 14, cursor: "pointer", borderBottom: active ? "2px solid #f59e0b" : "2px solid transparent", marginBottom: -2, transition: "all 0.15s" }}>
+              <tab.icon size={15} />
+              {tab.label}
+              {tab.count !== undefined && (
+                <span style={{ background: active ? "#fef3c7" : "#f1f5f9", color: active ? "#b45309" : "#94a3b8", borderRadius: 10, padding: "1px 7px", fontSize: 11, fontWeight: 600 }}>{tab.count}</span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* ═══ OVERVIEW TAB ═══ */}
+      {activeTab === "overview" && (
+        <div>
+          {/* Recommended Updates Banner */}
+          {detailHealth.length > 0 && (
+            <div style={{ background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 14, padding: healthOpen ? "16px 20px" : "12px 20px", marginBottom: 20, transition: "all 0.2s" }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer" }} onClick={() => setHealthOpen(h => !h)}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <AlertCircle size={16} color="#b45309" />
+                  <span style={{ color: "#92400e", fontSize: 14, fontWeight: 700 }}>
+                    {detailHealth.length} Recommended Update{detailHealth.length > 1 ? "s" : ""}
+                  </span>
+                  <span style={{ color: "#b45309", fontSize: 12 }}>— improve the accuracy of your analytics</span>
+                </div>
+                <ChevronDown size={16} color="#b45309" style={{ transform: healthOpen ? "rotate(180deg)" : "rotate(0)", transition: "transform 0.2s" }} />
+              </div>
+              {healthOpen && (
+                <div style={{ marginTop: 14, display: "flex", flexDirection: "column", gap: 10 }}>
+                  {detailHealth.map(item => (
+                    <div key={item.key} style={{ display: "flex", alignItems: "flex-start", gap: 12, background: "#fff", borderRadius: 10, padding: "12px 16px", border: "1px solid #fde68a" }}>
+                      <span style={{
+                        width: 8, height: 8, borderRadius: "50%", marginTop: 5, flexShrink: 0,
+                        background: item.severity === "high" ? "#dc2626" : item.severity === "medium" ? "#f59e0b" : "#6366f1"
+                      }} />
+                      <div style={{ flex: 1 }}>
+                        <p style={{ color: "#0f172a", fontSize: 13, fontWeight: 700, marginBottom: 2 }}>{item.label}</p>
+                        <p style={{ color: "#64748b", fontSize: 12, lineHeight: 1.5 }}>{item.detail}</p>
+                      </div>
+                      <button onClick={e => { e.stopPropagation(); item.field ? onEditProperty && onEditProperty(property) : onGoToTransactions && onGoToTransactions(); }} style={{
+                        fontSize: 11, fontWeight: 600, color: "#b45309", background: "#fef3c7", borderRadius: 6, padding: "5px 12px", whiteSpace: "nowrap", flexShrink: 0,
+                        border: "1px solid #fde68a", cursor: "pointer", transition: "all 0.15s",
+                      }}
+                      onMouseEnter={e => { e.currentTarget.style.background = "#fde68a"; e.currentTarget.style.color = "#92400e"; }}
+                      onMouseLeave={e => { e.currentTarget.style.background = "#fef3c7"; e.currentTarget.style.color = "#b45309"; }}
+                      >{item.field ? "Edit Property" : "Go to Transactions"}</button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 24 }}>
+            {[
+              { label: "Monthly Income", value: fmt(eff.monthlyIncome), color: "#10b981", sub: eff.source === "transactions" ? `Avg from ${eff.months}mo of transactions` : "Manual estimate — log transactions for actuals" },
+              { label: "Monthly Expenses", value: fmt(eff.monthlyExpenses), color: "#ef4444", sub: eff.source === "transactions" ? `Avg from ${eff.months}mo of transactions` : "Manual estimate — log transactions for actuals" },
+              { label: "Net Cash Flow", value: fmt(eff.monthlyIncome - eff.monthlyExpenses), color: "#3b82f6" },
+              { label: "Total Equity", value: fmt(equity), color: "#8b5cf6" },
+              { label: "Purchase Price", value: fmt(property.purchasePrice), color: "#0f172a" },
+              { label: "Closing Costs", value: property.closingCosts ? fmt(property.closingCosts) : "—", color: "#64748b" },
+              { label: calcBal !== null ? "Est. Mortgage Balance" : "Mortgage Balance", value: fmt(effectiveMortgage), color: "#f59e0b", sub: calcBal !== null ? "Calculated from loan terms" : null },
+              { label: "Cap Rate", value: `${calcCapRate(property, TRANSACTIONS)}%`, color: "#8b5cf6" },
+              { label: "Cash-on-Cash", value: `${calcCashOnCash(property, TRANSACTIONS)}%`, color: "#10b981" },
+            ].map((m, i) => (
+              <div key={i} style={{ background: "#fff", borderRadius: 12, padding: "16px 18px", boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" }}>
+                <p style={{ color: "#94a3b8", fontSize: 12, fontWeight: 500, marginBottom: 4 }}>{m.label}</p>
+                <p style={{ color: m.color, fontSize: 18, fontWeight: 700 }}>{m.value}</p>
+                {m.sub && <p style={{ color: "#cbd5e1", fontSize: 10, marginTop: 2 }}>{m.sub}</p>}
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
-      <div style={{ background: "#fff", borderRadius: 16, padding: 24, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" }}>
-        <h3 style={{ color: "#0f172a", fontSize: 16, fontWeight: 700, marginBottom: 16 }}>Recent Transactions</h3>
-        {propTransactions.length === 0 ? (
-          <p style={{ color: "#94a3b8", fontSize: 14, textAlign: "center", padding: 24 }}>No transactions found.</p>
-        ) : (
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
-            <thead>
-              <tr>
-                {["Date", "Category", "Description", "Amount"].map(h => (
-                  <th key={h} style={{ padding: "10px 16px", textAlign: "left", color: "#94a3b8", fontSize: 12, fontWeight: 600, textTransform: "uppercase", borderBottom: "1px solid #f1f5f9" }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {propTransactions.map(t => (
-                <tr key={t.id} style={{ borderBottom: "1px solid #f8fafc" }}>
-                  <td style={{ padding: "12px 16px", fontSize: 13, color: "#64748b" }}>{t.date}</td>
-                  <td style={{ padding: "12px 16px" }}>
-                    <span style={{ background: "#f1f5f9", borderRadius: 6, padding: "3px 8px", fontSize: 12, fontWeight: 600, color: "#475569" }}>{t.category}</span>
-                  </td>
-                  <td style={{ padding: "12px 16px", fontSize: 13, color: "#0f172a" }}>{t.description}</td>
-                  <td style={{ padding: "12px 16px", fontSize: 14, fontWeight: 700, color: t.type === "income" ? "#15803d" : "#b91c1c" }}>
-                    {t.type === "income" ? "+" : ""}{fmt(Math.abs(t.amount))}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
+        </div>
+      )}
+
+      {/* ═══ TRANSACTIONS TAB ═══ */}
+      {activeTab === "transactions" && (
+        <div>
+          {/* Filter bar */}
+          <div style={{ display: "flex", gap: 10, marginBottom: txHasFilters ? 10 : 20, flexWrap: "wrap", alignItems: "center" }}>
+            <div style={{ position: "relative", flex: 1, minWidth: 180 }}>
+              <Search size={14} color="#94a3b8" style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)" }} />
+              <input value={txSearch} onChange={e => setTxSearch(e.target.value)} placeholder="Search transactions..." style={{ width: "100%", border: "1.5px solid #e2e8f0", borderRadius: 10, padding: "9px 12px 9px 32px", fontSize: 13, color: "#0f172a", background: "#fff", outline: "none" }} />
+            </div>
+            <select value={txTypeFilter} onChange={e => setTxTypeFilter(e.target.value)} style={{ border: "1.5px solid #e2e8f0", borderRadius: 10, padding: "9px 12px", fontSize: 13, color: "#475569", background: "#fff" }}>
+              <option value="all">All Types</option>
+              <option value="income">Income</option>
+              <option value="expense">Expense</option>
+            </select>
+            <select value={txCatFilter} onChange={e => setTxCatFilter(e.target.value)} style={{ border: "1.5px solid #e2e8f0", borderRadius: 10, padding: "9px 12px", fontSize: 13, color: "#475569", background: "#fff" }}>
+              <option value="all">All Categories</option>
+              {txCategories.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+            <select value={txDateFilter} onChange={e => setTxDateFilter(e.target.value)} style={{ border: "1.5px solid #e2e8f0", borderRadius: 10, padding: "9px 12px", fontSize: 13, color: "#475569", background: "#fff" }}>
+              <option value="all">All Time</option>
+              <option value="thisMonth">This Month</option>
+              <option value="lastMonth">Last Month</option>
+              <option value="thisYear">This Year</option>
+              <option value="lastYear">Last Year</option>
+              <option value="custom">Custom Range</option>
+            </select>
+            {txDateFilter === "custom" && (
+              <>
+                <input type="date" value={txDateFrom} onChange={e => setTxDateFrom(e.target.value)} style={{ border: "1.5px solid #e2e8f0", borderRadius: 10, padding: "9px 12px", fontSize: 13, color: "#475569", background: "#fff" }} />
+                <input type="date" value={txDateTo} onChange={e => setTxDateTo(e.target.value)} style={{ border: "1.5px solid #e2e8f0", borderRadius: 10, padding: "9px 12px", fontSize: 13, color: "#475569", background: "#fff" }} />
+              </>
+            )}
+          </div>
+
+          {/* Filter chips */}
+          {txHasFilters && (
+            <div style={{ display: "flex", gap: 6, marginBottom: 16, flexWrap: "wrap", alignItems: "center" }}>
+              {txTypeFilter !== "all" && <span style={{ background: "#dbeafe", color: "#1d4ed8", borderRadius: 20, padding: "3px 10px", fontSize: 12, fontWeight: 600, display: "flex", alignItems: "center", gap: 4 }}>{txTypeFilter} <button onClick={() => setTxTypeFilter("all")} style={{ background: "none", border: "none", cursor: "pointer", color: "#1d4ed8", padding: 0 }}><X size={10} /></button></span>}
+              {txCatFilter !== "all" && <span style={{ background: "#dcfce7", color: "#15803d", borderRadius: 20, padding: "3px 10px", fontSize: 12, fontWeight: 600, display: "flex", alignItems: "center", gap: 4 }}>{txCatFilter} <button onClick={() => setTxCatFilter("all")} style={{ background: "none", border: "none", cursor: "pointer", color: "#15803d", padding: 0 }}><X size={10} /></button></span>}
+              {txDateFilter !== "all" && <span style={{ background: "#fef9c3", color: "#a16207", borderRadius: 20, padding: "3px 10px", fontSize: 12, fontWeight: 600, display: "flex", alignItems: "center", gap: 4 }}>{txDateFilter === "custom" ? `${txDateFrom || "..."} – ${txDateTo || "..."}` : txDateFilter} <button onClick={() => { setTxDateFilter("all"); setTxDateFrom(""); setTxDateTo(""); }} style={{ background: "none", border: "none", cursor: "pointer", color: "#a16207", padding: 0 }}><X size={10} /></button></span>}
+              {txSearch && <span style={{ background: "#f1f5f9", color: "#475569", borderRadius: 20, padding: "3px 10px", fontSize: 12, fontWeight: 600, display: "flex", alignItems: "center", gap: 4 }}>"{txSearch}" <button onClick={() => setTxSearch("")} style={{ background: "none", border: "none", cursor: "pointer", color: "#475569", padding: 0 }}><X size={10} /></button></span>}
+              <button onClick={clearTxFilters} style={{ background: "none", border: "none", color: "#94a3b8", fontSize: 12, cursor: "pointer", textDecoration: "underline" }}>Clear all</button>
+            </div>
+          )}
+
+          {/* Header with counts */}
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+            <p style={{ color: "#64748b", fontSize: 13 }}>
+              {txHasFilters ? `${filteredTx.length} of ${propTransactions.length} transactions` : `${propTransactions.length} transactions`}
+              {txHasFilters && <span style={{ color: filteredTxTotal >= 0 ? "#15803d" : "#b91c1c", fontWeight: 600, marginLeft: 8 }}>Net: {filteredTxTotal >= 0 ? "+" : ""}{fmt(Math.abs(filteredTxTotal))}</span>}
+            </p>
+            <button onClick={() => onNavigateToTransaction && onNavigateToTransaction(null)}
+              style={{ background: "none", border: "none", color: "#3b82f6", fontSize: 13, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
+              View all transactions across properties <ChevronRight size={14} />
+            </button>
+          </div>
+
+          <div style={{ background: "#fff", borderRadius: 16, padding: 24, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" }}>
+            {filteredTx.length === 0 ? (
+              <p style={{ color: "#94a3b8", fontSize: 14, textAlign: "center", padding: 24 }}>
+                {txHasFilters ? <span>No transactions match your filters. <button onClick={clearTxFilters} style={{ background: "none", border: "none", color: "#3b82f6", cursor: "pointer", textDecoration: "underline", fontSize: 14 }}>Clear filters</button></span> : "No transactions found."}
+              </p>
+            ) : (
+              <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                <thead>
+                  <tr>
+                    {["Date", "Category", "Description", "Amount"].map(h => (
+                      <th key={h} style={{ padding: "10px 16px", textAlign: "left", color: "#94a3b8", fontSize: 12, fontWeight: 600, textTransform: "uppercase", borderBottom: "1px solid #f1f5f9" }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredTx.map(t => (
+                    <tr key={t.id} onClick={() => onNavigateToTransaction && onNavigateToTransaction(t.id)}
+                      style={{ borderBottom: "1px solid #f8fafc", cursor: "pointer", transition: "background 0.15s" }}
+                      onMouseEnter={e => e.currentTarget.style.background = "#f0f9ff"}
+                      onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                      <td style={{ padding: "12px 16px", fontSize: 13, color: "#64748b" }}>{t.date}</td>
+                      <td style={{ padding: "12px 16px" }}>
+                        <span style={{ background: "#f1f5f9", borderRadius: 6, padding: "3px 8px", fontSize: 12, fontWeight: 600, color: "#475569" }}>{t.category}</span>
+                      </td>
+                      <td style={{ padding: "12px 16px", fontSize: 13, color: "#0f172a" }}>{t.description}</td>
+                      <td style={{ padding: "12px 16px", fontSize: 14, fontWeight: 700, color: t.type === "income" ? "#15803d" : "#b91c1c" }}>
+                        {t.type === "income" ? "+" : ""}{fmt(Math.abs(t.amount))}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ═══ TENANTS TAB ═══ */}
+      {activeTab === "tenants" && (
+        <div>
+          {/* Summary stat cards */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 20 }}>
+            {[
+              { label: "Total Units", value: propTenants.length || property.units, color: "#3b82f6" },
+              { label: "Occupied", value: propTenants.filter(t => t.status !== "vacant").length, color: "#10b981" },
+              { label: "Vacant", value: propTenants.filter(t => t.status === "vacant").length, color: propTenants.some(t => t.status === "vacant") ? "#ef4444" : "#94a3b8" },
+              { label: "Monthly Rent Roll", value: fmt(propTenants.filter(t => t.status !== "vacant").reduce((s, t) => s + (t.rent || 0), 0)), color: "#f59e0b" },
+            ].map((m, i) => (
+              <div key={i} style={{ background: "#fff", borderRadius: 12, padding: "16px 18px", boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" }}>
+                <p style={{ color: "#94a3b8", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 4 }}>{m.label}</p>
+                <p style={{ color: m.color, fontSize: 22, fontWeight: 700 }}>{m.value}</p>
+              </div>
+            ))}
+          </div>
+
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+            <p style={{ color: "#64748b", fontSize: 13 }}>{propTenants.length} unit{propTenants.length !== 1 ? "s" : ""} on record</p>
+            <button onClick={() => onNavigateToRentRoll && onNavigateToRentRoll()}
+              style={{ background: "none", border: "none", color: "#3b82f6", fontSize: 13, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
+              View full rent roll <ChevronRight size={14} />
+            </button>
+          </div>
+
+          {propTenants.length === 0 ? (
+            <div style={{ background: "#fff", borderRadius: 16, padding: 48, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9", textAlign: "center" }}>
+              <Users size={32} color="#cbd5e1" style={{ marginBottom: 12 }} />
+              <p style={{ color: "#94a3b8", fontSize: 14 }}>No tenants on record for this property.</p>
+              <p style={{ color: "#cbd5e1", fontSize: 13, marginTop: 4 }}>Add tenants from the Rent Roll page.</p>
+            </div>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              {propTenants.map(t => {
+                const isVacant = t.status === "vacant";
+                const statusMap = {
+                  "active-lease": { bg: "#dcfce7", text: "#15803d", label: "Active Lease" },
+                  "month-to-month": { bg: "#fef9c3", text: "#a16207", label: "Month-to-Month" },
+                  "vacant": { bg: "#fee2e2", text: "#b91c1c", label: "Vacant" },
+                  "expiring-soon": { bg: "#ffedd5", text: "#c2410c", label: "Expiring Soon" },
+                };
+                const st = statusMap[t.status] || statusMap["active-lease"];
+                const daysLeft = t.leaseEnd ? Math.round((new Date(t.leaseEnd) - new Date()) / 86400000) : null;
+                return (
+                  <div key={t.id} style={{ background: "#fff", borderRadius: 14, padding: "18px 22px", boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: `1px solid ${isVacant ? "#fee2e2" : "#f1f5f9"}` }}>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                        <div style={{ width: 38, height: 38, borderRadius: 10, background: isVacant ? "#fef2f2" : "#f0f9ff", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                          {isVacant ? <Home size={17} color="#ef4444" /> : <User size={17} color="#3b82f6" />}
+                        </div>
+                        <div>
+                          <p style={{ fontSize: 14, fontWeight: 700, color: "#0f172a" }}>{isVacant ? "Vacant" : t.name}</p>
+                          <p style={{ fontSize: 12, color: "#94a3b8" }}>{t.unit}</p>
+                        </div>
+                      </div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                        <span style={{ background: st.bg, color: st.text, borderRadius: 20, padding: "4px 12px", fontSize: 12, fontWeight: 600 }}>{st.label}</span>
+                        <span style={{ fontSize: 16, fontWeight: 700, color: "#0f172a" }}>{fmt(t.rent)}<span style={{ fontSize: 11, color: "#94a3b8", fontWeight: 500 }}>/mo</span></span>
+                      </div>
+                    </div>
+                    {!isVacant && (
+                      <div style={{ display: "flex", gap: 24, marginTop: 12, paddingTop: 12, borderTop: "1px solid #f8fafc" }}>
+                        <div>
+                          <p style={{ color: "#94a3b8", fontSize: 11, fontWeight: 600, textTransform: "uppercase" }}>Lease</p>
+                          <p style={{ color: "#374151", fontSize: 12, fontWeight: 500 }}>{t.leaseStart} — {t.leaseEnd || "MTM"}</p>
+                        </div>
+                        {daysLeft !== null && (
+                          <div>
+                            <p style={{ color: "#94a3b8", fontSize: 11, fontWeight: 600, textTransform: "uppercase" }}>Expires In</p>
+                            <p style={{ color: daysLeft < 60 ? "#ef4444" : "#374151", fontSize: 12, fontWeight: daysLeft < 60 ? 700 : 500 }}>{daysLeft > 0 ? `${daysLeft} days` : "Expired"}</p>
+                          </div>
+                        )}
+                        <div>
+                          <p style={{ color: "#94a3b8", fontSize: 11, fontWeight: 600, textTransform: "uppercase" }}>Last Payment</p>
+                          <p style={{ color: "#374151", fontSize: 12, fontWeight: 500 }}>{t.lastPayment || "—"}</p>
+                        </div>
+                        {t.phone && (
+                          <div>
+                            <p style={{ color: "#94a3b8", fontSize: 11, fontWeight: 600, textTransform: "uppercase" }}>Phone</p>
+                            <p style={{ color: "#374151", fontSize: 12, fontWeight: 500 }}>{t.phone}</p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
 
-function Transactions({ highlightTxId, onBack, onClearHighlight }) {
+function Transactions({ highlightTxId, onBack, onClearHighlight, backLabel }) {
   const [txData, setTxData] = useState(TRANSACTIONS);
   const [filter, setFilter] = useState("all");
   const [search, setSearch] = useState("");
@@ -1379,7 +1600,7 @@ function Transactions({ highlightTxId, onBack, onClearHighlight }) {
     <div>
       {onBack && (
         <button onClick={onBack} style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: "none", color: "#3b82f6", fontSize: 13, fontWeight: 600, cursor: "pointer", padding: "0 0 12px", marginBottom: 0 }}>
-          <ChevronRight size={14} style={{ transform: "rotate(180deg)" }} /> Back to Dashboard
+          <ChevronRight size={14} style={{ transform: "rotate(180deg)" }} /> {backLabel || "Back to Dashboard"}
         </button>
       )}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
@@ -5076,7 +5297,7 @@ function FlipDetail({ flip, onBack, allFlips, setAllFlips, onNavigateToExpense }
 // ---------------------------------------------
 // RENT ROLL
 // ---------------------------------------------
-function RentRoll() {
+function RentRoll({ onBack }) {
   const [tenantData, setTenantData] = useState(TENANTS);
   const [showModal, setShowModal] = useState(false);
   const [editId, setEditId] = useState(null);
@@ -5165,6 +5386,11 @@ function RentRoll() {
 
   return (
     <div>
+      {onBack && (
+        <button onClick={onBack} style={{ display: "flex", alignItems: "center", gap: 6, color: "#3b82f6", fontWeight: 600, fontSize: 14, background: "none", border: "none", cursor: "pointer", marginBottom: 14 }}>
+          Back to Property
+        </button>
+      )}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
         <div>
           <h1 style={{ color: "#0f172a", fontSize: 26, fontWeight: 700, marginBottom: 4 }}>Rent Roll</h1>
@@ -6001,8 +6227,8 @@ function AppShell() {
         <div style={{ flex: 1, padding: 32, maxWidth: 1400, width: "100%" }}>
           {activeView === "dashboard" && <Dashboard onNavigate={setActiveView} onNavigateToTx={navigateToTransaction} />}
           {activeView === "properties" && <Properties onSelect={handlePropertySelect} editPropertyId={editPropertyId} onClearEditId={() => setEditPropertyId(null)} />}
-          {activeView === "propertyDetail" && selectedProperty && <PropertyDetail property={selectedProperty} onBack={() => setActiveView("properties")} onEditProperty={(p) => { setEditPropertyId(p.id); setActiveView("properties"); }} onGoToTransactions={() => setActiveView("transactions")} />}
-          {activeView === "transactions" && <Transactions highlightTxId={highlightTxId} onBack={navSource === "dashboard" ? () => { setActiveView("dashboard"); setHighlightTxId(null); setNavSource(null); } : null} onClearHighlight={() => setHighlightTxId(null)} />}
+          {activeView === "propertyDetail" && selectedProperty && <PropertyDetail property={selectedProperty} onBack={() => setActiveView("properties")} onEditProperty={(p) => { setEditPropertyId(p.id); setActiveView("properties"); }} onGoToTransactions={() => setActiveView("transactions")} onNavigateToTransaction={(txId) => { if (txId) { setHighlightTxId(txId); setNavSource("propertyDetail"); } setActiveView("transactions"); }} onNavigateToRentRoll={() => { setNavSource("propertyDetail"); setActiveView("rentroll"); }} />}
+          {activeView === "transactions" && <Transactions highlightTxId={highlightTxId} backLabel={navSource === "propertyDetail" ? "Back to Property" : "Back to Dashboard"} onBack={navSource === "dashboard" ? () => { setActiveView("dashboard"); setHighlightTxId(null); setNavSource(null); } : navSource === "propertyDetail" ? () => { setActiveView("propertyDetail"); setHighlightTxId(null); setNavSource(null); } : null} onClearHighlight={() => setHighlightTxId(null)} />}
           {activeView === "analytics" && <Analytics />}
           {activeView === "reports" && <Reports />}
           {activeView === "flipdashboard"   && <FlipDashboard onSelect={handleFlipSelect} />}
@@ -6014,7 +6240,7 @@ function AppShell() {
           {activeView === "flipmilestones"  && <FlipMilestones />}
           {activeView === "flipnotes"       && <FlipNotes />}
           {activeView === "flipanalytics"   && <FlipAnalytics />}
-          {activeView === "rentroll" && <RentRoll />}
+          {activeView === "rentroll" && <RentRoll onBack={navSource === "propertyDetail" ? () => { setActiveView("propertyDetail"); setNavSource(null); } : null} />}
           {activeView === "mileage" && <MileageTracker />}
           {activeView === "dealanalyzer" && <DealAnalyzer />}
         </div>
