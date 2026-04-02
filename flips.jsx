@@ -1296,6 +1296,7 @@ export function ContractorDetail({ contractor, onBack }) {
   const [editingDocId, setEditingDocId] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [ratingHover, setRatingHover] = useState(0);
+  const [rehabFocus, setRehabFocus] = useState(false);
 
   const con = _CON.find(c => c.id === contractor.id) || contractor;
   const deals = (con.dealIds || []).map(id => _FLIPS.find(f => f.id === id)).filter(Boolean);
@@ -1323,29 +1324,32 @@ export function ContractorDetail({ contractor, onBack }) {
 
   const saveBid = () => {
     const fId = parseInt(bidForm.flipId);
-    if (!fId || !bidForm.rehabItem || !bidForm.amount) return;
+    const rehabName = bidForm.rehabItem.trim();
+    if (!fId || !rehabName || !bidForm.amount) return;
+    const flip = _FLIPS.find(f => f.id === fId);
     if (editingBidId) {
-      // Update existing bid
       const bid = con.bids.find(b => b.id === editingBidId);
       if (bid) {
         bid.flipId = fId;
-        bid.rehabItem = bidForm.rehabItem;
+        bid.rehabItem = rehabName;
         bid.amount = parseFloat(bidForm.amount) || 0;
       }
       setEditingBidId(null);
     } else {
-      // Add new bid
-      const newBid = { id: newId(), flipId: fId, rehabItem: bidForm.rehabItem, amount: parseFloat(bidForm.amount) || 0, status: "pending", date: new Date().toISOString().slice(0, 10) };
+      const newBid = { id: newId(), flipId: fId, rehabItem: rehabName, amount: parseFloat(bidForm.amount) || 0, status: "pending", date: new Date().toISOString().slice(0, 10) };
       con.bids = [...bids, newBid];
       if (!con.dealIds.includes(fId)) con.dealIds.push(fId);
-      const flip = _FLIPS.find(f => f.id === fId);
+      // Auto-create rehab item on the deal if it doesn't exist
       if (flip) {
-        const item = (flip.rehabItems || []).find(i => i.category === bidForm.rehabItem);
-        if (item) {
-          const cons = item.contractors || [];
-          if (!cons.some(c => c.id === con.id)) {
-            item.contractors = [...cons, { id: con.id, bid: newBid.amount }];
-          }
+        let item = (flip.rehabItems || []).find(i => i.category === rehabName);
+        if (!item) {
+          item = { category: rehabName, budgeted: 0, spent: 0, status: "pending", contractors: [] };
+          if (!flip.rehabItems) flip.rehabItems = [];
+          flip.rehabItems.push(item);
+        }
+        const cons = item.contractors || [];
+        if (!cons.some(c => c.id === con.id)) {
+          item.contractors = [...cons, { id: con.id, bid: newBid.amount }];
         }
       }
     }
@@ -1397,6 +1401,12 @@ export function ContractorDetail({ contractor, onBack }) {
 
   const selectedFlipForBid = _FLIPS.find(f => f.id === parseInt(bidForm.flipId));
   const bidRehabOptions = selectedFlipForBid ? (selectedFlipForBid.rehabItems || []).map(i => i.category) : [];
+  // All rehab categories across all deals for typeahead suggestions
+  const allRehabCategories = useMemo(() => {
+    const cats = new Set();
+    _FLIPS.forEach(f => (f.rehabItems || []).forEach(i => cats.add(i.category)));
+    return [...cats].sort();
+  }, []);
 
   const DOC_TYPES = { contract: "Contract", w9: "W-9", insurance: "Insurance", lienWaiver: "Lien Waiver", changeOrder: "Change Order", warranty: "Warranty", invoice: "Invoice", other: "Other" };
   const DOC_COLORS = { contract: "#3b82f6", w9: "#8b5cf6", insurance: "#10b981", lienWaiver: "#f59e0b", changeOrder: "#ef4444", warranty: "#06b6d4", invoice: "#ec4899", other: "#64748b" };
@@ -1628,12 +1638,45 @@ export function ContractorDetail({ contractor, onBack }) {
                   {_FLIPS.filter(f => f.stage !== "Sold").map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
                 </select>
               </div>
-              <div>
+              <div style={{ position: "relative" }}>
                 <p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Rehab Item *</p>
-                <select style={iS} value={bidForm.rehabItem} onChange={e => setBidForm(f => ({ ...f, rehabItem: e.target.value }))} disabled={!bidForm.flipId}>
-                  <option value="">Select rehab item...</option>
-                  {bidRehabOptions.map(cat => <option key={cat} value={cat}>{cat}</option>)}
-                </select>
+                <input style={iS} placeholder={bidForm.flipId ? "Type to search or add new..." : "Select a deal first"} disabled={!bidForm.flipId}
+                  value={bidForm.rehabItem} onChange={e => { setBidForm(f => ({ ...f, rehabItem: e.target.value })); setRehabFocus(true); }}
+                  onFocus={() => setRehabFocus(true)} onBlur={() => setTimeout(() => setRehabFocus(false), 150)} />
+                {rehabFocus && bidForm.rehabItem && bidForm.flipId && (() => {
+                  const q = bidForm.rehabItem.toLowerCase();
+                  // Show items from this deal first, then other known categories
+                  const dealMatches = bidRehabOptions.filter(c => c.toLowerCase().includes(q));
+                  const otherMatches = allRehabCategories.filter(c => c.toLowerCase().includes(q) && !bidRehabOptions.includes(c));
+                  const exactExists = [...bidRehabOptions, ...allRehabCategories].some(c => c.toLowerCase() === q);
+                  const showNew = q && !exactExists;
+                  if (dealMatches.length === 0 && otherMatches.length === 0 && !showNew) return null;
+                  return (
+                    <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, background: "#fff", border: "1px solid #e2e8f0", borderRadius: 12, boxShadow: "0 8px 24px rgba(0,0,0,0.10)", zIndex: 200, overflow: "hidden", maxHeight: 220, overflowY: "auto" }}>
+                      {dealMatches.length > 0 && <p style={{ padding: "6px 14px 2px", fontSize: 10, fontWeight: 600, color: "#94a3b8", textTransform: "uppercase" }}>This Deal</p>}
+                      {dealMatches.slice(0, 6).map(c => (
+                        <button key={c} onMouseDown={() => { setBidForm(f => ({ ...f, rehabItem: c })); setRehabFocus(false); }}
+                          style={{ width: "100%", padding: "9px 14px", background: "none", border: "none", borderBottom: "1px solid #f8fafc", textAlign: "left", cursor: "pointer", fontSize: 13, color: "#0f172a", display: "flex", alignItems: "center", gap: 8 }}>
+                          <Wrench size={13} style={{ color: "#94a3b8", flexShrink: 0 }} />{c}
+                        </button>
+                      ))}
+                      {otherMatches.length > 0 && <p style={{ padding: "6px 14px 2px", fontSize: 10, fontWeight: 600, color: "#94a3b8", textTransform: "uppercase", borderTop: dealMatches.length > 0 ? "1px solid #e2e8f0" : "none" }}>Other Deals</p>}
+                      {otherMatches.slice(0, 4).map(c => (
+                        <button key={c} onMouseDown={() => { setBidForm(f => ({ ...f, rehabItem: c })); setRehabFocus(false); }}
+                          style={{ width: "100%", padding: "9px 14px", background: "none", border: "none", borderBottom: "1px solid #f8fafc", textAlign: "left", cursor: "pointer", fontSize: 13, color: "#64748b", display: "flex", alignItems: "center", gap: 8 }}>
+                          <Wrench size={13} style={{ color: "#cbd5e1", flexShrink: 0 }} />{c}
+                        </button>
+                      ))}
+                      {showNew && (
+                        <button onMouseDown={() => setRehabFocus(false)}
+                          style={{ width: "100%", padding: "10px 14px", display: "flex", alignItems: "center", gap: 8, background: "#fffbeb", border: "none", borderTop: (dealMatches.length > 0 || otherMatches.length > 0) ? "1px solid #e2e8f0" : "none", cursor: "pointer", textAlign: "left" }}>
+                          <Plus size={13} style={{ color: "#f59e0b", flexShrink: 0 }} />
+                          <span style={{ fontSize: 13, color: "#f59e0b", fontWeight: 600 }}>Add &ldquo;{bidForm.rehabItem}&rdquo; as new rehab item</span>
+                        </button>
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
               <div>
                 <p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Bid Amount ($) *</p>
