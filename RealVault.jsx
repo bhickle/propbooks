@@ -4029,13 +4029,13 @@ function FlipDetail({ flip, onBack, allFlips, setAllFlips, onNavigateToExpense }
   };
 
   // Contractor edit state
-  const emptyCon = { name: "", trade: "", phone: "", email: "" };
+  const emptyCon = { name: "", trade: "", phone: "", email: "", license: "", insuranceExpiry: "", notes: "" };
   const [conForm, setConForm] = useState(emptyCon);
   const sfC = k => e => setConForm(f => ({ ...f, [k]: e.target.value }));
   const [editingConId, setEditingConId] = useState(null);
   const openEditCon = (c) => {
     setEditingConId(c.id);
-    setConForm({ name: c.name, trade: c.trade, phone: c.phone || "", email: c.email || "" });
+    setConForm({ name: c.name, trade: c.trade, phone: c.phone || "", email: c.email || "", license: c.license || "", insuranceExpiry: c.insuranceExpiry || "", notes: c.notes || "" });
     setShowContractorModal(true);
   };
 
@@ -4116,10 +4116,10 @@ function FlipDetail({ flip, onBack, allFlips, setAllFlips, onNavigateToExpense }
   const handleSaveCon = () => {
     if (!conForm.name) return;
     if (editingConId) {
-      setConData(prev => prev.map(c => c.id === editingConId ? { ...c, name: conForm.name, trade: conForm.trade, phone: conForm.phone, email: conForm.email } : c));
+      setConData(prev => prev.map(c => c.id === editingConId ? { ...c, name: conForm.name, trade: conForm.trade, phone: conForm.phone, email: conForm.email, license: conForm.license || c.license, insuranceExpiry: conForm.insuranceExpiry || c.insuranceExpiry, notes: conForm.notes || c.notes } : c));
       setEditingConId(null);
     } else {
-      const newCon = { id: newId(), name: conForm.name, trade: conForm.trade, phone: conForm.phone, email: "", license: null, insuranceExpiry: null, rating: 0, notes: "", dealIds: [flip.id], bids: [], payments: [], documents: [] };
+      const newCon = { id: newId(), name: conForm.name, trade: conForm.trade, phone: conForm.phone, email: conForm.email || "", license: conForm.license || null, insuranceExpiry: conForm.insuranceExpiry || null, rating: 0, notes: conForm.notes || "", dealIds: [flip.id], bids: [], payments: [], documents: [] };
       CONTRACTORS.push(newCon);
       setConData(prev => [...prev, newCon]);
     }
@@ -4876,18 +4876,22 @@ function FlipDetail({ flip, onBack, allFlips, setAllFlips, onNavigateToExpense }
       )}
       {showContractorModal && (
         <Modal title={editingConId ? "Edit Contractor" : "Add Contractor"} onClose={() => { setShowContractorModal(false); setEditingConId(null); setConForm(emptyCon); }}>
-          {[
-            { label: "Name / Company", key: "name", type: "text", placeholder: "e.g. ABC Plumbing" },
-            { label: "Trade", key: "trade", type: "text", placeholder: "e.g. Plumbing, Electrical" },
-            { label: "Phone", key: "phone", type: "tel", placeholder: "555-000-0000" },
-            { label: "Email", key: "email", type: "email", placeholder: "info@contractor.com" },
-          ].map(f => (
-            <div key={f.key} style={{ marginBottom: 14 }}>
-              <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>{f.label}{f.key === "phone" || f.key === "email" ? <span style={{ color: "#94a3b8", fontWeight: 400 }}> (optional)</span> : ""}</label>
-              <input type={f.type} placeholder={f.placeholder} value={conForm[f.key]} onChange={sfC(f.key)} style={iS} />
-            </div>
-          ))}
-          <p style={{ fontSize: 12, color: "#94a3b8", marginBottom: 18 }}>Bids, payments, and documents can be managed from the contractor's detail page.</p>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14 }}>
+            <div><label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Name / Company *</label><input type="text" placeholder="e.g. ABC Plumbing" value={conForm.name} onChange={sfC("name")} style={iS} /></div>
+            <div><label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Trade</label><input type="text" placeholder="e.g. Plumbing, Electrical" value={conForm.trade} onChange={sfC("trade")} style={iS} /></div>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14 }}>
+            <div><label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Phone <span style={{ color: "#94a3b8", fontWeight: 400 }}>(optional)</span></label><input type="tel" placeholder="555-000-0000" value={conForm.phone} onChange={sfC("phone")} style={iS} /></div>
+            <div><label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Email <span style={{ color: "#94a3b8", fontWeight: 400 }}>(optional)</span></label><input type="email" placeholder="info@contractor.com" value={conForm.email} onChange={sfC("email")} style={iS} /></div>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14 }}>
+            <div><label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>License # <span style={{ color: "#94a3b8", fontWeight: 400 }}>(optional)</span></label><input type="text" placeholder="e.g. PL-2024-1847" value={conForm.license} onChange={sfC("license")} style={iS} /></div>
+            <div><label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Insurance Expiry <span style={{ color: "#94a3b8", fontWeight: 400 }}>(optional)</span></label><input type="date" value={conForm.insuranceExpiry} onChange={sfC("insuranceExpiry")} style={iS} /></div>
+          </div>
+          <div style={{ marginBottom: 14 }}>
+            <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Notes <span style={{ color: "#94a3b8", fontWeight: 400 }}>(optional)</span></label>
+            <textarea style={{ ...iS, minHeight: 70, resize: "vertical" }} placeholder="Notes about this contractor..." value={conForm.notes} onChange={sfC("notes")} />
+          </div>
           <div style={{ display: "flex", gap: 10 }}>
             <button onClick={() => { setShowContractorModal(false); setEditingConId(null); setConForm(emptyCon); }} style={{ flex: 1, padding: "12px", border: "1px solid #e2e8f0", borderRadius: 10, background: "#fff", color: "#475569", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
             <button onClick={handleSaveCon} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "#f59e0b", color: "#fff", fontWeight: 600, cursor: "pointer" }}>{editingConId ? "Save Changes" : "Add Contractor"}</button>

@@ -1089,7 +1089,7 @@ export function FlipContractors({ onSelectContractor }) {
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [nameFocus, setNameFocus] = useState(false);
 
-  const emptyForm = { name: "", trade: "", phone: "", email: "" };
+  const emptyForm = { name: "", trade: "", phone: "", email: "", license: "", insuranceExpiry: "", notes: "" };
   const [form, setForm] = useState(emptyForm);
   const sf = k => e => setForm(f => ({ ...f, [k]: e.target.value }));
 
@@ -1112,7 +1112,7 @@ export function FlipContractors({ onSelectContractor }) {
 
   const handleAdd = () => {
     if (!form.name) return;
-    const newCon = { id: newId(), name: form.name, trade: form.trade, phone: form.phone, email: form.email || "", license: null, insuranceExpiry: null, rating: 0, notes: "", dealIds: [], bids: [], payments: [], documents: [] };
+    const newCon = { id: newId(), name: form.name, trade: form.trade, phone: form.phone, email: form.email || "", license: form.license || null, insuranceExpiry: form.insuranceExpiry || null, rating: 0, notes: form.notes || "", dealIds: [], bids: [], payments: [], documents: [] };
     _CON.push(newCon);
     rerender(n => n + 1);
     setForm(emptyForm);
@@ -1255,6 +1255,11 @@ export function FlipContractors({ onSelectContractor }) {
                 <div><p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Phone</p><input style={iS} placeholder="555-000-0000" value={form.phone} onChange={sf("phone")} /></div>
               </div>
               <div><p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Email <span style={{ color: "#94a3b8", fontWeight: 400 }}>(optional)</span></p><input style={iS} placeholder="contractor@email.com" value={form.email} onChange={sf("email")} /></div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                <div><p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>License # <span style={{ color: "#94a3b8", fontWeight: 400 }}>(optional)</span></p><input style={iS} placeholder="e.g. PL-2024-1847" value={form.license} onChange={sf("license")} /></div>
+                <div><p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Insurance Expiry <span style={{ color: "#94a3b8", fontWeight: 400 }}>(optional)</span></p><input type="date" style={iS} value={form.insuranceExpiry} onChange={sf("insuranceExpiry")} /></div>
+              </div>
+              <div><p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Notes <span style={{ color: "#94a3b8", fontWeight: 400 }}>(optional)</span></p><textarea style={{ ...iS, minHeight: 70, resize: "vertical" }} placeholder="Notes about this contractor..." value={form.notes} onChange={sf("notes")} /></div>
             </div>
             <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
               <button onClick={handleAdd} disabled={!form.name.trim()} style={{ flex: 1, padding: "11px", borderRadius: 10, border: "none", background: !form.name.trim() ? "#e2e8f0" : "#f59e0b", color: "#fff", fontWeight: 700, fontSize: 14, cursor: !form.name.trim() ? "not-allowed" : "pointer" }}>Add Contractor</button>
