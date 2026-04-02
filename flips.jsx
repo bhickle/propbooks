@@ -399,7 +399,7 @@ export function RehabTracker() {
         sub="All rehab line items across active flips"
         action={
           <button onClick={() => setShowAddItem(true)} style={{ background: "#f59e0b", color: "#fff", border: "none", borderRadius: 10, padding: "10px 18px", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
-            <Plus size={16} /> Add Line Item
+            <Plus size={16} /> Add Rehab Item
           </button>
         }
       />
@@ -603,12 +603,12 @@ export function RehabTracker() {
           );
         })}
 
-      {/* Add Line Item Modal */}
+      {/* Add Rehab Item Modal */}
       {showAddItem && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
           <div style={{ background: "#fff", borderRadius: 20, padding: 32, width: 460, boxShadow: "0 20px 60px rgba(0,0,0,0.18)" }}>
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 20 }}>
-              <h2 style={{ color: "#0f172a", fontSize: 19, fontWeight: 700 }}>Add Rehab Line Item</h2>
+              <h2 style={{ color: "#0f172a", fontSize: 19, fontWeight: 700 }}>Add Rehab Item</h2>
               <button onClick={() => setShowAddItem(false)} style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8" }}><X size={20} /></button>
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -643,7 +643,7 @@ export function RehabTracker() {
               </div>
             </div>
             <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
-              <button onClick={saveLineItem} style={{ flex: 1, padding: "11px", borderRadius: 10, border: "none", background: "#f59e0b", color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer" }}>Add Line Item</button>
+              <button onClick={saveLineItem} style={{ flex: 1, padding: "11px", borderRadius: 10, border: "none", background: "#f59e0b", color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer" }}>Add Rehab Item</button>
               <button onClick={() => setShowAddItem(false)} style={{ padding: "11px 18px", borderRadius: 10, border: "1.5px solid #e2e8f0", background: "#fff", fontWeight: 600, fontSize: 14, cursor: "pointer", color: "#64748b" }}>Cancel</button>
             </div>
           </div>
@@ -2030,6 +2030,11 @@ export function FlipMilestones() {
   const [filterFlip, setFilterFlip] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
   const [, rerender] = useState(0);
+  const [showAdd, setShowAdd] = useState(false);
+  const [msForm, setMsForm] = useState({ flipId: "", label: "", targetDate: "" });
+  const [editItem, setEditItem] = useState(null); // { flipId, idx }
+  const [editForm, setEditForm] = useState({ label: "", targetDate: "" });
+  const [deleteConfirm, setDeleteConfirm] = useState(null); // { flipId, idx, label }
 
   // Build flat list of all milestones across deals
   const allMilestones = useMemo(() => {
@@ -2068,6 +2073,40 @@ export function FlipMilestones() {
     }
   };
 
+  const saveMilestone = () => {
+    const fId = parseInt(msForm.flipId);
+    if (!fId || !msForm.label.trim()) return;
+    if (!_FM[fId]) _FM[fId] = [];
+    _FM[fId].push({ label: msForm.label.trim(), done: false, date: null, targetDate: msForm.targetDate || null });
+    setMsForm({ flipId: "", label: "", targetDate: "" });
+    setShowAdd(false);
+    rerender(n => n + 1);
+  };
+
+  const startEdit = (flipId, idx, m) => {
+    setEditItem({ flipId, idx });
+    setEditForm({ label: m.label, targetDate: m.targetDate || "" });
+  };
+
+  const saveEdit = () => {
+    if (!editItem) return;
+    const ms = _FM[editItem.flipId];
+    if (ms && ms[editItem.idx]) {
+      ms[editItem.idx].label = editForm.label.trim() || ms[editItem.idx].label;
+      ms[editItem.idx].targetDate = editForm.targetDate || null;
+    }
+    setEditItem(null);
+    rerender(n => n + 1);
+  };
+
+  const deleteMilestone = () => {
+    if (!deleteConfirm) return;
+    const ms = _FM[deleteConfirm.flipId];
+    if (ms) { ms.splice(deleteConfirm.idx, 1); }
+    setDeleteConfirm(null);
+    rerender(n => n + 1);
+  };
+
   // Group by deal for display
   const groupedByDeal = {};
   filtered.forEach(m => {
@@ -2080,7 +2119,11 @@ export function FlipMilestones() {
       <PageHeader
         title="Milestones"
         sub="Track progress across all your flips"
-        action={null}
+        action={
+          <button onClick={() => setShowAdd(true)} style={{ background: "#f59e0b", color: "#fff", border: "none", borderRadius: 10, padding: "10px 18px", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
+            <Plus size={16} /> Add Milestone
+          </button>
+        }
       />
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, marginBottom: 24 }}>
@@ -2139,8 +2182,16 @@ export function FlipMilestones() {
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
               {items.map((m, i) => {
                 const overdue = !m.done && m.targetDate && m.targetDate < today;
-                return (
-                  <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "8px 10px", borderRadius: 8, background: m.done ? "#f0fdf4" : overdue ? "#fef2f2" : "#f8fafc", border: `1px solid ${m.done ? "#bbf7d0" : overdue ? "#fecaca" : "#f1f5f9"}` }}>
+                const isEditing = editItem?.flipId === flip.id && editItem?.idx === m._idx;
+                return isEditing ? (
+                  <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 10px", borderRadius: 8, background: "#fffbeb", border: "1px solid #fde68a" }}>
+                    <input value={editForm.label} onChange={e => setEditForm(f => ({ ...f, label: e.target.value }))} style={{ ...iS, flex: 1, padding: "6px 10px", fontSize: 13 }} placeholder="Milestone label" />
+                    <input type="date" value={editForm.targetDate} onChange={e => setEditForm(f => ({ ...f, targetDate: e.target.value }))} style={{ ...iS, width: 140, padding: "6px 10px", fontSize: 12 }} />
+                    <button onClick={saveEdit} style={{ background: "#f59e0b", color: "#fff", border: "none", borderRadius: 6, padding: "5px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>Save</button>
+                    <button onClick={() => setEditItem(null)} style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8", padding: 0 }}><X size={14} /></button>
+                  </div>
+                ) : (
+                  <div key={i} className="ms-row" style={{ display: "flex", alignItems: "center", gap: 12, padding: "8px 10px", borderRadius: 8, background: m.done ? "#f0fdf4" : overdue ? "#fef2f2" : "#f8fafc", border: `1px solid ${m.done ? "#bbf7d0" : overdue ? "#fecaca" : "#f1f5f9"}`, position: "relative" }}>
                     <button onClick={() => toggleMilestone(flip.id, m._idx)} style={{ background: "none", border: "none", cursor: "pointer", padding: 0, display: "flex", flexShrink: 0 }}>
                       {m.done ? <CheckCircle size={18} color="#10b981" /> : <Circle size={18} color={overdue ? "#ef4444" : "#cbd5e1"} />}
                     </button>
@@ -2155,6 +2206,10 @@ export function FlipMilestones() {
                         {new Date(m.date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
                       </span>
                     )}
+                    <div style={{ display: "flex", gap: 4, flexShrink: 0, marginLeft: 4 }}>
+                      <button onClick={() => startEdit(flip.id, m._idx, m)} style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8", padding: 2 }} title="Edit"><Pencil size={13} /></button>
+                      <button onClick={() => setDeleteConfirm({ flipId: flip.id, idx: m._idx, label: m.label })} style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8", padding: 2 }} title="Delete"><Trash2 size={13} /></button>
+                    </div>
                   </div>
                 );
               })}
@@ -2162,6 +2217,57 @@ export function FlipMilestones() {
           </div>
         );
       })}
+
+      {/* Add Milestone Modal */}
+      {showAdd && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
+          <div style={{ background: "#fff", borderRadius: 20, padding: 32, width: 440, boxShadow: "0 20px 60px rgba(0,0,0,0.18)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 20 }}>
+              <h2 style={{ color: "#0f172a", fontSize: 19, fontWeight: 700 }}>Add Milestone</h2>
+              <button onClick={() => setShowAdd(false)} style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8" }}><X size={20} /></button>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              <div>
+                <p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Deal</p>
+                <select value={msForm.flipId} onChange={e => setMsForm(f => ({ ...f, flipId: e.target.value }))} style={iS}>
+                  <option value="">Select a deal...</option>
+                  {_FLIPS.filter(f => f.stage !== "Sold").map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
+                </select>
+              </div>
+              <div>
+                <p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Milestone Label</p>
+                <input value={msForm.label} onChange={e => setMsForm(f => ({ ...f, label: e.target.value }))} style={iS} placeholder="e.g. Inspection Complete" />
+              </div>
+              <div>
+                <p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Target Date <span style={{ color: "#94a3b8", fontWeight: 400 }}>(optional)</span></p>
+                <input type="date" value={msForm.targetDate} onChange={e => setMsForm(f => ({ ...f, targetDate: e.target.value }))} style={iS} />
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
+              <button onClick={saveMilestone} disabled={!msForm.flipId || !msForm.label.trim()} style={{ flex: 1, padding: "11px", borderRadius: 10, border: "none", background: !msForm.flipId || !msForm.label.trim() ? "#e2e8f0" : "#f59e0b", color: "#fff", fontWeight: 700, fontSize: 14, cursor: !msForm.flipId || !msForm.label.trim() ? "not-allowed" : "pointer" }}>Add Milestone</button>
+              <button onClick={() => setShowAdd(false)} style={{ padding: "11px 18px", borderRadius: 10, border: "1.5px solid #e2e8f0", background: "#fff", fontWeight: 600, fontSize: 14, cursor: "pointer", color: "#64748b" }}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation */}
+      {deleteConfirm && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
+          <div style={{ background: "#fff", borderRadius: 20, width: 420, padding: 28 }}>
+            <h2 style={{ color: "#0f172a", fontSize: 18, fontWeight: 700, marginBottom: 14 }}>Delete Milestone</h2>
+            <p style={{ color: "#475569", fontSize: 14, marginBottom: 8 }}>Are you sure you want to remove this milestone?</p>
+            <div style={{ background: "#f8fafc", borderRadius: 10, padding: 14, marginBottom: 18 }}>
+              <p style={{ fontSize: 13, fontWeight: 600, color: "#0f172a" }}>{deleteConfirm.label}</p>
+            </div>
+            <p style={{ color: "#94a3b8", fontSize: 12, marginBottom: 18 }}>This action cannot be undone.</p>
+            <div style={{ display: "flex", gap: 10 }}>
+              <button onClick={deleteMilestone} style={{ flex: 1, padding: 11, borderRadius: 10, border: "none", background: "#ef4444", color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer" }}>Delete</button>
+              <button onClick={() => setDeleteConfirm(null)} style={{ padding: "11px 18px", borderRadius: 10, border: "1.5px solid #e2e8f0", background: "#fff", fontWeight: 600, fontSize: 14, cursor: "pointer", color: "#64748b" }}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
