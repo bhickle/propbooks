@@ -4479,10 +4479,11 @@ function FlipDetail({ flip, onBack, allFlips, setAllFlips, onNavigateToExpense }
                           </button>
                         ))}
                         {showNew && (
-                          <div style={{ padding: "10px 14px", display: "flex", alignItems: "center", gap: 8, background: "#fffbeb", borderTop: matches.length > 0 ? "1px solid #e2e8f0" : "none" }}>
+                          <button onMouseDown={() => setCatFocus(false)}
+                            style={{ width: "100%", padding: "10px 14px", display: "flex", alignItems: "center", gap: 8, background: "#fffbeb", border: "none", borderTop: matches.length > 0 ? "1px solid #e2e8f0" : "none", cursor: "pointer", textAlign: "left" }}>
                             <Plus size={13} style={{ color: "#f59e0b", flexShrink: 0 }} />
                             <span style={{ fontSize: 13, color: "#f59e0b", fontWeight: 600 }}>Add &ldquo;{rehabForm.category}&rdquo; as new</span>
-                          </div>
+                          </button>
                         )}
                       </div>
                     );
