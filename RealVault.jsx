@@ -3944,6 +3944,11 @@ function FlipDetail({ flip, onBack, allFlips, setAllFlips, onNavigateToExpense }
   const emptyRehab = { category: "", budgeted: "", spent: "0", status: "pending", photos: [] };
   const [rehabForm, setRehabForm] = useState(emptyRehab);
   const sfR = k => e => setRehabForm(f => ({ ...f, [k]: e.target.value }));
+  const [catFocus, setCatFocus] = useState(false);
+  const allCategories = useMemo(() => {
+    const cats = new Set(flips.flatMap(f => (f.rehabItems || []).map(i => i.category)));
+    return [...cats].filter(Boolean).sort();
+  }, [flips]);
   const [deleteConfirm, setDeleteConfirm] = useState(null); // { type: "expense"|"contractor"|"rehab"|"milestone", item, index? }
   const [stage, setStage] = useState(flip.stage);
 
@@ -4453,9 +4458,35 @@ function FlipDetail({ flip, onBack, allFlips, setAllFlips, onNavigateToExpense }
                 <button onClick={() => { setShowAddRehab(false); setRehabForm(emptyRehab); setEditingRehabIdx(null); }} style={{ background: "#f1f5f9", border: "none", borderRadius: 8, width: 32, height: 32, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><X size={16} color="#64748b" /></button>
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-                <div>
+                <div style={{ position: "relative" }}>
                   <label style={{ display: "block", color: "#374151", fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Category *</label>
-                  <input value={rehabForm.category} onChange={sfR("category")} placeholder="e.g. Kitchen, Flooring, HVAC" style={iS} />
+                  <input value={rehabForm.category} placeholder="e.g. Kitchen, Flooring, HVAC" style={iS}
+                    onChange={e => { setRehabForm(f => ({ ...f, category: e.target.value })); setCatFocus(true); }}
+                    onFocus={() => setCatFocus(true)} onBlur={() => setTimeout(() => setCatFocus(false), 150)} />
+                  {catFocus && (() => {
+                    const q = rehabForm.category.toLowerCase();
+                    const matches = q ? allCategories.filter(c => c.toLowerCase().includes(q) && c.toLowerCase() !== q) : allCategories;
+                    const exactExists = allCategories.some(c => c.toLowerCase() === q);
+                    const showNew = q && !exactExists;
+                    if (matches.length === 0 && !showNew) return null;
+                    return (
+                      <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, background: "#fff", border: "1px solid #e2e8f0", borderRadius: 12, boxShadow: "0 8px 24px rgba(0,0,0,0.10)", zIndex: 200, overflow: "hidden", maxHeight: 200, overflowY: "auto" }}>
+                        {matches.slice(0, 6).map(c => (
+                          <button key={c} onMouseDown={() => { setRehabForm(f => ({ ...f, category: c })); setCatFocus(false); }}
+                            style={{ width: "100%", padding: "10px 14px", background: "none", border: "none", borderBottom: "1px solid #f1f5f9", textAlign: "left", cursor: "pointer", fontSize: 13, color: "#0f172a", display: "flex", alignItems: "center", gap: 8 }}>
+                            <Wrench size={13} style={{ color: "#94a3b8", flexShrink: 0 }} />
+                            <span>{c}</span>
+                          </button>
+                        ))}
+                        {showNew && (
+                          <div style={{ padding: "10px 14px", display: "flex", alignItems: "center", gap: 8, background: "#fffbeb", borderTop: matches.length > 0 ? "1px solid #e2e8f0" : "none" }}>
+                            <Plus size={13} style={{ color: "#f59e0b", flexShrink: 0 }} />
+                            <span style={{ fontSize: 13, color: "#f59e0b", fontWeight: 600 }}>Add &ldquo;{rehabForm.category}&rdquo; as new</span>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </div>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                   <div>

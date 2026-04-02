@@ -344,6 +344,11 @@ export function RehabTracker() {
   const [showAddItem, setShowAddItem] = useState(false);
   const [itemForm, setItemForm]       = useState(emptyItem);
   const sif = k => e => setItemForm(f => ({ ...f, [k]: e.target.value }));
+  const [catFocus, setCatFocus] = useState(false);
+  const allCategories = useMemo(() => {
+    const cats = new Set(_FLIPS.flatMap(f => (f.rehabItems || []).map(i => i.category)));
+    return [...cats].filter(Boolean).sort();
+  }, [allItems]);
 
   function saveLineItem() {
     if (!itemForm.flipId || !itemForm.category) return;
@@ -619,9 +624,35 @@ export function RehabTracker() {
                   {flips.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
                 </select>
               </div>
-              <div>
+              <div style={{ position: "relative" }}>
                 <p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Category / Scope Name *</p>
-                <input style={iS} placeholder="e.g. Kitchen, Drywall, HVAC, Landscaping..." value={itemForm.category} onChange={sif("category")} />
+                <input style={iS} placeholder="e.g. Kitchen, Drywall, HVAC, Landscaping..." value={itemForm.category}
+                  onChange={e => { setItemForm(f => ({ ...f, category: e.target.value })); setCatFocus(true); }}
+                  onFocus={() => setCatFocus(true)} onBlur={() => setTimeout(() => setCatFocus(false), 150)} />
+                {catFocus && (() => {
+                  const q = itemForm.category.toLowerCase();
+                  const matches = q ? allCategories.filter(c => c.toLowerCase().includes(q) && c.toLowerCase() !== q) : allCategories;
+                  const exactExists = allCategories.some(c => c.toLowerCase() === q);
+                  const showNew = q && !exactExists;
+                  if (matches.length === 0 && !showNew) return null;
+                  return (
+                    <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, background: "#fff", border: "1px solid #e2e8f0", borderRadius: 12, boxShadow: "0 8px 24px rgba(0,0,0,0.10)", zIndex: 200, overflow: "hidden", maxHeight: 200, overflowY: "auto" }}>
+                      {matches.slice(0, 6).map(c => (
+                        <button key={c} onMouseDown={() => { setItemForm(f => ({ ...f, category: c })); setCatFocus(false); }}
+                          style={{ width: "100%", padding: "10px 14px", background: "none", border: "none", borderBottom: "1px solid #f1f5f9", textAlign: "left", cursor: "pointer", fontSize: 13, color: "#0f172a", display: "flex", alignItems: "center", gap: 8 }}>
+                          <Wrench size={13} style={{ color: "#94a3b8", flexShrink: 0 }} />
+                          <span>{c}</span>
+                        </button>
+                      ))}
+                      {showNew && (
+                        <div style={{ padding: "10px 14px", display: "flex", alignItems: "center", gap: 8, background: "#fffbeb", borderTop: matches.length > 0 ? "1px solid #e2e8f0" : "none" }}>
+                          <Plus size={13} style={{ color: "#f59e0b", flexShrink: 0 }} />
+                          <span style={{ fontSize: 13, color: "#f59e0b", fontWeight: 600 }}>Add &ldquo;{itemForm.category}&rdquo; as new</span>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                 <div>
@@ -2035,6 +2066,12 @@ export function FlipMilestones() {
   const [editItem, setEditItem] = useState(null); // { flipId, idx }
   const [editForm, setEditForm] = useState({ label: "", targetDate: "" });
   const [deleteConfirm, setDeleteConfirm] = useState(null); // { flipId, idx, label }
+  const [labelFocus, setLabelFocus] = useState(false);
+  const allMilestoneLabels = useMemo(() => {
+    const labels = new Set(DEFAULT_MILESTONES);
+    Object.values(_FM).forEach(arr => arr.forEach(m => { if (m.label) labels.add(m.label); }));
+    return [...labels].sort();
+  }, []);
 
   // Build flat list of all milestones across deals
   const allMilestones = useMemo(() => {
@@ -2234,9 +2271,35 @@ export function FlipMilestones() {
                   {_FLIPS.filter(f => f.stage !== "Sold").map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
                 </select>
               </div>
-              <div>
+              <div style={{ position: "relative" }}>
                 <p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Milestone Label</p>
-                <input value={msForm.label} onChange={e => setMsForm(f => ({ ...f, label: e.target.value }))} style={iS} placeholder="e.g. Inspection Complete" />
+                <input value={msForm.label} style={iS} placeholder="e.g. Inspection Complete"
+                  onChange={e => { setMsForm(f => ({ ...f, label: e.target.value })); setLabelFocus(true); }}
+                  onFocus={() => setLabelFocus(true)} onBlur={() => setTimeout(() => setLabelFocus(false), 150)} />
+                {labelFocus && (() => {
+                  const q = msForm.label.toLowerCase();
+                  const matches = q ? allMilestoneLabels.filter(l => l.toLowerCase().includes(q) && l.toLowerCase() !== q) : allMilestoneLabels;
+                  const exactExists = allMilestoneLabels.some(l => l.toLowerCase() === q);
+                  const showNew = q && !exactExists;
+                  if (matches.length === 0 && !showNew) return null;
+                  return (
+                    <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, background: "#fff", border: "1px solid #e2e8f0", borderRadius: 12, boxShadow: "0 8px 24px rgba(0,0,0,0.10)", zIndex: 200, overflow: "hidden", maxHeight: 200, overflowY: "auto" }}>
+                      {matches.slice(0, 6).map(l => (
+                        <button key={l} onMouseDown={() => { setMsForm(f => ({ ...f, label: l })); setLabelFocus(false); }}
+                          style={{ width: "100%", padding: "10px 14px", background: "none", border: "none", borderBottom: "1px solid #f1f5f9", textAlign: "left", cursor: "pointer", fontSize: 13, color: "#0f172a", display: "flex", alignItems: "center", gap: 8 }}>
+                          <Flag size={13} style={{ color: "#94a3b8", flexShrink: 0 }} />
+                          <span>{l}</span>
+                        </button>
+                      ))}
+                      {showNew && (
+                        <div style={{ padding: "10px 14px", display: "flex", alignItems: "center", gap: 8, background: "#fffbeb", borderTop: matches.length > 0 ? "1px solid #e2e8f0" : "none" }}>
+                          <Plus size={13} style={{ color: "#f59e0b", flexShrink: 0 }} />
+                          <span style={{ fontSize: 13, color: "#f59e0b", fontWeight: 600 }}>Add &ldquo;{msForm.label}&rdquo; as new</span>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
               <div>
                 <p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Target Date <span style={{ color: "#94a3b8", fontWeight: 400 }}>(optional)</span></p>
