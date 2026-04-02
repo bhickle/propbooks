@@ -1233,17 +1233,17 @@ export function FlipContractors() {
                 _FLIPS.forEach(fl => {
                   (fl.rehabItems || []).forEach(item => {
                     if ((item.contractorIds || []).includes(c.id)) {
-                      scope.push({ flipName: fl.name, flipColor: fl.color, label: item.category, budgeted: item.budgeted, status: item.status });
+                      const totalOnItem = (item.contractorIds || []).length;
+                      scope.push({ flipName: fl.name, flipColor: fl.color, label: item.category, itemBudget: item.budgeted, status: item.status, sharedWith: totalOnItem - 1 });
                     }
                   });
                 });
                 if (scope.length === 0) return null;
-                const scopeBudget = scope.reduce((s, i) => s + (i.budgeted || 0), 0);
                 return (
                   <div style={{ borderTop: "1px solid #f1f5f9", paddingTop: 12, marginTop: c.paymentType === "Day Rate" ? 14 : 0 }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
                       <span style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.05em" }}>Assigned Scope</span>
-                      <span style={{ fontSize: 12, fontWeight: 700, color: "#0f172a" }}>{fmt(scopeBudget)}</span>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: "#0f172a" }}>Bid: {c.paymentType === "Day Rate" ? `$${c.dayRate}/day` : fmt(c.totalBid)}</span>
                     </div>
                     <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
                       {scope.map((item, i) => {
@@ -1252,10 +1252,13 @@ export function FlipContractors() {
                           <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "#f8fafc", borderRadius: 7, padding: "5px 8px" }}>
                             <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
                               <span style={{ width: 7, height: 7, borderRadius: "50%", background: item.flipColor, flexShrink: 0 }} />
-                              <span style={{ fontSize: 12, color: "#374151", fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.label || item.category}</span>
+                              <span style={{ fontSize: 12, color: "#374151", fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.label}</span>
                             </div>
                             <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0, marginLeft: 8 }}>
-                              <span style={{ fontSize: 11, color: "#94a3b8" }}>{fmt(item.budgeted)}</span>
+                              <span style={{ fontSize: 11, color: "#94a3b8" }}>Budget: {fmt(item.itemBudget)}</span>
+                              {item.sharedWith > 0 && (
+                                <span style={{ fontSize: 10, color: "#64748b", background: "#e2e8f0", borderRadius: 10, padding: "2px 7px", fontWeight: 500 }}>+{item.sharedWith} other{item.sharedWith > 1 ? "s" : ""}</span>
+                              )}
                               <span style={{ background: sSt.bg, color: sSt.text, borderRadius: 20, padding: "2px 7px", fontSize: 10, fontWeight: 600 }}>{sSt.label}</span>
                             </div>
                           </div>
