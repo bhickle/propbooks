@@ -311,12 +311,12 @@ export function RehabTracker() {
 
   // Assign a contractor to a rehab item — mutates FLIPS directly so contractor
   // cards pick it up without prop-drilling
-  function addContractorToItem(flipId, itemIdx, contractorId) {
+  function addContractorToItem(flipId, itemIdx, contractorId, bid = 0) {
     const flip = _FLIPS.find(f => f.id === flipId);
     if (flip && flip.rehabItems[itemIdx] !== undefined) {
-      const ids = flip.rehabItems[itemIdx].contractorIds || [];
-      if (!ids.includes(contractorId)) {
-        flip.rehabItems[itemIdx].contractorIds = [...ids, contractorId];
+      const cons = flip.rehabItems[itemIdx].contractors || [];
+      if (!cons.some(c => c.id === contractorId)) {
+        flip.rehabItems[itemIdx].contractors = [...cons, { id: contractorId, bid }];
         rerender();
       }
     }
@@ -325,8 +325,17 @@ export function RehabTracker() {
   function removeContractorFromItem(flipId, itemIdx, contractorId) {
     const flip = _FLIPS.find(f => f.id === flipId);
     if (flip && flip.rehabItems[itemIdx] !== undefined) {
-      flip.rehabItems[itemIdx].contractorIds = (flip.rehabItems[itemIdx].contractorIds || []).filter(id => id !== contractorId);
+      flip.rehabItems[itemIdx].contractors = (flip.rehabItems[itemIdx].contractors || []).filter(c => c.id !== contractorId);
       rerender();
+    }
+  }
+
+  function updateContractorBid(flipId, itemIdx, contractorId, bid) {
+    const flip = _FLIPS.find(f => f.id === flipId);
+    if (flip && flip.rehabItems[itemIdx] !== undefined) {
+      const cons = flip.rehabItems[itemIdx].contractors || [];
+      const entry = cons.find(c => c.id === contractorId);
+      if (entry) { entry.bid = bid; rerender(); }
     }
   }
 
@@ -345,7 +354,7 @@ export function RehabTracker() {
       budgeted:      parseFloat(itemForm.budgeted) || 0,
       spent:         parseFloat(itemForm.spent) || 0,
       status:        itemForm.status,
-      contractorIds: [],
+      contractors: [],
     });
     setItemForm(emptyItem);
     setShowAddItem(false);
@@ -431,7 +440,7 @@ export function RehabTracker() {
           const flipSpent      = items.reduce((s, i) => s + i.spent,    0);
           const pct            = flipBudget > 0 ? Math.min((flipSpent / flipBudget) * 100, 100) : 0;
           const flipContractors = _CON.filter(c => c.flipId === f.id);
-          const assignedCount  = items.filter(i => (i.contractorIds || []).length > 0).length;
+          const assignedCount  = items.filter(i => (i.contractors || []).length > 0).length;
 
           return (
             <div key={f.id} style={{ background: "#fff", borderRadius: 16, padding: 22, border: "1px solid #f1f5f9", marginBottom: 16 }}>
@@ -467,7 +476,8 @@ export function RehabTracker() {
                   {items.map((item, i) => {
                     const variance    = item.budgeted - item.spent;
                     const ss          = statusStyle[item.status];
-                    const assignedIds = item.contractorIds || [];
+                    const assigned    = item.contractors || [];
+                    const assignedIds = assigned.map(c => c.id);
                     const unassigned  = flipContractors.filter(c => !assignedIds.includes(c.id));
                     const isEditing   = editingItem?.flipId === f.id && editingItem?.idx === item._idx;
 
@@ -478,21 +488,22 @@ export function RehabTracker() {
                           {item.category}
                         </td>
 
-                        {/* Contractor cell — supports multiple */}
+                        {/* Contractor cell — supports multiple with per-item bids */}
                         <td style={{ padding: "10px 0", paddingRight: 12, minWidth: 200 }}>
                           <div style={{ display: "flex", flexWrap: "wrap", gap: 4, alignItems: "center" }}>
-                            {assignedIds.map(cid => {
-                              const con = _CON.find(c => c.id === cid);
+                            {assigned.map(asgn => {
+                              const con = _CON.find(c => c.id === asgn.id);
                               if (!con) return null;
                               const mm1 = item.status === "complete" && con.status !== "complete";
                               const mm2 = con.status === "complete" && item.status !== "complete";
                               return (
-                                <div key={cid} style={{ display: "flex", alignItems: "center", gap: 5, background: "#f1f5f9", borderRadius: 20, padding: "4px 8px 4px 6px" }}>
+                                <div key={asgn.id} style={{ display: "flex", alignItems: "center", gap: 5, background: "#f1f5f9", borderRadius: 20, padding: "4px 8px 4px 6px" }}>
                                   <div style={{ width: 18, height: 18, borderRadius: "50%", background: "linear-gradient(135deg, #3b82f6, #8b5cf6)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                                     <Truck size={9} color="#fff" />
                                   </div>
                                   <span style={{ fontSize: 12, fontWeight: 600, color: "#374151" }}>{con.name}</span>
-                                  <button onClick={() => removeContractorFromItem(f.id, item._idx, cid)}
+                                  {asgn.bid > 0 && <span style={{ fontSize: 11, color: "#64748b", fontWeight: 500 }}>{fmt(asgn.bid)}</span>}
+                                  <button onClick={() => removeContractorFromItem(f.id, item._idx, asgn.id)}
                                     style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8", padding: 0, display: "flex", alignItems: "center" }}>
                                     <X size={10} />
                                   </button>
@@ -512,7 +523,7 @@ export function RehabTracker() {
                                 ))}
                               </select>
                             )}
-                            {flipContractors.length === 0 && assignedIds.length === 0 && (
+                            {flipContractors.length === 0 && assigned.length === 0 && (
                               <span style={{ fontSize: 12, color: "#cbd5e1", fontStyle: "italic" }}>No contractors</span>
                             )}
                           </div>
@@ -1043,7 +1054,7 @@ export function FlipContractors() {
   const [showModal, setShowModal]       = useState(false);
   const [editId, setEditId]             = useState(null); // null = add mode
   const [deleteConfirm, setDeleteConfirm] = useState(null);
-  const [selectedItems, setSelectedItems] = useState(new Set()); // Set of "flipIdx:itemIdx" keys
+  const [selectedItems, setSelectedItems] = useState(new Map()); // Map<idx, bid>
 
   const emptyForm = { flipId: "", name: "", trade: "", paymentType: "Fixed Bid", totalBid: "", dayRate: "", phone: "", status: "pending" };
   const [form, setForm] = useState(emptyForm);
@@ -1062,8 +1073,16 @@ export function FlipContractors() {
 
   const toggleItem = idx => {
     setSelectedItems(prev => {
-      const next = new Set(prev);
-      next.has(idx) ? next.delete(idx) : next.add(idx);
+      const next = new Map(prev);
+      next.has(idx) ? next.delete(idx) : next.set(idx, 0);
+      return next;
+    });
+  };
+
+  const setItemBid = (idx, bid) => {
+    setSelectedItems(prev => {
+      const next = new Map(prev);
+      next.set(idx, bid);
       return next;
     });
   };
@@ -1071,18 +1090,19 @@ export function FlipContractors() {
   const openAdd = () => {
     setEditId(null);
     setForm(emptyForm);
-    setSelectedItems(new Set());
+    setSelectedItems(new Map());
     setShowModal(true);
   };
 
   const openEdit = c => {
     setEditId(c.id);
     setForm({ flipId: String(c.flipId), name: c.name, trade: c.trade || "", paymentType: c.paymentType, totalBid: String(c.totalBid || ""), dayRate: String(c.dayRate || ""), phone: c.phone || "", status: c.status });
-    // Pre-select items already assigned to this contractor
+    // Pre-select items already assigned to this contractor with their bids
     const flip = _FLIPS.find(f => f.id === c.flipId);
-    const preChecked = new Set();
+    const preChecked = new Map();
     (flip?.rehabItems || []).forEach((item, idx) => {
-      if ((item.contractorIds || []).includes(c.id)) preChecked.add(idx);
+      const entry = (item.contractors || []).find(a => a.id === c.id);
+      if (entry) preChecked.set(idx, entry.bid || 0);
     });
     setSelectedItems(preChecked);
     setShowModal(true);
@@ -1117,11 +1137,16 @@ export function FlipContractors() {
       // Sync rehab item assignments for this contractor
       if (flip) {
         flip.rehabItems.forEach((item, idx) => {
-          const ids = item.contractorIds || [];
-          const wasChecked = ids.includes(editId);
+          const cons = item.contractors || [];
+          const existing = cons.find(c => c.id === editId);
           const isChecked  = selectedItems.has(idx);
-          if (isChecked && !wasChecked) item.contractorIds = [...ids, editId];
-          if (!isChecked && wasChecked) item.contractorIds = ids.filter(id => id !== editId);
+          if (isChecked && !existing) {
+            item.contractors = [...cons, { id: editId, bid: selectedItems.get(idx) || 0 }];
+          } else if (isChecked && existing) {
+            existing.bid = selectedItems.get(idx) || 0;
+          } else if (!isChecked && existing) {
+            item.contractors = cons.filter(c => c.id !== editId);
+          }
         });
       }
     } else {
@@ -1129,12 +1154,12 @@ export function FlipContractors() {
       const newCon = { id: newId(), flipId: fId, name: form.name, trade: form.trade, paymentType: form.paymentType, totalBid: parseFloat(form.totalBid) || 0, dayRate: parseFloat(form.dayRate) || 0, totalPaid: 0, status: form.status, phone: form.phone };
       setContractors(prev => [...prev, newCon]);
       _CON.push(newCon);
-      // Assign selected rehab items
+      // Assign selected rehab items with per-item bids
       if (flip) {
-        selectedItems.forEach(idx => {
+        selectedItems.forEach((bid, idx) => {
           const item = flip.rehabItems[idx];
-          if (item && !(item.contractorIds || []).includes(newCon.id)) {
-            item.contractorIds = [...(item.contractorIds || []), newCon.id];
+          if (item && !(item.contractors || []).some(c => c.id === newCon.id)) {
+            item.contractors = [...(item.contractors || []), { id: newCon.id, bid: bid || 0 }];
           }
         });
       }
@@ -1142,7 +1167,7 @@ export function FlipContractors() {
 
     rerender(n => n + 1);
     setForm(emptyForm);
-    setSelectedItems(new Set());
+    setSelectedItems(new Map());
     setShowModal(false);
   };
 
@@ -1228,23 +1253,25 @@ export function FlipContractors() {
                 </div>
               )}
 
-              {/* Assigned Scope */}
+              {/* Assigned Scope — per-item bids */}
               {(() => {
                 const scope = [];
                 _FLIPS.forEach(fl => {
                   (fl.rehabItems || []).forEach(item => {
-                    if ((item.contractorIds || []).includes(c.id)) {
-                      const totalOnItem = (item.contractorIds || []).length;
-                      scope.push({ flipName: fl.name, flipColor: fl.color, label: item.category, itemBudget: item.budgeted, status: item.status, sharedWith: totalOnItem - 1 });
+                    const entry = (item.contractors || []).find(a => a.id === c.id);
+                    if (entry) {
+                      const totalOnItem = (item.contractors || []).length;
+                      scope.push({ flipName: fl.name, flipColor: fl.color, label: item.category, itemBudget: item.budgeted, bid: entry.bid || 0, status: item.status, sharedWith: totalOnItem - 1 });
                     }
                   });
                 });
                 if (scope.length === 0) return null;
+                const totalBids = scope.reduce((s, item) => s + item.bid, 0);
                 return (
                   <div style={{ borderTop: "1px solid #f1f5f9", paddingTop: 12, marginTop: c.paymentType === "Day Rate" ? 14 : 0 }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                      <span style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.05em" }}>Assigned Scope</span>
-                      <span style={{ fontSize: 12, fontWeight: 700, color: "#0f172a" }}>Bid: {c.paymentType === "Day Rate" ? `$${c.dayRate}/day` : fmt(c.totalBid)}</span>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.05em" }}>Assigned Scope ({scope.length})</span>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: "#0f172a" }}>Total Bids: {c.paymentType === "Day Rate" ? `$${c.dayRate}/day` : fmt(totalBids)}</span>
                     </div>
                     <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
                       {scope.map((item, i) => {
@@ -1256,7 +1283,8 @@ export function FlipContractors() {
                               <span style={{ fontSize: 12, color: "#374151", fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.label}</span>
                             </div>
                             <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0, marginLeft: 8 }}>
-                              <span style={{ fontSize: 11, color: "#94a3b8" }}>Budget: {fmt(item.itemBudget)}</span>
+                              {item.bid > 0 && <span style={{ fontSize: 11, color: "#0f172a", fontWeight: 600 }}>Bid: {fmt(item.bid)}</span>}
+                              {item.bid === 0 && <span style={{ fontSize: 11, color: "#cbd5e1", fontStyle: "italic" }}>No bid</span>}
                               {item.sharedWith > 0 && (
                                 <span style={{ fontSize: 10, color: "#64748b", background: "#e2e8f0", borderRadius: 10, padding: "2px 7px", fontWeight: 500 }}>+{item.sharedWith} other{item.sharedWith > 1 ? "s" : ""}</span>
                               )}
@@ -1367,31 +1395,42 @@ export function FlipContractors() {
                 </div>
               </div>
 
-              {/* Rehab Item Assignment */}
+              {/* Rehab Item Assignment with per-item bids */}
               {modalItems.length > 0 && (
                 <div style={{ borderTop: "1px solid #f1f5f9", paddingTop: 14, marginTop: 2 }}>
                   <p style={{ fontSize: 12, fontWeight: 700, color: "#374151", marginBottom: 8 }}>Assign Rehab Scope</p>
                   <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                     {modalItems.map((item, idx) => {
                       const checked = selectedItems.has(idx);
-                      const otherCons = (item.contractorIds || []).filter(id => id !== editId);
+                      const otherCons = (item.contractors || []).filter(c => c.id !== editId);
                       return (
-                        <label key={idx} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 10px", borderRadius: 8, background: checked ? "#fef9c3" : "#f8fafc", border: `1px solid ${checked ? "#fde68a" : "#f1f5f9"}`, cursor: "pointer" }}>
-                          <input type="checkbox" checked={checked} onChange={() => toggleItem(idx)} style={{ width: 15, height: 15, cursor: "pointer", accentColor: "#f59e0b" }} />
-                          <span style={{ flex: 1, fontSize: 13, fontWeight: 500, color: "#0f172a" }}>{item.category}</span>
-                          <span style={{ fontSize: 12, color: "#94a3b8" }}>{fmt(item.budgeted)}</span>
-                          {otherCons.length > 0 && (
-                            <span style={{ fontSize: 11, color: "#64748b", background: "#e2e8f0", borderRadius: 10, padding: "2px 7px" }}>
-                              +{otherCons.length} assigned
-                            </span>
+                        <div key={idx} style={{ borderRadius: 8, background: checked ? "#fef9c3" : "#f8fafc", border: `1px solid ${checked ? "#fde68a" : "#f1f5f9"}`, overflow: "hidden" }}>
+                          <label style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 10px", cursor: "pointer" }}>
+                            <input type="checkbox" checked={checked} onChange={() => toggleItem(idx)} style={{ width: 15, height: 15, cursor: "pointer", accentColor: "#f59e0b" }} />
+                            <span style={{ flex: 1, fontSize: 13, fontWeight: 500, color: "#0f172a" }}>{item.category}</span>
+                            <span style={{ fontSize: 12, color: "#94a3b8" }}>Budget: {fmt(item.budgeted)}</span>
+                            {otherCons.length > 0 && (
+                              <span style={{ fontSize: 11, color: "#64748b", background: "#e2e8f0", borderRadius: 10, padding: "2px 7px" }}>
+                                +{otherCons.length} assigned
+                              </span>
+                            )}
+                          </label>
+                          {checked && (
+                            <div style={{ padding: "4px 10px 8px 39px", display: "flex", alignItems: "center", gap: 8 }}>
+                              <span style={{ fontSize: 12, color: "#64748b", whiteSpace: "nowrap" }}>Bid $</span>
+                              <input type="number" placeholder="0" value={selectedItems.get(idx) || ""}
+                                onChange={e => setItemBid(idx, parseFloat(e.target.value) || 0)}
+                                onClick={e => e.stopPropagation()}
+                                style={{ ...iS, padding: "5px 8px", fontSize: 12, width: 110 }} />
+                            </div>
                           )}
-                        </label>
+                        </div>
                       );
                     })}
                   </div>
                   {selectedItems.size > 0 && (
                     <p style={{ fontSize: 12, color: "#f59e0b", fontWeight: 600, marginTop: 8 }}>
-                      {selectedItems.size} scope{selectedItems.size > 1 ? "s" : ""} selected · {fmt([...selectedItems].reduce((s, idx) => s + (modalItems[idx]?.budgeted || 0), 0))} total
+                      {selectedItems.size} scope{selectedItems.size > 1 ? "s" : ""} selected · {fmt([...selectedItems.values()].reduce((s, bid) => s + (bid || 0), 0))} total bids
                     </p>
                   )}
                 </div>

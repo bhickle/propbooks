@@ -4000,7 +4000,7 @@ function FlipDetail({ flip, onBack, allFlips, setAllFlips, onNavigateToExpense }
                   image: initials, color: colors[FLIPS.length % colors.length],
                   purchasePrice: 0, arv: flip.arv, rehabBudget: flip.rehabBudget, rehabSpent: 0,
                   holdingCostsPerMonth: flip.holdingCostsPerMonth, daysOwned: 0,
-                  rehabItems: rehabItems.map(r => ({ category: r.category, budgeted: r.budgeted, spent: 0, status: "pending", contractorIds: [], photos: [] })),
+                  rehabItems: rehabItems.map(r => ({ category: r.category, budgeted: r.budgeted, spent: 0, status: "pending", contractors: [], photos: [] })),
                 };
                 FLIPS.push(cloned);
                 FLIP_MILESTONES[cloned.id] = milestones.map(m => ({ label: m.label, done: false, date: null, targetDate: null }));
@@ -4291,7 +4291,7 @@ function FlipDetail({ flip, onBack, allFlips, setAllFlips, onNavigateToExpense }
                     setRehabItems(prev => prev.map((item, idx) => idx === editingRehabIdx ? { ...item, category: rehabForm.category, budgeted: parseFloat(rehabForm.budgeted) || 0, spent: parseFloat(rehabForm.spent) || 0, status: rehabForm.status, photos } : item));
                     setEditingRehabIdx(null);
                   } else {
-                    setRehabItems(prev => [...prev, { category: rehabForm.category, budgeted: parseFloat(rehabForm.budgeted) || 0, spent: parseFloat(rehabForm.spent) || 0, status: rehabForm.status, contractorIds: [], photos }]);
+                    setRehabItems(prev => [...prev, { category: rehabForm.category, budgeted: parseFloat(rehabForm.budgeted) || 0, spent: parseFloat(rehabForm.spent) || 0, status: rehabForm.status, contractors: [], photos }]);
                   }
                   setRehabForm(emptyRehab);
                   setShowAddRehab(false);
