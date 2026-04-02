@@ -615,7 +615,7 @@ export function RehabTracker() {
               <div>
                 <p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Deal *</p>
                 <select style={iS} value={itemForm.flipId} onChange={sif("flipId")}>
-                  <option value="">Select flip...</option>
+                  <option value="">Select deal...</option>
                   {flips.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
                 </select>
               </div>
@@ -939,7 +939,7 @@ export function FlipExpenses({ highlightExpId, onBack, onClearHighlight }) {
               <div>
                 <p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Deal *</p>
                 <select value={form.flipId} onChange={sf("flipId")} style={iS}>
-                  <option value="">Select flip...</option>
+                  <option value="">Select deal...</option>
                   {_FLIPS.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
                 </select>
               </div>
@@ -1319,7 +1319,7 @@ export function FlipContractors() {
               <div>
                 <p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Deal *</p>
                 <select style={iS} value={form.flipId} onChange={e => { sf("flipId")(e); setSelectedItems(new Set()); }} disabled={!!editId}>
-                  <option value="">Select flip...</option>
+                  <option value="">Select deal...</option>
                   {_FLIPS.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
                 </select>
               </div>
@@ -2230,7 +2230,7 @@ export function FlipMilestones() {
               <div>
                 <p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Deal</p>
                 <select value={msForm.flipId} onChange={e => setMsForm(f => ({ ...f, flipId: e.target.value }))} style={iS}>
-                  <option value="">Select a deal...</option>
+                  <option value="">Select deal...</option>
                   {_FLIPS.filter(f => f.stage !== "Sold").map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
                 </select>
               </div>
