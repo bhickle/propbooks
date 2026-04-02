@@ -753,7 +753,7 @@ export function FlipExpenses({ highlightExpId, onBack, onClearHighlight }) {
   const thisMonth = filtered.filter(e => e.date >= "2026-03-01").reduce((s, e) => s + e.amount, 0);
 
   const catTotals = EXPENSE_CATS.map(cat => ({
-    cat, total: expenses.filter(e => e.category === cat).reduce((s, e) => s + e.amount, 0),
+    cat, total: filtered.filter(e => e.category === cat).reduce((s, e) => s + e.amount, 0),
   })).filter(c => c.total > 0).sort((a, b) => b.total - a.total);
 
   const handleSave = () => {
