@@ -3948,9 +3948,9 @@ function FlipDetail({ flip, onBack, allFlips, setAllFlips, onNavigateToExpense }
   const sfR = k => e => setRehabForm(f => ({ ...f, [k]: e.target.value }));
   const [catFocus, setCatFocus] = useState(false);
   const allCategories = useMemo(() => {
-    const cats = new Set(flips.flatMap(f => (f.rehabItems || []).map(i => i.category)));
+    const cats = new Set(FLIPS.flatMap(f => (f.rehabItems || []).map(i => i.category)));
     return [...cats].filter(Boolean).sort();
-  }, [flips]);
+  }, []);
   const [deleteConfirm, setDeleteConfirm] = useState(null); // { type: "expense"|"contractor"|"rehab"|"milestone", item, index? }
   const [stage, setStage] = useState(flip.stage);
 
