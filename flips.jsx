@@ -1290,8 +1290,10 @@ export function ContractorDetail({ contractor, onBack }) {
   const [editForm, setEditForm] = useState({ name: contractor.name, trade: contractor.trade, phone: contractor.phone || "", email: contractor.email || "", license: contractor.license || "", insuranceExpiry: contractor.insuranceExpiry || "", notes: contractor.notes || "" });
   const [showBidModal, setShowBidModal] = useState(false);
   const [bidForm, setBidForm] = useState({ flipId: "", rehabItem: "", amount: "" });
+  const [editingBidId, setEditingBidId] = useState(null);
   const [showDocModal, setShowDocModal] = useState(false);
   const [docForm, setDocForm] = useState({ name: "", type: "contract", flipId: "" });
+  const [editingDocId, setEditingDocId] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [ratingHover, setRatingHover] = useState(0);
 
@@ -1313,19 +1315,37 @@ export function ContractorDetail({ contractor, onBack }) {
 
   const setRating = (r) => { con.rating = r; rerender(n => n + 1); };
 
+  const openEditBid = (b) => {
+    setEditingBidId(b.id);
+    setBidForm({ flipId: String(b.flipId), rehabItem: b.rehabItem, amount: String(b.amount) });
+    setShowBidModal(true);
+  };
+
   const saveBid = () => {
     const fId = parseInt(bidForm.flipId);
     if (!fId || !bidForm.rehabItem || !bidForm.amount) return;
-    const newBid = { id: newId(), flipId: fId, rehabItem: bidForm.rehabItem, amount: parseFloat(bidForm.amount) || 0, status: "pending", date: new Date().toISOString().slice(0, 10) };
-    con.bids = [...bids, newBid];
-    if (!con.dealIds.includes(fId)) con.dealIds.push(fId);
-    const flip = _FLIPS.find(f => f.id === fId);
-    if (flip) {
-      const item = (flip.rehabItems || []).find(i => i.category === bidForm.rehabItem);
-      if (item) {
-        const cons = item.contractors || [];
-        if (!cons.some(c => c.id === con.id)) {
-          item.contractors = [...cons, { id: con.id, bid: newBid.amount }];
+    if (editingBidId) {
+      // Update existing bid
+      const bid = con.bids.find(b => b.id === editingBidId);
+      if (bid) {
+        bid.flipId = fId;
+        bid.rehabItem = bidForm.rehabItem;
+        bid.amount = parseFloat(bidForm.amount) || 0;
+      }
+      setEditingBidId(null);
+    } else {
+      // Add new bid
+      const newBid = { id: newId(), flipId: fId, rehabItem: bidForm.rehabItem, amount: parseFloat(bidForm.amount) || 0, status: "pending", date: new Date().toISOString().slice(0, 10) };
+      con.bids = [...bids, newBid];
+      if (!con.dealIds.includes(fId)) con.dealIds.push(fId);
+      const flip = _FLIPS.find(f => f.id === fId);
+      if (flip) {
+        const item = (flip.rehabItems || []).find(i => i.category === bidForm.rehabItem);
+        if (item) {
+          const cons = item.contractors || [];
+          if (!cons.some(c => c.id === con.id)) {
+            item.contractors = [...cons, { id: con.id, bid: newBid.amount }];
+          }
         }
       }
     }
@@ -1341,10 +1361,26 @@ export function ContractorDetail({ contractor, onBack }) {
 
   const deleteBid = (bidId) => { con.bids = con.bids.filter(b => b.id !== bidId); rerender(n => n + 1); setDeleteConfirm(null); };
 
+  const openEditDoc = (d) => {
+    setEditingDocId(d.id);
+    setDocForm({ name: d.name, type: d.type, flipId: d.flipId ? String(d.flipId) : "" });
+    setShowDocModal(true);
+  };
+
   const saveDoc = () => {
     if (!docForm.name) return;
-    const newDoc = { id: newId(), name: docForm.name, type: docForm.type, flipId: docForm.flipId ? parseInt(docForm.flipId) : null, date: new Date().toISOString().slice(0, 10), size: "— KB" };
-    con.documents = [...documents, newDoc];
+    if (editingDocId) {
+      const doc = con.documents.find(d => d.id === editingDocId);
+      if (doc) {
+        doc.name = docForm.name;
+        doc.type = docForm.type;
+        doc.flipId = docForm.flipId ? parseInt(docForm.flipId) : null;
+      }
+      setEditingDocId(null);
+    } else {
+      const newDoc = { id: newId(), name: docForm.name, type: docForm.type, flipId: docForm.flipId ? parseInt(docForm.flipId) : null, date: new Date().toISOString().slice(0, 10), size: "— KB" };
+      con.documents = [...documents, newDoc];
+    }
     rerender(n => n + 1);
     setDocForm({ name: "", type: "contract", flipId: "" });
     setShowDocModal(false);
@@ -1397,6 +1433,7 @@ export function ContractorDetail({ contractor, onBack }) {
                 </span>
               ))}
             </div>
+            <button onClick={() => { setEditMode(true); setActiveTab("overview"); }} style={{ display: "flex", alignItems: "center", gap: 6, background: "#f1f5f9", border: "none", borderRadius: 10, padding: "8px 14px", cursor: "pointer", fontSize: 13, fontWeight: 600, color: "#475569", marginLeft: 4 }}><Pencil size={13} /> Edit</button>
           </div>
         </div>
         <div style={{ display: "flex", gap: 24, marginTop: 16, paddingTop: 16, borderTop: "1px solid #f1f5f9" }}>
@@ -1427,7 +1464,6 @@ export function ContractorDetail({ contractor, onBack }) {
         <div style={{ background: "#fff", borderRadius: 16, padding: 24, border: "1px solid #f1f5f9" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
             <h3 style={{ fontSize: 16, fontWeight: 700, color: "#0f172a" }}>Contact & License Info</h3>
-            {!editMode && <button onClick={() => setEditMode(true)} style={{ display: "flex", alignItems: "center", gap: 6, background: "#f1f5f9", border: "none", borderRadius: 8, padding: "6px 12px", cursor: "pointer", fontSize: 12, fontWeight: 600, color: "#64748b" }}><Pencil size={12} /> Edit</button>}
           </div>
           {editMode ? (
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -1485,7 +1521,8 @@ export function ContractorDetail({ contractor, onBack }) {
                     {b.status === "accepted" ? "Accepted" : "Pending"}
                   </button>
                   <span style={{ fontSize: 12, color: "#94a3b8", minWidth: 80 }}>{b.date}</span>
-                  <button onClick={(e) => { e.stopPropagation(); setDeleteConfirm({ type: "bid", id: b.id, label: b.rehabItem }); }} style={{ background: "none", border: "none", cursor: "pointer", color: "#cbd5e1", padding: 4 }}><Trash2 size={14} /></button>
+                  <button onClick={(e) => { e.stopPropagation(); openEditBid(b); }} style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8", padding: 4 }} title="Edit"><Pencil size={13} /></button>
+                  <button onClick={(e) => { e.stopPropagation(); setDeleteConfirm({ type: "bid", id: b.id, label: b.rehabItem }); }} style={{ background: "none", border: "none", cursor: "pointer", color: "#cbd5e1", padding: 4 }} title="Delete"><Trash2 size={14} /></button>
                 </div>
               );
             })}
@@ -1512,13 +1549,18 @@ export function ContractorDetail({ contractor, onBack }) {
                       <FileText size={16} color={typeColor} />
                       <span style={{ fontSize: 13, fontWeight: 600, color: "#0f172a" }}>{d.name}</span>
                     </div>
-                    <button onClick={() => setDeleteConfirm({ type: "doc", id: d.id, label: d.name })} style={{ background: "none", border: "none", cursor: "pointer", color: "#cbd5e1", padding: 2 }}><Trash2 size={13} /></button>
+                    <div style={{ display: "flex", gap: 4 }}>
+                      <button onClick={() => openEditDoc(d)} style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8", padding: 2 }} title="Edit"><Pencil size={13} /></button>
+                      <button onClick={() => setDeleteConfirm({ type: "doc", id: d.id, label: d.name })} style={{ background: "none", border: "none", cursor: "pointer", color: "#cbd5e1", padding: 2 }} title="Delete"><Trash2 size={13} /></button>
+                    </div>
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
                     <span style={{ background: `${typeColor}15`, color: typeColor, borderRadius: 20, padding: "2px 8px", fontSize: 10, fontWeight: 600 }}>{DOC_TYPES[d.type] || d.type}</span>
                     {fl && <span style={{ display: "flex", alignItems: "center", gap: 3, fontSize: 11, color: "#94a3b8" }}><span style={{ width: 5, height: 5, borderRadius: "50%", background: fl.color }} />{fl.name}</span>}
                     <span style={{ fontSize: 11, color: "#94a3b8" }}>{d.date}</span>
+                    {d.size && <span style={{ fontSize: 11, color: "#94a3b8" }}>{d.size}</span>}
                   </div>
+                  <button onClick={() => {}} style={{ display: "flex", alignItems: "center", gap: 5, marginTop: 10, background: "none", border: "1px solid #e2e8f0", borderRadius: 8, padding: "5px 12px", cursor: "pointer", fontSize: 12, fontWeight: 600, color: "#3b82f6" }}><Eye size={12} /> View Document</button>
                 </div>
               );
             })}
@@ -1575,8 +1617,8 @@ export function ContractorDetail({ contractor, onBack }) {
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
           <div style={{ background: "#fff", borderRadius: 20, padding: 32, width: 460, boxShadow: "0 20px 60px rgba(0,0,0,0.18)" }}>
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 20 }}>
-              <h2 style={{ color: "#0f172a", fontSize: 19, fontWeight: 700 }}>Add Bid</h2>
-              <button onClick={() => setShowBidModal(false)} style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8" }}><X size={20} /></button>
+              <h2 style={{ color: "#0f172a", fontSize: 19, fontWeight: 700 }}>{editingBidId ? "Edit Bid" : "Add Bid"}</h2>
+              <button onClick={() => { setShowBidModal(false); setEditingBidId(null); setBidForm({ flipId: "", rehabItem: "", amount: "" }); }} style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8" }}><X size={20} /></button>
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               <div>
@@ -1599,8 +1641,8 @@ export function ContractorDetail({ contractor, onBack }) {
               </div>
             </div>
             <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
-              <button onClick={saveBid} disabled={!bidForm.flipId || !bidForm.rehabItem || !bidForm.amount} style={{ flex: 1, padding: "11px", borderRadius: 10, border: "none", background: !bidForm.flipId || !bidForm.rehabItem || !bidForm.amount ? "#e2e8f0" : "#f59e0b", color: "#fff", fontWeight: 700, fontSize: 14, cursor: !bidForm.flipId || !bidForm.rehabItem || !bidForm.amount ? "not-allowed" : "pointer" }}>Add Bid</button>
-              <button onClick={() => setShowBidModal(false)} style={{ padding: "11px 18px", borderRadius: 10, border: "1.5px solid #e2e8f0", background: "#fff", fontWeight: 600, fontSize: 14, cursor: "pointer", color: "#64748b" }}>Cancel</button>
+              <button onClick={saveBid} disabled={!bidForm.flipId || !bidForm.rehabItem || !bidForm.amount} style={{ flex: 1, padding: "11px", borderRadius: 10, border: "none", background: !bidForm.flipId || !bidForm.rehabItem || !bidForm.amount ? "#e2e8f0" : "#f59e0b", color: "#fff", fontWeight: 700, fontSize: 14, cursor: !bidForm.flipId || !bidForm.rehabItem || !bidForm.amount ? "not-allowed" : "pointer" }}>{editingBidId ? "Save Changes" : "Add Bid"}</button>
+              <button onClick={() => { setShowBidModal(false); setEditingBidId(null); setBidForm({ flipId: "", rehabItem: "", amount: "" }); }} style={{ padding: "11px 18px", borderRadius: 10, border: "1.5px solid #e2e8f0", background: "#fff", fontWeight: 600, fontSize: 14, cursor: "pointer", color: "#64748b" }}>Cancel</button>
             </div>
           </div>
         </div>
@@ -1611,8 +1653,8 @@ export function ContractorDetail({ contractor, onBack }) {
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
           <div style={{ background: "#fff", borderRadius: 20, padding: 32, width: 460, boxShadow: "0 20px 60px rgba(0,0,0,0.18)" }}>
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 20 }}>
-              <h2 style={{ color: "#0f172a", fontSize: 19, fontWeight: 700 }}>Add Document</h2>
-              <button onClick={() => setShowDocModal(false)} style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8" }}><X size={20} /></button>
+              <h2 style={{ color: "#0f172a", fontSize: 19, fontWeight: 700 }}>{editingDocId ? "Edit Document" : "Add Document"}</h2>
+              <button onClick={() => { setShowDocModal(false); setEditingDocId(null); setDocForm({ name: "", type: "contract", flipId: "" }); }} style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8" }}><X size={20} /></button>
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               <div><p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Document Name *</p><input style={iS} placeholder="e.g. Plumbing Contract" value={docForm.name} onChange={e => setDocForm(f => ({ ...f, name: e.target.value }))} /></div>
@@ -1633,8 +1675,8 @@ export function ContractorDetail({ contractor, onBack }) {
               </div>
             </div>
             <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
-              <button onClick={saveDoc} disabled={!docForm.name.trim()} style={{ flex: 1, padding: "11px", borderRadius: 10, border: "none", background: !docForm.name.trim() ? "#e2e8f0" : "#f59e0b", color: "#fff", fontWeight: 700, fontSize: 14, cursor: !docForm.name.trim() ? "not-allowed" : "pointer" }}>Add Document</button>
-              <button onClick={() => setShowDocModal(false)} style={{ padding: "11px 18px", borderRadius: 10, border: "1.5px solid #e2e8f0", background: "#fff", fontWeight: 600, fontSize: 14, cursor: "pointer", color: "#64748b" }}>Cancel</button>
+              <button onClick={saveDoc} disabled={!docForm.name.trim()} style={{ flex: 1, padding: "11px", borderRadius: 10, border: "none", background: !docForm.name.trim() ? "#e2e8f0" : "#f59e0b", color: "#fff", fontWeight: 700, fontSize: 14, cursor: !docForm.name.trim() ? "not-allowed" : "pointer" }}>{editingDocId ? "Save Changes" : "Add Document"}</button>
+              <button onClick={() => { setShowDocModal(false); setEditingDocId(null); setDocForm({ name: "", type: "contract", flipId: "" }); }} style={{ padding: "11px 18px", borderRadius: 10, border: "1.5px solid #e2e8f0", background: "#fff", fontWeight: 600, fontSize: 14, cursor: "pointer", color: "#64748b" }}>Cancel</button>
             </div>
           </div>
         </div>
