@@ -661,7 +661,16 @@ export function RehabTracker() {
 // ---------------------------------------------------------------------------
 // 3. FLIP EXPENSES
 // ---------------------------------------------------------------------------
-const EXPENSE_CATS = ["Materials/Supplies", "Subcontractor", "Permits & Inspections", "Appliances", "Dump Fees", "Holding Costs", "Closing Costs", "Other"];
+const FLIP_EXPENSE_GROUPS = {
+  "Acquisition":          ["Closing Costs (Buy)", "Title & Escrow", "Inspection", "Appraisal"],
+  "Rehab Labor":          ["General Contractor", "Subcontractor", "Day Labor"],
+  "Rehab Materials":      ["Materials & Supplies", "Appliances", "Fixtures & Hardware"],
+  "Permits & Fees":       ["Permits", "Inspections", "Dumpster / Debris Removal"],
+  "Holding Costs":        ["Insurance", "Property Tax", "Utilities", "Loan Interest / Hard Money", "HOA"],
+  "Selling Costs":        ["Agent Commission", "Photography / Marketing", "Staging", "Cleaning", "Closing Costs (Sell)"],
+  "General":              ["Landscaping", "Travel", "Other"],
+};
+const EXPENSE_CATS = Object.values(FLIP_EXPENSE_GROUPS).flat();
 
 export function FlipExpenses({ highlightExpId, onBack, onClearHighlight }) {
   const [expenses, setExpenses] = useState([..._FE]);
@@ -694,7 +703,7 @@ export function FlipExpenses({ highlightExpId, onBack, onClearHighlight }) {
   const [search, setSearch]             = useState("");
   const [deleteConfirm, setDeleteConfirm] = useState(null);
 
-  const emptyForm = { flipId: "", date: "", vendor: "", category: "Materials/Supplies", description: "", amount: "", rehabItemIdx: "" };
+  const emptyForm = { flipId: "", date: "", vendor: "", category: "Materials & Supplies", description: "", amount: "", rehabItemIdx: "" };
   const [form, setForm]   = useState(emptyForm);
   const sf = k => e => setForm(f => ({ ...f, [k]: e.target.value }));
   const [vendorFocus, setVendorFocus] = useState(false);
@@ -817,7 +826,11 @@ export function FlipExpenses({ highlightExpId, onBack, onClearHighlight }) {
         </select>
         <select value={filterCat} onChange={e => setFilterCat(e.target.value)} style={{ ...iS, width: "auto", minWidth: 160, fontSize: 13, padding: "9px 12px" }}>
           <option value="all">All Categories</option>
-          {EXPENSE_CATS.map(c => <option key={c} value={c}>{c}</option>)}
+          {Object.entries(FLIP_EXPENSE_GROUPS).map(([group, subs]) => (
+                    <optgroup key={group} label={group}>
+                      {subs.map(c => <option key={c} value={c}>{c}</option>)}
+                    </optgroup>
+                  ))}
         </select>
         <select value={dateFilter} onChange={e => { setDateFilter(e.target.value); if (e.target.value !== "custom") { setDateFrom(""); setDateTo(""); } }} style={{ ...iS, width: "auto", minWidth: 140, fontSize: 13, padding: "9px 12px" }}>
           <option value="all">All Time</option>
@@ -962,7 +975,11 @@ export function FlipExpenses({ highlightExpId, onBack, onClearHighlight }) {
                 <div>
                   <p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Category</p>
                   <select style={iS} value={form.category} onChange={sf("category")}>
-                    {EXPENSE_CATS.map(c => <option key={c} value={c}>{c}</option>)}
+                    {Object.entries(FLIP_EXPENSE_GROUPS).map(([group, subs]) => (
+                    <optgroup key={group} label={group}>
+                      {subs.map(c => <option key={c} value={c}>{c}</option>)}
+                    </optgroup>
+                  ))}
                   </select>
                 </div>
                 <div>
