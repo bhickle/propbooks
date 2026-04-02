@@ -1735,12 +1735,13 @@ function Transactions({ highlightTxId, onBack, onClearHighlight, backLabel }) {
 
         const PayeeDropdown = () => {
           const q = form.payee.toLowerCase();
-          const matches = q ? payeePool.filter(p => p.toLowerCase().includes(q) && p.toLowerCase() !== q) : (isIncome ? [] : payeePool);
+          if (!q) return null;
+          const matches = payeePool.filter(p => p.toLowerCase().includes(q) && p.toLowerCase() !== q);
           const exactExists = payeePool.some(p => p.toLowerCase() === q);
           const showNew = q && !exactExists;
           if (matches.length === 0 && !showNew) return null;
           return (
-            <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, background: "#fff", border: "1px solid #e2e8f0", borderRadius: 12, boxShadow: "0 8px 24px rgba(0,0,0,0.10)", zIndex: 200, overflow: "hidden" }}>
+            <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, background: "#fff", border: "1px solid #e2e8f0", borderRadius: 12, boxShadow: "0 8px 24px rgba(0,0,0,0.10)", zIndex: 200, overflow: "hidden", maxHeight: 200, overflowY: "auto" }}>
               {matches.slice(0, 6).map(p => (
                 <button key={p} onMouseDown={() => { setForm(f => ({ ...f, payee: p })); setPayeeFocus(false); }}
                   style={{ width: "100%", padding: "10px 14px", background: "none", border: "none", borderBottom: "1px solid #f1f5f9", textAlign: "left", cursor: "pointer", fontSize: 13, color: "#0f172a", display: "flex", alignItems: "center", gap: 8 }}>
@@ -1748,10 +1749,11 @@ function Transactions({ highlightTxId, onBack, onClearHighlight, backLabel }) {
                 </button>
               ))}
               {showNew && (
-                <div style={{ padding: "10px 14px", display: "flex", alignItems: "center", gap: 8, background: "#f0f9ff", borderTop: matches.length > 0 ? "1px solid #e2e8f0" : "none" }}>
-                  <PlusCircle size={13} style={{ color: "#3b82f6", flexShrink: 0 }} />
-                  <span style={{ fontSize: 13, color: "#3b82f6", fontWeight: 600 }}>Add "{form.payee}" as new</span>
-                </div>
+                <button onMouseDown={() => setPayeeFocus(false)}
+                  style={{ width: "100%", padding: "10px 14px", display: "flex", alignItems: "center", gap: 8, background: "#fffbeb", border: "none", borderTop: matches.length > 0 ? "1px solid #e2e8f0" : "none", cursor: "pointer", textAlign: "left" }}>
+                  <Plus size={13} style={{ color: "#f59e0b", flexShrink: 0 }} />
+                  <span style={{ fontSize: 13, color: "#f59e0b", fontWeight: 600 }}>Add &ldquo;{form.payee}&rdquo; as new</span>
+                </button>
               )}
             </div>
           );
@@ -4689,11 +4691,12 @@ function FlipDetail({ flip, onBack, allFlips, setAllFlips, onNavigateToExpense }
           {showExpenseModal && (() => {
             const PaidToDropdown = () => {
               const q = (expForm.vendor || "").toLowerCase();
+              if (!q) return null;
               // Contractors on this project
-              const conMatches = q ? conData.filter(c => c.name.toLowerCase().includes(q)) : conData;
+              const conMatches = conData.filter(c => c.name.toLowerCase().includes(q));
               // Previous vendors (excluding contractor names to avoid duplicates)
               const conNames = new Set(conData.map(c => c.name.toLowerCase()));
-              const vendorMatches = q ? allVendors.filter(v => v.toLowerCase().includes(q) && !conNames.has(v.toLowerCase())) : allVendors.filter(v => !conNames.has(v.toLowerCase()));
+              const vendorMatches = allVendors.filter(v => v.toLowerCase().includes(q) && !conNames.has(v.toLowerCase()));
               const exactExists = allVendors.some(v => v.toLowerCase() === q) || conData.some(c => c.name.toLowerCase() === q);
               const showNew = q && !exactExists;
               if (conMatches.length === 0 && vendorMatches.length === 0 && !showNew) return null;
@@ -4724,10 +4727,11 @@ function FlipDetail({ flip, onBack, allFlips, setAllFlips, onNavigateToExpense }
                     </>
                   )}
                   {showNew && (
-                    <div style={{ padding: "10px 14px", display: "flex", alignItems: "center", gap: 8, background: "#f0f9ff", borderTop: "1px solid #e2e8f0" }}>
-                      <PlusCircle size={13} style={{ color: "#3b82f6", flexShrink: 0 }} />
-                      <span style={{ fontSize: 13, color: "#3b82f6", fontWeight: 600 }}>Add "{expForm.vendor}" as new</span>
-                    </div>
+                    <button onMouseDown={() => setVendorFocus(false)}
+                      style={{ width: "100%", padding: "10px 14px", display: "flex", alignItems: "center", gap: 8, background: "#fffbeb", border: "none", borderTop: "1px solid #e2e8f0", cursor: "pointer", textAlign: "left" }}>
+                      <Plus size={13} style={{ color: "#f59e0b", flexShrink: 0 }} />
+                      <span style={{ fontSize: 13, color: "#f59e0b", fontWeight: 600 }}>Add &ldquo;{expForm.vendor}&rdquo; as new</span>
+                    </button>
                   )}
                 </div>
               );
