@@ -396,7 +396,7 @@ export function RehabTracker() {
     <div>
       <PageHeader
         title="Rehab Tracker"
-        sub="All rehab line items across active flips"
+        sub="All rehab line items across active deals"
         action={
           <button onClick={() => setShowAddItem(true)} style={{ background: "#f59e0b", color: "#fff", border: "none", borderRadius: 10, padding: "10px 18px", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
             <Plus size={16} /> Add Rehab Item
@@ -405,7 +405,7 @@ export function RehabTracker() {
       />
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 24 }}>
-        <StatCard icon={Target}      label="Total Budget"  value={fmtK(totalBudget)} sub="Active flips"   color="#3b82f6" />
+        <StatCard icon={Target}      label="Total Budget"  value={fmtK(totalBudget)} sub="Active deals"   color="#3b82f6" />
         <StatCard icon={Receipt}     label="Total Spent"   value={fmt(totalSpent)}   sub="To date"        color="#f59e0b" />
         <StatCard icon={DollarSign}  label="Budget Left"   value={fmt(totalLeft)}    sub={totalLeft < 0 ? "OVER BUDGET" : "Remaining"} color={totalLeft < 0 ? "#ef4444" : "#10b981"} />
         <StatCard icon={CheckCircle} label="Tasks Done"    value={`${complete}/${allItems.length}`} sub={`${inProgress} in progress`} color="#8b5cf6" />
@@ -415,7 +415,7 @@ export function RehabTracker() {
       <div style={{ display: "flex", gap: 12, marginBottom: 20 }}>
         <select value={filterFlip} onChange={e => setFilterFlip(e.target.value)}
           style={{ ...iS, width: "auto", padding: "8px 12px", fontSize: 13 }}>
-          <option value="all">All Flips</option>
+          <option value="all">All Deals</option>
           {flips.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
         </select>
         <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
@@ -613,7 +613,7 @@ export function RehabTracker() {
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               <div>
-                <p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Flip *</p>
+                <p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Deal *</p>
                 <select style={iS} value={itemForm.flipId} onChange={sif("flipId")}>
                   <option value="">Select flip...</option>
                   {flips.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
@@ -810,7 +810,7 @@ export function FlipExpenses({ highlightExpId, onBack, onClearHighlight }) {
         </button>
       )}
       <PageHeader
-        title="Flip Expenses"
+        title="Expenses"
         sub="All costs across every fix & flip project"
         action={
           <button onClick={openAdd} style={{ background: "#f59e0b", color: "#fff", border: "none", borderRadius: 10, padding: "10px 18px", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
@@ -833,7 +833,7 @@ export function FlipExpenses({ highlightExpId, onBack, onClearHighlight }) {
             style={{ width: "100%", paddingLeft: 36, paddingRight: 12, paddingTop: 9, paddingBottom: 9, border: "1px solid #e2e8f0", borderRadius: 10, fontSize: 13, color: "#0f172a", background: "#fff", outline: "none", boxSizing: "border-box" }} />
         </div>
         <select value={filterFlip} onChange={e => setFilterFlip(e.target.value)} style={{ ...iS, width: "auto", minWidth: 160, fontSize: 13, padding: "9px 12px" }}>
-          <option value="all">All Flips</option>
+          <option value="all">All Deals</option>
           {_FLIPS.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
         </select>
         <select value={filterCat} onChange={e => setFilterCat(e.target.value)} style={{ ...iS, width: "auto", minWidth: 160, fontSize: 13, padding: "9px 12px" }}>
@@ -877,7 +877,7 @@ export function FlipExpenses({ highlightExpId, onBack, onClearHighlight }) {
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
             <tr style={{ background: "#f8fafc" }}>
-              {["Date", "Flip", "Paid To", "Category", "Description", "Amount", ""].map(h => (
+              {["Date", "Deal", "Paid To", "Category", "Description", "Amount", ""].map(h => (
                 <th key={h} style={{ textAlign: "left", color: "#94a3b8", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", padding: "12px 16px" }}>{h}</th>
               ))}
             </tr>
@@ -937,7 +937,7 @@ export function FlipExpenses({ highlightExpId, onBack, onClearHighlight }) {
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               <div>
-                <p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Flip *</p>
+                <p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Deal *</p>
                 <select value={form.flipId} onChange={sf("flipId")} style={iS}>
                   <option value="">Select flip...</option>
                   {_FLIPS.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
@@ -1185,7 +1185,7 @@ export function FlipContractors() {
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 24 }}>
         <StatCard icon={Users}      label="Total Contractors" value={contractors.length}   sub={`${contractors.filter(c=>c.status==="active").length} active`}  color="#f59e0b" />
-        <StatCard icon={DollarSign} label="Total Committed"   value={fmt(totalCommitted)}  sub="Across all flips"  color="#3b82f6" />
+        <StatCard icon={DollarSign} label="Total Committed"   value={fmt(totalCommitted)}  sub="Across all deals"  color="#3b82f6" />
         <StatCard icon={CheckCircle}label="Total Paid"        value={fmt(totalPaid)}        sub="Disbursed to date" color="#10b981" />
         <StatCard icon={AlertCircle}label="Outstanding"       value={fmt(outstanding)}      sub="Remaining balance" color="#f59e0b" />
       </div>
@@ -1193,7 +1193,7 @@ export function FlipContractors() {
       {/* Filters */}
       <div style={{ display: "flex", gap: 10, marginBottom: 18 }}>
         <select value={filterFlip} onChange={e => setFilterFlip(e.target.value)} style={{ ...iS, width: "auto", padding: "8px 12px", fontSize: 13 }}>
-          <option value="all">All Flips</option>
+          <option value="all">All Deals</option>
           {_FLIPS.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
         </select>
         <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} style={{ ...iS, width: "auto", padding: "8px 12px", fontSize: 13 }}>
@@ -1317,7 +1317,7 @@ export function FlipContractors() {
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               <div>
-                <p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Flip *</p>
+                <p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Deal *</p>
                 <select style={iS} value={form.flipId} onChange={e => { sf("flipId")(e); setSelectedItems(new Set()); }} disabled={!!editId}>
                   <option value="">Select flip...</option>
                   {_FLIPS.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
@@ -1575,7 +1575,7 @@ export function FlipAnalytics() {
       {/* Header — matches rental Analytics pattern */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24 }}>
         <div>
-          <h1 style={{ color: "#0f172a", fontSize: 26, fontWeight: 700, marginBottom: 4 }}>Flip Analytics</h1>
+          <h1 style={{ color: "#0f172a", fontSize: 26, fontWeight: 700, marginBottom: 4 }}>Analytics</h1>
           <p style={{ color: "#64748b", fontSize: 15 }}>
             {singleDeal ? `Performance details — ${singleDeal.name}` : "Performance metrics across all deals"}
           </p>
@@ -1835,7 +1835,7 @@ export function FlipAnalytics() {
         {/* Expense Category Breakdown */}
         <div style={sectionS}>
           <h3 style={{ color: "#0f172a", fontSize: 16, fontWeight: 700, marginBottom: 4 }}>Expense Breakdown</h3>
-          <p style={{ color: "#94a3b8", fontSize: 13, marginBottom: 20 }}>By category across all flips</p>
+          <p style={{ color: "#94a3b8", fontSize: 13, marginBottom: 20 }}>By category across all deals</p>
           <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
             <ResponsiveContainer width={160} height={160}>
               <PieChart>
@@ -2348,7 +2348,7 @@ export function FlipNotes() {
     <div>
       <PageHeader
         title="Deal Notes"
-        sub="Activity log and notes across all flips"
+        sub="Activity log and notes across all deals"
         action={
           <button onClick={() => { setEditId(null); setNoteForm({ flipId: _FLIPS[0] ? String(_FLIPS[0].id) : "", text: "" }); setShowAdd(true); }} style={{ background: "#f59e0b", color: "#fff", border: "none", borderRadius: 10, padding: "10px 18px", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
             <Plus size={16} /> Add Note

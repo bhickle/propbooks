@@ -3815,7 +3815,7 @@ function FlipPipeline({ onSelect }) {
           <p style={{ color: "#64748b", fontSize: 15 }}>Track every flip from contract to close</p>
         </div>
         <button onClick={() => setShowAddDeal(true)} style={{ background: "#f59e0b", color: "#fff", border: "none", borderRadius: 10, padding: "10px 18px", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
-          <Plus size={16} /> Add Flip Deal
+          <Plus size={16} /> Add Deal
         </button>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 24 }}>
@@ -3864,7 +3864,7 @@ function FlipPipeline({ onSelect }) {
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
           <div style={{ background: "#fff", borderRadius: 20, width: 520, maxHeight: "90vh", overflow: "auto", padding: 28 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-              <h2 style={{ color: "#0f172a", fontSize: 20, fontWeight: 700 }}>Add Flip Deal</h2>
+              <h2 style={{ color: "#0f172a", fontSize: 20, fontWeight: 700 }}>Add Deal</h2>
               <button onClick={() => { setShowAddDeal(false); setDealForm(emptyDeal); }} style={{ background: "#f1f5f9", border: "none", borderRadius: 8, width: 32, height: 32, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><X size={16} color="#64748b" /></button>
             </div>
 
