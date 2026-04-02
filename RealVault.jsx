@@ -1082,7 +1082,7 @@ function Properties({ onSelect, editPropertyId, onClearEditId }) {
   );
 }
 
-function PropertyDetail({ property, onBack, onEditProperty, onGoToTransactions, onNavigateToTransaction, onNavigateToRentRoll }) {
+function PropertyDetail({ property, onBack, onEditProperty, onGoToTransactions, onNavigateToTransaction, onNavigateToTenant }) {
   const calcBal = calcLoanBalance(property.loanAmount, property.loanRate, property.loanTermYears, property.loanStartDate);
   const effectiveMortgage = calcBal !== null ? calcBal : (property.mortgage || 0);
   const equity = property.currentValue - effectiveMortgage;
@@ -1299,15 +1299,11 @@ function PropertyDetail({ property, onBack, onEditProperty, onGoToTransactions, 
           )}
 
           {/* Header with counts */}
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+          <div style={{ marginBottom: 14 }}>
             <p style={{ color: "#64748b", fontSize: 13 }}>
               {txHasFilters ? `${filteredTx.length} of ${propTransactions.length} transactions` : `${propTransactions.length} transactions`}
               {txHasFilters && <span style={{ color: filteredTxTotal >= 0 ? "#15803d" : "#b91c1c", fontWeight: 600, marginLeft: 8 }}>Net: {filteredTxTotal >= 0 ? "+" : ""}{fmt(Math.abs(filteredTxTotal))}</span>}
             </p>
-            <button onClick={() => onNavigateToTransaction && onNavigateToTransaction(null)}
-              style={{ background: "none", border: "none", color: "#3b82f6", fontSize: 13, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
-              View all transactions across properties <ChevronRight size={14} />
-            </button>
           </div>
 
           <div style={{ background: "#fff", borderRadius: 16, padding: 24, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" }}>
@@ -1365,12 +1361,8 @@ function PropertyDetail({ property, onBack, onEditProperty, onGoToTransactions, 
             ))}
           </div>
 
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+          <div style={{ marginBottom: 14 }}>
             <p style={{ color: "#64748b", fontSize: 13 }}>{propTenants.length} unit{propTenants.length !== 1 ? "s" : ""} on record</p>
-            <button onClick={() => onNavigateToRentRoll && onNavigateToRentRoll()}
-              style={{ background: "none", border: "none", color: "#3b82f6", fontSize: 13, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
-              View full rent roll <ChevronRight size={14} />
-            </button>
           </div>
 
           {propTenants.length === 0 ? (
@@ -1392,7 +1384,10 @@ function PropertyDetail({ property, onBack, onEditProperty, onGoToTransactions, 
                 const st = statusMap[t.status] || statusMap["active-lease"];
                 const daysLeft = t.leaseEnd ? Math.round((new Date(t.leaseEnd) - new Date()) / 86400000) : null;
                 return (
-                  <div key={t.id} style={{ background: "#fff", borderRadius: 14, padding: "18px 22px", boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: `1px solid ${isVacant ? "#fee2e2" : "#f1f5f9"}` }}>
+                  <div key={t.id} onClick={() => onNavigateToTenant && onNavigateToTenant(t.id)}
+                    style={{ background: "#fff", borderRadius: 14, padding: "18px 22px", boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: `1px solid ${isVacant ? "#fee2e2" : "#f1f5f9"}`, cursor: "pointer", transition: "all 0.15s" }}
+                    onMouseEnter={e => { e.currentTarget.style.background = "#f0f9ff"; e.currentTarget.style.borderColor = "#bfdbfe"; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = "#fff"; e.currentTarget.style.borderColor = isVacant ? "#fee2e2" : "#f1f5f9"; }}>
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                         <div style={{ width: 38, height: 38, borderRadius: 10, background: isVacant ? "#fef2f2" : "#f0f9ff", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -1406,6 +1401,7 @@ function PropertyDetail({ property, onBack, onEditProperty, onGoToTransactions, 
                       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                         <span style={{ background: st.bg, color: st.text, borderRadius: 20, padding: "4px 12px", fontSize: 12, fontWeight: 600 }}>{st.label}</span>
                         <span style={{ fontSize: 16, fontWeight: 700, color: "#0f172a" }}>{fmt(t.rent)}<span style={{ fontSize: 11, color: "#94a3b8", fontWeight: 500 }}>/mo</span></span>
+                        <ChevronRight size={14} color="#94a3b8" />
                       </div>
                     </div>
                     {!isVacant && (
@@ -5297,13 +5293,26 @@ function FlipDetail({ flip, onBack, allFlips, setAllFlips, onNavigateToExpense }
 // ---------------------------------------------
 // RENT ROLL
 // ---------------------------------------------
-function RentRoll({ onBack }) {
+function RentRoll({ onBack, highlightTenantId, onClearHighlight }) {
   const [tenantData, setTenantData] = useState(TENANTS);
   const [showModal, setShowModal] = useState(false);
   const [editId, setEditId] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [propFilter, setPropFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [flashId, setFlashId] = useState(highlightTenantId);
+  const highlightRef = useRef(null);
+
+  useEffect(() => {
+    if (highlightTenantId) {
+      setFlashId(highlightTenantId);
+      setTimeout(() => {
+        if (highlightRef.current) highlightRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+      }, 100);
+      const timer = setTimeout(() => { setFlashId(null); onClearHighlight && onClearHighlight(); }, 2500);
+      return () => clearTimeout(timer);
+    }
+  }, [highlightTenantId]);
   const emptyT = { propertyId: PROPERTIES[0]?.id || 1, unit: "", name: "", rent: "", securityDeposit: "", lateFeePct: "5", renewalTerms: "Annual", notes: "", leaseStart: "", leaseEnd: "", status: "active-lease", phone: "", email: "", leaseDoc: null };
   const [form, setForm] = useState(emptyT);
   const sf = k => e => setForm(f => ({ ...f, [k]: e.target.value }));
@@ -5476,8 +5485,9 @@ function RentRoll({ onBack }) {
               const prop = PROPERTIES.find(p => p.id === t.propertyId);
               const s = leaseStatusStyle[t.status];
               const expiring = t.daysUntilExpiry !== null && t.daysUntilExpiry <= 90;
+              const isFlash = flashId === t.id;
               return (
-                <tr key={t.id} style={{ borderTop: "1px solid #f1f5f9", background: i % 2 === 0 ? "#fff" : "#fafafa" }}>
+                <tr key={t.id} ref={isFlash ? highlightRef : null} style={{ borderTop: "1px solid #f1f5f9", background: isFlash ? "#fef3c7" : i % 2 === 0 ? "#fff" : "#fafafa", transition: "background 2.5s ease" }}>
                   <td style={{ padding: "14px 16px" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                       <div style={{ width: 8, height: 8, borderRadius: "50%", background: prop?.color || "#94a3b8", flexShrink: 0 }} />
@@ -6071,6 +6081,7 @@ function AppShell() {
   const [showOnboarding, setShowOnboarding] = useState(user?.plan === "trial");
   const [highlightTxId, setHighlightTxId] = useState(null);
   const [highlightExpId, setHighlightExpId] = useState(null);
+  const [highlightTenantId, setHighlightTenantId] = useState(null);
   const [navSource, setNavSource] = useState(null);
   const [editPropertyId, setEditPropertyId] = useState(null); // triggers edit modal in Properties
 
@@ -6227,7 +6238,7 @@ function AppShell() {
         <div style={{ flex: 1, padding: 32, maxWidth: 1400, width: "100%" }}>
           {activeView === "dashboard" && <Dashboard onNavigate={setActiveView} onNavigateToTx={navigateToTransaction} />}
           {activeView === "properties" && <Properties onSelect={handlePropertySelect} editPropertyId={editPropertyId} onClearEditId={() => setEditPropertyId(null)} />}
-          {activeView === "propertyDetail" && selectedProperty && <PropertyDetail property={selectedProperty} onBack={() => setActiveView("properties")} onEditProperty={(p) => { setEditPropertyId(p.id); setActiveView("properties"); }} onGoToTransactions={() => setActiveView("transactions")} onNavigateToTransaction={(txId) => { if (txId) { setHighlightTxId(txId); setNavSource("propertyDetail"); } setActiveView("transactions"); }} onNavigateToRentRoll={() => { setNavSource("propertyDetail"); setActiveView("rentroll"); }} />}
+          {activeView === "propertyDetail" && selectedProperty && <PropertyDetail property={selectedProperty} onBack={() => setActiveView("properties")} onEditProperty={(p) => { setEditPropertyId(p.id); setActiveView("properties"); }} onGoToTransactions={() => setActiveView("transactions")} onNavigateToTransaction={(txId) => { if (txId) { setHighlightTxId(txId); setNavSource("propertyDetail"); } setActiveView("transactions"); }} onNavigateToTenant={(tenantId) => { setHighlightTenantId(tenantId); setNavSource("propertyDetail"); setActiveView("rentroll"); }} />}
           {activeView === "transactions" && <Transactions highlightTxId={highlightTxId} backLabel={navSource === "propertyDetail" ? "Back to Property" : "Back to Dashboard"} onBack={navSource === "dashboard" ? () => { setActiveView("dashboard"); setHighlightTxId(null); setNavSource(null); } : navSource === "propertyDetail" ? () => { setActiveView("propertyDetail"); setHighlightTxId(null); setNavSource(null); } : null} onClearHighlight={() => setHighlightTxId(null)} />}
           {activeView === "analytics" && <Analytics />}
           {activeView === "reports" && <Reports />}
@@ -6240,7 +6251,7 @@ function AppShell() {
           {activeView === "flipmilestones"  && <FlipMilestones />}
           {activeView === "flipnotes"       && <FlipNotes />}
           {activeView === "flipanalytics"   && <FlipAnalytics />}
-          {activeView === "rentroll" && <RentRoll onBack={navSource === "propertyDetail" ? () => { setActiveView("propertyDetail"); setNavSource(null); } : null} />}
+          {activeView === "rentroll" && <RentRoll onBack={navSource === "propertyDetail" ? () => { setActiveView("propertyDetail"); setHighlightTenantId(null); setNavSource(null); } : null} highlightTenantId={highlightTenantId} onClearHighlight={() => setHighlightTenantId(null)} />}
           {activeView === "mileage" && <MileageTracker />}
           {activeView === "dealanalyzer" && <DealAnalyzer />}
         </div>
