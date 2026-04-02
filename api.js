@@ -182,12 +182,74 @@ export const FLIP_EXPENSES = [
 ];
 
 export const CONTRACTORS = [
-  { id:1, flipId:1, name:"ABC Plumbing",   trade:"Plumbing",   paymentType:"Fixed Bid", totalBid:8500, totalPaid:3200, status:"active",   phone:"615-555-0182" },
-  { id:2, flipId:1, name:"Elite Electric", trade:"Electrical", paymentType:"Fixed Bid", totalBid:4100, totalPaid:4100, status:"complete", phone:"615-555-0247" },
-  { id:3, flipId:1, name:"Nash Drywall",   trade:"Drywall",    paymentType:"Day Rate",  dayRate:450,   totalPaid:0,    status:"pending",  phone:"615-555-0318" },
-  { id:4, flipId:2, name:"Pro Flooring Co.", trade:"Flooring", paymentType:"Fixed Bid", totalBid:3900, totalPaid:3900, status:"complete", phone:"901-555-0144" },
-  { id:5, flipId:2, name:"Jim's Windows",  trade:"Windows",    paymentType:"Fixed Bid", totalBid:5400, totalPaid:5400, status:"complete", phone:"901-555-0229" },
-  { id:6, flipId:4, name:"Summit HVAC",    trade:"HVAC",       paymentType:"Fixed Bid", totalBid:7200, totalPaid:7200, status:"complete", phone:"919-555-0361" },
+  { id:1, name:"ABC Plumbing",    trade:"Plumbing",   phone:"615-555-0182", email:"info@abcplumbing.com",  license:"PL-2024-1847", insuranceExpiry:"2027-03-15", rating:4, notes:"Reliable, occasionally runs a day behind schedule.",
+    dealIds:[1,3],
+    bids:[
+      { id:101, flipId:1, rehabItem:"Rough-In (Plumbing)", amount:8500, status:"accepted", date:"2026-01-10" },
+      { id:102, flipId:3, rehabItem:"Plumbing",             amount:6200, status:"pending",  date:"2026-03-15" },
+    ],
+    payments:[
+      { id:201, flipId:1, amount:3200, date:"2026-02-15", note:"Progress payment — rough-in complete" },
+    ],
+    documents:[
+      { id:301, name:"W-9 (2026)",         type:"w9",        flipId:null, date:"2026-01-02", size:"42 KB" },
+      { id:302, name:"Insurance Certificate", type:"insurance", flipId:null, date:"2026-01-05", size:"128 KB" },
+      { id:303, name:"Plumbing Contract — Oakdale", type:"contract", flipId:1, date:"2026-01-10", size:"84 KB" },
+    ],
+  },
+  { id:2, name:"Elite Electric",  trade:"Electrical", phone:"615-555-0247", email:"mike@eliteelectric.com", license:"EL-2023-9921", insuranceExpiry:"2026-11-30", rating:5, notes:"Top-notch work, always on schedule.",
+    dealIds:[1],
+    bids:[
+      { id:103, flipId:1, rehabItem:"Electrical Rough-In", amount:4100, status:"accepted", date:"2026-01-08" },
+    ],
+    payments:[
+      { id:202, flipId:1, amount:4100, date:"2026-02-28", note:"Final payment — work complete" },
+    ],
+    documents:[
+      { id:304, name:"W-9 (2026)", type:"w9", flipId:null, date:"2026-01-03", size:"38 KB" },
+    ],
+  },
+  { id:3, name:"Nash Drywall",    trade:"Drywall",    phone:"615-555-0318", email:"nashdrywalltn@gmail.com", license:null, insuranceExpiry:"2027-01-10", rating:3, notes:"Good quality but communication could improve.",
+    dealIds:[1],
+    bids:[
+      { id:104, flipId:1, rehabItem:"Drywall", amount:3800, status:"pending", date:"2026-02-20" },
+    ],
+    payments:[],
+    documents:[],
+  },
+  { id:4, name:"Pro Flooring Co.", trade:"Flooring",  phone:"901-555-0144", email:"quotes@proflooring.com", license:"FL-2025-0033", insuranceExpiry:"2027-06-01", rating:4, notes:"",
+    dealIds:[1,2],
+    bids:[
+      { id:105, flipId:2, rehabItem:"Flooring", amount:3900, status:"accepted", date:"2025-12-01" },
+      { id:106, flipId:1, rehabItem:"Flooring",  amount:4200, status:"pending",  date:"2026-03-01" },
+    ],
+    payments:[
+      { id:203, flipId:2, amount:3900, date:"2026-01-20", note:"Final — flooring complete" },
+    ],
+    documents:[],
+  },
+  { id:5, name:"Jim's Windows",   trade:"Windows",    phone:"901-555-0229", email:"jim@jimswindows.com", license:"WD-2024-4412", insuranceExpiry:"2026-09-15", rating:5, notes:"Family-owned, excellent craftsmanship.",
+    dealIds:[2],
+    bids:[
+      { id:107, flipId:2, rehabItem:"Windows & Doors", amount:5400, status:"accepted", date:"2025-11-15" },
+    ],
+    payments:[
+      { id:204, flipId:2, amount:5400, date:"2026-01-10", note:"Paid in full" },
+    ],
+    documents:[],
+  },
+  { id:6, name:"Summit HVAC",     trade:"HVAC",       phone:"919-555-0361", email:"service@summithvac.com", license:"HVAC-2023-7710", insuranceExpiry:"2026-12-31", rating:4, notes:"",
+    dealIds:[4],
+    bids:[
+      { id:108, flipId:4, rehabItem:"HVAC Replacement", amount:7200, status:"accepted", date:"2025-06-10" },
+    ],
+    payments:[
+      { id:205, flipId:4, amount:7200, date:"2025-08-20", note:"Final — system installed" },
+    ],
+    documents:[
+      { id:305, name:"HVAC Warranty Certificate", type:"warranty", flipId:4, date:"2025-08-20", size:"56 KB" },
+    ],
+  },
 ];
 
 const _flipMilestones = {
@@ -295,7 +357,8 @@ export function getFlipExpenses(flipId) {
 }
 export function addFlipExpense(exp)     { FLIP_EXPENSES.push(exp); return Promise.resolve(exp); }
 export function getContractors(flipId)  {
-  return Promise.resolve(CONTRACTORS.filter(c => c.flipId === flipId));
+  if (flipId) return Promise.resolve(CONTRACTORS.filter(c => c.dealIds.includes(flipId)));
+  return Promise.resolve([...CONTRACTORS]);
 }
 export function addContractor(c)        { CONTRACTORS.push(c); return Promise.resolve(c); }
 export function getFlipMilestones(flipId) {

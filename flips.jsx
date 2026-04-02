@@ -13,7 +13,8 @@ import {
   CheckCircle, Clock, AlertCircle, ChevronRight, X, Trash2, Pencil,
   Wrench, Users, Receipt, BarChart3, Target, Calendar, Flag,
   ArrowUp, ArrowDown, Truck, Building2, MapPin, Home, Info,
-  MessageSquare, FileText, Circle,
+  MessageSquare, FileText, Circle, Phone, Mail, Shield, Upload,
+  ChevronLeft, Eye, FileCheck, Award,
 } from "lucide-react";
 import {
   fmt, fmtK, newId, STAGE_ORDER, STAGE_COLORS, DEFAULT_MILESTONES,
@@ -444,7 +445,7 @@ export function RehabTracker() {
           const flipBudget     = items.reduce((s, i) => s + i.budgeted, 0);
           const flipSpent      = items.reduce((s, i) => s + i.spent,    0);
           const pct            = flipBudget > 0 ? Math.min((flipSpent / flipBudget) * 100, 100) : 0;
-          const flipContractors = _CON.filter(c => c.flipId === f.id);
+          const flipContractors = _CON.filter(c => (c.dealIds || []).includes(f.id));
           const assignedCount  = items.filter(i => (i.contractors || []).length > 0).length;
 
           return (
@@ -499,8 +500,9 @@ export function RehabTracker() {
                             {assigned.map(asgn => {
                               const con = _CON.find(c => c.id === asgn.id);
                               if (!con) return null;
-                              const mm1 = item.status === "complete" && con.status !== "complete";
-                              const mm2 = con.status === "complete" && item.status !== "complete";
+                              const conBid = (con.bids || []).find(b => b.flipId === f.id && b.rehabItem === item.category);
+                              const mm1 = item.status === "complete" && conBid?.status !== "accepted";
+                              const mm2 = false;
                               return (
                                 <div key={asgn.id} style={{ display: "flex", alignItems: "center", gap: 5, background: "#f1f5f9", borderRadius: 20, padding: "4px 8px 4px 6px" }}>
                                   <div style={{ width: 18, height: 18, borderRadius: "50%", background: "linear-gradient(135deg, #3b82f6, #8b5cf6)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
@@ -1079,175 +1081,90 @@ const STATUS_STYLES = {
   pending:  { bg: "#f1f5f9", text: "#64748b", label: "Pending"  },
 };
 
-export function FlipContractors() {
-  const [contractors, setContractors] = useState([..._CON]);
-  const [, rerender]          = useState(0);
-  const [filterFlip, setFilterFlip]     = useState("all");
-  const [filterStatus, setFilterStatus] = useState("all");
-  const [showModal, setShowModal]       = useState(false);
-  const [editId, setEditId]             = useState(null); // null = add mode
+export function FlipContractors({ onSelectContractor }) {
+  const [, rerender] = useState(0);
+  const [filterFlip, setFilterFlip] = useState("all");
+  const [filterTrade, setFilterTrade] = useState("all");
+  const [showModal, setShowModal] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
-  const [selectedItems, setSelectedItems] = useState(new Map()); // Map<idx, bid>
-
-  const emptyForm = { flipId: "", name: "", trade: "", paymentType: "Fixed Bid", totalBid: "", dayRate: "", phone: "", status: "pending" };
-  const [form, setForm] = useState(emptyForm);
-  const sf = k => e => setForm(f => ({ ...f, [k]: e.target.value }));
   const [nameFocus, setNameFocus] = useState(false);
 
-  // Unique contractor names across all deals for typeahead
+  const emptyForm = { name: "", trade: "", phone: "", email: "" };
+  const [form, setForm] = useState(emptyForm);
+  const sf = k => e => setForm(f => ({ ...f, [k]: e.target.value }));
+
   const allContractorNames = useMemo(() => {
     const names = new Set(_CON.map(c => c.name));
     return [...names].sort();
-  }, [contractors]);
+  }, []);
 
-  // Current flip's rehab items for the modal
-  const modalFlip     = _FLIPS.find(f => f.id === parseInt(form.flipId));
-  const modalItems    = modalFlip?.rehabItems || [];
+  const allTrades = useMemo(() => [...new Set(_CON.map(c => c.trade).filter(Boolean))].sort(), []);
 
-  const toggleItem = idx => {
-    setSelectedItems(prev => {
-      const next = new Map(prev);
-      next.has(idx) ? next.delete(idx) : next.set(idx, 0);
-      return next;
-    });
-  };
-
-  const setItemBid = (idx, bid) => {
-    setSelectedItems(prev => {
-      const next = new Map(prev);
-      next.set(idx, bid);
-      return next;
-    });
-  };
-
-  const openAdd = () => {
-    setEditId(null);
-    setForm(emptyForm);
-    setSelectedItems(new Map());
-    setShowModal(true);
-  };
-
-  const openEdit = c => {
-    setEditId(c.id);
-    setForm({ flipId: String(c.flipId), name: c.name, trade: c.trade || "", paymentType: c.paymentType, totalBid: String(c.totalBid || ""), dayRate: String(c.dayRate || ""), phone: c.phone || "", status: c.status });
-    // Pre-select items already assigned to this contractor with their bids
-    const flip = _FLIPS.find(f => f.id === c.flipId);
-    const preChecked = new Map();
-    (flip?.rehabItems || []).forEach((item, idx) => {
-      const entry = (item.contractors || []).find(a => a.id === c.id);
-      if (entry) preChecked.set(idx, entry.bid || 0);
-    });
-    setSelectedItems(preChecked);
-    setShowModal(true);
-  };
-
-  const filtered = contractors.filter(c => {
-    if (filterFlip   !== "all" && c.flipId !== parseInt(filterFlip)) return false;
-    if (filterStatus !== "all" && c.status !== filterStatus) return false;
+  const filtered = _CON.filter(c => {
+    if (filterFlip !== "all" && !(c.dealIds || []).includes(parseInt(filterFlip))) return false;
+    if (filterTrade !== "all" && c.trade !== filterTrade) return false;
     return true;
   });
 
-  const totalCommitted = contractors.reduce((s, c) => s + (c.totalBid || 0), 0);
-  const totalPaid      = contractors.reduce((s, c) => s + (c.totalPaid || 0), 0);
-  const outstanding    = totalCommitted - totalPaid;
+  const totalBids = _CON.reduce((s, c) => s + (c.bids || []).reduce((bs, b) => bs + (b.status === "accepted" ? b.amount : 0), 0), 0);
+  const totalPaid = _CON.reduce((s, c) => s + (c.payments || []).reduce((ps, p) => ps + p.amount, 0), 0);
+  const outstanding = totalBids - totalPaid;
 
-  const handleSave = () => {
-    if (!form.name || !form.flipId) return;
-    const fId = parseInt(form.flipId);
-    const flip = _FLIPS.find(f => f.id === fId);
-
-    if (editId !== null) {
-      // --- EDIT MODE ---
-      setContractors(prev => prev.map(c => c.id === editId
-        ? { ...c, flipId: fId, name: form.name, trade: form.trade, paymentType: form.paymentType,
-            totalBid: parseFloat(form.totalBid) || 0, dayRate: parseFloat(form.dayRate) || 0,
-            phone: form.phone, status: form.status }
-        : c
-      ));
-      // Also update _CON in place for cross-module sync
-      const ci = _CON.findIndex(c => c.id === editId);
-      if (ci !== -1) Object.assign(_CON[ci], { flipId: fId, name: form.name, trade: form.trade, paymentType: form.paymentType, totalBid: parseFloat(form.totalBid) || 0, dayRate: parseFloat(form.dayRate) || 0, phone: form.phone, status: form.status });
-      // Sync rehab item assignments for this contractor
-      if (flip) {
-        flip.rehabItems.forEach((item, idx) => {
-          const cons = item.contractors || [];
-          const existing = cons.find(c => c.id === editId);
-          const isChecked  = selectedItems.has(idx);
-          if (isChecked && !existing) {
-            item.contractors = [...cons, { id: editId, bid: selectedItems.get(idx) || 0 }];
-          } else if (isChecked && existing) {
-            existing.bid = selectedItems.get(idx) || 0;
-          } else if (!isChecked && existing) {
-            item.contractors = cons.filter(c => c.id !== editId);
-          }
-        });
-      }
-    } else {
-      // --- ADD MODE ---
-      const newCon = { id: newId(), flipId: fId, name: form.name, trade: form.trade, paymentType: form.paymentType, totalBid: parseFloat(form.totalBid) || 0, dayRate: parseFloat(form.dayRate) || 0, totalPaid: 0, status: form.status, phone: form.phone };
-      setContractors(prev => [...prev, newCon]);
-      _CON.push(newCon);
-      // Assign selected rehab items with per-item bids
-      if (flip) {
-        selectedItems.forEach((bid, idx) => {
-          const item = flip.rehabItems[idx];
-          if (item && !(item.contractors || []).some(c => c.id === newCon.id)) {
-            item.contractors = [...(item.contractors || []), { id: newCon.id, bid: bid || 0 }];
-          }
-        });
-      }
-    }
-
+  const handleAdd = () => {
+    if (!form.name) return;
+    const newCon = { id: newId(), name: form.name, trade: form.trade, phone: form.phone, email: form.email || "", license: null, insuranceExpiry: null, rating: 0, notes: "", dealIds: [], bids: [], payments: [], documents: [] };
+    _CON.push(newCon);
     rerender(n => n + 1);
     setForm(emptyForm);
-    setSelectedItems(new Map());
     setShowModal(false);
+  };
+
+  const handleDelete = (con) => {
+    const ci = _CON.findIndex(x => x.id === con.id);
+    if (ci !== -1) _CON.splice(ci, 1);
+    _FLIPS.forEach(f => (f.rehabItems || []).forEach(item => {
+      if (item.contractors) item.contractors = item.contractors.filter(a => a.id !== con.id);
+    }));
+    rerender(n => n + 1);
+    setDeleteConfirm(null);
   };
 
   return (
     <div>
-      <PageHeader
-        title="Contractors"
-        sub="All contractors and subcontractors across your flips"
-        action={
-          <button onClick={openAdd} style={{ background: "#f59e0b", color: "#fff", border: "none", borderRadius: 10, padding: "10px 18px", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
-            <Plus size={16} /> Add Contractor
-          </button>
-        }
-      />
+      <PageHeader title="Contractors" sub="Manage your contractor relationships across all deals"
+        action={<button onClick={() => { setForm(emptyForm); setShowModal(true); }} style={{ background: "#f59e0b", color: "#fff", border: "none", borderRadius: 10, padding: "10px 18px", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}><Plus size={16} /> Add Contractor</button>} />
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 24 }}>
-        <StatCard icon={Users}      label="Total Contractors" value={contractors.length}   sub={`${contractors.filter(c=>c.status==="active").length} active`}  color="#f59e0b" />
-        <StatCard icon={DollarSign} label="Total Committed"   value={fmt(totalCommitted)}  sub="Across all deals"  color="#3b82f6" />
-        <StatCard icon={CheckCircle}label="Total Paid"        value={fmt(totalPaid)}        sub="Disbursed to date" color="#10b981" />
-        <StatCard icon={AlertCircle}label="Outstanding"       value={fmt(outstanding)}      sub="Remaining balance" color="#f59e0b" />
+        <StatCard icon={Users} label="Total Contractors" value={_CON.length} sub={`${_CON.filter(c => (c.dealIds || []).length > 0).length} with active deals`} color="#f59e0b" />
+        <StatCard icon={DollarSign} label="Accepted Bids" value={fmt(totalBids)} sub="Across all deals" color="#3b82f6" />
+        <StatCard icon={CheckCircle} label="Total Paid" value={fmt(totalPaid)} sub="Disbursed to date" color="#10b981" />
+        <StatCard icon={AlertCircle} label="Outstanding" value={fmt(outstanding)} sub="Remaining balance" color="#f59e0b" />
       </div>
 
-      {/* Filters */}
       <div style={{ display: "flex", gap: 10, marginBottom: 18 }}>
         <select value={filterFlip} onChange={e => setFilterFlip(e.target.value)} style={{ ...iS, width: "auto", padding: "8px 12px", fontSize: 13 }}>
           <option value="all">All Deals</option>
           {_FLIPS.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
         </select>
-        <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} style={{ ...iS, width: "auto", padding: "8px 12px", fontSize: 13 }}>
-          <option value="all">All Statuses</option>
-          <option value="active">Active</option>
-          <option value="complete">Complete</option>
-          <option value="pending">Pending</option>
+        <select value={filterTrade} onChange={e => setFilterTrade(e.target.value)} style={{ ...iS, width: "auto", padding: "8px 12px", fontSize: 13 }}>
+          <option value="all">All Trades</option>
+          {allTrades.map(t => <option key={t} value={t}>{t}</option>)}
         </select>
-        <div style={{ marginLeft: "auto", fontSize: 13, color: "#64748b", display: "flex", alignItems: "center" }}>
-          {filtered.length} contractors
-        </div>
+        <div style={{ marginLeft: "auto", fontSize: 13, color: "#64748b", display: "flex", alignItems: "center" }}>{filtered.length} contractors</div>
       </div>
 
-      {/* Grid */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 14 }}>
         {filtered.map(c => {
-          const flip = _FLIPS.find(f => f.id === c.flipId);
-          const ss = STATUS_STYLES[c.status] || STATUS_STYLES.pending;
-          const pct = c.totalBid > 0 ? Math.min((c.totalPaid / c.totalBid) * 100, 100) : 0;
+          const deals = (c.dealIds || []).map(id => _FLIPS.find(f => f.id === id)).filter(Boolean);
+          const totalConBids = (c.bids || []).filter(b => b.status === "accepted").reduce((s, b) => s + b.amount, 0);
+          const totalConPaid = (c.payments || []).reduce((s, p) => s + p.amount, 0);
+          const pct = totalConBids > 0 ? Math.min((totalConPaid / totalConBids) * 100, 100) : 0;
+          const stars = c.rating || 0;
           return (
-            <div key={c.id} style={{ background: "#fff", borderRadius: 14, padding: 20, border: "1px solid #f1f5f9" }}>
+            <div key={c.id} onClick={() => onSelectContractor && onSelectContractor(c)}
+              style={{ background: "#fff", borderRadius: 14, padding: 20, border: "1px solid #f1f5f9", cursor: "pointer", transition: "all 0.15s" }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = "#f59e0b"; e.currentTarget.style.boxShadow = "0 4px 12px rgba(245,158,11,0.10)"; }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = "#f1f5f9"; e.currentTarget.style.boxShadow = "none"; }}>
               <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 12 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                   <div style={{ width: 40, height: 40, borderRadius: 10, background: "#f1f5f9", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -1255,225 +1172,92 @@ export function FlipContractors() {
                   </div>
                   <div>
                     <p style={{ color: "#0f172a", fontWeight: 700, fontSize: 14 }}>{c.name}</p>
-                    <p style={{ color: "#94a3b8", fontSize: 12 }}>{c.trade} · {c.phone || "—"}</p>
+                    <p style={{ color: "#94a3b8", fontSize: 12 }}>{c.trade}{c.phone ? ` · ${c.phone}` : ""}</p>
                   </div>
                 </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <span style={{ background: ss.bg, color: ss.text, borderRadius: 20, padding: "3px 10px", fontSize: 11, fontWeight: 600 }}>{ss.label}</span>
-                  <button onClick={() => openEdit(c)} style={{ background: "#f1f5f9", border: "none", borderRadius: 8, padding: "5px 8px", cursor: "pointer", color: "#64748b", display: "flex", alignItems: "center", gap: 4, fontSize: 12, fontWeight: 600 }}>
-                    <Pencil size={12} /> Edit
-                  </button>
-                  <button onClick={() => setDeleteConfirm(c)} style={{ background: "#fee2e2", border: "none", borderRadius: 8, padding: "5px 8px", cursor: "pointer", color: "#ef4444", display: "flex", alignItems: "center" }} title="Delete">
-                    <Trash2 size={12} />
-                  </button>
+                <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                  {stars > 0 && <div style={{ display: "flex", gap: 1 }}>{Array.from({ length: 5 }, (_, i) => <Star key={i} size={12} fill={i < stars ? "#f59e0b" : "none"} color={i < stars ? "#f59e0b" : "#e2e8f0"} />)}</div>}
+                  <ChevronRight size={16} color="#94a3b8" />
                 </div>
               </div>
-              {flip && (
-                <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 10 }}>
-                  <span style={{ width: 8, height: 8, borderRadius: "50%", background: flip.color }} />
-                  <span style={{ fontSize: 12, color: "#64748b" }}>{flip.name}</span>
+              {deals.length > 0 && (
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 10 }}>
+                  {deals.map(fl => (
+                    <span key={fl.id} style={{ display: "flex", alignItems: "center", gap: 4, background: "#f8fafc", border: "1px solid #f1f5f9", borderRadius: 20, padding: "2px 8px", fontSize: 11, color: "#64748b" }}>
+                      <span style={{ width: 6, height: 6, borderRadius: "50%", background: fl.color }} />{fl.name}
+                    </span>
+                  ))}
                 </div>
               )}
+              {deals.length === 0 && <p style={{ fontSize: 12, color: "#cbd5e1", fontStyle: "italic", marginBottom: 10 }}>No deals assigned yet</p>}
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-                <span style={{ fontSize: 12, color: "#94a3b8" }}>
-                  {c.paymentType === "Day Rate" ? `Day Rate: $${c.dayRate}/day` : `Bid: ${fmt(c.totalBid)}`}
-                </span>
-                <span style={{ fontSize: 12, color: "#0f172a", fontWeight: 600 }}>{fmt(c.totalPaid)} paid</span>
+                <span style={{ fontSize: 12, color: "#94a3b8" }}>Accepted: {fmt(totalConBids)}</span>
+                <span style={{ fontSize: 12, color: "#0f172a", fontWeight: 600 }}>{fmt(totalConPaid)} paid</span>
               </div>
-              {c.paymentType !== "Day Rate" && (
-                <div style={{ background: "#f1f5f9", borderRadius: 4, height: 5, overflow: "hidden", marginBottom: 14 }}>
-                  <div style={{ height: "100%", width: `${pct}%`, background: "#10b981", borderRadius: 4 }} />
-                </div>
-              )}
-
-              {/* Assigned Scope — per-item bids */}
-              {(() => {
-                const scope = [];
-                _FLIPS.forEach(fl => {
-                  (fl.rehabItems || []).forEach(item => {
-                    const entry = (item.contractors || []).find(a => a.id === c.id);
-                    if (entry) {
-                      const totalOnItem = (item.contractors || []).length;
-                      scope.push({ flipName: fl.name, flipColor: fl.color, label: item.category, itemBudget: item.budgeted, bid: entry.bid || 0, status: item.status, sharedWith: totalOnItem - 1 });
-                    }
-                  });
-                });
-                if (scope.length === 0) return null;
-                const totalBids = scope.reduce((s, item) => s + item.bid, 0);
-                return (
-                  <div style={{ borderTop: "1px solid #f1f5f9", paddingTop: 12, marginTop: c.paymentType === "Day Rate" ? 14 : 0 }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                      <span style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.05em" }}>Assigned Scope ({scope.length})</span>
-                      <span style={{ fontSize: 12, fontWeight: 700, color: "#0f172a" }}>Total Bids: {c.paymentType === "Day Rate" ? `$${c.dayRate}/day` : fmt(totalBids)}</span>
-                    </div>
-                    <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-                      {scope.map((item, i) => {
-                        const sSt = STATUS_STYLES[item.status] || STATUS_STYLES.pending;
-                        return (
-                          <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "#f8fafc", borderRadius: 7, padding: "5px 8px" }}>
-                            <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
-                              <span style={{ width: 7, height: 7, borderRadius: "50%", background: item.flipColor, flexShrink: 0 }} />
-                              <span style={{ fontSize: 12, color: "#374151", fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.label}</span>
-                            </div>
-                            <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0, marginLeft: 8 }}>
-                              {item.bid > 0 && <span style={{ fontSize: 11, color: "#0f172a", fontWeight: 600 }}>Bid: {fmt(item.bid)}</span>}
-                              {item.bid === 0 && <span style={{ fontSize: 11, color: "#cbd5e1", fontStyle: "italic" }}>No bid</span>}
-                              {item.sharedWith > 0 && (
-                                <span style={{ fontSize: 10, color: "#64748b", background: "#e2e8f0", borderRadius: 10, padding: "2px 7px", fontWeight: 500 }}>+{item.sharedWith} other{item.sharedWith > 1 ? "s" : ""}</span>
-                              )}
-                              <span style={{ background: sSt.bg, color: sSt.text, borderRadius: 20, padding: "2px 7px", fontSize: 10, fontWeight: 600 }}>{sSt.label}</span>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                );
-              })()}
+              <div style={{ background: "#f1f5f9", borderRadius: 4, height: 5, overflow: "hidden" }}>
+                <div style={{ height: "100%", width: `${pct}%`, background: "#10b981", borderRadius: 4 }} />
+              </div>
+              <div style={{ display: "flex", gap: 12, marginTop: 10, fontSize: 11, color: "#94a3b8" }}>
+                <span>{(c.bids || []).length} bid{(c.bids || []).length !== 1 ? "s" : ""}</span>
+                <span>{(c.documents || []).length} doc{(c.documents || []).length !== 1 ? "s" : ""}</span>
+                <span>{deals.length} deal{deals.length !== 1 ? "s" : ""}</span>
+              </div>
             </div>
           );
         })}
-        {filtered.length === 0 && (
-          <div style={{ gridColumn: "1/-1", padding: 40, textAlign: "center", color: "#94a3b8", fontSize: 14 }}>
-            No contractors found
-          </div>
-        )}
+        {filtered.length === 0 && <div style={{ gridColumn: "1/-1", padding: 40, textAlign: "center", color: "#94a3b8", fontSize: 14 }}>No contractors found</div>}
       </div>
 
-      {/* Add / Edit Modal */}
       {showModal && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
-          <div style={{ background: "#fff", borderRadius: 20, padding: 32, width: 520, maxHeight: "88vh", overflowY: "auto", boxShadow: "0 20px 60px rgba(0,0,0,0.18)" }}>
+          <div style={{ background: "#fff", borderRadius: 20, padding: 32, width: 460, boxShadow: "0 20px 60px rgba(0,0,0,0.18)" }}>
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 20 }}>
-              <h2 style={{ color: "#0f172a", fontSize: 19, fontWeight: 700 }}>{editId ? "Edit Contractor" : "Add Contractor"}</h2>
+              <h2 style={{ color: "#0f172a", fontSize: 19, fontWeight: 700 }}>Add Contractor</h2>
               <button onClick={() => setShowModal(false)} style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8" }}><X size={20} /></button>
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-              <div>
-                <p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Deal *</p>
-                <select style={iS} value={form.flipId} onChange={e => { sf("flipId")(e); setSelectedItems(new Set()); }} disabled={!!editId}>
-                  <option value="">Select deal...</option>
-                  {_FLIPS.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
-                </select>
-              </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-                <div style={{ position: "relative" }}>
-                  <p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Company / Name *</p>
-                  <input style={iS} placeholder="ABC Plumbing" value={form.name}
-                    onChange={e => { setForm(f => ({ ...f, name: e.target.value })); setNameFocus(true); }}
-                    onFocus={() => setNameFocus(true)} onBlur={() => setTimeout(() => setNameFocus(false), 150)} />
-                  {nameFocus && form.name && (() => {
-                    const q = form.name.toLowerCase();
-                    const matches = allContractorNames.filter(n => n.toLowerCase().includes(q) && n.toLowerCase() !== q);
-                    const exactExists = allContractorNames.some(n => n.toLowerCase() === q);
-                    const showNew = q && !exactExists;
-                    if (matches.length === 0 && !showNew) return null;
-                    return (
-                      <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, background: "#fff", border: "1px solid #e2e8f0", borderRadius: 12, boxShadow: "0 8px 24px rgba(0,0,0,0.10)", zIndex: 200, overflow: "hidden", maxHeight: 200, overflowY: "auto" }}>
-                        {matches.slice(0, 6).map(n => {
-                          const existing = _CON.find(c => c.name === n);
-                          return (
-                            <button key={n} onMouseDown={() => {
-                              setForm(f => ({ ...f, name: n, trade: existing?.trade || f.trade }));
-                              setNameFocus(false);
-                            }}
-                              style={{ width: "100%", padding: "10px 14px", background: "none", border: "none", borderBottom: "1px solid #f1f5f9", textAlign: "left", cursor: "pointer", fontSize: 13, color: "#0f172a", display: "flex", alignItems: "center", gap: 8 }}>
-                              <Wrench size={13} style={{ color: "#94a3b8", flexShrink: 0 }} />
-                              <span>{n}</span>
-                              {existing?.trade && <span style={{ fontSize: 11, color: "#94a3b8", marginLeft: "auto" }}>{existing.trade}</span>}
-                            </button>
-                          );
-                        })}
-                        {showNew && (
-                          <button onMouseDown={() => setNameFocus(false)}
-                            style={{ width: "100%", padding: "10px 14px", display: "flex", alignItems: "center", gap: 8, background: "#fffbeb", border: "none", borderTop: matches.length > 0 ? "1px solid #e2e8f0" : "none", cursor: "pointer", textAlign: "left" }}>
-                            <Plus size={13} style={{ color: "#f59e0b", flexShrink: 0 }} />
-                            <span style={{ fontSize: 13, color: "#f59e0b", fontWeight: 600 }}>Add &ldquo;{form.name}&rdquo; as new</span>
+              <div style={{ position: "relative" }}>
+                <p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Company / Name *</p>
+                <input style={iS} placeholder="ABC Plumbing" value={form.name}
+                  onChange={e => { setForm(f => ({ ...f, name: e.target.value })); setNameFocus(true); }}
+                  onFocus={() => setNameFocus(true)} onBlur={() => setTimeout(() => setNameFocus(false), 150)} />
+                {nameFocus && form.name && (() => {
+                  const q = form.name.toLowerCase();
+                  const matches = allContractorNames.filter(n => n.toLowerCase().includes(q) && n.toLowerCase() !== q);
+                  const exactExists = allContractorNames.some(n => n.toLowerCase() === q);
+                  const showNew = q && !exactExists;
+                  if (matches.length === 0 && !showNew) return null;
+                  return (
+                    <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, background: "#fff", border: "1px solid #e2e8f0", borderRadius: 12, boxShadow: "0 8px 24px rgba(0,0,0,0.10)", zIndex: 200, overflow: "hidden", maxHeight: 200, overflowY: "auto" }}>
+                      {matches.slice(0, 6).map(n => {
+                        const existing = _CON.find(c => c.name === n);
+                        return (
+                          <button key={n} onMouseDown={() => { setForm(f => ({ ...f, name: n, trade: existing?.trade || f.trade })); setNameFocus(false); }}
+                            style={{ width: "100%", padding: "10px 14px", background: "none", border: "none", borderBottom: "1px solid #f1f5f9", textAlign: "left", cursor: "pointer", fontSize: 13, color: "#0f172a", display: "flex", alignItems: "center", gap: 8 }}>
+                            <Wrench size={13} style={{ color: "#94a3b8", flexShrink: 0 }} /><span>{n}</span>
+                            {existing?.trade && <span style={{ fontSize: 11, color: "#94a3b8", marginLeft: "auto" }}>{existing.trade}</span>}
                           </button>
-                        )}
-                      </div>
-                    );
-                  })()}
-                </div>
-                <div>
-                  <p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Trade</p>
-                  <input style={iS} placeholder="Plumbing" value={form.trade} onChange={sf("trade")} />
-                </div>
+                        );
+                      })}
+                      {showNew && (
+                        <button onMouseDown={() => setNameFocus(false)}
+                          style={{ width: "100%", padding: "10px 14px", display: "flex", alignItems: "center", gap: 8, background: "#fffbeb", border: "none", borderTop: matches.length > 0 ? "1px solid #e2e8f0" : "none", cursor: "pointer", textAlign: "left" }}>
+                          <Plus size={13} style={{ color: "#f59e0b", flexShrink: 0 }} />
+                          <span style={{ fontSize: 13, color: "#f59e0b", fontWeight: 600 }}>Add &ldquo;{form.name}&rdquo; as new</span>
+                        </button>
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-                <div>
-                  <p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Payment Type</p>
-                  <select style={iS} value={form.paymentType} onChange={sf("paymentType")}>
-                    <option>Fixed Bid</option>
-                    <option>Day Rate</option>
-                    <option>Time & Materials</option>
-                  </select>
-                </div>
-                <div>
-                  <p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>{form.paymentType === "Day Rate" ? "Day Rate ($)" : "Total Bid ($)"}</p>
-                  <input type="number" style={iS} placeholder="0" value={form.paymentType === "Day Rate" ? form.dayRate : form.totalBid} onChange={sf(form.paymentType === "Day Rate" ? "dayRate" : "totalBid")} />
-                </div>
+                <div><p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Trade</p><input style={iS} placeholder="Plumbing" value={form.trade} onChange={sf("trade")} /></div>
+                <div><p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Phone</p><input style={iS} placeholder="555-000-0000" value={form.phone} onChange={sf("phone")} /></div>
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-                <div>
-                  <p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Phone</p>
-                  <input style={iS} placeholder="555-000-0000" value={form.phone} onChange={sf("phone")} />
-                </div>
-                <div>
-                  <p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Status</p>
-                  <select style={iS} value={form.status} onChange={sf("status")}>
-                    <option value="pending">Pending</option>
-                    <option value="active">Active</option>
-                    <option value="complete">Complete</option>
-                  </select>
-                </div>
-              </div>
-
-              {/* Rehab Item Assignment with per-item bids */}
-              {modalItems.length > 0 && (
-                <div style={{ borderTop: "1px solid #f1f5f9", paddingTop: 14, marginTop: 2 }}>
-                  <p style={{ fontSize: 12, fontWeight: 700, color: "#374151", marginBottom: 8 }}>Assign Rehab Scope</p>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                    {modalItems.map((item, idx) => {
-                      const checked = selectedItems.has(idx);
-                      const otherCons = (item.contractors || []).filter(c => c.id !== editId);
-                      return (
-                        <div key={idx} style={{ borderRadius: 8, background: checked ? "#fef9c3" : "#f8fafc", border: `1px solid ${checked ? "#fde68a" : "#f1f5f9"}`, overflow: "hidden" }}>
-                          <label style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 10px", cursor: "pointer" }}>
-                            <input type="checkbox" checked={checked} onChange={() => toggleItem(idx)} style={{ width: 15, height: 15, cursor: "pointer", accentColor: "#f59e0b" }} />
-                            <span style={{ flex: 1, fontSize: 13, fontWeight: 500, color: "#0f172a" }}>{item.category}</span>
-                            <span style={{ fontSize: 12, color: "#94a3b8" }}>Budget: {fmt(item.budgeted)}</span>
-                            {otherCons.length > 0 && (
-                              <span style={{ fontSize: 11, color: "#64748b", background: "#e2e8f0", borderRadius: 10, padding: "2px 7px" }}>
-                                +{otherCons.length} assigned
-                              </span>
-                            )}
-                          </label>
-                          {checked && (
-                            <div style={{ padding: "4px 10px 8px 39px", display: "flex", alignItems: "center", gap: 8 }}>
-                              <span style={{ fontSize: 12, color: "#64748b", whiteSpace: "nowrap" }}>Bid $</span>
-                              <input type="number" placeholder="0" value={selectedItems.get(idx) || ""}
-                                onChange={e => setItemBid(idx, parseFloat(e.target.value) || 0)}
-                                onClick={e => e.stopPropagation()}
-                                style={{ ...iS, padding: "5px 8px", fontSize: 12, width: 110 }} />
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                  {selectedItems.size > 0 && (
-                    <p style={{ fontSize: 12, color: "#f59e0b", fontWeight: 600, marginTop: 8 }}>
-                      {selectedItems.size} scope{selectedItems.size > 1 ? "s" : ""} selected · {fmt([...selectedItems.values()].reduce((s, bid) => s + (bid || 0), 0))} total bids
-                    </p>
-                  )}
-                </div>
-              )}
+              <div><p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Email <span style={{ color: "#94a3b8", fontWeight: 400 }}>(optional)</span></p><input style={iS} placeholder="contractor@email.com" value={form.email} onChange={sf("email")} /></div>
             </div>
             <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
-              <button onClick={handleSave} style={{ flex: 1, padding: "11px", borderRadius: 10, border: "none", background: "#f59e0b", color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer" }}>
-                {editId ? "Save Changes" : "Add Contractor"}
-              </button>
+              <button onClick={handleAdd} disabled={!form.name.trim()} style={{ flex: 1, padding: "11px", borderRadius: 10, border: "none", background: !form.name.trim() ? "#e2e8f0" : "#f59e0b", color: "#fff", fontWeight: 700, fontSize: 14, cursor: !form.name.trim() ? "not-allowed" : "pointer" }}>Add Contractor</button>
               <button onClick={() => setShowModal(false)} style={{ padding: "11px 18px", borderRadius: 10, border: "1.5px solid #e2e8f0", background: "#fff", fontWeight: 600, fontSize: 14, cursor: "pointer", color: "#64748b" }}>Cancel</button>
             </div>
           </div>
@@ -1483,15 +1267,388 @@ export function FlipContractors() {
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
           <div style={{ background: "#fff", borderRadius: 20, width: 420, padding: 28 }}>
             <h2 style={{ color: "#0f172a", fontSize: 18, fontWeight: 700, marginBottom: 14 }}>Delete Contractor</h2>
-            <p style={{ color: "#475569", fontSize: 14, marginBottom: 8 }}>Are you sure you want to remove this contractor?</p>
-            <div style={{ background: "#f8fafc", borderRadius: 10, padding: 14, marginBottom: 18 }}>
-              <p style={{ fontSize: 13, fontWeight: 600, color: "#0f172a" }}>{deleteConfirm.name}</p>
-              <p style={{ fontSize: 12, color: "#64748b", marginTop: 4 }}>{deleteConfirm.trade} · {deleteConfirm.paymentType}</p>
-            </div>
+            <p style={{ color: "#475569", fontSize: 14, marginBottom: 8 }}>Remove <strong>{deleteConfirm.name}</strong> and all their bids, payments, and documents?</p>
             <p style={{ color: "#94a3b8", fontSize: 12, marginBottom: 18 }}>This action cannot be undone.</p>
             <div style={{ display: "flex", gap: 10 }}>
               <button onClick={() => setDeleteConfirm(null)} style={{ flex: 1, padding: "12px", border: "1px solid #e2e8f0", borderRadius: 10, background: "#fff", color: "#475569", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
-              <button onClick={() => { setContractors(prev => prev.filter(x => x.id !== deleteConfirm.id)); const ci = _CON.findIndex(x => x.id === deleteConfirm.id); if (ci !== -1) _CON.splice(ci, 1); setDeleteConfirm(null); }} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "#ef4444", color: "#fff", fontWeight: 700, cursor: "pointer" }}>Delete</button>
+              <button onClick={() => handleDelete(deleteConfirm)} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "#ef4444", color: "#fff", fontWeight: 700, cursor: "pointer" }}>Delete</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// 4b. CONTRACTOR DETAIL
+// ---------------------------------------------------------------------------
+export function ContractorDetail({ contractor, onBack }) {
+  const [activeTab, setActiveTab] = useState("overview");
+  const [, rerender] = useState(0);
+  const [editMode, setEditMode] = useState(false);
+  const [editForm, setEditForm] = useState({ name: contractor.name, trade: contractor.trade, phone: contractor.phone || "", email: contractor.email || "", license: contractor.license || "", insuranceExpiry: contractor.insuranceExpiry || "", notes: contractor.notes || "" });
+  const [showBidModal, setShowBidModal] = useState(false);
+  const [bidForm, setBidForm] = useState({ flipId: "", rehabItem: "", amount: "" });
+  const [showDocModal, setShowDocModal] = useState(false);
+  const [docForm, setDocForm] = useState({ name: "", type: "contract", flipId: "" });
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [ratingHover, setRatingHover] = useState(0);
+
+  const con = _CON.find(c => c.id === contractor.id) || contractor;
+  const deals = (con.dealIds || []).map(id => _FLIPS.find(f => f.id === id)).filter(Boolean);
+  const bids = con.bids || [];
+  const payments = con.payments || [];
+  const documents = con.documents || [];
+
+  const totalAccepted = bids.filter(b => b.status === "accepted").reduce((s, b) => s + b.amount, 0);
+  const totalPending = bids.filter(b => b.status === "pending").reduce((s, b) => s + b.amount, 0);
+  const totalPaidAmt = payments.reduce((s, p) => s + p.amount, 0);
+
+  const saveOverview = () => {
+    Object.assign(con, { name: editForm.name, trade: editForm.trade, phone: editForm.phone, email: editForm.email, license: editForm.license, insuranceExpiry: editForm.insuranceExpiry, notes: editForm.notes });
+    setEditMode(false);
+    rerender(n => n + 1);
+  };
+
+  const setRating = (r) => { con.rating = r; rerender(n => n + 1); };
+
+  const saveBid = () => {
+    const fId = parseInt(bidForm.flipId);
+    if (!fId || !bidForm.rehabItem || !bidForm.amount) return;
+    const newBid = { id: newId(), flipId: fId, rehabItem: bidForm.rehabItem, amount: parseFloat(bidForm.amount) || 0, status: "pending", date: new Date().toISOString().slice(0, 10) };
+    con.bids = [...bids, newBid];
+    if (!con.dealIds.includes(fId)) con.dealIds.push(fId);
+    const flip = _FLIPS.find(f => f.id === fId);
+    if (flip) {
+      const item = (flip.rehabItems || []).find(i => i.category === bidForm.rehabItem);
+      if (item) {
+        const cons = item.contractors || [];
+        if (!cons.some(c => c.id === con.id)) {
+          item.contractors = [...cons, { id: con.id, bid: newBid.amount }];
+        }
+      }
+    }
+    rerender(n => n + 1);
+    setBidForm({ flipId: "", rehabItem: "", amount: "" });
+    setShowBidModal(false);
+  };
+
+  const toggleBidStatus = (bidId) => {
+    const bid = con.bids.find(b => b.id === bidId);
+    if (bid) { bid.status = bid.status === "accepted" ? "pending" : "accepted"; rerender(n => n + 1); }
+  };
+
+  const deleteBid = (bidId) => { con.bids = con.bids.filter(b => b.id !== bidId); rerender(n => n + 1); setDeleteConfirm(null); };
+
+  const saveDoc = () => {
+    if (!docForm.name) return;
+    const newDoc = { id: newId(), name: docForm.name, type: docForm.type, flipId: docForm.flipId ? parseInt(docForm.flipId) : null, date: new Date().toISOString().slice(0, 10), size: "— KB" };
+    con.documents = [...documents, newDoc];
+    rerender(n => n + 1);
+    setDocForm({ name: "", type: "contract", flipId: "" });
+    setShowDocModal(false);
+  };
+
+  const deleteDoc = (docId) => { con.documents = con.documents.filter(d => d.id !== docId); rerender(n => n + 1); setDeleteConfirm(null); };
+
+  const tabs = [
+    { id: "overview", label: "Overview", icon: Home },
+    { id: "bids", label: "Bids", icon: DollarSign, count: bids.length },
+    { id: "documents", label: "Documents", icon: FileText, count: documents.length },
+    { id: "history", label: "Deal History", icon: Clock, count: deals.length },
+  ];
+
+  const selectedFlipForBid = _FLIPS.find(f => f.id === parseInt(bidForm.flipId));
+  const bidRehabOptions = selectedFlipForBid ? (selectedFlipForBid.rehabItems || []).map(i => i.category) : [];
+
+  const DOC_TYPES = { contract: "Contract", w9: "W-9", insurance: "Insurance", lienWaiver: "Lien Waiver", changeOrder: "Change Order", warranty: "Warranty", invoice: "Invoice", other: "Other" };
+  const DOC_COLORS = { contract: "#3b82f6", w9: "#8b5cf6", insurance: "#10b981", lienWaiver: "#f59e0b", changeOrder: "#ef4444", warranty: "#06b6d4", invoice: "#ec4899", other: "#64748b" };
+
+  return (
+    <div>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 24 }}>
+        <button onClick={onBack} style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: "none", cursor: "pointer", color: "#64748b", fontSize: 13, fontWeight: 500 }}>
+          <ChevronLeft size={16} /> Back to Contractors
+        </button>
+      </div>
+
+      {/* Header Card */}
+      <div style={{ background: "#fff", borderRadius: 16, padding: 24, border: "1px solid #f1f5f9", marginBottom: 24 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+            <div style={{ width: 52, height: 52, borderRadius: 14, background: "#f1f5f9", display: "flex", alignItems: "center", justifyContent: "center" }}><Truck size={24} color="#64748b" /></div>
+            <div>
+              <h1 style={{ fontSize: 22, fontWeight: 700, color: "#0f172a", margin: 0 }}>{con.name}</h1>
+              <p style={{ fontSize: 14, color: "#64748b", margin: 0 }}>{con.trade}{con.phone ? ` · ${con.phone}` : ""}</p>
+            </div>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{ display: "flex", gap: 2 }}>
+              {Array.from({ length: 5 }, (_, i) => (
+                <Star key={i} size={18} fill={i < (ratingHover || con.rating || 0) ? "#f59e0b" : "none"} color={i < (ratingHover || con.rating || 0) ? "#f59e0b" : "#e2e8f0"}
+                  style={{ cursor: "pointer" }} onMouseEnter={() => setRatingHover(i + 1)} onMouseLeave={() => setRatingHover(0)} onClick={() => setRating(i + 1)} />
+              ))}
+            </div>
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+              {deals.map(fl => (
+                <span key={fl.id} style={{ display: "flex", alignItems: "center", gap: 4, background: "#f8fafc", border: "1px solid #f1f5f9", borderRadius: 20, padding: "3px 10px", fontSize: 11, color: "#64748b" }}>
+                  <span style={{ width: 6, height: 6, borderRadius: "50%", background: fl.color }} />{fl.name}
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
+        <div style={{ display: "flex", gap: 24, marginTop: 16, paddingTop: 16, borderTop: "1px solid #f1f5f9" }}>
+          <div><span style={{ fontSize: 11, color: "#94a3b8", textTransform: "uppercase", fontWeight: 600 }}>Accepted Bids</span><p style={{ fontSize: 18, fontWeight: 700, color: "#0f172a", margin: "2px 0 0" }}>{fmt(totalAccepted)}</p></div>
+          <div><span style={{ fontSize: 11, color: "#94a3b8", textTransform: "uppercase", fontWeight: 600 }}>Pending Bids</span><p style={{ fontSize: 18, fontWeight: 700, color: "#f59e0b", margin: "2px 0 0" }}>{fmt(totalPending)}</p></div>
+          <div><span style={{ fontSize: 11, color: "#94a3b8", textTransform: "uppercase", fontWeight: 600 }}>Total Paid</span><p style={{ fontSize: 18, fontWeight: 700, color: "#10b981", margin: "2px 0 0" }}>{fmt(totalPaidAmt)}</p></div>
+          <div><span style={{ fontSize: 11, color: "#94a3b8", textTransform: "uppercase", fontWeight: 600 }}>Outstanding</span><p style={{ fontSize: 18, fontWeight: 700, color: totalAccepted - totalPaidAmt > 0 ? "#ef4444" : "#10b981", margin: "2px 0 0" }}>{fmt(totalAccepted - totalPaidAmt)}</p></div>
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <div style={{ display: "flex", gap: 4, marginBottom: 24, background: "#f8fafc", borderRadius: 12, padding: 4, border: "1px solid #f1f5f9" }}>
+        {tabs.map(tab => {
+          const active = activeTab === tab.id;
+          const Icon = tab.icon;
+          return (
+            <button key={tab.id} onClick={() => setActiveTab(tab.id)}
+              style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "10px 16px", borderRadius: 10, border: "none", background: active ? "#fff" : "transparent", boxShadow: active ? "0 1px 3px rgba(0,0,0,0.08)" : "none", color: active ? "#0f172a" : "#64748b", fontWeight: active ? 600 : 500, fontSize: 13, cursor: "pointer", transition: "all 0.15s" }}>
+              <Icon size={15} />{tab.label}
+              {tab.count !== undefined && <span style={{ background: active ? "#f1f5f9" : "#e2e8f0", borderRadius: 20, padding: "1px 7px", fontSize: 11, fontWeight: 600, color: "#64748b" }}>{tab.count}</span>}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* OVERVIEW TAB */}
+      {activeTab === "overview" && (
+        <div style={{ background: "#fff", borderRadius: 16, padding: 24, border: "1px solid #f1f5f9" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+            <h3 style={{ fontSize: 16, fontWeight: 700, color: "#0f172a" }}>Contact & License Info</h3>
+            {!editMode && <button onClick={() => setEditMode(true)} style={{ display: "flex", alignItems: "center", gap: 6, background: "#f1f5f9", border: "none", borderRadius: 8, padding: "6px 12px", cursor: "pointer", fontSize: 12, fontWeight: 600, color: "#64748b" }}><Pencil size={12} /> Edit</button>}
+          </div>
+          {editMode ? (
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                <div><p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Company / Name</p><input style={iS} value={editForm.name} onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))} /></div>
+                <div><p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Trade</p><input style={iS} value={editForm.trade} onChange={e => setEditForm(f => ({ ...f, trade: e.target.value }))} /></div>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                <div><p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Phone</p><input style={iS} value={editForm.phone} onChange={e => setEditForm(f => ({ ...f, phone: e.target.value }))} /></div>
+                <div><p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Email</p><input style={iS} value={editForm.email} onChange={e => setEditForm(f => ({ ...f, email: e.target.value }))} /></div>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                <div><p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>License #</p><input style={iS} value={editForm.license} onChange={e => setEditForm(f => ({ ...f, license: e.target.value }))} placeholder="e.g. PL-2024-1847" /></div>
+                <div><p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Insurance Expiry</p><input type="date" style={iS} value={editForm.insuranceExpiry} onChange={e => setEditForm(f => ({ ...f, insuranceExpiry: e.target.value }))} /></div>
+              </div>
+              <div><p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Notes</p><textarea style={{ ...iS, minHeight: 80, resize: "vertical" }} value={editForm.notes} onChange={e => setEditForm(f => ({ ...f, notes: e.target.value }))} placeholder="Notes about this contractor..." /></div>
+              <div style={{ display: "flex", gap: 10 }}>
+                <button onClick={saveOverview} style={{ padding: "10px 20px", borderRadius: 10, border: "none", background: "#f59e0b", color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer" }}>Save</button>
+                <button onClick={() => setEditMode(false)} style={{ padding: "10px 20px", borderRadius: 10, border: "1.5px solid #e2e8f0", background: "#fff", fontWeight: 600, fontSize: 14, cursor: "pointer", color: "#64748b" }}>Cancel</button>
+              </div>
+            </div>
+          ) : (
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}><Phone size={14} color="#94a3b8" /><span style={{ fontSize: 13, color: "#0f172a" }}>{con.phone || "—"}</span></div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}><Mail size={14} color="#94a3b8" /><span style={{ fontSize: 13, color: "#0f172a" }}>{con.email || "—"}</span></div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}><Shield size={14} color="#94a3b8" /><span style={{ fontSize: 13, color: "#0f172a" }}>License: {con.license || "—"}</span></div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}><FileCheck size={14} color="#94a3b8" /><span style={{ fontSize: 13, color: con.insuranceExpiry && con.insuranceExpiry < new Date().toISOString().slice(0, 10) ? "#ef4444" : "#0f172a" }}>Insurance: {con.insuranceExpiry || "—"}{con.insuranceExpiry && con.insuranceExpiry < new Date().toISOString().slice(0, 10) ? " (EXPIRED)" : ""}</span></div>
+              {con.notes && <div style={{ gridColumn: "1/-1", marginTop: 8, padding: 14, background: "#f8fafc", borderRadius: 10, fontSize: 13, color: "#475569", lineHeight: 1.5 }}>{con.notes}</div>}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* BIDS TAB */}
+      {activeTab === "bids" && (
+        <div>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+            <h3 style={{ fontSize: 16, fontWeight: 700, color: "#0f172a" }}>All Bids</h3>
+            <button onClick={() => setShowBidModal(true)} style={{ background: "#f59e0b", color: "#fff", border: "none", borderRadius: 10, padding: "8px 16px", fontWeight: 600, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}><Plus size={14} /> Add Bid</button>
+          </div>
+          <div style={{ background: "#fff", borderRadius: 16, border: "1px solid #f1f5f9", overflow: "hidden" }}>
+            {bids.length === 0 && <div style={{ padding: 40, textAlign: "center", color: "#94a3b8", fontSize: 14 }}>No bids yet. Add a bid to get started.</div>}
+            {bids.map((b, i) => {
+              const fl = _FLIPS.find(f => f.id === b.flipId);
+              return (
+                <div key={b.id} style={{ display: "flex", alignItems: "center", padding: "14px 20px", borderBottom: i < bids.length - 1 ? "1px solid #f1f5f9" : "none", gap: 12 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, flex: 1, minWidth: 0 }}>
+                    {fl && <span style={{ width: 8, height: 8, borderRadius: "50%", background: fl.color, flexShrink: 0 }} />}
+                    <span style={{ fontSize: 13, fontWeight: 600, color: "#0f172a" }}>{b.rehabItem}</span>
+                    {fl && <span style={{ fontSize: 12, color: "#94a3b8" }}>· {fl.name}</span>}
+                  </div>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: "#0f172a", minWidth: 80, textAlign: "right" }}>{fmt(b.amount)}</span>
+                  <button onClick={(e) => { e.stopPropagation(); toggleBidStatus(b.id); }}
+                    style={{ background: b.status === "accepted" ? "#dcfce7" : "#fef9c3", color: b.status === "accepted" ? "#15803d" : "#a16207", border: "none", borderRadius: 20, padding: "3px 12px", fontSize: 11, fontWeight: 600, cursor: "pointer", minWidth: 70 }}>
+                    {b.status === "accepted" ? "Accepted" : "Pending"}
+                  </button>
+                  <span style={{ fontSize: 12, color: "#94a3b8", minWidth: 80 }}>{b.date}</span>
+                  <button onClick={(e) => { e.stopPropagation(); setDeleteConfirm({ type: "bid", id: b.id, label: b.rehabItem }); }} style={{ background: "none", border: "none", cursor: "pointer", color: "#cbd5e1", padding: 4 }}><Trash2 size={14} /></button>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* DOCUMENTS TAB */}
+      {activeTab === "documents" && (
+        <div>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+            <h3 style={{ fontSize: 16, fontWeight: 700, color: "#0f172a" }}>Documents</h3>
+            <button onClick={() => setShowDocModal(true)} style={{ background: "#f59e0b", color: "#fff", border: "none", borderRadius: 10, padding: "8px 16px", fontWeight: 600, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}><Upload size={14} /> Add Document</button>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
+            {documents.length === 0 && <div style={{ gridColumn: "1/-1", padding: 40, textAlign: "center", color: "#94a3b8", fontSize: 14 }}>No documents yet.</div>}
+            {documents.map(d => {
+              const fl = d.flipId ? _FLIPS.find(f => f.id === d.flipId) : null;
+              const typeColor = DOC_COLORS[d.type] || "#64748b";
+              return (
+                <div key={d.id} style={{ background: "#fff", borderRadius: 12, padding: 16, border: "1px solid #f1f5f9" }}>
+                  <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 8 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <FileText size={16} color={typeColor} />
+                      <span style={{ fontSize: 13, fontWeight: 600, color: "#0f172a" }}>{d.name}</span>
+                    </div>
+                    <button onClick={() => setDeleteConfirm({ type: "doc", id: d.id, label: d.name })} style={{ background: "none", border: "none", cursor: "pointer", color: "#cbd5e1", padding: 2 }}><Trash2 size={13} /></button>
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                    <span style={{ background: `${typeColor}15`, color: typeColor, borderRadius: 20, padding: "2px 8px", fontSize: 10, fontWeight: 600 }}>{DOC_TYPES[d.type] || d.type}</span>
+                    {fl && <span style={{ display: "flex", alignItems: "center", gap: 3, fontSize: 11, color: "#94a3b8" }}><span style={{ width: 5, height: 5, borderRadius: "50%", background: fl.color }} />{fl.name}</span>}
+                    <span style={{ fontSize: 11, color: "#94a3b8" }}>{d.date}</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* DEAL HISTORY TAB */}
+      {activeTab === "history" && (
+        <div>
+          <h3 style={{ fontSize: 16, fontWeight: 700, color: "#0f172a", marginBottom: 16 }}>Deal History</h3>
+          {deals.length === 0 && <div style={{ padding: 40, textAlign: "center", color: "#94a3b8", fontSize: 14, background: "#fff", borderRadius: 16, border: "1px solid #f1f5f9" }}>No deals assigned yet.</div>}
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            {deals.map(fl => {
+              const dealBids = bids.filter(b => b.flipId === fl.id);
+              const dealPayments = payments.filter(p => p.flipId === fl.id);
+              const dealDocs = documents.filter(d => d.flipId === fl.id);
+              const dealBidTotal = dealBids.reduce((s, b) => s + b.amount, 0);
+              const dealPaidTotal = dealPayments.reduce((s, p) => s + p.amount, 0);
+              const stageStyle = STAGE_COLORS[fl.stage] || { bg: "#f1f5f9", text: "#64748b" };
+              return (
+                <div key={fl.id} style={{ background: "#fff", borderRadius: 14, padding: 20, border: "1px solid #f1f5f9" }}>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <span style={{ width: 10, height: 10, borderRadius: "50%", background: fl.color }} />
+                      <span style={{ fontSize: 15, fontWeight: 700, color: "#0f172a" }}>{fl.name}</span>
+                      <span style={{ background: stageStyle.bg, color: stageStyle.text, borderRadius: 20, padding: "2px 10px", fontSize: 11, fontWeight: 600 }}>{fl.stage}</span>
+                    </div>
+                  </div>
+                  <div style={{ display: "flex", gap: 20, fontSize: 13 }}>
+                    <div><span style={{ color: "#94a3b8" }}>Bids: </span><span style={{ fontWeight: 600, color: "#0f172a" }}>{fmt(dealBidTotal)} ({dealBids.length})</span></div>
+                    <div><span style={{ color: "#94a3b8" }}>Paid: </span><span style={{ fontWeight: 600, color: "#10b981" }}>{fmt(dealPaidTotal)}</span></div>
+                    <div><span style={{ color: "#94a3b8" }}>Docs: </span><span style={{ fontWeight: 600, color: "#0f172a" }}>{dealDocs.length}</span></div>
+                  </div>
+                  {dealPayments.length > 0 && (
+                    <div style={{ marginTop: 10, paddingTop: 10, borderTop: "1px solid #f8fafc" }}>
+                      {dealPayments.map(p => (
+                        <div key={p.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "4px 0", fontSize: 12 }}>
+                          <span style={{ color: "#64748b" }}>{p.date} — {p.note}</span>
+                          <span style={{ fontWeight: 600, color: "#10b981" }}>{fmt(p.amount)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Add Bid Modal */}
+      {showBidModal && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
+          <div style={{ background: "#fff", borderRadius: 20, padding: 32, width: 460, boxShadow: "0 20px 60px rgba(0,0,0,0.18)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 20 }}>
+              <h2 style={{ color: "#0f172a", fontSize: 19, fontWeight: 700 }}>Add Bid</h2>
+              <button onClick={() => setShowBidModal(false)} style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8" }}><X size={20} /></button>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              <div>
+                <p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Deal *</p>
+                <select style={iS} value={bidForm.flipId} onChange={e => setBidForm(f => ({ ...f, flipId: e.target.value, rehabItem: "" }))}>
+                  <option value="">Select deal...</option>
+                  {_FLIPS.filter(f => f.stage !== "Sold").map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
+                </select>
+              </div>
+              <div>
+                <p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Rehab Item *</p>
+                <select style={iS} value={bidForm.rehabItem} onChange={e => setBidForm(f => ({ ...f, rehabItem: e.target.value }))} disabled={!bidForm.flipId}>
+                  <option value="">Select rehab item...</option>
+                  {bidRehabOptions.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                </select>
+              </div>
+              <div>
+                <p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Bid Amount ($) *</p>
+                <input type="number" style={iS} placeholder="0" value={bidForm.amount} onChange={e => setBidForm(f => ({ ...f, amount: e.target.value }))} />
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
+              <button onClick={saveBid} disabled={!bidForm.flipId || !bidForm.rehabItem || !bidForm.amount} style={{ flex: 1, padding: "11px", borderRadius: 10, border: "none", background: !bidForm.flipId || !bidForm.rehabItem || !bidForm.amount ? "#e2e8f0" : "#f59e0b", color: "#fff", fontWeight: 700, fontSize: 14, cursor: !bidForm.flipId || !bidForm.rehabItem || !bidForm.amount ? "not-allowed" : "pointer" }}>Add Bid</button>
+              <button onClick={() => setShowBidModal(false)} style={{ padding: "11px 18px", borderRadius: 10, border: "1.5px solid #e2e8f0", background: "#fff", fontWeight: 600, fontSize: 14, cursor: "pointer", color: "#64748b" }}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Document Modal */}
+      {showDocModal && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
+          <div style={{ background: "#fff", borderRadius: 20, padding: 32, width: 460, boxShadow: "0 20px 60px rgba(0,0,0,0.18)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 20 }}>
+              <h2 style={{ color: "#0f172a", fontSize: 19, fontWeight: 700 }}>Add Document</h2>
+              <button onClick={() => setShowDocModal(false)} style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8" }}><X size={20} /></button>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              <div><p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Document Name *</p><input style={iS} placeholder="e.g. Plumbing Contract" value={docForm.name} onChange={e => setDocForm(f => ({ ...f, name: e.target.value }))} /></div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                <div>
+                  <p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Type</p>
+                  <select style={iS} value={docForm.type} onChange={e => setDocForm(f => ({ ...f, type: e.target.value }))}>
+                    {Object.entries(DOC_TYPES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Associated Deal <span style={{ color: "#94a3b8", fontWeight: 400 }}>(optional)</span></p>
+                  <select style={iS} value={docForm.flipId} onChange={e => setDocForm(f => ({ ...f, flipId: e.target.value }))}>
+                    <option value="">General (no deal)</option>
+                    {_FLIPS.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
+              <button onClick={saveDoc} disabled={!docForm.name.trim()} style={{ flex: 1, padding: "11px", borderRadius: 10, border: "none", background: !docForm.name.trim() ? "#e2e8f0" : "#f59e0b", color: "#fff", fontWeight: 700, fontSize: 14, cursor: !docForm.name.trim() ? "not-allowed" : "pointer" }}>Add Document</button>
+              <button onClick={() => setShowDocModal(false)} style={{ padding: "11px 18px", borderRadius: 10, border: "1.5px solid #e2e8f0", background: "#fff", fontWeight: 600, fontSize: 14, cursor: "pointer", color: "#64748b" }}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation */}
+      {deleteConfirm && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
+          <div style={{ background: "#fff", borderRadius: 20, width: 400, padding: 28 }}>
+            <h2 style={{ color: "#0f172a", fontSize: 18, fontWeight: 700, marginBottom: 10 }}>Delete {deleteConfirm.type === "bid" ? "Bid" : "Document"}</h2>
+            <p style={{ color: "#475569", fontSize: 14, marginBottom: 18 }}>Remove &ldquo;{deleteConfirm.label}&rdquo;? This cannot be undone.</p>
+            <div style={{ display: "flex", gap: 10 }}>
+              <button onClick={() => setDeleteConfirm(null)} style={{ flex: 1, padding: "12px", border: "1px solid #e2e8f0", borderRadius: 10, background: "#fff", color: "#475569", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
+              <button onClick={() => deleteConfirm.type === "bid" ? deleteBid(deleteConfirm.id) : deleteDoc(deleteConfirm.id)} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "#ef4444", color: "#fff", fontWeight: 700, cursor: "pointer" }}>Delete</button>
             </div>
           </div>
         </div>

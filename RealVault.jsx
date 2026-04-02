@@ -20,13 +20,13 @@ import {
   getProperties, addProperty, getTransactions, addTransaction,
   getMonthlyCashFlow, getEquityGrowth, getExpenseCategories,
   getFlips, addFlip, updateFlip,
-  getFlipExpenses, addFlipExpense, getContractors, addContractor,
+  getFlipExpenses, addFlipExpense, getContractors, addContractor, CONTRACTORS,
   getFlipMilestones, updateFlipMilestones,
   getTenants, getMileageTrips, addMileageTrip,
 } from "./api.js";
 import { AuthProvider, AuthScreen, useAuth } from "./auth.jsx";
 import { Settings, OnboardingWizard } from "./settings.jsx";
-import { FlipDashboard, RehabTracker, FlipExpenses, FlipContractors, FlipAnalytics, FlipMilestones, FlipNotes } from "./flips.jsx";
+import { FlipDashboard, RehabTracker, FlipExpenses, FlipContractors, ContractorDetail, FlipAnalytics, FlipMilestones, FlipNotes } from "./flips.jsx";
 
 // ─── Annual Tax Config ──────────────────────────────────────────────
 // Update this block once per year (typically January) when IRS publishes new rates.
@@ -351,14 +351,7 @@ const FLIP_EXPENSES = [
   { id: 15, flipId: 4, date: "2025-06-01", vendor: "Raleigh Tile Co.", category: "Subcontractor", description: "Master bath tile work", amount: 3100 },
 ];
 
-const CONTRACTORS = [
-  { id: 1, flipId: 1, name: "ABC Plumbing", trade: "Plumbing", paymentType: "Fixed Bid", totalBid: 8500, totalPaid: 3200, status: "active", phone: "615-555-0182" },
-  { id: 2, flipId: 1, name: "Elite Electric", trade: "Electrical", paymentType: "Fixed Bid", totalBid: 4100, totalPaid: 4100, status: "complete", phone: "615-555-0247" },
-  { id: 3, flipId: 1, name: "Nash Drywall", trade: "Drywall", paymentType: "Day Rate", dayRate: 450, totalPaid: 0, status: "pending", phone: "615-555-0318" },
-  { id: 4, flipId: 2, name: "Pro Flooring Co.", trade: "Flooring", paymentType: "Fixed Bid", totalBid: 3900, totalPaid: 3900, status: "complete", phone: "901-555-0144" },
-  { id: 5, flipId: 2, name: "Jim's Windows", trade: "Windows", paymentType: "Fixed Bid", totalBid: 5400, totalPaid: 5400, status: "complete", phone: "901-555-0229" },
-  { id: 6, flipId: 4, name: "Summit HVAC", trade: "HVAC", paymentType: "Fixed Bid", totalBid: 7200, totalPaid: 7200, status: "complete", phone: "919-555-0361" },
-];
+// CONTRACTORS imported from api.js below
 
 // DEFAULT_MILESTONES imported from api.js
 
@@ -3933,7 +3926,7 @@ function FlipDetail({ flip, onBack, allFlips, setAllFlips, onNavigateToExpense }
   const [showExpenseModal, setShowExpenseModal] = useState(false);
   const [showContractorModal, setShowContractorModal] = useState(false);
   const [expData, setExpData] = useState(FLIP_EXPENSES.filter(e => e.flipId === flip.id));
-  const [conData, setConData] = useState(CONTRACTORS.filter(c => c.flipId === flip.id));
+  const [conData, setConData] = useState(CONTRACTORS.filter(c => (c.dealIds || []).includes(flip.id)));
   const [rehabItems, setRehabItems] = useState(flip.rehabItems || []);
   const [milestones, setMilestones] = useState(FLIP_MILESTONES[flip.id] || DEFAULT_MILESTONES.map(label => ({ label, done: false, date: null, targetDate: null })));
   const [showMilestoneModal, setShowMilestoneModal] = useState(false);
@@ -4036,14 +4029,25 @@ function FlipDetail({ flip, onBack, allFlips, setAllFlips, onNavigateToExpense }
   };
 
   // Contractor edit state
-  const emptyCon = { name: "", trade: "", paymentType: "Fixed Bid", totalBid: "", dayRate: "", phone: "", status: "pending" };
+  const emptyCon = { name: "", trade: "", phone: "", email: "" };
   const [conForm, setConForm] = useState(emptyCon);
   const sfC = k => e => setConForm(f => ({ ...f, [k]: e.target.value }));
   const [editingConId, setEditingConId] = useState(null);
   const openEditCon = (c) => {
     setEditingConId(c.id);
-    setConForm({ name: c.name, trade: c.trade, paymentType: c.paymentType, totalBid: String(c.totalBid || ""), dayRate: String(c.dayRate || ""), phone: c.phone, status: c.status });
+    setConForm({ name: c.name, trade: c.trade, phone: c.phone || "", email: c.email || "" });
     setShowContractorModal(true);
+  };
+
+  // Helper: derive bid/payment totals for this flip
+  const conTotals = (c) => {
+    const flipBids = (c.bids || []).filter(b => b.flipId === flip.id);
+    const flipPayments = (c.payments || []).filter(p => p.flipId === flip.id);
+    const totalBid = flipBids.reduce((s, b) => s + (b.amount || 0), 0);
+    const totalPaid = flipPayments.reduce((s, p) => s + (p.amount || 0), 0);
+    const acceptedBids = flipBids.filter(b => b.status === "accepted").length;
+    const pendingBids = flipBids.filter(b => b.status === "pending").length;
+    return { totalBid, totalPaid, owed: totalBid - totalPaid, acceptedBids, pendingBids, bidCount: flipBids.length };
   };
 
   // Contractor payment state
@@ -4054,15 +4058,17 @@ function FlipDetail({ flip, onBack, allFlips, setAllFlips, onNavigateToExpense }
   const handleRecordPayment = () => {
     if (!paymentAmount || !showPaymentModal) return;
     const amt = parseFloat(paymentAmount) || 0;
-    // Update contractor totalPaid
-    setConData(prev => prev.map(c => c.id === showPaymentModal ? { ...c, totalPaid: (c.totalPaid || 0) + amt } : c));
-    // Also log as an expense automatically (linked to contractor)
+    // Push payment into contractor's payments array
     const con = conData.find(c => c.id === showPaymentModal);
     if (con) {
+      const newPayment = { id: newId(), flipId: flip.id, amount: amt, date: paymentDate, note: paymentNote || `Payment to ${con.name}` };
+      con.payments = [...(con.payments || []), newPayment];
+      setConData(prev => [...prev]); // trigger re-render
+      // Also log as an expense automatically (linked to contractor)
       setExpData(prev => [{ id: newId(), flipId: flip.id, date: paymentDate, vendor: con.name, category: con.trade === "General Contractor" ? "General Contractor" : "Subcontractor", description: paymentNote || `Payment to ${con.name}`, amount: amt, status: "paid", contractorId: showPaymentModal }, ...prev]);
+      // Add to activity log
+      setDealNotes(prev => [{ id: newId(), date: paymentDate, text: `Recorded ${fmt(amt)} payment to ${con.name}` }, ...prev]);
     }
-    // Add to activity log
-    if (con) setDealNotes(prev => [{ id: newId(), date: paymentDate, text: `Recorded ${fmt(amt)} payment to ${con.name}` }, ...prev]);
     setShowPaymentModal(null);
     setPaymentAmount("");
     setPaymentNote("");
@@ -4110,10 +4116,12 @@ function FlipDetail({ flip, onBack, allFlips, setAllFlips, onNavigateToExpense }
   const handleSaveCon = () => {
     if (!conForm.name) return;
     if (editingConId) {
-      setConData(prev => prev.map(c => c.id === editingConId ? { ...c, name: conForm.name, trade: conForm.trade, paymentType: conForm.paymentType, totalBid: parseFloat(conForm.totalBid) || 0, dayRate: parseFloat(conForm.dayRate) || 0, status: conForm.status, phone: conForm.phone } : c));
+      setConData(prev => prev.map(c => c.id === editingConId ? { ...c, name: conForm.name, trade: conForm.trade, phone: conForm.phone, email: conForm.email } : c));
       setEditingConId(null);
     } else {
-      setConData(prev => [...prev, { id: newId(), flipId: flip.id, name: conForm.name, trade: conForm.trade, paymentType: conForm.paymentType, totalBid: parseFloat(conForm.totalBid) || 0, dayRate: parseFloat(conForm.dayRate) || 0, totalPaid: 0, status: conForm.status, phone: conForm.phone }]);
+      const newCon = { id: newId(), name: conForm.name, trade: conForm.trade, phone: conForm.phone, email: "", license: null, insuranceExpiry: null, rating: 0, notes: "", dealIds: [flip.id], bids: [], payments: [], documents: [] };
+      CONTRACTORS.push(newCon);
+      setConData(prev => [...prev, newCon]);
     }
     setConForm(emptyCon);
     setShowContractorModal(false);
@@ -4814,9 +4822,8 @@ function FlipDetail({ flip, onBack, allFlips, setAllFlips, onNavigateToExpense }
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
               {flipContractors.map(c => {
-                const owed = c.paymentType === "Fixed Bid" ? (c.totalBid - c.totalPaid) : null;
-                const statusMap = { complete: { bg: "#dcfce7", text: "#15803d" }, active: { bg: "#dbeafe", text: "#1d4ed8" }, pending: { bg: "#f1f5f9", text: "#475569" } };
-                const s = statusMap[c.status] || statusMap.pending;
+                const t = conTotals(c);
+                const pct = t.totalBid > 0 ? Math.min(100, Math.round((t.totalPaid / t.totalBid) * 100)) : 0;
                 return (
                   <div key={c.id} style={{ background: "#fff", borderRadius: 16, padding: 20, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" }}>
                     <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 14 }}>
@@ -4826,49 +4833,34 @@ function FlipDetail({ flip, onBack, allFlips, setAllFlips, onNavigateToExpense }
                         </div>
                         <div>
                           <p style={{ fontSize: 15, fontWeight: 700, color: "#0f172a" }}>{c.name}</p>
-                          <p style={{ fontSize: 12, color: "#94a3b8" }}>{c.trade} . {c.phone}</p>
+                          <p style={{ fontSize: 12, color: "#94a3b8" }}>{c.trade}{c.phone ? ` · ${c.phone}` : ""}</p>
                         </div>
                       </div>
                       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <span style={{ background: s.bg, color: s.text, borderRadius: 20, padding: "4px 12px", fontSize: 12, fontWeight: 700, textTransform: "capitalize" }}>{c.status}</span>
+                        {c.rating > 0 && <span style={{ fontSize: 12, color: "#f59e0b" }}>{"★".repeat(c.rating)}{"☆".repeat(5 - c.rating)}</span>}
                         <button onClick={() => openEditCon(c)} style={{ background: "#f1f5f9", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "#475569", display: "flex", alignItems: "center" }} title="Edit"><Pencil size={13} /></button>
                         <button onClick={() => setDeleteConfirm({ type: "contractor", item: c })} style={{ background: "#fee2e2", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "#ef4444", display: "flex", alignItems: "center" }} title="Delete"><Trash2 size={13} /></button>
                       </div>
                     </div>
                     <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
                       <div style={{ background: "#f8fafc", borderRadius: 10, padding: "10px 12px" }}>
-                        <p style={{ color: "#94a3b8", fontSize: 10, fontWeight: 600, textTransform: "uppercase", marginBottom: 3 }}>Payment Type</p>
-                        <p style={{ color: "#0f172a", fontSize: 13, fontWeight: 700 }}>{c.paymentType}</p>
+                        <p style={{ color: "#94a3b8", fontSize: 10, fontWeight: 600, textTransform: "uppercase", marginBottom: 3 }}>Bids (This Deal)</p>
+                        <p style={{ color: "#0f172a", fontSize: 13, fontWeight: 700 }}>{t.bidCount}{t.pendingBids > 0 ? ` (${t.pendingBids} pending)` : ""}</p>
                       </div>
-                      {c.paymentType === "Fixed Bid" ? (
-                        <>
-                          <div style={{ background: "#f8fafc", borderRadius: 10, padding: "10px 12px" }}>
-                            <p style={{ color: "#94a3b8", fontSize: 10, fontWeight: 600, textTransform: "uppercase", marginBottom: 3 }}>Total Bid</p>
-                            <p style={{ color: "#0f172a", fontSize: 13, fontWeight: 700 }}>{fmt(c.totalBid)}</p>
-                          </div>
-                          <div style={{ background: owed > 0 ? "#fef9c3" : "#dcfce7", borderRadius: 10, padding: "10px 12px" }}>
-                            <p style={{ color: "#94a3b8", fontSize: 10, fontWeight: 600, textTransform: "uppercase", marginBottom: 3 }}>Balance Owed</p>
-                            <p style={{ color: owed > 0 ? "#a16207" : "#15803d", fontSize: 13, fontWeight: 700 }}>{owed > 0 ? fmt(owed) : "Paid in full"}</p>
-                          </div>
-                        </>
-                      ) : (
-                        <>
-                          <div style={{ background: "#f8fafc", borderRadius: 10, padding: "10px 12px" }}>
-                            <p style={{ color: "#94a3b8", fontSize: 10, fontWeight: 600, textTransform: "uppercase", marginBottom: 3 }}>Day Rate</p>
-                            <p style={{ color: "#0f172a", fontSize: 13, fontWeight: 700 }}>{fmt(c.dayRate)}/day</p>
-                          </div>
-                          <div style={{ background: "#f8fafc", borderRadius: 10, padding: "10px 12px" }}>
-                            <p style={{ color: "#94a3b8", fontSize: 10, fontWeight: 600, textTransform: "uppercase", marginBottom: 3 }}>Total Paid</p>
-                            <p style={{ color: "#0f172a", fontSize: 13, fontWeight: 700 }}>{fmt(c.totalPaid)}</p>
-                          </div>
-                        </>
-                      )}
+                      <div style={{ background: "#f8fafc", borderRadius: 10, padding: "10px 12px" }}>
+                        <p style={{ color: "#94a3b8", fontSize: 10, fontWeight: 600, textTransform: "uppercase", marginBottom: 3 }}>Total Bid</p>
+                        <p style={{ color: "#0f172a", fontSize: 13, fontWeight: 700 }}>{fmt(t.totalBid)}</p>
+                      </div>
+                      <div style={{ background: t.owed > 0 ? "#fef9c3" : t.totalBid > 0 ? "#dcfce7" : "#f8fafc", borderRadius: 10, padding: "10px 12px" }}>
+                        <p style={{ color: "#94a3b8", fontSize: 10, fontWeight: 600, textTransform: "uppercase", marginBottom: 3 }}>Balance Owed</p>
+                        <p style={{ color: t.owed > 0 ? "#a16207" : "#15803d", fontSize: 13, fontWeight: 700 }}>{t.totalBid > 0 ? (t.owed > 0 ? fmt(t.owed) : "Paid in full") : "—"}</p>
+                      </div>
                     </div>
                     <div style={{ marginTop: 10, display: "flex", alignItems: "center", gap: 12 }}>
                       <div style={{ flex: 1 }}>
-                        <p style={{ color: "#94a3b8", fontSize: 11, fontWeight: 600, textTransform: "uppercase", marginBottom: 4 }}>Paid to Date</p>
+                        <p style={{ color: "#94a3b8", fontSize: 11, fontWeight: 600, textTransform: "uppercase", marginBottom: 4 }}>Paid to Date · {fmt(t.totalPaid)}</p>
                         <div style={{ height: 6, background: "#f1f5f9", borderRadius: 99, overflow: "hidden" }}>
-                          <div style={{ height: "100%", width: `${c.paymentType === "Fixed Bid" ? Math.min(100, Math.round((c.totalPaid / c.totalBid) * 100)) : 100}%`, background: "#10b981", borderRadius: 99 }} />
+                          <div style={{ height: "100%", width: `${pct}%`, background: "#10b981", borderRadius: 99 }} />
                         </div>
                       </div>
                       <button onClick={() => { setShowPaymentModal(c.id); setPaymentDate(new Date().toISOString().split("T")[0]); }} style={{ background: "#10b981", color: "#fff", border: "none", borderRadius: 8, padding: "6px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 5, whiteSpace: "nowrap", flexShrink: 0 }}>
@@ -4887,36 +4879,15 @@ function FlipDetail({ flip, onBack, allFlips, setAllFlips, onNavigateToExpense }
           {[
             { label: "Name / Company", key: "name", type: "text", placeholder: "e.g. ABC Plumbing" },
             { label: "Trade", key: "trade", type: "text", placeholder: "e.g. Plumbing, Electrical" },
-            { label: "Phone", key: "phone", type: "text", placeholder: "555-000-0000" },
+            { label: "Phone", key: "phone", type: "tel", placeholder: "555-000-0000" },
+            { label: "Email", key: "email", type: "email", placeholder: "info@contractor.com" },
           ].map(f => (
             <div key={f.key} style={{ marginBottom: 14 }}>
-              <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>{f.label}</label>
+              <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>{f.label}{f.key === "phone" || f.key === "email" ? <span style={{ color: "#94a3b8", fontWeight: 400 }}> (optional)</span> : ""}</label>
               <input type={f.type} placeholder={f.placeholder} value={conForm[f.key]} onChange={sfC(f.key)} style={iS} />
             </div>
           ))}
-          <div style={{ marginBottom: 14 }}>
-            <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Payment Type</label>
-            <select value={conForm.paymentType} onChange={sfC("paymentType")} style={iS}>
-              <option>Fixed Bid</option><option>Day Rate</option>
-            </select>
-          </div>
-          {conForm.paymentType === "Fixed Bid" ? (
-            <div style={{ marginBottom: 14 }}>
-              <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Total Bid ($)</label>
-              <input type="number" placeholder="0.00" value={conForm.totalBid} onChange={sfC("totalBid")} style={iS} />
-            </div>
-          ) : (
-            <div style={{ marginBottom: 14 }}>
-              <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Day Rate ($)</label>
-              <input type="number" placeholder="0.00" value={conForm.dayRate} onChange={sfC("dayRate")} style={iS} />
-            </div>
-          )}
-          <div style={{ marginBottom: 20 }}>
-            <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Status</label>
-            <select value={conForm.status} onChange={sfC("status")} style={iS}>
-              <option value="pending">Pending</option><option value="active">Active</option><option value="complete">Complete</option>
-            </select>
-          </div>
+          <p style={{ fontSize: 12, color: "#94a3b8", marginBottom: 18 }}>Bids, payments, and documents can be managed from the contractor's detail page.</p>
           <div style={{ display: "flex", gap: 10 }}>
             <button onClick={() => { setShowContractorModal(false); setEditingConId(null); setConForm(emptyCon); }} style={{ flex: 1, padding: "12px", border: "1px solid #e2e8f0", borderRadius: 10, background: "#fff", color: "#475569", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
             <button onClick={handleSaveCon} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "#f59e0b", color: "#fff", fontWeight: 600, cursor: "pointer" }}>{editingConId ? "Save Changes" : "Add Contractor"}</button>
@@ -4926,7 +4897,7 @@ function FlipDetail({ flip, onBack, allFlips, setAllFlips, onNavigateToExpense }
       {showPaymentModal && (() => {
         const con = conData.find(c => c.id === showPaymentModal);
         if (!con) return null;
-        const owed = con.paymentType === "Fixed Bid" ? (con.totalBid - con.totalPaid) : null;
+        const t = conTotals(con);
         return (
           <Modal title={`Record Payment — ${con.name}`} onClose={() => { setShowPaymentModal(null); setPaymentAmount(""); setPaymentNote(""); }}>
             <div style={{ background: "#f8fafc", borderRadius: 12, padding: 14, marginBottom: 18 }}>
@@ -4934,33 +4905,25 @@ function FlipDetail({ flip, onBack, allFlips, setAllFlips, onNavigateToExpense }
                 <span style={{ fontSize: 13, color: "#64748b" }}>Trade</span>
                 <span style={{ fontSize: 13, fontWeight: 600, color: "#0f172a" }}>{con.trade}</span>
               </div>
-              {con.paymentType === "Fixed Bid" && <>
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-                  <span style={{ fontSize: 13, color: "#64748b" }}>Total Bid</span>
-                  <span style={{ fontSize: 13, fontWeight: 600, color: "#0f172a" }}>{fmt(con.totalBid)}</span>
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-                  <span style={{ fontSize: 13, color: "#64748b" }}>Paid to Date</span>
-                  <span style={{ fontSize: 13, fontWeight: 600, color: "#0f172a" }}>{fmt(con.totalPaid)}</span>
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between" }}>
-                  <span style={{ fontSize: 13, color: "#64748b", fontWeight: 600 }}>Balance Owed</span>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: owed > 0 ? "#b91c1c" : "#15803d" }}>{owed > 0 ? fmt(owed) : "Paid in full"}</span>
-                </div>
-              </>}
-              {con.paymentType === "Day Rate" && (
-                <div style={{ display: "flex", justifyContent: "space-between" }}>
-                  <span style={{ fontSize: 13, color: "#64748b" }}>Day Rate</span>
-                  <span style={{ fontSize: 13, fontWeight: 600, color: "#0f172a" }}>{fmt(con.dayRate)}/day</span>
-                </div>
-              )}
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                <span style={{ fontSize: 13, color: "#64748b" }}>Total Bid (This Deal)</span>
+                <span style={{ fontSize: 13, fontWeight: 600, color: "#0f172a" }}>{fmt(t.totalBid)}</span>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                <span style={{ fontSize: 13, color: "#64748b" }}>Paid to Date</span>
+                <span style={{ fontSize: 13, fontWeight: 600, color: "#0f172a" }}>{fmt(t.totalPaid)}</span>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between" }}>
+                <span style={{ fontSize: 13, color: "#64748b", fontWeight: 600 }}>Balance Owed</span>
+                <span style={{ fontSize: 13, fontWeight: 700, color: t.owed > 0 ? "#b91c1c" : "#15803d" }}>{t.owed > 0 ? fmt(t.owed) : "Paid in full"}</span>
+              </div>
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
               <div>
                 <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Payment Amount ($) *</label>
-                <input type="number" placeholder={owed ? String(owed) : "0.00"} value={paymentAmount} onChange={e => setPaymentAmount(e.target.value)} style={iS} />
-                {con.paymentType === "Fixed Bid" && owed > 0 && (
-                  <button onClick={() => setPaymentAmount(String(owed))} style={{ background: "none", border: "none", color: "#3b82f6", fontSize: 11, fontWeight: 600, cursor: "pointer", marginTop: 4, padding: 0 }}>Fill remaining balance ({fmt(owed)})</button>
+                <input type="number" placeholder={t.owed > 0 ? String(t.owed) : "0.00"} value={paymentAmount} onChange={e => setPaymentAmount(e.target.value)} style={iS} />
+                {t.owed > 0 && (
+                  <button onClick={() => setPaymentAmount(String(t.owed))} style={{ background: "none", border: "none", color: "#3b82f6", fontSize: 11, fontWeight: 600, cursor: "pointer", marginTop: 4, padding: 0 }}>Fill remaining balance ({fmt(t.owed)})</button>
                 )}
               </div>
               <div>
@@ -5301,7 +5264,7 @@ function FlipDetail({ flip, onBack, allFlips, setAllFlips, onNavigateToExpense }
             </>}
             {deleteConfirm.type === "contractor" && <>
               <p style={{ fontSize: 13, fontWeight: 600, color: "#0f172a" }}>{deleteConfirm.item.name}</p>
-              <p style={{ fontSize: 12, color: "#64748b", marginTop: 4 }}>{deleteConfirm.item.trade} · {deleteConfirm.item.paymentType}</p>
+              <p style={{ fontSize: 12, color: "#64748b", marginTop: 4 }}>{deleteConfirm.item.trade}{deleteConfirm.item.phone ? ` · ${deleteConfirm.item.phone}` : ""}</p>
             </>}
             {deleteConfirm.type === "rehab" && <>
               <p style={{ fontSize: 13, fontWeight: 600, color: "#0f172a" }}>{deleteConfirm.item.category}</p>
@@ -6120,6 +6083,13 @@ function AppShell() {
   const [highlightTenantId, setHighlightTenantId] = useState(null);
   const [navSource, setNavSource] = useState(null);
   const [editPropertyId, setEditPropertyId] = useState(null); // triggers edit modal in Properties
+  const [selectedContractor, setSelectedContractor] = useState(null);
+
+  const handleSelectContractor = (contractor) => {
+    setSelectedContractor(contractor);
+    setNavSource("flipcontractors");
+    setActiveView("contractorDetail");
+  };
 
   const navigateToTransaction = (txId) => {
     setHighlightTxId(txId);
@@ -6283,7 +6253,8 @@ function AppShell() {
           {activeView === "flipDetail"      && selectedFlip && <FlipDetail flip={selectedFlip} onBack={() => setActiveView("flips")} onNavigateToExpense={navigateToFlipExpense} />}
           {activeView === "fliprehab"        && <RehabTracker />}
           {activeView === "flipexpenses"    && <FlipExpenses highlightExpId={highlightExpId} onBack={navSource === "flipDetail" ? () => { setActiveView("flipDetail"); setHighlightExpId(null); setNavSource(null); } : null} onClearHighlight={() => setHighlightExpId(null)} />}
-          {activeView === "flipcontractors" && <FlipContractors />}
+          {activeView === "flipcontractors" && <FlipContractors onSelectContractor={handleSelectContractor} />}
+          {activeView === "contractorDetail" && selectedContractor && <ContractorDetail contractor={selectedContractor} onBack={() => { setSelectedContractor(null); setActiveView("flipcontractors"); }} />}
           {activeView === "flipmilestones"  && <FlipMilestones />}
           {activeView === "flipnotes"       && <FlipNotes />}
           {activeView === "flipanalytics"   && <FlipAnalytics />}
