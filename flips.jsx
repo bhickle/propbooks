@@ -300,8 +300,8 @@ export function RehabTracker() {
   const totalBudget = filtered.reduce((s, i) => s + i.budgeted, 0);
   const totalSpent  = filtered.reduce((s, i) => s + i.spent, 0);
   const totalLeft   = totalBudget - totalSpent;
-  const complete    = allItems.filter(i => i.status === "complete").length;
-  const inProgress  = allItems.filter(i => i.status === "in-progress").length;
+  const complete    = filtered.filter(i => i.status === "complete").length;
+  const inProgress  = filtered.filter(i => i.status === "in-progress").length;
 
   const statusStyle = {
     "complete":    { bg: "#dcfce7", text: "#15803d", label: "Complete"    },
@@ -2012,10 +2012,10 @@ export function FlipMilestones() {
     return true;
   });
 
-  const totalDone = allMilestones.filter(m => m.done).length;
-  const totalUpcoming = allMilestones.filter(m => !m.done).length;
+  const totalDone = filtered.filter(m => m.done).length;
+  const totalUpcoming = filtered.filter(m => !m.done).length;
   const today = new Date().toISOString().split("T")[0];
-  const totalOverdue = allMilestones.filter(m => !m.done && m.targetDate && m.targetDate < today).length;
+  const totalOverdue = filtered.filter(m => !m.done && m.targetDate && m.targetDate < today).length;
 
   const clearFilters = () => { setFilterFlip("all"); setFilterStatus("all"); };
   const hasFilters = filterFlip !== "all" || filterStatus !== "all";
@@ -2045,7 +2045,7 @@ export function FlipMilestones() {
       />
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, marginBottom: 24 }}>
-        <StatCard icon={CheckCircle} label="Completed" value={totalDone} sub={`of ${allMilestones.length} total`} color="#10b981" />
+        <StatCard icon={CheckCircle} label="Completed" value={totalDone} sub={`of ${filtered.length} total`} color="#10b981" />
         <StatCard icon={Clock} label="Upcoming" value={totalUpcoming} sub="Not yet done" color="#3b82f6" />
         <StatCard icon={AlertCircle} label="Overdue" value={totalOverdue} sub="Past target date" color={totalOverdue > 0 ? "#ef4444" : "#94a3b8"} />
       </div>
