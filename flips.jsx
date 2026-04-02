@@ -589,12 +589,12 @@ export function RehabTracker() {
                               onMouseEnter={e => e.currentTarget.style.opacity = 1}
                               onMouseLeave={e => e.currentTarget.style.opacity = 0.4}>
                               <button onClick={() => startEditItem(f.id, item._idx, item)}
-                                style={{ background: "#f1f5f9", border: "none", borderRadius: 6, padding: "4px 7px", cursor: "pointer", color: "#64748b", display: "flex", alignItems: "center" }}
+                                style={{ background: "#f1f5f9", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "#475569", display: "flex", alignItems: "center" }}
                                 title="Edit">
-                                ✏️
+                                <Pencil size={13} />
                               </button>
                               <button onClick={() => setDeleteConfirm({ flipId: f.id, idx: item._idx, category: item.category, budgeted: item.budgeted, spent: item.spent })}
-                                style={{ background: "#fee2e2", border: "none", borderRadius: 6, padding: "4px 7px", cursor: "pointer", color: "#ef4444", display: "flex", alignItems: "center" }}
+                                style={{ background: "#fee2e2", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "#ef4444", display: "flex", alignItems: "center" }}
                                 title="Delete">
                                 <Trash2 size={13} />
                               </button>
@@ -1433,7 +1433,7 @@ export function ContractorDetail({ contractor, onBack }) {
                 </span>
               ))}
             </div>
-            <button onClick={() => { setEditMode(true); setActiveTab("overview"); }} style={{ display: "flex", alignItems: "center", gap: 6, background: "#f1f5f9", border: "none", borderRadius: 10, padding: "8px 14px", cursor: "pointer", fontSize: 13, fontWeight: 600, color: "#475569", marginLeft: 4 }}><Pencil size={13} /> Edit</button>
+            <button onClick={() => { setEditMode(true); setActiveTab("overview"); }} style={{ display: "flex", alignItems: "center", gap: 6, background: "#f1f5f9", border: "none", borderRadius: 10, padding: "8px 14px", cursor: "pointer", fontSize: 13, fontWeight: 600, color: "#475569", marginLeft: 4 }}><Pencil size={13} /> Edit Contractor</button>
           </div>
         </div>
         <div style={{ display: "flex", gap: 24, marginTop: 16, paddingTop: 16, borderTop: "1px solid #f1f5f9" }}>
@@ -1521,8 +1521,8 @@ export function ContractorDetail({ contractor, onBack }) {
                     {b.status === "accepted" ? "Accepted" : "Pending"}
                   </button>
                   <span style={{ fontSize: 12, color: "#94a3b8", minWidth: 80 }}>{b.date}</span>
-                  <button onClick={(e) => { e.stopPropagation(); openEditBid(b); }} style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8", padding: 4 }} title="Edit"><Pencil size={13} /></button>
-                  <button onClick={(e) => { e.stopPropagation(); setDeleteConfirm({ type: "bid", id: b.id, label: b.rehabItem }); }} style={{ background: "none", border: "none", cursor: "pointer", color: "#cbd5e1", padding: 4 }} title="Delete"><Trash2 size={14} /></button>
+                  <button onClick={(e) => { e.stopPropagation(); openEditBid(b); }} style={{ background: "#f1f5f9", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "#475569", display: "flex", alignItems: "center" }} title="Edit"><Pencil size={13} /></button>
+                  <button onClick={(e) => { e.stopPropagation(); setDeleteConfirm({ type: "bid", id: b.id, label: b.rehabItem }); }} style={{ background: "#fee2e2", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "#ef4444", display: "flex", alignItems: "center" }} title="Delete"><Trash2 size={13} /></button>
                 </div>
               );
             })}
@@ -1550,8 +1550,8 @@ export function ContractorDetail({ contractor, onBack }) {
                       <span style={{ fontSize: 13, fontWeight: 600, color: "#0f172a" }}>{d.name}</span>
                     </div>
                     <div style={{ display: "flex", gap: 4 }}>
-                      <button onClick={() => openEditDoc(d)} style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8", padding: 2 }} title="Edit"><Pencil size={13} /></button>
-                      <button onClick={() => setDeleteConfirm({ type: "doc", id: d.id, label: d.name })} style={{ background: "none", border: "none", cursor: "pointer", color: "#cbd5e1", padding: 2 }} title="Delete"><Trash2 size={13} /></button>
+                      <button onClick={() => openEditDoc(d)} style={{ background: "#f1f5f9", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "#475569", display: "flex", alignItems: "center" }} title="Edit"><Pencil size={13} /></button>
+                      <button onClick={() => setDeleteConfirm({ type: "doc", id: d.id, label: d.name })} style={{ background: "#fee2e2", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "#ef4444", display: "flex", alignItems: "center" }} title="Delete"><Trash2 size={13} /></button>
                     </div>
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
@@ -2446,8 +2446,8 @@ export function FlipMilestones() {
                       </span>
                     )}
                     <div style={{ display: "flex", gap: 4, flexShrink: 0, marginLeft: 4 }}>
-                      <button onClick={() => startEdit(flip.id, m._idx, m)} style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8", padding: 2 }} title="Edit"><Pencil size={13} /></button>
-                      <button onClick={() => setDeleteConfirm({ flipId: flip.id, idx: m._idx, label: m.label })} style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8", padding: 2 }} title="Delete"><Trash2 size={13} /></button>
+                      <button onClick={() => startEdit(flip.id, m._idx, m)} style={{ background: "#f1f5f9", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "#475569", display: "flex", alignItems: "center" }} title="Edit"><Pencil size={13} /></button>
+                      <button onClick={() => setDeleteConfirm({ flipId: flip.id, idx: m._idx, label: m.label })} style={{ background: "#fee2e2", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "#ef4444", display: "flex", alignItems: "center" }} title="Delete"><Trash2 size={13} /></button>
                     </div>
                   </div>
                 );
