@@ -629,9 +629,9 @@ export function RehabTracker() {
                 <input style={iS} placeholder="e.g. Kitchen, Drywall, HVAC, Landscaping..." value={itemForm.category}
                   onChange={e => { setItemForm(f => ({ ...f, category: e.target.value })); setCatFocus(true); }}
                   onFocus={() => setCatFocus(true)} onBlur={() => setTimeout(() => setCatFocus(false), 150)} />
-                {catFocus && (() => {
+                {catFocus && itemForm.category && (() => {
                   const q = itemForm.category.toLowerCase();
-                  const matches = q ? allCategories.filter(c => c.toLowerCase().includes(q) && c.toLowerCase() !== q) : allCategories;
+                  const matches = allCategories.filter(c => c.toLowerCase().includes(q) && c.toLowerCase() !== q);
                   const exactExists = allCategories.some(c => c.toLowerCase() === q);
                   const showNew = q && !exactExists;
                   if (matches.length === 0 && !showNew) return null;
@@ -990,9 +990,9 @@ export function FlipExpenses({ highlightExpId, onBack, onClearHighlight }) {
                 <input style={iS} placeholder="e.g. Home Depot, ABC Plumbing" value={form.vendor}
                   onChange={e => { setForm(f => ({ ...f, vendor: e.target.value })); setVendorFocus(true); }}
                   onFocus={() => setVendorFocus(true)} onBlur={() => setTimeout(() => setVendorFocus(false), 150)} />
-                {vendorFocus && (() => {
+                {vendorFocus && form.vendor && (() => {
                   const q = form.vendor.toLowerCase();
-                  const matches = q ? allVendors.filter(v => v.toLowerCase().includes(q) && v.toLowerCase() !== q) : allVendors;
+                  const matches = allVendors.filter(v => v.toLowerCase().includes(q) && v.toLowerCase() !== q);
                   const exactExists = allVendors.some(v => v.toLowerCase() === q);
                   const showNew = q && !exactExists;
                   if (matches.length === 0 && !showNew) return null;
@@ -1362,9 +1362,9 @@ export function FlipContractors() {
                   <input style={iS} placeholder="ABC Plumbing" value={form.name}
                     onChange={e => { setForm(f => ({ ...f, name: e.target.value })); setNameFocus(true); }}
                     onFocus={() => setNameFocus(true)} onBlur={() => setTimeout(() => setNameFocus(false), 150)} />
-                  {nameFocus && (() => {
+                  {nameFocus && form.name && (() => {
                     const q = form.name.toLowerCase();
-                    const matches = q ? allContractorNames.filter(n => n.toLowerCase().includes(q) && n.toLowerCase() !== q) : allContractorNames;
+                    const matches = allContractorNames.filter(n => n.toLowerCase().includes(q) && n.toLowerCase() !== q);
                     const exactExists = allContractorNames.some(n => n.toLowerCase() === q);
                     const showNew = q && !exactExists;
                     if (matches.length === 0 && !showNew) return null;
@@ -2279,9 +2279,9 @@ export function FlipMilestones() {
                 <input value={msForm.label} style={iS} placeholder="e.g. Inspection Complete"
                   onChange={e => { setMsForm(f => ({ ...f, label: e.target.value })); setLabelFocus(true); }}
                   onFocus={() => setLabelFocus(true)} onBlur={() => setTimeout(() => setLabelFocus(false), 150)} />
-                {labelFocus && (() => {
+                {labelFocus && msForm.label && (() => {
                   const q = msForm.label.toLowerCase();
-                  const matches = q ? allMilestoneLabels.filter(l => l.toLowerCase().includes(q) && l.toLowerCase() !== q) : allMilestoneLabels;
+                  const matches = allMilestoneLabels.filter(l => l.toLowerCase().includes(q) && l.toLowerCase() !== q);
                   const exactExists = allMilestoneLabels.some(l => l.toLowerCase() === q);
                   const showNew = q && !exactExists;
                   if (matches.length === 0 && !showNew) return null;

@@ -4463,9 +4463,9 @@ function FlipDetail({ flip, onBack, allFlips, setAllFlips, onNavigateToExpense }
                   <input value={rehabForm.category} placeholder="e.g. Kitchen, Flooring, HVAC" style={iS}
                     onChange={e => { setRehabForm(f => ({ ...f, category: e.target.value })); setCatFocus(true); }}
                     onFocus={() => setCatFocus(true)} onBlur={() => setTimeout(() => setCatFocus(false), 150)} />
-                  {catFocus && (() => {
+                  {catFocus && rehabForm.category && (() => {
                     const q = rehabForm.category.toLowerCase();
-                    const matches = q ? allCategories.filter(c => c.toLowerCase().includes(q) && c.toLowerCase() !== q) : allCategories;
+                    const matches = allCategories.filter(c => c.toLowerCase().includes(q) && c.toLowerCase() !== q);
                     const exactExists = allCategories.some(c => c.toLowerCase() === q);
                     const showNew = q && !exactExists;
                     if (matches.length === 0 && !showNew) return null;
