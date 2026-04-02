@@ -306,6 +306,23 @@ export function updateFlipMilestones(flipId, milestones) {
   return Promise.resolve(milestones);
 }
 
+// Direct access to milestone data for cross-deal views
+export const FLIP_MILESTONES_DATA = _flipMilestones;
+
+// Flip notes — keyed by flipId
+export const FLIP_NOTES = {
+  1: [
+    { id: 1001, date: "2026-03-28", text: "Spoke with inspector — back wall needs structural review before drywall. Getting quote from Nash Drywall." },
+    { id: 1002, date: "2026-03-15", text: "ABC Plumbing delayed 1 week on master bath rough-in. Pushed flooring start to 3/21." },
+    { id: 1003, date: "2026-02-10", text: "Demo went smooth. Dumpster picked up, ready for rough-in next week." },
+  ],
+  2: [
+    { id: 1004, date: "2026-01-20", text: "All rehab complete. Scheduling photographer for listing photos this week." },
+  ],
+  3: [],
+  4: [],
+};
+
 // -----------------------------------------------------------------------------
 // Tenants / Rent Roll
 // -----------------------------------------------------------------------------

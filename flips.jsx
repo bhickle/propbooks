@@ -13,14 +13,15 @@ import {
   CheckCircle, Clock, AlertCircle, ChevronRight, X, Trash2, Pencil,
   Wrench, Users, Receipt, BarChart3, Target, Calendar, Flag,
   ArrowUp, ArrowDown, Truck, Building2, MapPin, Home, Info,
+  MessageSquare, FileText, Circle,
 } from "lucide-react";
 import {
-  fmt, fmtK, newId, STAGE_ORDER, STAGE_COLORS,
+  fmt, fmtK, newId, STAGE_ORDER, STAGE_COLORS, DEFAULT_MILESTONES,
 } from "./api.js";
 
 // Shared mock data refs (passed as props or imported directly)
 // Using module-level state so all modules stay in sync within a session
-import { FLIPS as _FLIPS, FLIP_EXPENSES as _FE, CONTRACTORS as _CON } from "./api.js";
+import { FLIPS as _FLIPS, FLIP_EXPENSES as _FE, CONTRACTORS as _CON, FLIP_MILESTONES_DATA as _FM, FLIP_NOTES as _FN } from "./api.js";
 
 // ---------------------------------------------------------------------------
 // Shared helpers
@@ -1979,6 +1980,344 @@ export function FlipAnalytics() {
         </table>
       </div>
       </>)}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// 6. MILESTONES (cross-deal view)
+// ---------------------------------------------------------------------------
+export function FlipMilestones() {
+  const [filterFlip, setFilterFlip] = useState("all");
+  const [filterStatus, setFilterStatus] = useState("all");
+  const [, rerender] = useState(0);
+
+  // Build flat list of all milestones across deals
+  const allMilestones = useMemo(() => {
+    const list = [];
+    _FLIPS.forEach(f => {
+      const ms = _FM[f.id] || DEFAULT_MILESTONES.map(label => ({ label, done: false, date: null, targetDate: null }));
+      ms.forEach((m, idx) => {
+        list.push({ ...m, flipId: f.id, flipName: f.name, flipColor: f.color, flipImage: f.image, flipStage: f.stage, _idx: idx });
+      });
+    });
+    return list;
+  }, []);
+
+  const filtered = allMilestones.filter(m => {
+    if (filterFlip !== "all" && m.flipId !== parseInt(filterFlip)) return false;
+    if (filterStatus === "done" && !m.done) return false;
+    if (filterStatus === "upcoming" && m.done) return false;
+    if (filterStatus === "overdue" && (m.done || !m.targetDate || m.targetDate >= new Date().toISOString().split("T")[0])) return false;
+    return true;
+  });
+
+  const totalDone = allMilestones.filter(m => m.done).length;
+  const totalUpcoming = allMilestones.filter(m => !m.done).length;
+  const today = new Date().toISOString().split("T")[0];
+  const totalOverdue = allMilestones.filter(m => !m.done && m.targetDate && m.targetDate < today).length;
+
+  const clearFilters = () => { setFilterFlip("all"); setFilterStatus("all"); };
+  const hasFilters = filterFlip !== "all" || filterStatus !== "all";
+
+  const toggleMilestone = (flipId, idx) => {
+    const ms = _FM[flipId];
+    if (ms && ms[idx]) {
+      ms[idx].done = !ms[idx].done;
+      ms[idx].date = ms[idx].done ? new Date().toISOString().split("T")[0] : null;
+      rerender(n => n + 1);
+    }
+  };
+
+  // Group by deal for display
+  const groupedByDeal = {};
+  filtered.forEach(m => {
+    if (!groupedByDeal[m.flipId]) groupedByDeal[m.flipId] = { flip: { id: m.flipId, name: m.flipName, color: m.flipColor, image: m.flipImage, stage: m.flipStage }, items: [] };
+    groupedByDeal[m.flipId].items.push(m);
+  });
+
+  return (
+    <div>
+      <PageHeader
+        title="Milestones"
+        sub="Track progress across all your flips"
+        action={null}
+      />
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, marginBottom: 24 }}>
+        <StatCard icon={CheckCircle} label="Completed" value={totalDone} sub={`of ${allMilestones.length} total`} color="#10b981" />
+        <StatCard icon={Clock} label="Upcoming" value={totalUpcoming} sub="Not yet done" color="#3b82f6" />
+        <StatCard icon={AlertCircle} label="Overdue" value={totalOverdue} sub="Past target date" color={totalOverdue > 0 ? "#ef4444" : "#94a3b8"} />
+      </div>
+
+      {/* Filter bar */}
+      <div style={{ display: "flex", gap: 10, marginBottom: hasFilters ? 10 : 20, flexWrap: "wrap", alignItems: "center" }}>
+        <select value={filterFlip} onChange={e => setFilterFlip(e.target.value)} style={{ ...iS, width: "auto", minWidth: 160, fontSize: 13, padding: "9px 12px" }}>
+          <option value="all">All Deals</option>
+          {_FLIPS.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
+        </select>
+        <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} style={{ ...iS, width: "auto", minWidth: 140, fontSize: 13, padding: "9px 12px" }}>
+          <option value="all">All Statuses</option>
+          <option value="done">Completed</option>
+          <option value="upcoming">Upcoming</option>
+          <option value="overdue">Overdue</option>
+        </select>
+        {hasFilters && (
+          <button onClick={clearFilters} style={{ background: "none", border: "none", color: "#94a3b8", fontSize: 12, cursor: "pointer", textDecoration: "underline", padding: 0 }}>Clear filters</button>
+        )}
+      </div>
+
+      {/* Grouped by deal */}
+      {Object.values(groupedByDeal).length === 0 ? (
+        <div style={{ ...sectionS, textAlign: "center", padding: 48, color: "#94a3b8" }}>
+          <Flag size={32} style={{ margin: "0 auto 12px", display: "block" }} />
+          <p style={{ fontWeight: 600, marginBottom: 4 }}>No milestones match your filters</p>
+          {hasFilters && <button onClick={clearFilters} style={{ background: "none", border: "none", color: "#f59e0b", fontSize: 13, cursor: "pointer", textDecoration: "underline", padding: 0 }}>Clear filters</button>}
+        </div>
+      ) : Object.values(groupedByDeal).map(({ flip, items }) => {
+        const done = items.filter(m => m.done).length;
+        const pct = items.length > 0 ? Math.round((done / items.length) * 100) : 0;
+        return (
+          <div key={flip.id} style={{ ...sectionS }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <div style={{ width: 32, height: 32, borderRadius: 8, background: flip.color + "20", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, color: flip.color }}>{flip.image}</div>
+                <div>
+                  <p style={{ fontSize: 14, fontWeight: 700, color: "#0f172a" }}>{flip.name}</p>
+                  <p style={{ fontSize: 12, color: "#94a3b8" }}>{flip.stage}</p>
+                </div>
+              </div>
+              <div style={{ textAlign: "right" }}>
+                <p style={{ fontSize: 14, fontWeight: 700, color: "#0f172a" }}>{pct}%</p>
+                <p style={{ fontSize: 11, color: "#94a3b8" }}>{done} of {items.length}</p>
+              </div>
+            </div>
+            {/* Progress bar */}
+            <div style={{ background: "#f1f5f9", borderRadius: 6, height: 6, marginBottom: 16, overflow: "hidden" }}>
+              <div style={{ height: "100%", width: `${pct}%`, background: "#10b981", borderRadius: 6, transition: "width 0.3s" }} />
+            </div>
+            {/* Milestone rows */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              {items.map((m, i) => {
+                const overdue = !m.done && m.targetDate && m.targetDate < today;
+                return (
+                  <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "8px 10px", borderRadius: 8, background: m.done ? "#f0fdf4" : overdue ? "#fef2f2" : "#f8fafc", border: `1px solid ${m.done ? "#bbf7d0" : overdue ? "#fecaca" : "#f1f5f9"}` }}>
+                    <button onClick={() => toggleMilestone(flip.id, m._idx)} style={{ background: "none", border: "none", cursor: "pointer", padding: 0, display: "flex", flexShrink: 0 }}>
+                      {m.done ? <CheckCircle size={18} color="#10b981" /> : <Circle size={18} color={overdue ? "#ef4444" : "#cbd5e1"} />}
+                    </button>
+                    <span style={{ flex: 1, fontSize: 13, fontWeight: 500, color: m.done ? "#6b7280" : "#0f172a", textDecoration: m.done ? "line-through" : "none" }}>{m.label}</span>
+                    {m.targetDate && (
+                      <span style={{ fontSize: 11, color: overdue ? "#ef4444" : "#94a3b8", fontWeight: overdue ? 600 : 400, flexShrink: 0 }}>
+                        {overdue ? "Overdue: " : "Target: "}{new Date(m.targetDate).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                      </span>
+                    )}
+                    {m.done && m.date && (
+                      <span style={{ fontSize: 11, color: "#10b981", flexShrink: 0 }}>
+                        {new Date(m.date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// 7. NOTES (cross-deal activity log)
+// ---------------------------------------------------------------------------
+export function FlipNotes() {
+  const [filterFlip, setFilterFlip] = useState("all");
+  const [search, setSearch] = useState("");
+  const [, rerender] = useState(0);
+  const [showAdd, setShowAdd] = useState(false);
+  const [noteForm, setNoteForm] = useState({ flipId: "", text: "" });
+  const [editId, setEditId] = useState(null);
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
+
+  // Build flat list of all notes across deals
+  const allNotes = useMemo(() => {
+    const list = [];
+    _FLIPS.forEach(f => {
+      (_FN[f.id] || []).forEach(n => {
+        list.push({ ...n, flipId: f.id, flipName: f.name, flipColor: f.color, flipImage: f.image });
+      });
+    });
+    return list.sort((a, b) => b.date.localeCompare(a.date));
+  }, []);
+
+  const filtered = allNotes.filter(n => {
+    if (filterFlip !== "all" && n.flipId !== parseInt(filterFlip)) return false;
+    if (search && !n.text.toLowerCase().includes(search.toLowerCase())) return false;
+    return true;
+  });
+
+  const clearFilters = () => { setFilterFlip("all"); setSearch(""); };
+  const hasFilters = filterFlip !== "all" || search;
+
+  const handleSave = () => {
+    if (!noteForm.text.trim() || !noteForm.flipId) return;
+    const fId = parseInt(noteForm.flipId);
+    if (!_FN[fId]) _FN[fId] = [];
+    if (editId !== null) {
+      const idx = _FN[fId].findIndex(n => n.id === editId);
+      if (idx !== -1) _FN[fId][idx] = { ..._FN[fId][idx], text: noteForm.text.trim() };
+    } else {
+      _FN[fId].unshift({ id: newId(), date: new Date().toISOString().split("T")[0], text: noteForm.text.trim() });
+    }
+    setNoteForm({ flipId: "", text: "" });
+    setEditId(null);
+    setShowAdd(false);
+    rerender(n => n + 1);
+  };
+
+  const handleDelete = (note) => {
+    if (!_FN[note.flipId]) return;
+    _FN[note.flipId] = _FN[note.flipId].filter(n => n.id !== note.id);
+    setDeleteConfirm(null);
+    rerender(n => n + 1);
+  };
+
+  const openEdit = (note) => {
+    setEditId(note.id);
+    setNoteForm({ flipId: String(note.flipId), text: note.text });
+    setShowAdd(true);
+  };
+
+  // Group by date
+  const grouped = {};
+  filtered.forEach(n => {
+    const label = new Date(n.date).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" });
+    if (!grouped[n.date]) grouped[n.date] = { label, notes: [] };
+    grouped[n.date].notes.push(n);
+  });
+
+  const totalNotes = allNotes.length;
+  const dealsWithNotes = new Set(allNotes.map(n => n.flipId)).size;
+
+  return (
+    <div>
+      <PageHeader
+        title="Deal Notes"
+        sub="Activity log and notes across all flips"
+        action={
+          <button onClick={() => { setEditId(null); setNoteForm({ flipId: _FLIPS[0] ? String(_FLIPS[0].id) : "", text: "" }); setShowAdd(true); }} style={{ background: "#f59e0b", color: "#fff", border: "none", borderRadius: 10, padding: "10px 18px", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
+            <Plus size={16} /> Add Note
+          </button>
+        }
+      />
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, marginBottom: 24 }}>
+        <StatCard icon={MessageSquare} label="Total Notes" value={totalNotes} sub="Across all deals" color="#f59e0b" />
+        <StatCard icon={Building2} label="Deals with Notes" value={dealsWithNotes} sub={`of ${_FLIPS.length} deals`} color="#3b82f6" />
+        <StatCard icon={Calendar} label="Latest Entry" value={allNotes[0] ? new Date(allNotes[0].date).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "—"} sub={allNotes[0]?.flipName || ""} color="#8b5cf6" />
+      </div>
+
+      {/* Filter bar */}
+      <div style={{ display: "flex", gap: 10, marginBottom: hasFilters ? 10 : 20, flexWrap: "wrap", alignItems: "center" }}>
+        <div style={{ position: "relative", flex: "1 1 200px", minWidth: 180 }}>
+          <Search size={15} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "#94a3b8" }} />
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search notes..."
+            style={{ width: "100%", paddingLeft: 36, paddingRight: 12, paddingTop: 9, paddingBottom: 9, border: "1px solid #e2e8f0", borderRadius: 10, fontSize: 13, color: "#0f172a", background: "#fff", outline: "none", boxSizing: "border-box" }} />
+        </div>
+        <select value={filterFlip} onChange={e => setFilterFlip(e.target.value)} style={{ ...iS, width: "auto", minWidth: 160, fontSize: 13, padding: "9px 12px" }}>
+          <option value="all">All Deals</option>
+          {_FLIPS.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
+        </select>
+        {hasFilters && (
+          <button onClick={clearFilters} style={{ background: "none", border: "none", color: "#94a3b8", fontSize: 12, cursor: "pointer", textDecoration: "underline", padding: 0 }}>Clear filters</button>
+        )}
+      </div>
+
+      {/* Notes grouped by date */}
+      {Object.keys(grouped).length === 0 ? (
+        <div style={{ ...sectionS, textAlign: "center", padding: 48, color: "#94a3b8" }}>
+          <MessageSquare size={32} style={{ margin: "0 auto 12px", display: "block" }} />
+          {hasFilters ? (
+            <>
+              <p style={{ fontWeight: 600, marginBottom: 4 }}>No notes match your filters</p>
+              <button onClick={clearFilters} style={{ background: "none", border: "none", color: "#f59e0b", fontSize: 13, cursor: "pointer", textDecoration: "underline", padding: 0 }}>Clear filters</button>
+            </>
+          ) : (
+            <>
+              <p style={{ fontWeight: 600, marginBottom: 4 }}>No notes yet</p>
+              <p style={{ fontSize: 13 }}>Click &ldquo;Add Note&rdquo; to start documenting your deals.</p>
+            </>
+          )}
+        </div>
+      ) : Object.entries(grouped).map(([dateKey, { label, notes }]) => (
+        <div key={dateKey} style={{ marginBottom: 20 }}>
+          <p style={{ fontSize: 12, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 10 }}>{label}</p>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {notes.map(n => (
+              <div key={n.id} style={{ ...sectionS, marginBottom: 0, padding: 18 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <div style={{ width: 26, height: 26, borderRadius: 7, background: n.flipColor + "20", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, fontWeight: 700, color: n.flipColor }}>{n.flipImage}</div>
+                    <span style={{ fontSize: 13, fontWeight: 600, color: "#0f172a" }}>{n.flipName}</span>
+                  </div>
+                  <div style={{ display: "flex", gap: 4 }}>
+                    <button onClick={() => openEdit(n)} style={{ background: "#f1f5f9", border: "none", borderRadius: 7, padding: "4px 7px", cursor: "pointer", color: "#475569", display: "flex", alignItems: "center" }} title="Edit"><Pencil size={12} /></button>
+                    <button onClick={() => setDeleteConfirm(n)} style={{ background: "#fee2e2", border: "none", borderRadius: 7, padding: "4px 7px", cursor: "pointer", color: "#ef4444", display: "flex", alignItems: "center" }} title="Delete"><Trash2 size={12} /></button>
+                  </div>
+                </div>
+                <p style={{ fontSize: 13, color: "#475569", lineHeight: 1.6 }}>{n.text}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+
+      {/* Add/Edit Note Modal */}
+      {showAdd && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
+          <div style={{ background: "#fff", borderRadius: 20, padding: 32, width: 500, boxShadow: "0 20px 60px rgba(0,0,0,0.18)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 20 }}>
+              <h2 style={{ color: "#0f172a", fontSize: 19, fontWeight: 700 }}>{editId ? "Edit Note" : "Add Note"}</h2>
+              <button onClick={() => { setShowAdd(false); setEditId(null); }} style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8" }}><X size={20} /></button>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              <div>
+                <p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Deal *</p>
+                <select style={iS} value={noteForm.flipId} onChange={e => setNoteForm(f => ({ ...f, flipId: e.target.value }))} disabled={!!editId}>
+                  <option value="">Select deal...</option>
+                  {_FLIPS.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
+                </select>
+              </div>
+              <div>
+                <p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Note *</p>
+                <textarea style={{ ...iS, minHeight: 120, resize: "vertical", fontFamily: "inherit" }} placeholder="What happened? Decisions made, updates, reminders..." value={noteForm.text} onChange={e => setNoteForm(f => ({ ...f, text: e.target.value }))} />
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
+              <button onClick={handleSave} style={{ flex: 1, padding: "11px", borderRadius: 10, border: "none", background: "#f59e0b", color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer", opacity: (!noteForm.text.trim() || !noteForm.flipId) ? 0.5 : 1 }}>{editId ? "Save Changes" : "Add Note"}</button>
+              <button onClick={() => { setShowAdd(false); setEditId(null); }} style={{ padding: "11px 18px", borderRadius: 10, border: "1.5px solid #e2e8f0", background: "#fff", fontWeight: 600, fontSize: 14, cursor: "pointer", color: "#64748b" }}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirm */}
+      {deleteConfirm && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
+          <div style={{ background: "#fff", borderRadius: 20, width: 420, padding: 28 }}>
+            <h2 style={{ color: "#0f172a", fontSize: 18, fontWeight: 700, marginBottom: 14 }}>Delete Note</h2>
+            <p style={{ color: "#475569", fontSize: 14, marginBottom: 8 }}>Are you sure you want to delete this note?</p>
+            <div style={{ background: "#f8fafc", borderRadius: 10, padding: 14, marginBottom: 18 }}>
+              <p style={{ fontSize: 13, color: "#475569", lineHeight: 1.5 }}>{deleteConfirm.text.substring(0, 120)}{deleteConfirm.text.length > 120 ? "..." : ""}</p>
+            </div>
+            <p style={{ color: "#94a3b8", fontSize: 12, marginBottom: 18 }}>This action cannot be undone.</p>
+            <div style={{ display: "flex", gap: 10 }}>
+              <button onClick={() => setDeleteConfirm(null)} style={{ flex: 1, padding: "12px", border: "1px solid #e2e8f0", borderRadius: 10, background: "#fff", color: "#475569", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
+              <button onClick={() => handleDelete(deleteConfirm)} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "#ef4444", color: "#fff", fontWeight: 700, cursor: "pointer" }}>Delete</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

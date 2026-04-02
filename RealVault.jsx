@@ -26,7 +26,7 @@ import {
 } from "./api.js";
 import { AuthProvider, AuthScreen, useAuth } from "./auth.jsx";
 import { Settings, OnboardingWizard } from "./settings.jsx";
-import { FlipDashboard, RehabTracker, FlipExpenses, FlipContractors, FlipAnalytics } from "./flips.jsx";
+import { FlipDashboard, RehabTracker, FlipExpenses, FlipContractors, FlipAnalytics, FlipMilestones, FlipNotes } from "./flips.jsx";
 
 // ─── Annual Tax Config ──────────────────────────────────────────────
 // Update this block once per year (typically January) when IRS publishes new rates.
@@ -5872,8 +5872,11 @@ function AppShell() {
   const flipNavItems = [
     { id: "flipdashboard",   label: "Dashboard",      icon: LayoutDashboard },
     { id: "flips",           label: "Deals",           icon: Hammer          },
+    { id: "fliprehab",       label: "Rehab",           icon: Wrench          },
     { id: "flipexpenses",    label: "Expenses",        icon: Receipt         },
     { id: "flipcontractors", label: "Contractors",     icon: Users           },
+    { id: "flipmilestones",  label: "Milestones",      icon: Flag            },
+    { id: "flipnotes",       label: "Notes",            icon: MessageSquare   },
     { id: "flipanalytics",   label: "Analytics",       icon: BarChart3       },
   ];
 
@@ -6005,8 +6008,11 @@ function AppShell() {
           {activeView === "flipdashboard"   && <FlipDashboard onSelect={handleFlipSelect} />}
           {activeView === "flips"           && <FlipPipeline onSelect={handleFlipSelect} />}
           {activeView === "flipDetail"      && selectedFlip && <FlipDetail flip={selectedFlip} onBack={() => setActiveView("flips")} onNavigateToExpense={navigateToFlipExpense} />}
+          {activeView === "fliprehab"        && <RehabTracker />}
           {activeView === "flipexpenses"    && <FlipExpenses highlightExpId={highlightExpId} onBack={navSource === "flipDetail" ? () => { setActiveView("flipDetail"); setHighlightExpId(null); setNavSource(null); } : null} onClearHighlight={() => setHighlightExpId(null)} />}
           {activeView === "flipcontractors" && <FlipContractors />}
+          {activeView === "flipmilestones"  && <FlipMilestones />}
+          {activeView === "flipnotes"       && <FlipNotes />}
           {activeView === "flipanalytics"   && <FlipAnalytics />}
           {activeView === "rentroll" && <RentRoll />}
           {activeView === "mileage" && <MileageTracker />}
