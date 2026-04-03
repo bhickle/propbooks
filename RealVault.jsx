@@ -2008,14 +2008,15 @@ function Transactions({ highlightTxId, onBack, onClearHighlight, backLabel }) {
         const saveColor   = isIncome ? "#15803d"  : "#b91c1c";
         const payeeLabel  = isIncome ? "Received From" : "Payee";
         const payeePlaceholder = isIncome
-          ? "e.g. Jordan Williams, Marcus Thompson"
-          : "e.g. State Farm, Green Thumb Landscaping";
+          ? "Start typing to search or add new..."
+          : "Start typing to search or add new...";
         const payeePool = isIncome ? allPayers : allPayees;
+
+        const typeaheadHint = <p style={{ fontSize: 11, color: "#94a3b8", marginTop: 4, fontStyle: "italic" }}>Type to search previous entries or add new</p>;
 
         const PayeeDropdown = () => {
           const q = form.payee.toLowerCase();
-          if (!q) return null;
-          const matches = payeePool.filter(p => p.toLowerCase().includes(q) && p.toLowerCase() !== q);
+          const matches = q ? payeePool.filter(p => p.toLowerCase().includes(q) && p.toLowerCase() !== q) : payeePool.slice(0, 6);
           const exactExists = payeePool.some(p => p.toLowerCase() === q);
           const showNew = q && !exactExists;
           if (matches.length === 0 && !showNew) return null;
@@ -2124,6 +2125,7 @@ function Transactions({ highlightTxId, onBack, onClearHighlight, backLabel }) {
                   autoComplete="off"
                 />
                 {payeeFocus && <PayeeDropdown />}
+                {!payeeFocus && !form.payee && typeaheadHint}
               </div>
 
               <div style={{ gridColumn: "1 / -1" }}>
@@ -4809,9 +4811,10 @@ function FlipDetail({ flip, onBack, backLabel, allFlips, setAllFlips, onNavigate
               <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
                 <div style={{ position: "relative" }}>
                   <label style={{ display: "block", color: "#374151", fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Category *</label>
-                  <input value={rehabForm.category} placeholder="e.g. Kitchen, Flooring, HVAC" style={iS}
+                  <input value={rehabForm.category} placeholder="Start typing to search or add new..." style={iS}
                     onChange={e => { setRehabForm(f => ({ ...f, category: e.target.value })); setCatFocus(true); }}
                     onFocus={() => setCatFocus(true)} onBlur={() => setTimeout(() => setCatFocus(false), 150)} />
+                  {!catFocus && !rehabForm.category && <p style={{ fontSize: 11, color: "#94a3b8", marginTop: 4, fontStyle: "italic" }}>Type to search existing categories or add new</p>}
                   {catFocus && rehabForm.category && (() => {
                     const q = rehabForm.category.toLowerCase();
                     const matches = allCategories.filter(c => c.toLowerCase().includes(q) && c.toLowerCase() !== q);
@@ -5103,8 +5106,9 @@ function FlipDetail({ flip, onBack, backLabel, allFlips, setAllFlips, onNavigate
                 </div>
                 <div style={{ gridColumn: "1 / -1", position: "relative" }}>
                   <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Paid To</label>
-                  <input type="text" placeholder="Contractor name or vendor (e.g. ABC Plumbing, Home Depot)" value={expForm.vendor} onChange={handleVendorChange} onFocus={() => setVendorFocus(true)} onBlur={() => setTimeout(() => setVendorFocus(false), 150)} style={iS} autoComplete="off" />
+                  <input type="text" placeholder="Start typing to search or add new..." value={expForm.vendor} onChange={handleVendorChange} onFocus={() => setVendorFocus(true)} onBlur={() => setTimeout(() => setVendorFocus(false), 150)} style={iS} autoComplete="off" />
                   {vendorFocus && <PaidToDropdown />}
+                  {!vendorFocus && !expForm.vendor && <p style={{ fontSize: 11, color: "#94a3b8", marginTop: 4, fontStyle: "italic" }}>Type to search contractors and vendors or add new</p>}
                   {linkedCon && (
                     <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 6 }}>
                       <UserCheck size={12} color="#3b82f6" />

@@ -684,12 +684,13 @@ export function RehabTracker() {
               </div>
               <div style={{ position: "relative" }}>
                 <p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Category / Scope Name *</p>
-                <input style={iS} placeholder="e.g. Kitchen, Drywall, HVAC, Landscaping..." value={itemForm.category}
+                <input style={iS} placeholder="Start typing to search or add new..." value={itemForm.category}
                   onChange={e => { setItemForm(f => ({ ...f, category: e.target.value })); setCatFocus(true); }}
                   onFocus={() => setCatFocus(true)} onBlur={() => setTimeout(() => setCatFocus(false), 150)} />
-                {catFocus && itemForm.category && (() => {
+                {!catFocus && !itemForm.category && <p style={{ fontSize: 11, color: "#94a3b8", marginTop: 4, fontStyle: "italic" }}>Type to search previous categories or add new</p>}
+                {catFocus && (() => {
                   const q = itemForm.category.toLowerCase();
-                  const matches = allCategories.filter(c => c.toLowerCase().includes(q) && c.toLowerCase() !== q);
+                  const matches = q ? allCategories.filter(c => c.toLowerCase().includes(q) && c.toLowerCase() !== q) : allCategories.slice(0, 6);
                   const exactExists = allCategories.some(c => c.toLowerCase() === q);
                   const showNew = q && !exactExists;
                   if (matches.length === 0 && !showNew) return null;
@@ -1047,12 +1048,13 @@ export function FlipExpenses({ highlightExpId, onBack, onClearHighlight }) {
               </div>
               <div style={{ position: "relative" }}>
                 <p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Paid To</p>
-                <input style={iS} placeholder="e.g. Home Depot, ABC Plumbing" value={form.vendor}
+                <input style={iS} placeholder="Start typing to search or add new..." value={form.vendor}
                   onChange={e => { setForm(f => ({ ...f, vendor: e.target.value })); setVendorFocus(true); }}
                   onFocus={() => setVendorFocus(true)} onBlur={() => setTimeout(() => setVendorFocus(false), 150)} />
-                {vendorFocus && form.vendor && (() => {
+                {!vendorFocus && !form.vendor && <p style={{ fontSize: 11, color: "#94a3b8", marginTop: 4, fontStyle: "italic" }}>Type to search previous vendors or add new</p>}
+                {vendorFocus && (() => {
                   const q = form.vendor.toLowerCase();
-                  const matches = allVendors.filter(v => v.toLowerCase().includes(q) && v.toLowerCase() !== q);
+                  const matches = q ? allVendors.filter(v => v.toLowerCase().includes(q) && v.toLowerCase() !== q) : allVendors.slice(0, 6);
                   const exactExists = allVendors.some(v => v.toLowerCase() === q);
                   const showNew = q && !exactExists;
                   if (matches.length === 0 && !showNew) return null;
@@ -1278,12 +1280,13 @@ export function FlipContractors({ onSelectContractor }) {
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               <div style={{ position: "relative" }}>
                 <p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Company / Name *</p>
-                <input style={iS} placeholder="ABC Plumbing" value={form.name}
+                <input style={iS} placeholder="Start typing to search or add new..." value={form.name}
                   onChange={e => { setForm(f => ({ ...f, name: e.target.value })); setNameFocus(true); }}
                   onFocus={() => setNameFocus(true)} onBlur={() => setTimeout(() => setNameFocus(false), 150)} />
-                {nameFocus && form.name && (() => {
+                {!nameFocus && !form.name && <p style={{ fontSize: 11, color: "#94a3b8", marginTop: 4, fontStyle: "italic" }}>Type to search existing contractors or add new</p>}
+                {nameFocus && (() => {
                   const q = form.name.toLowerCase();
-                  const matches = allContractorNames.filter(n => n.toLowerCase().includes(q) && n.toLowerCase() !== q);
+                  const matches = q ? allContractorNames.filter(n => n.toLowerCase().includes(q) && n.toLowerCase() !== q) : allContractorNames.slice(0, 6);
                   const exactExists = allContractorNames.some(n => n.toLowerCase() === q);
                   const showNew = q && !exactExists;
                   if (matches.length === 0 && !showNew) return null;
@@ -1705,14 +1708,15 @@ export function ContractorDetail({ contractor, onBack }) {
               </div>
               <div style={{ position: "relative" }}>
                 <p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Rehab Item *</p>
-                <input style={iS} placeholder={bidForm.flipId ? "Type to search or add new..." : "Select a deal first"} disabled={!bidForm.flipId}
+                <input style={iS} placeholder={bidForm.flipId ? "Start typing to search or add new..." : "Select a deal first"} disabled={!bidForm.flipId}
                   value={bidForm.rehabItem} onChange={e => { setBidForm(f => ({ ...f, rehabItem: e.target.value })); setRehabFocus(true); }}
                   onFocus={() => setRehabFocus(true)} onBlur={() => setTimeout(() => setRehabFocus(false), 150)} />
-                {rehabFocus && bidForm.rehabItem && bidForm.flipId && (() => {
+                {!rehabFocus && !bidForm.rehabItem && bidForm.flipId && <p style={{ fontSize: 11, color: "#94a3b8", marginTop: 4, fontStyle: "italic" }}>Type to search rehab items or add new</p>}
+                {rehabFocus && bidForm.flipId && (() => {
                   const q = bidForm.rehabItem.toLowerCase();
                   // Show items from this deal first, then other known categories
-                  const dealMatches = bidRehabOptions.filter(c => c.toLowerCase().includes(q));
-                  const otherMatches = allRehabCategories.filter(c => c.toLowerCase().includes(q) && !bidRehabOptions.includes(c));
+                  const dealMatches = q ? bidRehabOptions.filter(c => c.toLowerCase().includes(q)) : bidRehabOptions.slice(0, 6);
+                  const otherMatches = q ? allRehabCategories.filter(c => c.toLowerCase().includes(q) && !bidRehabOptions.includes(c)) : allRehabCategories.filter(c => !bidRehabOptions.includes(c)).slice(0, 4);
                   const exactExists = [...bidRehabOptions, ...allRehabCategories].some(c => c.toLowerCase() === q);
                   const showNew = q && !exactExists;
                   if (dealMatches.length === 0 && otherMatches.length === 0 && !showNew) return null;
@@ -2577,12 +2581,13 @@ export function FlipMilestones() {
               </div>
               <div style={{ position: "relative" }}>
                 <p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Milestone Label</p>
-                <input value={msForm.label} style={iS} placeholder="e.g. Inspection Complete"
+                <input value={msForm.label} style={iS} placeholder="Start typing to search or add new..."
                   onChange={e => { setMsForm(f => ({ ...f, label: e.target.value })); setLabelFocus(true); }}
                   onFocus={() => setLabelFocus(true)} onBlur={() => setTimeout(() => setLabelFocus(false), 150)} />
-                {labelFocus && msForm.label && (() => {
+                {!labelFocus && !msForm.label && <p style={{ fontSize: 11, color: "#94a3b8", marginTop: 4, fontStyle: "italic" }}>Type to search previous milestones or add new</p>}
+                {labelFocus && (() => {
                   const q = msForm.label.toLowerCase();
-                  const matches = allMilestoneLabels.filter(l => l.toLowerCase().includes(q) && l.toLowerCase() !== q);
+                  const matches = q ? allMilestoneLabels.filter(l => l.toLowerCase().includes(q) && l.toLowerCase() !== q) : allMilestoneLabels.slice(0, 6);
                   const exactExists = allMilestoneLabels.some(l => l.toLowerCase() === q);
                   const showNew = q && !exactExists;
                   if (matches.length === 0 && !showNew) return null;
