@@ -144,7 +144,7 @@ export function FlipReports() {
           {activeReport === "profitability" && <ProfitabilityReport deals={allMetrics} />}
           {activeReport === "rehabBudget"   && <RehabBudgetReport deals={allMetrics} />}
           {activeReport === "holdingCosts"  && <HoldingCostsReport deals={allMetrics} />}
-          {activeReport === "contractors"   && <ContractorPaymentsReport />}
+          {activeReport === "contractors"   && <ContractorPaymentsReport dealFilter={dealFilter} />}
           {activeReport === "capitalGains"  && <CapitalGainsReport deals={allMetrics} />}
           {activeReport === "cashflow"      && <CashFlowReport deals={allMetrics} />}
           {activeReport === "pipeline"      && <PipelineReport deals={allMetrics} />}
@@ -406,23 +406,40 @@ function HoldingCostsReport({ deals }) {
 // ═══════════════════════════════════════════════════════════════════════════════
 // 4. CONTRACTOR PAYMENTS
 // ═══════════════════════════════════════════════════════════════════════════════
-function ContractorPaymentsReport() {
-  const contractors = _CON.filter(c => (c.bids || []).length > 0 || (c.payments || []).length > 0);
+function ContractorPaymentsReport({ dealFilter }) {
+  const filterDealId = dealFilter !== "all" ? parseInt(dealFilter) : null;
+
+  // Filter contractors to those relevant to the selected deal (or all)
+  const contractors = _CON.filter(c => {
+    if (!filterDealId) return (c.bids || []).length > 0 || (c.payments || []).length > 0;
+    return (c.dealIds || []).includes(filterDealId);
+  });
+
+  // Helper: filter bids/payments by deal when a specific deal is selected
+  const getBids = (c) => {
+    const bids = c.bids || [];
+    return filterDealId ? bids.filter(b => b.flipId === filterDealId) : bids;
+  };
+  const getPayments = (c) => {
+    const pays = c.payments || [];
+    return filterDealId ? pays.filter(p => p.flipId === filterDealId) : pays;
+  };
+
   const sorted = [...contractors].sort((a, b) => {
-    const aPaid = (b.payments || []).reduce((s, p) => s + p.amount, 0);
-    const bPaid = (a.payments || []).reduce((s, p) => s + p.amount, 0);
+    const aPaid = getPayments(b).reduce((s, p) => s + p.amount, 0);
+    const bPaid = getPayments(a).reduce((s, p) => s + p.amount, 0);
     return aPaid - bPaid;
   });
 
-  const totalBids     = contractors.reduce((s, c) => s + (c.bids || []).reduce((bs, b) => bs + b.amount, 0), 0);
-  const totalAccepted = contractors.reduce((s, c) => s + (c.bids || []).filter(b => b.status === "accepted").reduce((bs, b) => bs + b.amount, 0), 0);
-  const totalPaid     = contractors.reduce((s, c) => s + (c.payments || []).reduce((ps, p) => ps + p.amount, 0), 0);
+  const totalBids     = contractors.reduce((s, c) => s + getBids(c).reduce((bs, b) => bs + b.amount, 0), 0);
+  const totalAccepted = contractors.reduce((s, c) => s + getBids(c).filter(b => b.status === "accepted").reduce((bs, b) => bs + b.amount, 0), 0);
+  const totalPaid     = contractors.reduce((s, c) => s + getPayments(c).reduce((ps, p) => ps + p.amount, 0), 0);
   const outstanding   = totalAccepted - totalPaid;
 
   // Pie chart by trade
   const byTrade = {};
   contractors.forEach(c => {
-    const paid = (c.payments || []).reduce((s, p) => s + p.amount, 0);
+    const paid = getPayments(c).reduce((s, p) => s + p.amount, 0);
     if (paid > 0) byTrade[c.trade] = (byTrade[c.trade] || 0) + paid;
   });
   const pieData = Object.entries(byTrade).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value);
@@ -463,14 +480,14 @@ function ContractorPaymentsReport() {
             </thead>
             <tbody>
               {sorted.map(c => {
-                const bids = c.bids || [];
-                const pays = c.payments || [];
+                const bids = getBids(c);
+                const pays = getPayments(c);
                 const bidTotal = bids.reduce((s, b) => s + b.amount, 0);
                 const acceptTotal = bids.filter(b => b.status === "accepted").reduce((s, b) => s + b.amount, 0);
                 const paidTotal = pays.reduce((s, p) => s + p.amount, 0);
                 const owed = acceptTotal - paidTotal;
                 const acceptRate = bids.length > 0 ? Math.round((bids.filter(b => b.status === "accepted").length / bids.length) * 100) : 0;
-                const dealCount = (c.dealIds || []).length;
+                const dealCount = filterDealId ? 1 : (c.dealIds || []).length;
                 return (
                   <tr key={c.id}>
                     <td style={{ ...tdS, fontWeight: 600 }}>
@@ -499,12 +516,20 @@ function ContractorPaymentsReport() {
         <div style={sectionS}>
           <h3 style={{ fontSize: 16, fontWeight: 700, color: "#0f172a", marginBottom: 4 }}>Payments by Trade</h3>
           <p style={{ fontSize: 13, color: "#94a3b8", marginBottom: 20 }}>Distribution of contractor payments by trade specialty</p>
-          <ResponsiveContainer width="100%" height={300}>
+          <ResponsiveContainer width="100%" height={340}>
             <PieChart>
-              <Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={110} label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}>
+              <Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} innerRadius={0}
+                label={({ name, percent, x, y, midAngle }) => {
+                  const RADIAN = Math.PI / 180;
+                  const radius = 130;
+                  const cx2 = 0; const cy2 = 0;
+                  return `${name} (${(percent * 100).toFixed(0)}%)`;
+                }}
+                labelLine={{ stroke: "#94a3b8", strokeWidth: 1 }}>
                 {pieData.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
               </Pie>
               <Tooltip formatter={v => fmt(v)} contentStyle={{ borderRadius: 10, border: "1px solid #e2e8f0", fontSize: 12 }} />
+              <Legend wrapperStyle={{ fontSize: 12, paddingTop: 12 }} />
             </PieChart>
           </ResponsiveContainer>
         </div>
@@ -769,13 +794,15 @@ function PipelineReport({ deals }) {
           </table>
 
           {pieData.length > 1 && (
-            <ResponsiveContainer width="100%" height={250}>
+            <ResponsiveContainer width="100%" height={280}>
               <PieChart>
-                <Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} label={({ name, percent }) => `${(percent * 100).toFixed(0)}%`}>
+                <Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={85} innerRadius={0}
+                  label={({ percent }) => `${(percent * 100).toFixed(0)}%`}
+                  labelLine={{ stroke: "#94a3b8", strokeWidth: 1 }}>
                   {pieData.map((d, i) => <Cell key={i} fill={PIE_COLORS[d.name] || "#64748b"} />)}
                 </Pie>
                 <Tooltip formatter={v => fmt(v)} contentStyle={{ borderRadius: 10, border: "1px solid #e2e8f0", fontSize: 12 }} />
-                <Legend wrapperStyle={{ fontSize: 12 }} />
+                <Legend wrapperStyle={{ fontSize: 12, paddingTop: 8 }} />
               </PieChart>
             </ResponsiveContainer>
           )}
