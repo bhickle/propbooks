@@ -488,225 +488,287 @@ function Badge({ status }) {
 // VIEWS
 // ---------------------------------------------
 
-function Dashboard({ onNavigate, onNavigateToTx }) {
-  const [dashProp, setDashProp] = useState("all");
-  const isAll = dashProp === "all";
-  const props = isAll ? PROPERTIES : PROPERTIES.filter(p => String(p.id) === dashProp);
-  const selectedProp = !isAll ? PROPERTIES.find(p => String(p.id) === dashProp) : null;
+function Dashboard({ onNavigate, onNavigateToTx, onSelectProperty }) {
+  const now = new Date();
+  const todayStr = now.toISOString().slice(0, 10);
 
-  // KPIs — filtered by selected property, using transaction-derived financials
-  const totalValue = props.reduce((s, p) => s + p.currentValue, 0);
-  const totalEquity = props.reduce((s, p) => s + (p.currentValue - (calcLoanBalance(p.loanAmount, p.loanRate, p.loanTermYears, p.loanStartDate) ?? p.loanAmount ?? 0)), 0);
-  const monthlyIncome = props.reduce((s, p) => { const e = getEffectiveMonthly(p, TRANSACTIONS); return s + e.monthlyIncome; }, 0);
-  const monthlyExpenses = props.reduce((s, p) => { const e = getEffectiveMonthly(p, TRANSACTIONS); return s + e.monthlyExpenses; }, 0);
+  // ── KPIs ────────────────────────────────────────────────────────────────
+  const totalValue = PROPERTIES.reduce((s, p) => s + p.currentValue, 0);
+  const totalEquity = PROPERTIES.reduce((s, p) => s + (p.currentValue - (calcLoanBalance(p.loanAmount, p.loanRate, p.loanTermYears, p.loanStartDate) ?? p.loanAmount ?? 0)), 0);
+  const monthlyIncome = PROPERTIES.reduce((s, p) => { const e = getEffectiveMonthly(p, TRANSACTIONS); return s + e.monthlyIncome; }, 0);
+  const monthlyExpenses = PROPERTIES.reduce((s, p) => { const e = getEffectiveMonthly(p, TRANSACTIONS); return s + e.monthlyExpenses; }, 0);
   const netCashFlow = monthlyIncome - monthlyExpenses;
-  const avgCapRate = props.length > 0 ? (props.reduce((s, p) => s + calcCapRate(p, TRANSACTIONS), 0) / props.length).toFixed(1) : "0.0";
 
-  // Transactions filtered by property
-  const filteredTx = isAll ? TRANSACTIONS : TRANSACTIONS.filter(t => {
-    const propNames = props.map(p => p.name);
-    return propNames.some(n => t.property === n);
-  });
+  // ── Occupancy ───────────────────────────────────────────────────────────
+  const allTenants = TENANTS.filter(t => t.status !== "past");
+  const totalUnits = allTenants.length;
+  const occupiedUnits = allTenants.filter(t => t.status !== "vacant").length;
+  const occupancyPct = totalUnits > 0 ? Math.round((occupiedUnits / totalUnits) * 100) : 0;
 
-  // Cash flow chart — derive from filtered transactions by month
-  const monthNames = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-  const cfByMonth = {};
-  filteredTx.forEach(t => {
-    const d = new Date(t.date);
-    const key = monthNames[d.getMonth()];
-    if (!cfByMonth[key]) cfByMonth[key] = { month: key, income: 0, expenses: 0, net: 0, _order: d.getMonth() };
-    if (t.type === "income") cfByMonth[key].income += t.amount;
-    else cfByMonth[key].expenses += Math.abs(t.amount);
-  });
-  Object.values(cfByMonth).forEach(m => { m.net = m.income - m.expenses; });
-  const dashCashFlow = Object.values(cfByMonth).sort((a, b) => a._order - b._order);
-  // Fallback to global data if no transactions found
-  const chartCashFlow = dashCashFlow.length > 0 ? dashCashFlow : MONTHLY_CASH_FLOW;
-
-  // Expense breakdown — derive from filtered transactions
-  const expCatColors = { "Mortgage Payment": "#3b82f6", "Mortgage": "#3b82f6", "Maintenance": "#10b981", "Repairs & Maintenance": "#10b981", "Property Tax": "#8b5cf6", "Insurance": "#f59e0b", "HOA Fees": "#ef4444", "Utilities": "#06b6d4", "Landscaping": "#84cc16", "Management Fees": "#ec4899" };
-  const expTotals = {};
-  filteredTx.filter(t => t.type === "expense").forEach(t => {
-    const cat = t.category;
-    expTotals[cat] = (expTotals[cat] || 0) + Math.abs(t.amount);
-  });
-  const totalExpAmt = Object.values(expTotals).reduce((s, v) => s + v, 0) || 1;
-  const dashExpCats = Object.entries(expTotals).map(([name, val]) => ({
-    name, value: Math.round(val / totalExpAmt * 100), color: expCatColors[name] || "#94a3b8",
-  })).sort((a, b) => b.value - a.value);
-  const chartExpCats = dashExpCats.length > 0 ? dashExpCats : EXPENSE_CATEGORIES;
-
-  // Equity growth — simulate historical equity for filtered properties
-  // For a single property, build yearly equity from purchase date to now using loan amortization
-  const dashEquityGrowth = useMemo(() => {
-    if (isAll) return EQUITY_GROWTH;
-    // Build year-by-year equity for the selected property(ies)
-    const years = [];
-    const curYear = new Date().getFullYear();
-    props.forEach(p => {
-      const purchaseYear = p.purchaseDate ? new Date(p.purchaseDate).getFullYear() : (p.loanStartDate ? new Date(p.loanStartDate).getFullYear() : curYear - 2);
-      for (let y = purchaseYear; y <= curYear; y++) {
-        if (!years.includes(y)) years.push(y);
+  // ── Lease Alerts ────────────────────────────────────────────────────────
+  const leaseAlerts = useMemo(() => {
+    const alerts = [];
+    allTenants.forEach(t => {
+      if (t.status === "vacant") {
+        const prop = PROPERTIES.find(p => p.id === t.propertyId);
+        alerts.push({ type: "vacant", severity: "high", icon: AlertTriangle, color: "#ef4444", bg: "#fee2e2",
+          title: `${prop?.name || "Property"} — ${t.unit}`,
+          sub: "Vacant unit — no lease", tenant: t, prop });
+      } else if (t.leaseEnd) {
+        const daysLeft = Math.round((new Date(t.leaseEnd) - now) / 86400000);
+        const prop = PROPERTIES.find(p => p.id === t.propertyId);
+        if (daysLeft < 0) {
+          alerts.push({ type: "expired", severity: "high", icon: AlertCircle, color: "#ef4444", bg: "#fee2e2",
+            title: `${t.name}`, sub: `Lease expired ${Math.abs(daysLeft)}d ago · ${prop?.name || ""} ${t.unit}`,
+            daysLeft, tenant: t, prop });
+        } else if (daysLeft <= 60) {
+          alerts.push({ type: "expiring", severity: "medium", icon: Clock, color: "#f59e0b", bg: "#fef3c7",
+            title: `${t.name}`, sub: `Lease expires in ${daysLeft}d · ${prop?.name || ""} ${t.unit}`,
+            daysLeft, tenant: t, prop });
+        }
+      }
+      if (t.status === "month-to-month") {
+        const prop = PROPERTIES.find(p => p.id === t.propertyId);
+        const alreadyListed = alerts.some(a => a.tenant?.id === t.id);
+        if (!alreadyListed) {
+          alerts.push({ type: "mtm", severity: "low", icon: ArrowUpDown, color: "#3b82f6", bg: "#dbeafe",
+            title: `${t.name}`, sub: `Month-to-month · ${prop?.name || ""} ${t.unit}`,
+            tenant: t, prop });
+        }
       }
     });
-    years.sort((a, b) => a - b);
-    // If no date info, show at least current year
-    if (years.length === 0) years.push(curYear);
+    // Sort: high severity first
+    const order = { high: 0, medium: 1, low: 2 };
+    return alerts.sort((a, b) => order[a.severity] - order[b.severity]);
+  }, []);
 
-    return years.map(y => {
-      let equity = 0;
-      props.forEach(p => {
-        const purchaseYear = p.purchaseDate ? new Date(p.purchaseDate).getFullYear() : (p.loanStartDate ? new Date(p.loanStartDate).getFullYear() : curYear - 2);
-        if (y < purchaseYear) return; // not owned yet
-        const yearsOwned = y - purchaseYear;
-        // Estimate value appreciation (~3% per year from purchase price to current value)
-        const totalYears = Math.max(1, curYear - purchaseYear);
-        const annualAppreciation = totalYears > 0 ? Math.pow(p.currentValue / p.purchasePrice, 1 / totalYears) : 1;
-        const estValue = y === curYear ? p.currentValue : Math.round(p.purchasePrice * Math.pow(annualAppreciation, yearsOwned));
-        // Estimate loan balance at that point in time
-        let loanBal = p.loanAmount || 0;
-        if (p.loanAmount && p.loanRate && p.loanTermYears && p.loanStartDate) {
-          const loanStartYear = new Date(p.loanStartDate).getFullYear();
-          const monthsElapsed = Math.max(0, (y - loanStartYear) * 12);
-          const r = (p.loanRate / 100) / 12;
-          const n = p.loanTermYears * 12;
-          if (r > 0 && monthsElapsed < n) {
-            const M = p.loanAmount * r * Math.pow(1 + r, n) / (Math.pow(1 + r, n) - 1);
-            loanBal = Math.max(0, p.loanAmount * Math.pow(1 + r, monthsElapsed) - M * (Math.pow(1 + r, monthsElapsed) - 1) / r);
-          } else if (monthsElapsed >= n) {
-            loanBal = 0;
-          }
-        }
-        equity += Math.max(0, estValue - loanBal);
-      });
-      return { year: String(y), equity: Math.round(equity) };
+  // ── Rent Collection (this month) ────────────────────────────────────────
+  const thisMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  const activeTenants = allTenants.filter(t => t.status !== "vacant");
+  const expectedRent = activeTenants.reduce((s, t) => s + (t.rent || 0), 0);
+  const paidThisMonth = activeTenants.filter(t => t.lastPayment && t.lastPayment.startsWith(thisMonthStr));
+  const collectedRent = paidThisMonth.reduce((s, t) => s + (t.rent || 0), 0);
+  const collectionPct = expectedRent > 0 ? Math.round((collectedRent / expectedRent) * 100) : 0;
+  const unpaidTenants = activeTenants.filter(t => !t.lastPayment || !t.lastPayment.startsWith(thisMonthStr));
+
+  // ── Recent Activity (transactions + notes) ──────────────────────────────
+  const recentActivity = useMemo(() => {
+    const items = [];
+    // Recent transactions
+    TRANSACTIONS.slice(0, 8).forEach(t => {
+      items.push({ type: "transaction", date: t.date, icon: t.type === "income" ? ArrowUp : ArrowDown,
+        color: t.type === "income" ? "#15803d" : "#b91c1c", bg: t.type === "income" ? "#dcfce7" : "#fee2e2",
+        title: t.description, sub: `${t.property.split(" ").slice(0, 2).join(" ")} · ${t.date}`,
+        amount: t.amount, txType: t.type, txId: t.id });
     });
-  }, [dashProp]);
+    // Recent rental notes
+    Object.entries(RENTAL_NOTES).forEach(([propId, notes]) => {
+      const prop = PROPERTIES.find(p => p.id === Number(propId));
+      (notes || []).forEach(n => {
+        items.push({ type: "note", date: n.date, icon: MessageSquare, color: "#8b5cf6", bg: "#ede9fe",
+          title: n.text.length > 60 ? n.text.slice(0, 60) + "..." : n.text,
+          sub: `${prop?.name?.split(" ").slice(0, 2).join(" ") || "Property"} · ${n.date}`,
+          propId: Number(propId) });
+      });
+    });
+    return items.sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 8);
+  }, []);
 
-  // Subtitle
-  const subtitle = isAll
-    ? "Welcome back, Brandon — here's your portfolio at a glance."
-    : `Showing ${selectedProp?.name || "property"} performance.`;
+  // ── Property snapshot cards ─────────────────────────────────────────────
+  const propSnapshots = PROPERTIES.map(p => {
+    const eff = getEffectiveMonthly(p, TRANSACTIONS);
+    const propTenants = allTenants.filter(t => t.propertyId === p.id);
+    const propOccupied = propTenants.filter(t => t.status !== "vacant").length;
+    const propTotal = propTenants.length || p.units || 1;
+    const propOccPct = Math.round((propOccupied / propTotal) * 100);
+    const nextExpiry = propTenants.filter(t => t.leaseEnd && t.status !== "vacant")
+      .map(t => ({ ...t, daysLeft: Math.round((new Date(t.leaseEnd) - now) / 86400000) }))
+      .sort((a, b) => a.daysLeft - b.daysLeft)[0];
+    return { ...p, monthlyNet: eff.monthlyIncome - eff.monthlyExpenses, occPct: propOccPct, occupied: propOccupied, total: propTotal, nextExpiry };
+  });
+
+  const sectionS = { background: "#fff", borderRadius: 16, padding: 24, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" };
 
   return (
     <div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 28 }}>
-        <div>
-          <h1 style={{ color: "#0f172a", fontSize: 26, fontWeight: 700, marginBottom: 4 }}>Dashboard</h1>
-          <p style={{ color: "#64748b", fontSize: 15 }}>{subtitle}</p>
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <Building2 size={16} color="#94a3b8" />
-          <select value={dashProp} onChange={e => setDashProp(e.target.value)} style={{ border: "1px solid #e2e8f0", borderRadius: 10, padding: "8px 14px", fontSize: 14, color: "#0f172a", background: "#fff", cursor: "pointer", fontWeight: 600, minWidth: 200 }}>
-            <option value="all">All Properties</option>
-            {PROPERTIES.map(p => <option key={p.id} value={String(p.id)}>{p.name}</option>)}
-          </select>
-        </div>
+      {/* Header */}
+      <div style={{ marginBottom: 28 }}>
+        <h1 style={{ color: "#0f172a", fontSize: 26, fontWeight: 700, marginBottom: 4 }}>Dashboard</h1>
+        <p style={{ color: "#64748b", fontSize: 15 }}>Welcome back, Brandon — here's what needs your attention.</p>
       </div>
+
+      {/* KPI Row */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 20, marginBottom: 28 }}>
-        <StatCard icon={Building2} label={isAll ? "Portfolio Value" : "Property Value"} value={fmtK(totalValue)} sub={isAll ? `${props.length} properties` : (selectedProp?.type || "")} trend="up" trendVal={isAll ? `${props.length} properties` : ""} color="#3b82f6" tip="Sum of current market values for all properties (or this property if filtered)." />
-        <StatCard icon={Wallet} label="Total Equity" value={fmtK(totalEquity)} sub="Net of mortgages" color="#10b981" tip="Current Value − Mortgage Balance, summed across all properties." />
-        <StatCard icon={DollarSign} label="Monthly Cash Flow" value={fmt(netCashFlow)} sub={`${fmt(monthlyIncome)} income - ${fmt(monthlyExpenses)} exp`} color="#8b5cf6" tip="Total Monthly Income − Total Monthly Expenses across all properties." />
-        <StatCard icon={Percent} label={isAll ? "Avg. Cap Rate" : "Cap Rate"} value={`${avgCapRate}%`} sub={isAll ? "Across portfolio" : "This property"} color="#f59e0b" tip="Annual NOI ÷ Current Property Value × 100. Averaged across portfolio if viewing all properties." />
+        <StatCard icon={DollarSign} label="Monthly Cash Flow" value={fmt(netCashFlow)} sub={`${fmt(monthlyIncome)} in · ${fmt(monthlyExpenses)} out`} color="#10b981" tip="Total Monthly Income − Total Monthly Expenses across all properties." />
+        <StatCard icon={Wallet} label="Total Equity" value={fmtK(totalEquity)} sub={`Portfolio value ${fmtK(totalValue)}`} color="#3b82f6" tip="Current Value − Mortgage Balance, summed across all properties." />
+        <StatCard icon={Users} label="Occupancy" value={`${occupancyPct}%`} sub={`${occupiedUnits} of ${totalUnits} units occupied`} color={occupancyPct >= 90 ? "#10b981" : occupancyPct >= 70 ? "#f59e0b" : "#ef4444"} tip="Occupied units ÷ total units across all properties." />
+        <StatCard icon={CheckCircle} label="Rent Collected" value={`${collectionPct}%`} sub={`${fmt(collectedRent)} of ${fmt(expectedRent)} this month`} color={collectionPct >= 100 ? "#10b981" : collectionPct >= 75 ? "#f59e0b" : "#ef4444"} tip="Rent received this month ÷ total expected rent from active tenants." />
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 20, marginBottom: 28 }}>
-        <div style={{ background: "#fff", borderRadius: 16, padding: 24, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+
+      {/* Alerts + Rent Collection Row */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 28 }}>
+        {/* Lease Alerts */}
+        <div style={sectionS}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
             <div>
-              <h3 style={{ color: "#0f172a", fontSize: 16, fontWeight: 700 }}>Cash Flow</h3>
-              <p style={{ color: "#94a3b8", fontSize: 13, marginTop: 2 }}>Income vs. expenses vs. net</p>
+              <h3 style={{ color: "#0f172a", fontSize: 16, fontWeight: 700 }}>Lease Alerts</h3>
+              <p style={{ color: "#94a3b8", fontSize: 13, marginTop: 2 }}>Expirations, vacancies, and renewals</p>
             </div>
+            {leaseAlerts.length > 0 && (
+              <span style={{ background: "#fee2e2", color: "#b91c1c", fontSize: 12, fontWeight: 700, padding: "3px 10px", borderRadius: 20 }}>{leaseAlerts.length} alert{leaseAlerts.length !== 1 ? "s" : ""}</span>
+            )}
           </div>
-          <ResponsiveContainer width="100%" height={220}>
-            <AreaChart data={chartCashFlow}>
-              <defs>
-                <linearGradient id="colorIncome" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.15}/>
-                  <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
-                </linearGradient>
-                <linearGradient id="colorNet" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#10b981" stopOpacity={0.15}/>
-                  <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-              <XAxis dataKey="month" tick={{ fontSize: 12, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fontSize: 12, fill: "#94a3b8" }} axisLine={false} tickLine={false} tickFormatter={v => `$${v/1000}K`} />
-              <Tooltip formatter={(v) => fmt(v)} contentStyle={{ borderRadius: 10, border: "1px solid #e2e8f0", boxShadow: "0 4px 12px rgba(0,0,0,0.08)" }} />
-              <Area type="monotone" dataKey="income" stroke="#3b82f6" strokeWidth={2} fill="url(#colorIncome)" name="Income" />
-              <Area type="monotone" dataKey="expenses" stroke="#ef4444" strokeWidth={2} fill="none" strokeDasharray="4 4" name="Expenses" />
-              <Area type="monotone" dataKey="net" stroke="#10b981" strokeWidth={2.5} fill="url(#colorNet)" name="Net" />
-            </AreaChart>
-          </ResponsiveContainer>
-        </div>
-        <div style={{ background: "#fff", borderRadius: 16, padding: 24, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" }}>
-          <h3 style={{ color: "#0f172a", fontSize: 16, fontWeight: 700, marginBottom: 4 }}>Expense Breakdown</h3>
-          <p style={{ color: "#94a3b8", fontSize: 13, marginBottom: 16 }}>By category</p>
-          <ResponsiveContainer width="100%" height={160}>
-            <PieChart>
-              <Pie data={chartExpCats} cx="50%" cy="50%" innerRadius={45} outerRadius={75} paddingAngle={3} dataKey="value">
-                {chartExpCats.map((e, i) => <Cell key={i} fill={e.color} />)}
-              </Pie>
-              <Tooltip formatter={(v) => `${v}%`} contentStyle={{ borderRadius: 8, fontSize: 12 }} />
-            </PieChart>
-          </ResponsiveContainer>
-          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            {chartExpCats.slice(0, 4).map((c, i) => (
-              <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <div style={{ width: 8, height: 8, borderRadius: 2, background: c.color }} />
-                  <span style={{ fontSize: 12, color: "#475569" }}>{c.name}</span>
+          {leaseAlerts.length === 0 ? (
+            <div style={{ textAlign: "center", padding: "24px 0" }}>
+              <CheckCircle size={28} color="#10b981" style={{ marginBottom: 8 }} />
+              <p style={{ color: "#10b981", fontSize: 14, fontWeight: 600 }}>All clear</p>
+              <p style={{ color: "#94a3b8", fontSize: 12, marginTop: 2 }}>No lease alerts right now.</p>
+            </div>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              {leaseAlerts.slice(0, 5).map((a, i) => (
+                <div key={i} onClick={() => a.prop && onSelectProperty && onSelectProperty(a.prop)} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 10px", borderRadius: 10, cursor: a.prop ? "pointer" : "default", transition: "background 0.15s" }}
+                  onMouseEnter={e => { if (a.prop) e.currentTarget.style.background = "#f8fafc"; }}
+                  onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                  <div style={{ width: 32, height: 32, borderRadius: 8, background: a.bg, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                    <a.icon size={14} color={a.color} />
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ fontSize: 13, fontWeight: 600, color: "#0f172a", marginBottom: 1 }}>{a.title}</p>
+                    <p style={{ fontSize: 12, color: "#94a3b8" }}>{a.sub}</p>
+                  </div>
+                  <ChevronRight size={14} color="#cbd5e1" />
                 </div>
-                <span style={{ fontSize: 12, fontWeight: 600, color: "#0f172a" }}>{c.value}%</span>
+              ))}
+              {leaseAlerts.length > 5 && (
+                <button onClick={() => onNavigate && onNavigate("tenants")} style={{ background: "none", border: "none", color: "#3b82f6", fontSize: 13, fontWeight: 600, cursor: "pointer", padding: "8px 0", textAlign: "center" }}>
+                  View all {leaseAlerts.length} alerts
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Rent Collection */}
+        <div style={sectionS}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+            <div>
+              <h3 style={{ color: "#0f172a", fontSize: 16, fontWeight: 700 }}>Rent Collection</h3>
+              <p style={{ color: "#94a3b8", fontSize: 13, marginTop: 2 }}>{new Date().toLocaleString("en-US", { month: "long", year: "numeric" })}</p>
+            </div>
+            {onNavigate && <button onClick={() => onNavigate("transactions")} style={{ color: "#3b82f6", fontSize: 13, fontWeight: 600, background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>View all <ChevronRight size={14} /></button>}
+          </div>
+          {/* Collection progress bar */}
+          <div style={{ marginBottom: 20 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+              <span style={{ fontSize: 13, fontWeight: 600, color: "#0f172a" }}>{fmt(collectedRent)} collected</span>
+              <span style={{ fontSize: 13, color: "#94a3b8" }}>{fmt(expectedRent)} expected</span>
+            </div>
+            <div style={{ height: 10, background: "#f1f5f9", borderRadius: 5, overflow: "hidden" }}>
+              <div style={{ height: "100%", width: `${Math.min(collectionPct, 100)}%`, background: collectionPct >= 100 ? "#10b981" : collectionPct >= 75 ? "#f59e0b" : "#ef4444", borderRadius: 5, transition: "width 0.5s ease" }} />
+            </div>
+            <p style={{ fontSize: 12, color: "#94a3b8", marginTop: 4 }}>{paidThisMonth.length} of {activeTenants.length} tenants paid</p>
+          </div>
+          {/* Unpaid tenants */}
+          {unpaidTenants.length > 0 ? (
+            <div>
+              <p style={{ fontSize: 12, fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 8 }}>Outstanding</p>
+              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                {unpaidTenants.slice(0, 4).map(t => {
+                  const prop = PROPERTIES.find(p => p.id === t.propertyId);
+                  return (
+                    <div key={t.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 8px", borderRadius: 8 }}>
+                      <div>
+                        <p style={{ fontSize: 13, fontWeight: 600, color: "#0f172a" }}>{t.name}</p>
+                        <p style={{ fontSize: 12, color: "#94a3b8" }}>{prop?.name?.split(" ").slice(0, 2).join(" ") || ""} · {t.unit}</p>
+                      </div>
+                      <span style={{ fontSize: 14, fontWeight: 700, color: "#b91c1c" }}>{fmt(t.rent)}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ) : (
+            <div style={{ textAlign: "center", padding: "12px 0" }}>
+              <CheckCircle size={24} color="#10b981" style={{ marginBottom: 6 }} />
+              <p style={{ color: "#10b981", fontSize: 13, fontWeight: 600 }}>All rent collected</p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Property Snapshot Cards + Recent Activity */}
+      <div style={{ display: "grid", gridTemplateColumns: "3fr 2fr", gap: 20 }}>
+        {/* Property At-a-Glance */}
+        <div style={sectionS}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+            <div>
+              <h3 style={{ color: "#0f172a", fontSize: 16, fontWeight: 700 }}>Properties</h3>
+              <p style={{ color: "#94a3b8", fontSize: 13, marginTop: 2 }}>{PROPERTIES.length} properties · {occupiedUnits}/{totalUnits} units occupied</p>
+            </div>
+            {onNavigate && <button onClick={() => onNavigate("properties")} style={{ color: "#3b82f6", fontSize: 13, fontWeight: 600, background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>View all <ChevronRight size={14} /></button>}
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {propSnapshots.map(p => (
+              <div key={p.id} onClick={() => onSelectProperty && onSelectProperty(p)} style={{ display: "flex", alignItems: "center", gap: 14, padding: "14px 12px", borderRadius: 12, border: "1px solid #f1f5f9", cursor: "pointer", transition: "all 0.15s" }}
+                onMouseEnter={e => { e.currentTarget.style.background = "#f8fafc"; e.currentTarget.style.borderColor = "#e2e8f0"; }}
+                onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.borderColor = "#f1f5f9"; }}>
+                <div style={{ width: 40, height: 40, borderRadius: 10, background: p.color + "18", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                  <Building2 size={18} color={p.color} />
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                    <p style={{ fontSize: 14, fontWeight: 600, color: "#0f172a" }}>{p.name}</p>
+                    <span style={{ fontSize: 14, fontWeight: 700, color: p.monthlyNet >= 0 ? "#15803d" : "#b91c1c" }}>{p.monthlyNet >= 0 ? "+" : ""}{fmt(p.monthlyNet)}<span style={{ fontSize: 11, fontWeight: 500, color: "#94a3b8" }}>/mo</span></span>
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                    {/* Occupancy mini-bar */}
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
+                      <div style={{ width: 60, height: 5, background: "#f1f5f9", borderRadius: 3, overflow: "hidden" }}>
+                        <div style={{ height: "100%", width: `${p.occPct}%`, background: p.occPct >= 90 ? "#10b981" : p.occPct >= 70 ? "#f59e0b" : "#ef4444", borderRadius: 3 }} />
+                      </div>
+                      <span style={{ fontSize: 11, color: "#64748b", whiteSpace: "nowrap" }}>{p.occupied}/{p.total}</span>
+                    </div>
+                    {/* Next lease expiry */}
+                    {p.nextExpiry && p.nextExpiry.daysLeft <= 60 && (
+                      <span style={{ fontSize: 11, color: p.nextExpiry.daysLeft < 0 ? "#ef4444" : "#f59e0b", fontWeight: 600, whiteSpace: "nowrap" }}>
+                        {p.nextExpiry.daysLeft < 0 ? "Expired" : `${p.nextExpiry.daysLeft}d`} — {p.nextExpiry.unit}
+                      </span>
+                    )}
+                    <span style={{ fontSize: 11, color: "#94a3b8", whiteSpace: "nowrap" }}>{p.type} · {p.units} unit{p.units !== 1 ? "s" : ""}</span>
+                  </div>
+                </div>
+                <ChevronRight size={14} color="#cbd5e1" />
               </div>
             ))}
           </div>
         </div>
-      </div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
-        <div style={{ background: "#fff", borderRadius: 16, padding: 24, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" }}>
-          <h3 style={{ color: "#0f172a", fontSize: 16, fontWeight: 700, marginBottom: 4 }}>Equity Growth</h3>
-          <p style={{ color: "#94a3b8", fontSize: 13, marginBottom: 20 }}>{isAll ? "Total portfolio equity over time" : `${selectedProp?.name || ""} equity over time`}</p>
-          <ResponsiveContainer width="100%" height={180}>
-            <AreaChart data={dashEquityGrowth}>
-              <defs>
-                <linearGradient id="colorEquity" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.2}/>
-                  <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0}/>
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-              <XAxis dataKey="year" tick={{ fontSize: 12, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fontSize: 12, fill: "#94a3b8" }} axisLine={false} tickLine={false} tickFormatter={v => `$${v/1000}K`} />
-              <Tooltip formatter={(v) => fmt(v)} contentStyle={{ borderRadius: 10, border: "1px solid #e2e8f0" }} />
-              <Area type="monotone" dataKey="equity" stroke="#8b5cf6" strokeWidth={2.5} fill="url(#colorEquity)" name="Equity" />
-            </AreaChart>
-          </ResponsiveContainer>
-        </div>
-        <div style={{ background: "#fff", borderRadius: 16, padding: 24, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" }}>
+
+        {/* Recent Activity */}
+        <div style={sectionS}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-            <h3 style={{ color: "#0f172a", fontSize: 16, fontWeight: 700 }}>Recent Transactions</h3>
-            {onNavigate && <button onClick={() => onNavigate("transactions")} style={{ color: "#3b82f6", fontSize: 13, fontWeight: 600, background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>View all <ChevronRight size={14} /></button>}
+            <h3 style={{ color: "#0f172a", fontSize: 16, fontWeight: 700 }}>Recent Activity</h3>
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-            {filteredTx.length === 0 ? (
-              <p style={{ color: "#94a3b8", fontSize: 13, textAlign: "center", padding: 24 }}>No transactions for this property yet.</p>
-            ) : filteredTx.slice(0, 5).map(t => (
-              <div key={t.id} onClick={() => onNavigateToTx && onNavigateToTx(t.id)} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer", padding: "10px 8px", borderRadius: 10, transition: "background 0.15s" }}
+            {recentActivity.length === 0 ? (
+              <p style={{ color: "#94a3b8", fontSize: 13, textAlign: "center", padding: 24 }}>No recent activity.</p>
+            ) : recentActivity.map((a, i) => (
+              <div key={i} onClick={() => { if (a.txId && onNavigateToTx) onNavigateToTx(a.txId); else if (a.propId && onSelectProperty) { const prop = PROPERTIES.find(p => p.id === a.propId); if (prop) onSelectProperty(prop); } }}
+                style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 8px", borderRadius: 10, cursor: "pointer", transition: "background 0.15s" }}
                 onMouseEnter={e => e.currentTarget.style.background = "#f8fafc"}
                 onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
-                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <div style={{ width: 36, height: 36, borderRadius: 10, background: t.type === "income" ? "#dcfce7" : "#fee2e2", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    {t.type === "income" ? <ArrowUp size={16} color="#15803d" /> : <ArrowDown size={16} color="#b91c1c" />}
-                  </div>
-                  <div>
-                    <p style={{ fontSize: 13, fontWeight: 600, color: "#0f172a", marginBottom: 1 }}>{t.description}</p>
-                    <p style={{ fontSize: 12, color: "#94a3b8" }}>{isAll ? `${t.property.split(" ").slice(0, 2).join(" ")} · ` : ""}{t.date}</p>
-                  </div>
+                <div style={{ width: 32, height: 32, borderRadius: 8, background: a.bg, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                  <a.icon size={13} color={a.color} />
                 </div>
-                <span style={{ fontWeight: 700, fontSize: 14, color: t.type === "income" ? "#15803d" : "#b91c1c" }}>
-                  {t.type === "income" ? "+" : ""}{fmt(Math.abs(t.amount))}
-                </span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ fontSize: 13, fontWeight: 600, color: "#0f172a", marginBottom: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.title}</p>
+                  <p style={{ fontSize: 12, color: "#94a3b8" }}>{a.sub}</p>
+                </div>
+                {a.amount !== undefined && (
+                  <span style={{ fontWeight: 700, fontSize: 13, color: a.txType === "income" ? "#15803d" : "#b91c1c", whiteSpace: "nowrap" }}>
+                    {a.txType === "income" ? "+" : ""}{fmt(Math.abs(a.amount))}
+                  </span>
+                )}
               </div>
             ))}
           </div>
@@ -6939,7 +7001,7 @@ function AppShell() {
           </div>
         </div>
         <div style={{ flex: 1, padding: 32, maxWidth: 1400, width: "100%" }}>
-          {activeView === "dashboard" && <Dashboard onNavigate={setActiveView} onNavigateToTx={navigateToTransaction} />}
+          {activeView === "dashboard" && <Dashboard onNavigate={setActiveView} onNavigateToTx={navigateToTransaction} onSelectProperty={handlePropertySelect} />}
           {activeView === "properties" && <Properties onSelect={handlePropertySelect} editPropertyId={editPropertyId} onClearEditId={() => setEditPropertyId(null)} />}
           {activeView === "propertyDetail" && selectedProperty && <PropertyDetail property={selectedProperty} onBack={() => setActiveView("properties")} onEditProperty={(p) => { setEditPropertyId(p.id); setActiveView("properties"); }} onGoToTransactions={() => setActiveView("transactions")} onNavigateToTransaction={(txId) => { if (txId) { setHighlightTxId(txId); setNavSource("propertyDetail"); } setActiveView("transactions"); }} onNavigateToTenant={(tenantId) => { setHighlightTenantId(tenantId); setNavSource("propertyDetail"); setActiveView("tenants"); }} />}
           {activeView === "transactions" && <Transactions highlightTxId={highlightTxId} backLabel={navSource === "propertyDetail" ? "Back to Property" : "Back to Dashboard"} onBack={navSource === "dashboard" ? () => { setActiveView("dashboard"); setHighlightTxId(null); setNavSource(null); } : navSource === "propertyDetail" ? () => { setActiveView("propertyDetail"); setHighlightTxId(null); setNavSource(null); } : null} onClearHighlight={() => setHighlightTxId(null)} />}
