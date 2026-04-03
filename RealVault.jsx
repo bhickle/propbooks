@@ -491,7 +491,7 @@ function Badge({ status }) {
 function Dashboard({ onNavigate, onNavigateToTx, onSelectProperty, onNavigateToTenantAdd, onNavigateToNote }) {
   const now = new Date();
   const todayStr = now.toISOString().slice(0, 10);
-  const [, forceRender] = useState(0);
+  const [renderKey, forceRender] = useState(0);
   const rerender = () => forceRender(n => n + 1);
 
   // ── Quick Action State ─────────────────────────────────────────────────
@@ -550,7 +550,7 @@ function Dashboard({ onNavigate, onNavigateToTx, onSelectProperty, onNavigateToT
     // Sort: high severity first
     const order = { high: 0, medium: 1, low: 2 };
     return alerts.sort((a, b) => order[a.severity] - order[b.severity]);
-  }, []);
+  }, [renderKey]);
 
   // ── Rent Collection (this month) ────────────────────────────────────────
   const thisMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
@@ -582,7 +582,7 @@ function Dashboard({ onNavigate, onNavigateToTx, onSelectProperty, onNavigateToT
       });
     });
     return items.sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 8);
-  }, []);
+  }, [renderKey]);
 
   // ── Property snapshot cards ─────────────────────────────────────────────
   const propSnapshots = PROPERTIES.map(p => {
