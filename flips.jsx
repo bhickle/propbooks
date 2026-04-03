@@ -860,7 +860,6 @@ export function FlipExpenses({ highlightExpId, onBack, onClearHighlight }) {
   });
 
   const total     = filtered.reduce((s, e) => s + e.amount, 0);
-  const now = new Date();
   const thisMonthStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}`;
   const thisMonth = filtered.filter(e => e.date.startsWith(thisMonthStr)).reduce((s, e) => s + e.amount, 0);
   const monthName = now.toLocaleDateString("en-US", { month: "long", year: "numeric" });
