@@ -1598,18 +1598,10 @@ function Transactions({ highlightTxId, onBack, onClearHighlight, backLabel }) {
           <h1 style={{ color: "#0f172a", fontSize: 26, fontWeight: 700, marginBottom: 4 }}>Transactions</h1>
           <p style={{ color: "#64748b", fontSize: 15 }}>Track all income and expenses across your portfolio</p>
         </div>
-        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-          <select value={propFilter} onChange={e => setPropFilter(e.target.value)} style={{ ...iS, width: 200, fontSize: 14, padding: "9px 14px", fontWeight: 600 }}>
-            <option value="all">All Properties</option>
-            {PROPERTIES.map(p => <option key={p.id} value={p.name}>{p.name}</option>)}
-          </select>
-          <button onClick={openAddExpense} style={{ background: "#fef2f2", color: "#b91c1c", border: "1px solid #fecaca", borderRadius: 10, padding: "10px 18px", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
-            <Plus size={16} /> Add Expense
-          </button>
-          <button onClick={openAddIncome} style={{ background: "#15803d", color: "#fff", border: "none", borderRadius: 10, padding: "10px 18px", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
-            <Plus size={16} /> Add Income
-          </button>
-        </div>
+        <select value={propFilter} onChange={e => setPropFilter(e.target.value)} style={{ ...iS, width: 200, fontSize: 14, padding: "9px 14px", fontWeight: 600 }}>
+          <option value="all">All Properties</option>
+          {PROPERTIES.map(p => <option key={p.id} value={p.name}>{p.name}</option>)}
+        </select>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, marginBottom: 24 }}>
         <div style={{ background: "#fff", borderRadius: 14, padding: 20, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" }}>
@@ -1654,12 +1646,20 @@ function Transactions({ highlightTxId, onBack, onClearHighlight, backLabel }) {
           </>
         )}
         {/* Income / Expense toggle */}
-        <div style={{ display: "flex", gap: 6, marginLeft: "auto" }}>
+        <div style={{ display: "flex", gap: 6 }}>
           {[["all", "All"], ["income", "Income"], ["expense", "Expenses"]].map(([f, label]) => (
             <button key={f} onClick={() => setFilter(f)} style={{ padding: "9px 16px", borderRadius: 10, border: filter === f ? "none" : "1px solid #e2e8f0", background: filter === f ? (f === "income" ? "#dcfce7" : f === "expense" ? "#fee2e2" : "#3b82f6") : "#fff", color: filter === f ? (f === "income" ? "#15803d" : f === "expense" ? "#b91c1c" : "#fff") : "#475569", fontWeight: 600, fontSize: 13, cursor: "pointer", whiteSpace: "nowrap" }}>
               {label}
             </button>
           ))}
+        </div>
+        <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
+          <button onClick={openAddExpense} style={{ background: "#fef2f2", color: "#b91c1c", border: "1px solid #fecaca", borderRadius: 10, padding: "9px 16px", fontWeight: 600, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
+            <Plus size={14} /> Add Expense
+          </button>
+          <button onClick={openAddIncome} style={{ background: "#15803d", color: "#fff", border: "none", borderRadius: 10, padding: "9px 16px", fontWeight: 600, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
+            <Plus size={14} /> Add Income
+          </button>
         </div>
       </div>
       {/* Active filter chips + clear */}
@@ -5403,15 +5403,10 @@ function RentRoll({ onBack, highlightTenantId, onClearHighlight }) {
           <h1 style={{ color: "#0f172a", fontSize: 26, fontWeight: 700, marginBottom: 4 }}>Rent Roll</h1>
           <p style={{ color: "#64748b", fontSize: 15 }}>All tenants, leases, and occupancy status</p>
         </div>
-        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-          <select value={propFilter} onChange={e => setPropFilter(e.target.value)} style={{ ...iS, width: 200, fontSize: 14, padding: "9px 14px", fontWeight: 600 }}>
-            <option value="all">All Properties</option>
-            {PROPERTIES.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-          </select>
-          <button onClick={openAdd} style={{ background: "#3b82f6", color: "#fff", border: "none", borderRadius: 10, padding: "10px 18px", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
-            <Plus size={16} /> Add Tenant
-          </button>
-        </div>
+        <select value={propFilter} onChange={e => setPropFilter(e.target.value)} style={{ ...iS, width: 200, fontSize: 14, padding: "9px 14px", fontWeight: 600 }}>
+          <option value="all">All Properties</option>
+          {PROPERTIES.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+        </select>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 24 }}>
         {[
@@ -5457,6 +5452,9 @@ function RentRoll({ onBack, highlightTenantId, onClearHighlight }) {
             <X size={13} /> Clear filters
           </button>
         )}
+        <button onClick={openAdd} style={{ marginLeft: "auto", background: "#3b82f6", color: "#fff", border: "none", borderRadius: 10, padding: "9px 16px", fontWeight: 600, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
+          <Plus size={14} /> Add Tenant
+        </button>
       </div>
 
       {expiringIn90.length > 0 && statusFilter !== "expiring" && (

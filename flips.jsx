@@ -73,7 +73,6 @@ function PageHeader({ title, sub, action, filter }) {
       </div>
       <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
         {filter}
-        {action}
       </div>
     </div>
   );
@@ -413,11 +412,6 @@ export function RehabTracker() {
             {flips.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
           </select>
         }
-        action={
-          <button onClick={() => setShowAddItem(true)} style={{ background: "#f59e0b", color: "#fff", border: "none", borderRadius: 10, padding: "10px 18px", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
-            <Plus size={16} /> Add Rehab Item
-          </button>
-        }
       />
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 24 }}>
@@ -436,9 +430,12 @@ export function RehabTracker() {
           <option value="in-progress">In Progress</option>
           <option value="pending">Pending</option>
         </select>
-        <div style={{ marginLeft: "auto", background: "#f1f5f9", borderRadius: 10, padding: "8px 14px", display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: "#64748b" }}>
+        <div style={{ background: "#f1f5f9", borderRadius: 10, padding: "8px 14px", display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: "#64748b" }}>
           <Search size={13} /> {filtered.length} items
         </div>
+        <button onClick={() => setShowAddItem(true)} style={{ marginLeft: "auto", background: "#f59e0b", color: "#fff", border: "none", borderRadius: 10, padding: "9px 16px", fontWeight: 600, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
+          <Plus size={14} /> Add Rehab Item
+        </button>
       </div>
 
       {/* Items by flip */}
@@ -857,11 +854,6 @@ export function FlipExpenses({ highlightExpId, onBack, onClearHighlight }) {
             {_FLIPS.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
           </select>
         }
-        action={
-          <button onClick={openAdd} style={{ background: "#f59e0b", color: "#fff", border: "none", borderRadius: 10, padding: "10px 18px", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
-            <Plus size={16} /> Add Expense
-          </button>
-        }
       />
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, marginBottom: 24 }}>
@@ -900,6 +892,9 @@ export function FlipExpenses({ highlightExpId, onBack, onClearHighlight }) {
             <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} style={{ ...iS, width: "auto", fontSize: 13, padding: "9px 12px" }} />
           </>
         )}
+        <button onClick={openAdd} style={{ marginLeft: "auto", background: "#f59e0b", color: "#fff", border: "none", borderRadius: 10, padding: "9px 16px", fontWeight: 600, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
+          <Plus size={14} /> Add Expense
+        </button>
       </div>
       {/* Active filter chips */}
       {hasActiveFilters && (
@@ -1144,8 +1139,7 @@ export function FlipContractors({ onSelectContractor }) {
             <option value="all">All Deals</option>
             {_FLIPS.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
           </select>
-        }
-        action={<button onClick={() => { setForm(emptyForm); setShowModal(true); }} style={{ background: "#f59e0b", color: "#fff", border: "none", borderRadius: 10, padding: "10px 18px", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}><Plus size={16} /> Add Contractor</button>} />
+        } />
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 24 }}>
         <StatCard icon={Users} label="Total Contractors" value={_CON.length} sub={`${_CON.filter(c => (c.dealIds || []).length > 0).length} with active deals`} color="#f59e0b" />
@@ -1159,7 +1153,8 @@ export function FlipContractors({ onSelectContractor }) {
           <option value="all">All Trades</option>
           {allTrades.map(t => <option key={t} value={t}>{t}</option>)}
         </select>
-        <div style={{ marginLeft: "auto", fontSize: 13, color: "#64748b", display: "flex", alignItems: "center" }}>{filtered.length} contractors</div>
+        <div style={{ fontSize: 13, color: "#64748b", display: "flex", alignItems: "center" }}>{filtered.length} contractors</div>
+        <button onClick={() => { setForm(emptyForm); setShowModal(true); }} style={{ marginLeft: "auto", background: "#f59e0b", color: "#fff", border: "none", borderRadius: 10, padding: "9px 16px", fontWeight: 600, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}><Plus size={14} /> Add Contractor</button>
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 14 }}>
@@ -2414,11 +2409,6 @@ export function FlipMilestones() {
             {_FLIPS.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
           </select>
         }
-        action={
-          <button onClick={() => setShowAdd(true)} style={{ background: "#f59e0b", color: "#fff", border: "none", borderRadius: 10, padding: "10px 18px", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
-            <Plus size={16} /> Add Milestone
-          </button>
-        }
       />
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, marginBottom: 24 }}>
@@ -2438,6 +2428,9 @@ export function FlipMilestones() {
         {hasFilters && (
           <button onClick={clearFilters} style={{ background: "none", border: "none", color: "#94a3b8", fontSize: 12, cursor: "pointer", textDecoration: "underline", padding: 0 }}>Clear filters</button>
         )}
+        <button onClick={() => setShowAdd(true)} style={{ marginLeft: "auto", background: "#f59e0b", color: "#fff", border: "none", borderRadius: 10, padding: "9px 16px", fontWeight: 600, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
+          <Plus size={14} /> Add Milestone
+        </button>
       </div>
 
       {/* Grouped by deal */}
@@ -2673,11 +2666,6 @@ export function FlipNotes() {
             {_FLIPS.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
           </select>
         }
-        action={
-          <button onClick={() => { setEditId(null); setNoteForm({ flipId: _FLIPS[0] ? String(_FLIPS[0].id) : "", text: "" }); setShowAdd(true); }} style={{ background: "#f59e0b", color: "#fff", border: "none", borderRadius: 10, padding: "10px 18px", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
-            <Plus size={16} /> Add Note
-          </button>
-        }
       />
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, marginBottom: 24 }}>
@@ -2696,6 +2684,9 @@ export function FlipNotes() {
         {hasFilters && (
           <button onClick={clearFilters} style={{ background: "none", border: "none", color: "#94a3b8", fontSize: 12, cursor: "pointer", textDecoration: "underline", padding: 0 }}>Clear filters</button>
         )}
+        <button onClick={() => { setEditId(null); setNoteForm({ flipId: _FLIPS[0] ? String(_FLIPS[0].id) : "", text: "" }); setShowAdd(true); }} style={{ marginLeft: "auto", background: "#f59e0b", color: "#fff", border: "none", borderRadius: 10, padding: "9px 16px", fontWeight: 600, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
+          <Plus size={14} /> Add Note
+        </button>
       </div>
 
       {/* Notes grouped by date */}
