@@ -64,14 +64,17 @@ function StatCard({ icon: Icon, label, value, sub, color = "#3b82f6", trend, tre
   );
 }
 
-function PageHeader({ title, sub, action }) {
+function PageHeader({ title, sub, action, filter }) {
   return (
     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
       <div>
         <h1 style={{ color: "#0f172a", fontSize: 26, fontWeight: 700, marginBottom: 4 }}>{title}</h1>
         <p style={{ color: "#64748b", fontSize: 15 }}>{sub}</p>
       </div>
-      {action}
+      <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+        {filter}
+        {action}
+      </div>
     </div>
   );
 }
@@ -403,6 +406,13 @@ export function RehabTracker() {
       <PageHeader
         title="Rehab Tracker"
         sub="All rehab line items across active deals"
+        filter={
+          <select value={filterFlip} onChange={e => setFilterFlip(e.target.value)}
+            style={{ ...iS, width: 200, fontSize: 14, padding: "9px 14px", fontWeight: 600 }}>
+            <option value="all">All Deals</option>
+            {flips.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
+          </select>
+        }
         action={
           <button onClick={() => setShowAddItem(true)} style={{ background: "#f59e0b", color: "#fff", border: "none", borderRadius: 10, padding: "10px 18px", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
             <Plus size={16} /> Add Rehab Item
@@ -419,11 +429,6 @@ export function RehabTracker() {
 
       {/* Filters */}
       <div style={{ display: "flex", gap: 12, marginBottom: 20 }}>
-        <select value={filterFlip} onChange={e => setFilterFlip(e.target.value)}
-          style={{ ...iS, width: "auto", padding: "8px 12px", fontSize: 13 }}>
-          <option value="all">All Deals</option>
-          {flips.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
-        </select>
         <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
           style={{ ...iS, width: "auto", padding: "8px 12px", fontSize: 13 }}>
           <option value="all">All Statuses</option>
@@ -846,6 +851,12 @@ export function FlipExpenses({ highlightExpId, onBack, onClearHighlight }) {
       <PageHeader
         title="Expenses"
         sub="All costs across every fix & flip project"
+        filter={
+          <select value={filterFlip} onChange={e => setFilterFlip(e.target.value)} style={{ ...iS, width: 200, fontSize: 14, padding: "9px 14px", fontWeight: 600 }}>
+            <option value="all">All Deals</option>
+            {_FLIPS.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
+          </select>
+        }
         action={
           <button onClick={openAdd} style={{ background: "#f59e0b", color: "#fff", border: "none", borderRadius: 10, padding: "10px 18px", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
             <Plus size={16} /> Add Expense
@@ -866,10 +877,6 @@ export function FlipExpenses({ highlightExpId, onBack, onClearHighlight }) {
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search..."
             style={{ width: "100%", paddingLeft: 36, paddingRight: 12, paddingTop: 9, paddingBottom: 9, border: "1px solid #e2e8f0", borderRadius: 10, fontSize: 13, color: "#0f172a", background: "#fff", outline: "none", boxSizing: "border-box" }} />
         </div>
-        <select value={filterFlip} onChange={e => setFilterFlip(e.target.value)} style={{ ...iS, width: "auto", minWidth: 160, fontSize: 13, padding: "9px 12px" }}>
-          <option value="all">All Deals</option>
-          {_FLIPS.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
-        </select>
         <select value={filterCat} onChange={e => setFilterCat(e.target.value)} style={{ ...iS, width: "auto", minWidth: 160, fontSize: 13, padding: "9px 12px" }}>
           <option value="all">All Categories</option>
           {Object.entries(FLIP_EXPENSE_GROUPS).map(([group, subs]) => (
@@ -1132,6 +1139,12 @@ export function FlipContractors({ onSelectContractor }) {
   return (
     <div>
       <PageHeader title="Contractors" sub="Manage your contractor relationships across all deals"
+        filter={
+          <select value={filterFlip} onChange={e => setFilterFlip(e.target.value)} style={{ ...iS, width: 200, fontSize: 14, padding: "9px 14px", fontWeight: 600 }}>
+            <option value="all">All Deals</option>
+            {_FLIPS.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
+          </select>
+        }
         action={<button onClick={() => { setForm(emptyForm); setShowModal(true); }} style={{ background: "#f59e0b", color: "#fff", border: "none", borderRadius: 10, padding: "10px 18px", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}><Plus size={16} /> Add Contractor</button>} />
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 24 }}>
@@ -1142,10 +1155,6 @@ export function FlipContractors({ onSelectContractor }) {
       </div>
 
       <div style={{ display: "flex", gap: 10, marginBottom: 18 }}>
-        <select value={filterFlip} onChange={e => setFilterFlip(e.target.value)} style={{ ...iS, width: "auto", padding: "8px 12px", fontSize: 13 }}>
-          <option value="all">All Deals</option>
-          {_FLIPS.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
-        </select>
         <select value={filterTrade} onChange={e => setFilterTrade(e.target.value)} style={{ ...iS, width: "auto", padding: "8px 12px", fontSize: 13 }}>
           <option value="all">All Trades</option>
           {allTrades.map(t => <option key={t} value={t}>{t}</option>)}
@@ -1854,26 +1863,19 @@ export function FlipAnalytics() {
   return (
     <div>
       {/* Header — matches rental Analytics pattern */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
         <div>
           <h1 style={{ color: "#0f172a", fontSize: 26, fontWeight: 700, marginBottom: 4 }}>Analytics</h1>
           <p style={{ color: "#64748b", fontSize: 15 }}>
             {singleDeal ? `Performance details — ${singleDeal.name}` : "Performance metrics across all deals"}
           </p>
         </div>
-      </div>
-
-      {/* Deal selector */}
-      <div style={{ display: "flex", gap: 10, marginBottom: 20, flexWrap: "wrap", alignItems: "center" }}>
-        <select value={filterDeal} onChange={e => setFilterDeal(e.target.value)} style={{ ...iS, width: "auto", minWidth: 220, fontSize: 13, padding: "9px 12px", fontWeight: 600 }}>
-          <option value="all">All Deals</option>
-          {allFlips.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
-        </select>
-        {filterDeal !== "all" && (
-          <button onClick={() => setFilterDeal("all")} style={{ background: "none", border: "none", color: "#94a3b8", fontSize: 12, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
-            <X size={13} /> Clear filter
-          </button>
-        )}
+        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+          <select value={filterDeal} onChange={e => setFilterDeal(e.target.value)} style={{ ...iS, width: 220, fontSize: 14, padding: "9px 14px", fontWeight: 600 }}>
+            <option value="all">All Deals</option>
+            {allFlips.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
+          </select>
+        </div>
       </div>
 
       {/* ======== SINGLE-DEAL VIEW ======== */}
@@ -2406,6 +2408,12 @@ export function FlipMilestones() {
       <PageHeader
         title="Milestones"
         sub="Track progress across all your flips"
+        filter={
+          <select value={filterFlip} onChange={e => setFilterFlip(e.target.value)} style={{ ...iS, width: 200, fontSize: 14, padding: "9px 14px", fontWeight: 600 }}>
+            <option value="all">All Deals</option>
+            {_FLIPS.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
+          </select>
+        }
         action={
           <button onClick={() => setShowAdd(true)} style={{ background: "#f59e0b", color: "#fff", border: "none", borderRadius: 10, padding: "10px 18px", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
             <Plus size={16} /> Add Milestone
@@ -2421,10 +2429,6 @@ export function FlipMilestones() {
 
       {/* Filter bar */}
       <div style={{ display: "flex", gap: 10, marginBottom: hasFilters ? 10 : 20, flexWrap: "wrap", alignItems: "center" }}>
-        <select value={filterFlip} onChange={e => setFilterFlip(e.target.value)} style={{ ...iS, width: "auto", minWidth: 160, fontSize: 13, padding: "9px 12px" }}>
-          <option value="all">All Deals</option>
-          {_FLIPS.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
-        </select>
         <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} style={{ ...iS, width: "auto", minWidth: 140, fontSize: 13, padding: "9px 12px" }}>
           <option value="all">All Statuses</option>
           <option value="done">Completed</option>
@@ -2663,6 +2667,12 @@ export function FlipNotes() {
       <PageHeader
         title="Deal Notes"
         sub="Activity log and notes across all deals"
+        filter={
+          <select value={filterFlip} onChange={e => setFilterFlip(e.target.value)} style={{ ...iS, width: 200, fontSize: 14, padding: "9px 14px", fontWeight: 600 }}>
+            <option value="all">All Deals</option>
+            {_FLIPS.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
+          </select>
+        }
         action={
           <button onClick={() => { setEditId(null); setNoteForm({ flipId: _FLIPS[0] ? String(_FLIPS[0].id) : "", text: "" }); setShowAdd(true); }} style={{ background: "#f59e0b", color: "#fff", border: "none", borderRadius: 10, padding: "10px 18px", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
             <Plus size={16} /> Add Note
@@ -2683,10 +2693,6 @@ export function FlipNotes() {
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search notes..."
             style={{ width: "100%", paddingLeft: 36, paddingRight: 12, paddingTop: 9, paddingBottom: 9, border: "1px solid #e2e8f0", borderRadius: 10, fontSize: 13, color: "#0f172a", background: "#fff", outline: "none", boxSizing: "border-box" }} />
         </div>
-        <select value={filterFlip} onChange={e => setFilterFlip(e.target.value)} style={{ ...iS, width: "auto", minWidth: 160, fontSize: 13, padding: "9px 12px" }}>
-          <option value="all">All Deals</option>
-          {_FLIPS.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
-        </select>
         {hasFilters && (
           <button onClick={clearFilters} style={{ background: "none", border: "none", color: "#94a3b8", fontSize: 12, cursor: "pointer", textDecoration: "underline", padding: 0 }}>Clear filters</button>
         )}

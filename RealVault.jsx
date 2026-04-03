@@ -1598,7 +1598,11 @@ function Transactions({ highlightTxId, onBack, onClearHighlight, backLabel }) {
           <h1 style={{ color: "#0f172a", fontSize: 26, fontWeight: 700, marginBottom: 4 }}>Transactions</h1>
           <p style={{ color: "#64748b", fontSize: 15 }}>Track all income and expenses across your portfolio</p>
         </div>
-        <div style={{ display: "flex", gap: 10 }}>
+        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+          <select value={propFilter} onChange={e => setPropFilter(e.target.value)} style={{ ...iS, width: 200, fontSize: 14, padding: "9px 14px", fontWeight: 600 }}>
+            <option value="all">All Properties</option>
+            {PROPERTIES.map(p => <option key={p.id} value={p.name}>{p.name}</option>)}
+          </select>
           <button onClick={openAddExpense} style={{ background: "#fef2f2", color: "#b91c1c", border: "1px solid #fecaca", borderRadius: 10, padding: "10px 18px", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
             <Plus size={16} /> Add Expense
           </button>
@@ -1628,11 +1632,6 @@ function Transactions({ highlightTxId, onBack, onClearHighlight, backLabel }) {
           <Search size={15} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "#94a3b8" }} />
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search..." style={{ width: "100%", paddingLeft: 36, paddingRight: 12, paddingTop: 9, paddingBottom: 9, border: "1px solid #e2e8f0", borderRadius: 10, fontSize: 13, color: "#0f172a", background: "#fff", outline: "none", boxSizing: "border-box" }} />
         </div>
-        {/* Property */}
-        <select value={propFilter} onChange={e => setPropFilter(e.target.value)} style={{ ...iS, width: "auto", minWidth: 160, fontSize: 13, padding: "9px 12px" }}>
-          <option value="all">All Properties</option>
-          {PROPERTIES.map(p => <option key={p.id} value={p.name}>{p.name}</option>)}
-        </select>
         {/* Category */}
         <select value={catFilter} onChange={e => setCatFilter(e.target.value)} style={{ ...iS, width: "auto", minWidth: 160, fontSize: 13, padding: "9px 12px" }}>
           <option value="all">All Categories</option>
@@ -1991,24 +1990,19 @@ function Analytics() {
 
   return (
     <div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
         <div>
           <h1 style={{ color: "#0f172a", fontSize: 26, fontWeight: 700, marginBottom: 4 }}>Analytics &amp; Returns</h1>
           <p style={{ color: "#64748b", fontSize: 15 }}>
             {selectedProp ? `Performance details — ${selectedProp.name}` : "Detailed performance metrics for every property"}
           </p>
         </div>
-      </div>
-      <div style={{ display: "flex", gap: 10, marginBottom: 20, flexWrap: "wrap", alignItems: "center" }}>
-        <select value={selectedPropId} onChange={e => setSelectedPropId(e.target.value)} style={{ ...iS, width: "auto", minWidth: 220, fontSize: 13, padding: "9px 12px", fontWeight: 600 }}>
-          <option value="">All Properties</option>
-          {PROPERTIES.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-        </select>
-        {selectedPropId && (
-          <button onClick={() => setSelectedPropId("")} style={{ background: "none", border: "none", color: "#94a3b8", fontSize: 12, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
-            <X size={13} /> Clear filter
-          </button>
-        )}
+        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+          <select value={selectedPropId} onChange={e => setSelectedPropId(e.target.value)} style={{ ...iS, width: 220, fontSize: 14, padding: "9px 14px", fontWeight: 600 }}>
+            <option value="">All Properties</option>
+            {PROPERTIES.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+          </select>
+        </div>
       </div>
 
       {!selectedProp ? (
@@ -5409,9 +5403,15 @@ function RentRoll({ onBack, highlightTenantId, onClearHighlight }) {
           <h1 style={{ color: "#0f172a", fontSize: 26, fontWeight: 700, marginBottom: 4 }}>Rent Roll</h1>
           <p style={{ color: "#64748b", fontSize: 15 }}>All tenants, leases, and occupancy status</p>
         </div>
-        <button onClick={openAdd} style={{ background: "#3b82f6", color: "#fff", border: "none", borderRadius: 10, padding: "10px 18px", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
-          <Plus size={16} /> Add Tenant
-        </button>
+        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+          <select value={propFilter} onChange={e => setPropFilter(e.target.value)} style={{ ...iS, width: 200, fontSize: 14, padding: "9px 14px", fontWeight: 600 }}>
+            <option value="all">All Properties</option>
+            {PROPERTIES.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+          </select>
+          <button onClick={openAdd} style={{ background: "#3b82f6", color: "#fff", border: "none", borderRadius: 10, padding: "10px 18px", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
+            <Plus size={16} /> Add Tenant
+          </button>
+        </div>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 24 }}>
         {[
@@ -5436,10 +5436,6 @@ function RentRoll({ onBack, highlightTenantId, onClearHighlight }) {
       </div>
       {/* Filters */}
       <div style={{ display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap", alignItems: "center" }}>
-        <select value={propFilter} onChange={e => setPropFilter(e.target.value)} style={{ ...iS, width: "auto", minWidth: 180, fontSize: 13, padding: "9px 12px" }}>
-          <option value="all">All Properties</option>
-          {PROPERTIES.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-        </select>
         <div style={{ display: "flex", gap: 4, background: "#f8fafc", borderRadius: 10, padding: 4, border: "1px solid #e2e8f0" }}>
           {[
             ["all", "All"],
