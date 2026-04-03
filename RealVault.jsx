@@ -6041,20 +6041,22 @@ function MileageTracker() {
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [purposeFilter, setPurposeFilter] = useState("all");
   const [dateFilter, setDateFilter] = useState("thisYear");
-  const emptyTrip = { date: "", description: "", from: "Home", to: "", miles: "", purpose: "Rental", businessPct: "100" };
+  const [search, setSearch] = useState("");
+  const [linkedFilter, setLinkedFilter] = useState("all"); // "all" | property name | deal name
+  const emptyTrip = { date: "", description: "", from: "Home", to: "", miles: "", purpose: "Rental", businessPct: "100", linkedTo: "" };
   const [form, setForm] = useState(emptyTrip);
   const sf = k => e => setForm(f => ({ ...f, [k]: e.target.value }));
 
   const openAdd = () => { setEditId(null); setForm(emptyTrip); setShowModal(true); };
   const openEdit = t => {
     setEditId(t.id);
-    setForm({ date: t.date, description: t.description, from: t.from, to: t.to, miles: String(t.miles), purpose: t.purpose, businessPct: String(t.businessPct) });
+    setForm({ date: t.date, description: t.description, from: t.from, to: t.to, miles: String(t.miles), purpose: t.purpose, businessPct: String(t.businessPct), linkedTo: t.linkedTo || "" });
     setShowModal(true);
   };
 
   const handleSave = () => {
     if (!form.miles || !form.to) return;
-    const built = { date: form.date || new Date().toISOString().split("T")[0], description: form.description || form.to, from: form.from, to: form.to, miles: parseFloat(form.miles) || 0, purpose: form.purpose, businessPct: parseFloat(form.businessPct) || 100 };
+    const built = { date: form.date || new Date().toISOString().split("T")[0], description: form.description || form.to, from: form.from, to: form.to, miles: parseFloat(form.miles) || 0, purpose: form.purpose, businessPct: parseFloat(form.businessPct) || 100, linkedTo: form.linkedTo || "" };
     if (editId !== null) {
       setTripData(prev => prev.map(t => t.id === editId ? { ...t, ...built } : t));
     } else {
@@ -6081,8 +6083,14 @@ function MileageTracker() {
   };
 
   const filteredTrips = tripData.filter(t =>
-    (purposeFilter === "all" || t.purpose === purposeFilter) && matchesMileageDate(t)
+    (purposeFilter === "all" || t.purpose === purposeFilter) &&
+    matchesMileageDate(t) &&
+    (linkedFilter === "all" || (t.linkedTo || "") === linkedFilter) &&
+    (!search || t.description.toLowerCase().includes(search.toLowerCase()) || t.from.toLowerCase().includes(search.toLowerCase()) || t.to.toLowerCase().includes(search.toLowerCase()))
   );
+
+  // Get unique linked properties/deals for filter dropdown
+  const linkedOptions = [...new Set(tripData.map(t => t.linkedTo).filter(Boolean))].sort();
 
   const totalMiles = filteredTrips.reduce((s, t) => s + t.miles, 0);
   const businessMiles = filteredTrips.filter(t => t.businessPct === 100).reduce((s, t) => s + t.miles, 0);
@@ -6135,14 +6143,24 @@ function MileageTracker() {
             );
           })}
         </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, background: "#fff", border: "1px solid #e2e8f0", borderRadius: 10, padding: "0 12px" }}>
+          <Search size={14} color="#94a3b8" />
+          <input placeholder="Search trips..." value={search} onChange={e => setSearch(e.target.value)} style={{ border: "none", background: "transparent", fontSize: 13, color: "#475569", outline: "none", padding: "9px 0", width: 140 }} />
+        </div>
+        {linkedOptions.length > 0 && (
+          <select value={linkedFilter} onChange={e => setLinkedFilter(e.target.value)} style={{ ...iS, width: "auto", minWidth: 160, fontSize: 13, padding: "9px 12px" }}>
+            <option value="all">All Properties / Deals</option>
+            {linkedOptions.map(o => <option key={o} value={o}>{o}</option>)}
+          </select>
+        )}
         <select value={dateFilter} onChange={e => setDateFilter(e.target.value)} style={{ ...iS, width: "auto", minWidth: 140, fontSize: 13, padding: "9px 12px", marginLeft: "auto" }}>
           <option value="thisYear">This Year</option>
           <option value="thisMonth">This Month</option>
           <option value="lastMonth">Last Month</option>
           <option value="all">All Time</option>
         </select>
-        {(purposeFilter !== "all" || dateFilter !== "thisYear") && (
-          <button onClick={() => { setPurposeFilter("all"); setDateFilter("thisYear"); }} style={{ background: "none", border: "none", color: "#94a3b8", fontSize: 12, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
+        {(purposeFilter !== "all" || dateFilter !== "thisYear" || search || linkedFilter !== "all") && (
+          <button onClick={() => { setPurposeFilter("all"); setDateFilter("thisYear"); setSearch(""); setLinkedFilter("all"); }} style={{ background: "none", border: "none", color: "#94a3b8", fontSize: 12, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
             <X size={13} /> Clear filters
           </button>
         )}
@@ -6151,27 +6169,35 @@ function MileageTracker() {
       <div style={{ background: "#fff", borderRadius: 16, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9", overflow: "hidden" }}>
         <div style={{ padding: "16px 20px", borderBottom: "1px solid #f1f5f9", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <h3 style={{ color: "#0f172a", fontSize: 15, fontWeight: 700 }}>Trip Log</h3>
-          <button style={{ border: "1px solid #e2e8f0", borderRadius: 8, padding: "7px 12px", background: "#fff", color: "#475569", fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
+          <button onClick={() => {
+            let csv = "Date,Description,From,To,Miles,Purpose,Business%,Deduction,Linked To\n";
+            filteredTrips.forEach(t => {
+              csv += `${t.date},"${t.description}","${t.from}","${t.to}",${t.miles},${t.purpose},${t.businessPct},${(t.miles * IRS_RATE * t.businessPct / 100).toFixed(2)},"${t.linkedTo || ""}"\n`;
+            });
+            csv += `\nTotal,,,,${totalMiles.toFixed(1)},,,${deduction.toFixed(2)},\n`;
+            downloadFile(csv, `RealVault_Mileage_${mThisYear}.csv`, "text/csv");
+          }} style={{ border: "1px solid #e2e8f0", borderRadius: 8, padding: "7px 12px", background: "#fff", color: "#475569", fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
             <Download size={13} /> Export CSV
           </button>
         </div>
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
             <tr style={{ background: "#f8fafc" }}>
-              {["Date", "Description", "From / To", "Miles", "Purpose", "Deduction", ""].map(h => (
+              {["Date", "Description", "From / To", "Linked To", "Miles", "Purpose", "Deduction", ""].map(h => (
                 <th key={h} style={{ padding: "12px 18px", textAlign: "left", color: "#94a3b8", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {filteredTrips.length === 0 && (
-              <tr><td colSpan={7} style={{ padding: "40px 18px", textAlign: "center", color: "#94a3b8", fontSize: 14 }}>No trips match your filters.</td></tr>
+              <tr><td colSpan={8} style={{ padding: "40px 18px", textAlign: "center", color: "#94a3b8", fontSize: 14 }}>No trips match your filters.</td></tr>
             )}
             {filteredTrips.map((t, i) => (
               <tr key={t.id} style={{ borderTop: "1px solid #f1f5f9", background: i % 2 === 0 ? "#fff" : "#fafafa" }}>
                 <td style={{ padding: "13px 18px", fontSize: 13, color: "#64748b" }}>{t.date}</td>
                 <td style={{ padding: "13px 18px", fontSize: 13, fontWeight: 600, color: "#0f172a" }}>{t.description}</td>
                 <td style={{ padding: "13px 18px", fontSize: 12, color: "#475569" }}>{t.from}  /  {t.to.split(",")[0]}</td>
+                <td style={{ padding: "13px 18px", fontSize: 12, color: t.linkedTo ? "#475569" : "#cbd5e1" }}>{t.linkedTo || "—"}</td>
                 <td style={{ padding: "13px 18px", fontSize: 14, fontWeight: 700, color: "#0f172a" }}>{t.miles} mi</td>
                 <td style={{ padding: "13px 18px" }}>
                   <span style={{ background: (purposeColors[t.purpose] || "#94a3b8") + "20", color: purposeColors[t.purpose] || "#475569", borderRadius: 20, padding: "3px 10px", fontSize: 12, fontWeight: 700 }}>{t.purpose}</span>
@@ -6188,7 +6214,7 @@ function MileageTracker() {
           </tbody>
           <tfoot>
             <tr style={{ background: "#f8fafc", borderTop: "2px solid #e2e8f0" }}>
-              <td colSpan={3} style={{ padding: "12px 18px", fontSize: 13, fontWeight: 700, color: "#0f172a" }}>Totals ({filteredTrips.length} trips)</td>
+              <td colSpan={4} style={{ padding: "12px 18px", fontSize: 13, fontWeight: 700, color: "#0f172a" }}>Totals ({filteredTrips.length} trips)</td>
               <td style={{ padding: "12px 18px", fontSize: 14, fontWeight: 800, color: "#0f172a" }}>{totalMiles.toFixed(1)} mi</td>
               <td />
               <td style={{ padding: "12px 18px", fontSize: 15, fontWeight: 800, color: "#15803d" }}>{fmt(deduction)}</td>
@@ -6211,10 +6237,22 @@ function MileageTracker() {
               <input type={f.type} placeholder={f.placeholder} value={form[f.key]} onChange={sf(f.key)} style={iS} />
             </div>
           ))}
-          <div style={{ marginBottom: 16 }}>
+          <div style={{ marginBottom: 12 }}>
             <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Purpose</label>
             <select value={form.purpose} onChange={sf("purpose")} style={iS}>
               {["Flip","Rental","Business"].map(o => <option key={o}>{o}</option>)}
+            </select>
+          </div>
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Linked Property / Deal</label>
+            <select value={form.linkedTo} onChange={sf("linkedTo")} style={iS}>
+              <option value="">None</option>
+              <optgroup label="Properties">
+                {PROPERTIES.map(p => <option key={`p-${p.id}`} value={p.name}>{p.name}</option>)}
+              </optgroup>
+              <optgroup label="Flip Deals">
+                {FLIPS.map(f => <option key={`f-${f.id}`} value={f.name}>{f.name}</option>)}
+              </optgroup>
             </select>
           </div>
           <div style={{ display: "flex", gap: 10 }}>
@@ -6293,22 +6331,32 @@ function DealAnalyzer() {
         <h1 style={{ color: "#0f172a", fontSize: 26, fontWeight: 700, marginBottom: 4 }}>Deal Analyzer</h1>
         <p style={{ color: "#64748b", fontSize: 15 }}>Run the numbers before you make an offer</p>
       </div>
-      <div style={{ display: "flex", background: "#f1f5f9", borderRadius: 12, padding: 4, width: "fit-content", marginBottom: 28 }}>
-        {[{ id: "flip", label: "[Flip] Fix & Flip" }, { id: "rental", label: "[Rental] Buy & Hold" }].map(m => (
-          <button key={m.id} onClick={() => setMode(m.id)} style={{ padding: "10px 24px", borderRadius: 9, border: "none", background: mode === m.id ? "#fff" : "transparent", color: mode === m.id ? "#0f172a" : "#64748b", fontWeight: mode === m.id ? 700 : 500, fontSize: 14, cursor: "pointer", boxShadow: mode === m.id ? "0 1px 3px rgba(0,0,0,0.1)" : "none" }}>
-            {m.label}
-          </button>
-        ))}
+      <div style={{ display: "flex", background: "#f8fafc", borderRadius: 10, padding: 4, width: "fit-content", marginBottom: 28, border: "1px solid #e2e8f0" }}>
+        {[{ id: "flip", label: "Fix & Flip", icon: Hammer }, { id: "rental", label: "Buy & Hold", icon: Building2 }].map(m => {
+          const active = mode === m.id;
+          return (
+            <button key={m.id} onClick={() => setMode(m.id)} style={{ display: "flex", alignItems: "center", gap: 7, padding: "10px 22px", borderRadius: 8, border: "none", background: active ? "#f59e0b" : "transparent", color: active ? "#fff" : "#64748b", fontWeight: active ? 700 : 500, fontSize: 14, cursor: "pointer", transition: "all 0.15s" }}>
+              <m.icon size={15} /> {m.label}
+            </button>
+          );
+        })}
       </div>
 
       {mode === "flip" && (
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
           <div style={{ background: "#fff", borderRadius: 16, padding: 24, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" }}>
-            <h3 style={{ color: "#0f172a", fontSize: 16, fontWeight: 700, marginBottom: 18 }}>Deal Inputs</h3>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
+              <h3 style={{ color: "#0f172a", fontSize: 16, fontWeight: 700 }}>Deal Inputs</h3>
+              {(flip.arv || flip.purchase || flip.rehab) && (
+                <button onClick={() => setFlip({ arv: "", purchase: "", rehab: "", holdMonths: "4", sellingPct: "6" })} style={{ background: "none", border: "none", color: "#94a3b8", fontSize: 12, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
+                  <X size={13} /> Reset
+                </button>
+              )}
+            </div>
             {[
-              { label: "After Repair Value (ARV)", key: "arv", placeholder: "310,000" },
-              { label: "Purchase Price", key: "purchase", placeholder: "195,000" },
-              { label: "Estimated Rehab", key: "rehab", placeholder: "62,000" },
+              { label: "After Repair Value (ARV)", key: "arv", placeholder: "310000" },
+              { label: "Purchase Price", key: "purchase", placeholder: "195000" },
+              { label: "Estimated Rehab", key: "rehab", placeholder: "62000" },
               { label: "Hold Period (months)", key: "holdMonths", placeholder: "4" },
               { label: "Selling Costs (%)", key: "sellingPct", placeholder: "6" },
             ].map(f => (
@@ -6356,6 +6404,34 @@ function DealAnalyzer() {
                 </div>
               ))}
             </div>
+            {fARV > 0 && fPurchase > 0 && (
+              <div style={{ background: "#fff", borderRadius: 16, padding: 20, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" }}>
+                <h3 style={{ color: "#0f172a", fontSize: 15, fontWeight: 700, marginBottom: 14 }}>Quick Checks</h3>
+                {(() => {
+                  const purchasePctARV = (fPurchase / fARV * 100).toFixed(0);
+                  const rehabPctARV = fARV > 0 ? (fRehab / fARV * 100).toFixed(0) : 0;
+                  const profitMargin = fARV > 0 ? (fProfit / fARV * 100).toFixed(1) : 0;
+                  const checks = [
+                    { label: "Purchase / ARV", value: `${purchasePctARV}%`, pass: purchasePctARV <= 70, tip: "Ideally under 70% of ARV" },
+                    { label: "Rehab / ARV", value: `${rehabPctARV}%`, pass: rehabPctARV <= 25, tip: "Keep under 25% of ARV" },
+                    { label: "Profit Margin", value: `${profitMargin}%`, pass: profitMargin >= 10, tip: "Target 10%+ of ARV" },
+                    { label: "ROI", value: `${fROI}%`, pass: parseFloat(fROI) >= 15, tip: "Target 15%+ return on cash" },
+                  ];
+                  return checks.map((c, i) => (
+                    <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: i < checks.length - 1 ? "1px solid #f8fafc" : "none" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <div style={{ width: 8, height: 8, borderRadius: "50%", background: c.pass ? "#10b981" : "#ef4444" }} />
+                        <span style={{ fontSize: 13, color: "#475569" }}>{c.label}</span>
+                      </div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <span style={{ fontSize: 13, fontWeight: 700, color: c.pass ? "#15803d" : "#b91c1c" }}>{c.value}</span>
+                        <span style={{ fontSize: 11, color: "#94a3b8" }}>{c.tip}</span>
+                      </div>
+                    </div>
+                  ));
+                })()}
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -6363,10 +6439,17 @@ function DealAnalyzer() {
       {mode === "rental" && (
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
           <div style={{ background: "#fff", borderRadius: 16, padding: 24, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" }}>
-            <h3 style={{ color: "#0f172a", fontSize: 16, fontWeight: 700, marginBottom: 18 }}>Property Inputs</h3>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
+              <h3 style={{ color: "#0f172a", fontSize: 16, fontWeight: 700 }}>Property Inputs</h3>
+              {(rental.price || rental.monthlyRent) && (
+                <button onClick={() => setRental({ price: "", downPct: "20", rate: "7.25", termYears: "30", monthlyRent: "", taxes: "", insurance: "", maintenance: "", vacancy: "5", mgmtPct: "0" })} style={{ background: "none", border: "none", color: "#94a3b8", fontSize: 12, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
+                  <X size={13} /> Reset
+                </button>
+              )}
+            </div>
             <p style={{ color: "#94a3b8", fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 10 }}>Purchase</p>
             {[
-              { label: "Purchase Price", key: "price", placeholder: "385,000" },
+              { label: "Purchase Price", key: "price", placeholder: "385000" },
               { label: "Down Payment (%)", key: "downPct", placeholder: "20" },
               { label: "Interest Rate (%)", key: "rate", placeholder: "7.25" },
               { label: "Loan Term (years)", key: "termYears", placeholder: "30" },
@@ -6378,9 +6461,9 @@ function DealAnalyzer() {
             ))}
             <p style={{ color: "#94a3b8", fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.04em", margin: "16px 0 10px" }}>Income &amp; Expenses</p>
             {[
-              { label: "Monthly Rent", key: "monthlyRent", placeholder: "2,500" },
-              { label: "Annual Property Taxes", key: "taxes", placeholder: "4,200" },
-              { label: "Annual Insurance", key: "insurance", placeholder: "1,800" },
+              { label: "Monthly Rent", key: "monthlyRent", placeholder: "2500" },
+              { label: "Annual Property Taxes", key: "taxes", placeholder: "4200" },
+              { label: "Annual Insurance", key: "insurance", placeholder: "1800" },
               { label: "Monthly Maintenance", key: "maintenance", placeholder: "150" },
               { label: "Vacancy Rate (%)", key: "vacancy", placeholder: "5" },
               { label: "Mgmt Fee (%)", key: "mgmtPct", placeholder: "0" },
@@ -6431,6 +6514,36 @@ function DealAnalyzer() {
                 ))}
               </div>
             </div>
+            {rPrice > 0 && rRent > 0 && (
+              <div style={{ background: "#fff", borderRadius: 16, padding: 20, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" }}>
+                <h3 style={{ color: "#0f172a", fontSize: 15, fontWeight: 700, marginBottom: 14 }}>Quick Checks</h3>
+                {(() => {
+                  const onePercent = rRent >= rPrice * 0.01;
+                  const onePctVal = (rRent / rPrice * 100).toFixed(2);
+                  const fiftyRule = totalExpenses <= rRent * 0.5;
+                  const expPct = rRent > 0 ? ((totalExpenses / rRent) * 100).toFixed(0) : 0;
+                  const checks = [
+                    { label: "1% Rule", value: `${onePctVal}%`, pass: onePercent, tip: "Monthly rent should be ≥ 1% of purchase price" },
+                    { label: "50% Rule", value: `${expPct}% of rent`, pass: fiftyRule, tip: "Total expenses should be ≤ 50% of gross rent" },
+                    { label: "Cap Rate", value: `${capRate}%`, pass: parseFloat(capRate) >= 5, tip: "Target 5%+ for rentals" },
+                    { label: "Cash-on-Cash", value: `${cocReturn}%`, pass: parseFloat(cocReturn) >= 8, tip: "Target 8%+ return on cash invested" },
+                    { label: "DSCR", value: mortgage > 0 ? (noi / (mortgage * 12)).toFixed(2) : "N/A", pass: mortgage > 0 && (noi / (mortgage * 12)) >= 1.25, tip: "Lenders want ≥ 1.25" },
+                  ];
+                  return checks.map((c, i) => (
+                    <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: i < checks.length - 1 ? "1px solid #f8fafc" : "none" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <div style={{ width: 8, height: 8, borderRadius: "50%", background: c.pass ? "#10b981" : "#ef4444" }} />
+                        <span style={{ fontSize: 13, color: "#475569" }}>{c.label}</span>
+                      </div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <span style={{ fontSize: 13, fontWeight: 700, color: c.pass ? "#15803d" : "#b91c1c" }}>{c.value}</span>
+                        <span style={{ fontSize: 11, color: "#94a3b8" }}>{c.tip}</span>
+                      </div>
+                    </div>
+                  ));
+                })()}
+              </div>
+            )}
           </div>
         </div>
       )}
