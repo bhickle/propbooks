@@ -645,9 +645,10 @@ function Dashboard({ onNavigate, onNavigateToTx, onSelectProperty, onNavigateToT
 
   const handleQuickRenew = (alert) => {
     const t = alert.tenant;
-    // Default: extend 1 year from current end, keep same rent
+    // Default: extend 1 year from today (or current end if still in the future), keep same rent
     const curEnd = t.leaseEnd ? new Date(t.leaseEnd) : new Date();
-    const newEnd = new Date(curEnd);
+    const base = curEnd > now ? curEnd : now; // if expired, start from today
+    const newEnd = new Date(base);
     newEnd.setFullYear(newEnd.getFullYear() + 1);
     setRenewForm({ newEnd: newEnd.toISOString().slice(0, 10), newRent: String(t.rent || "") });
     setQuickRenew(alert);
