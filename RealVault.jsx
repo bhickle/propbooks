@@ -488,7 +488,7 @@ function Badge({ status }) {
 // VIEWS
 // ---------------------------------------------
 
-function Dashboard({ onNavigate, onNavigateToTx, onSelectProperty, onNavigateToTenantAdd, onNavigateToNote }) {
+function Dashboard({ onNavigate, onNavigateToTx, onSelectProperty, onNavigateToTenantAdd, onNavigateToNote, onNavigateToLease }) {
   const now = new Date();
   const todayStr = now.toISOString().slice(0, 10);
   const [renderKey, forceRender] = useState(0);
@@ -694,7 +694,7 @@ function Dashboard({ onNavigate, onNavigateToTx, onSelectProperty, onNavigateToT
                 return (
                   <div key={i} style={{ borderRadius: 10, border: isRenewing ? "1.5px solid #dbeafe" : "1px solid transparent", background: isRenewing ? "#f8fafc" : "transparent", transition: "all 0.15s" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 10px", borderRadius: 10, cursor: "pointer", transition: "background 0.15s" }}
-                      onClick={() => !isRenewing && a.prop && onSelectProperty && onSelectProperty(a.prop)}
+                      onClick={() => !isRenewing && a.prop && onNavigateToLease && onNavigateToLease(a.prop, a.tenant?.id)}
                       onMouseEnter={e => { if (!isRenewing) e.currentTarget.style.background = "#f8fafc"; }}
                       onMouseLeave={e => { if (!isRenewing) e.currentTarget.style.background = "transparent"; }}>
                       <div style={{ width: 32, height: 32, borderRadius: 8, background: a.bg, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
@@ -1321,7 +1321,7 @@ function Properties({ onSelect, editPropertyId, onClearEditId }) {
   );
 }
 
-function PropertyDetail({ property, onBack, onEditProperty, onGoToTransactions, onNavigateToTransaction, onNavigateToTenant }) {
+function PropertyDetail({ property, onBack, onEditProperty, onGoToTransactions, onNavigateToTransaction, onNavigateToTenant, initialTab, highlightTenantId, onClearHighlightTenant }) {
   const calcBal = calcLoanBalance(property.loanAmount, property.loanRate, property.loanTermYears, property.loanStartDate);
   const effectiveMortgage = calcBal !== null ? calcBal : (property.mortgage || 0);
   const equity = property.currentValue - effectiveMortgage;
@@ -1333,7 +1333,21 @@ function PropertyDetail({ property, onBack, onEditProperty, onGoToTransactions, 
   const propPastTenants = TENANTS.filter(t => t.propertyId === property.id && t.status === "past");
   const detailHealth = getPropertyHealth(property, TRANSACTIONS);
   const [healthOpen, setHealthOpen] = useState(true);
-  const [activeTab, setActiveTab] = useState("overview");
+  const [activeTab, setActiveTab] = useState(initialTab || "overview");
+  const [flashTenantId, setFlashTenantId] = useState(highlightTenantId);
+
+  useEffect(() => {
+    if (highlightTenantId) {
+      setActiveTab("tenants");
+      setFlashTenantId(highlightTenantId);
+      setTimeout(() => {
+        const el = document.getElementById("tenant-" + highlightTenantId);
+        if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+      }, 100);
+      const timer = setTimeout(() => { setFlashTenantId(null); onClearHighlightTenant && onClearHighlightTenant(); }, 2500);
+      return () => clearTimeout(timer);
+    }
+  }, [highlightTenantId]);
 
   // Transaction tab filters
   const [txSearch, setTxSearch] = useState("");
@@ -1632,10 +1646,10 @@ function PropertyDetail({ property, onBack, onEditProperty, onGoToTransactions, 
                 const st = statusMap[t.status] || statusMap["active-lease"];
                 const daysLeft = t.leaseEnd ? Math.round((new Date(t.leaseEnd) - new Date()) / 86400000) : null;
                 return (
-                  <div key={t.id} onClick={() => onNavigateToTenant && onNavigateToTenant(t.id)}
-                    style={{ background: "#fff", borderRadius: 14, padding: "18px 22px", boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: `1px solid ${isVacant ? "#fee2e2" : "#f1f5f9"}`, cursor: "pointer", transition: "all 0.15s" }}
-                    onMouseEnter={e => { e.currentTarget.style.background = "#f0f9ff"; e.currentTarget.style.borderColor = "#bfdbfe"; }}
-                    onMouseLeave={e => { e.currentTarget.style.background = "#fff"; e.currentTarget.style.borderColor = isVacant ? "#fee2e2" : "#f1f5f9"; }}>
+                  <div key={t.id} id={"tenant-" + t.id} onClick={() => onNavigateToTenant && onNavigateToTenant(t.id)}
+                    style={{ background: flashTenantId === t.id ? "#ede9fe" : "#fff", borderRadius: 14, padding: "18px 22px", boxShadow: flashTenantId === t.id ? "0 0 0 2px #8b5cf6" : "0 1px 3px rgba(0,0,0,0.06)", border: `1px solid ${flashTenantId === t.id ? "#8b5cf6" : isVacant ? "#fee2e2" : "#f1f5f9"}`, cursor: "pointer", transition: "all 0.4s ease" }}
+                    onMouseEnter={e => { if (flashTenantId !== t.id) { e.currentTarget.style.background = "#f0f9ff"; e.currentTarget.style.borderColor = "#bfdbfe"; } }}
+                    onMouseLeave={e => { if (flashTenantId !== t.id) { e.currentTarget.style.background = flashTenantId === t.id ? "#ede9fe" : "#fff"; e.currentTarget.style.borderColor = flashTenantId === t.id ? "#8b5cf6" : isVacant ? "#fee2e2" : "#f1f5f9"; } }}>
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                         <div style={{ width: 38, height: 38, borderRadius: 10, background: isVacant ? "#fef2f2" : "#f0f9ff", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -7009,6 +7023,8 @@ function AppShell() {
   const [navSource, setNavSource] = useState(null);
   const [editPropertyId, setEditPropertyId] = useState(null); // triggers edit modal in Properties
   const [prefillTenant, setPrefillTenant] = useState(null);  // { propertyId, unit } for quick-add from Dashboard
+  const [propDetailTab, setPropDetailTab] = useState(null);  // initial tab for PropertyDetail
+  const [propDetailTenantHighlight, setPropDetailTenantHighlight] = useState(null); // tenant id to highlight in PropertyDetail
   const [selectedContractor, setSelectedContractor] = useState(null);
 
   const handleSelectContractor = (contractor) => {
@@ -7174,9 +7190,9 @@ function AppShell() {
           </div>
         </div>
         <div style={{ flex: 1, padding: 32, maxWidth: 1400, width: "100%" }}>
-          {activeView === "dashboard" && <Dashboard onNavigate={setActiveView} onNavigateToTx={navigateToTransaction} onSelectProperty={handlePropertySelect} onNavigateToTenantAdd={(propId, unit) => { setPrefillTenant({ propertyId: propId, unit }); setActiveView("tenants"); }} onNavigateToNote={(noteId) => { setHighlightNoteId(noteId); setNavSource("dashboard"); setActiveView("notes"); }} />}
+          {activeView === "dashboard" && <Dashboard onNavigate={setActiveView} onNavigateToTx={navigateToTransaction} onSelectProperty={handlePropertySelect} onNavigateToTenantAdd={(propId, unit) => { setPrefillTenant({ propertyId: propId, unit }); setActiveView("tenants"); }} onNavigateToNote={(noteId) => { setHighlightNoteId(noteId); setNavSource("dashboard"); setActiveView("notes"); }} onNavigateToLease={(prop, tenantId) => { setSelectedProperty(prop); setPropDetailTab("tenants"); setPropDetailTenantHighlight(tenantId); setNavSource("dashboard"); setActiveView("propertyDetail"); }} />}
           {activeView === "properties" && <Properties onSelect={handlePropertySelect} editPropertyId={editPropertyId} onClearEditId={() => setEditPropertyId(null)} />}
-          {activeView === "propertyDetail" && selectedProperty && <PropertyDetail property={selectedProperty} onBack={() => setActiveView("properties")} onEditProperty={(p) => { setEditPropertyId(p.id); setActiveView("properties"); }} onGoToTransactions={() => setActiveView("transactions")} onNavigateToTransaction={(txId) => { if (txId) { setHighlightTxId(txId); setNavSource("propertyDetail"); } setActiveView("transactions"); }} onNavigateToTenant={(tenantId) => { setHighlightTenantId(tenantId); setNavSource("propertyDetail"); setActiveView("tenants"); }} />}
+          {activeView === "propertyDetail" && selectedProperty && <PropertyDetail key={selectedProperty.id + "-" + (propDetailTab || "overview") + "-" + (propDetailTenantHighlight || "")} property={selectedProperty} onBack={() => { setActiveView(navSource === "dashboard" ? "dashboard" : "properties"); setPropDetailTab(null); setPropDetailTenantHighlight(null); setNavSource(null); }} onEditProperty={(p) => { setEditPropertyId(p.id); setActiveView("properties"); }} onGoToTransactions={() => setActiveView("transactions")} onNavigateToTransaction={(txId) => { if (txId) { setHighlightTxId(txId); setNavSource("propertyDetail"); } setActiveView("transactions"); }} onNavigateToTenant={(tenantId) => { setHighlightTenantId(tenantId); setNavSource("propertyDetail"); setActiveView("tenants"); }} initialTab={propDetailTab} highlightTenantId={propDetailTenantHighlight} onClearHighlightTenant={() => setPropDetailTenantHighlight(null)} />}
           {activeView === "transactions" && <Transactions highlightTxId={highlightTxId} backLabel={navSource === "propertyDetail" ? "Back to Property" : "Back to Dashboard"} onBack={navSource === "dashboard" ? () => { setActiveView("dashboard"); setHighlightTxId(null); setNavSource(null); } : navSource === "propertyDetail" ? () => { setActiveView("propertyDetail"); setHighlightTxId(null); setNavSource(null); } : null} onClearHighlight={() => setHighlightTxId(null)} />}
           {activeView === "analytics" && <Analytics />}
           {activeView === "notes" && <RentalNotes highlightNoteId={highlightNoteId} onBack={navSource === "dashboard" ? () => { setActiveView("dashboard"); setHighlightNoteId(null); setNavSource(null); } : null} onClearHighlight={() => setHighlightNoteId(null)} />}
