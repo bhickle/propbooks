@@ -155,9 +155,9 @@ export function FlipDashboard({ onSelect }) {
       });
     });
 
-    // Recent expenses
+    // Recent expenses (FLIP_EXPENSES is a flat array with flipId field)
     allFlips.forEach(f => {
-      const exps = (_FE[f.id] || []).slice(-3);
+      const exps = _FE.filter(e => e.flipId === f.id).slice(-3);
       exps.forEach(e => {
         items.push({
           flipId: f.id, flip: f, date: e.date,
