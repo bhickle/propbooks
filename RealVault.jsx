@@ -12,7 +12,7 @@ import {
   Hammer, Clock, Target, Flag, Wrench,
   Users, Route, Calculator, FileCheck, UserCheck, Truck, Layers, Car,
   CheckSquare, Square, PlusCircle, Receipt, UploadCloud, Trash2, Pencil, Info, List,
-  CreditCard, MessageSquare, Copy, Camera, Image, AlertTriangle, ArrowRight, ArrowLeft
+  CreditCard, MessageSquare, Copy, Camera, Image, AlertTriangle, ArrowRight, ArrowLeft, ExternalLink
 } from "lucide-react";
 import {
   newId, fmt, fmtK,
@@ -4315,7 +4315,7 @@ function FlipPipeline({ onSelect }) {
   );
 }
 
-function FlipDetail({ flip, onBack, backLabel, allFlips, setAllFlips, onNavigateToExpense, initialTab }) {
+function FlipDetail({ flip, onBack, backLabel, allFlips, setAllFlips, onNavigateToExpense, onNavigateToContractor, initialTab }) {
   const [activeTab, setActiveTab] = useState(initialTab || "overview");
   useEffect(() => { if (initialTab) setActiveTab(initialTab); }, [initialTab]);
   const [showExpenseModal, setShowExpenseModal] = useState(false);
@@ -5226,14 +5226,15 @@ function FlipDetail({ flip, onBack, backLabel, allFlips, setAllFlips, onNavigate
                 return (
                   <div key={c.id} style={{ background: "#fff", borderRadius: 16, padding: 20, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" }}>
                     <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 14 }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 12, cursor: onNavigateToContractor ? "pointer" : "default" }} onClick={() => onNavigateToContractor && onNavigateToContractor(c)}>
                         <div style={{ width: 42, height: 42, borderRadius: 12, background: "#f1f5f9", display: "flex", alignItems: "center", justifyContent: "center" }}>
                           <UserCheck size={20} color="#64748b" />
                         </div>
                         <div>
-                          <p style={{ fontSize: 15, fontWeight: 700, color: "#0f172a" }}>{c.name}</p>
+                          <p style={{ fontSize: 15, fontWeight: 700, color: onNavigateToContractor ? "#2563eb" : "#0f172a", transition: "color 0.15s" }}>{c.name}</p>
                           <p style={{ fontSize: 12, color: "#94a3b8" }}>{c.trade}{c.phone ? ` · ${c.phone}` : ""}</p>
                         </div>
+                        {onNavigateToContractor && <ExternalLink size={14} color="#94a3b8" style={{ marginLeft: 4, flexShrink: 0 }} />}
                       </div>
                       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                         {c.rating > 0 && <span style={{ fontSize: 12, color: "#f59e0b" }}>{"★".repeat(c.rating)}{"☆".repeat(5 - c.rating)}</span>}
@@ -7394,11 +7395,11 @@ function AppShell() {
           {activeView === "reports" && <Reports />}
           {activeView === "flipdashboard"   && <FlipDashboard onSelect={(f, tab) => handleFlipSelect(f, tab, "flipdashboard")} onNavigateToNote={(noteId) => { setHighlightFlipNoteId(noteId); setNavSource("flipdashboard"); setActiveView("flipnotes"); }} onNavigateToExpense={(expId) => { setHighlightExpId(expId); setNavSource("flipdashboard"); setActiveView("flipexpenses"); }} onNavigateToMilestone={(msKey) => { setHighlightMilestoneKey(msKey); setNavSource("flipdashboard"); setActiveView("flipmilestones"); }} />}
           {activeView === "flips"           && <FlipPipeline onSelect={(f, tab) => handleFlipSelect(f, tab, "flips")} />}
-          {activeView === "flipDetail"      && selectedFlip && <ErrorBoundary key={"eb-" + selectedFlip.id}><FlipDetail key={selectedFlip.id + "-" + (flipInitialTab || "overview")} flip={selectedFlip} onBack={() => { setActiveView(flipNavSource || "flips"); setFlipNavSource(null); setFlipInitialTab(null); }} backLabel={flipNavSource === "flipdashboard" ? "Back to Dashboard" : "Back to Deals"} onNavigateToExpense={navigateToFlipExpense} initialTab={flipInitialTab} /></ErrorBoundary>}
+          {activeView === "flipDetail"      && selectedFlip && <ErrorBoundary key={"eb-" + selectedFlip.id}><FlipDetail key={selectedFlip.id + "-" + (flipInitialTab || "overview")} flip={selectedFlip} onBack={() => { setActiveView(flipNavSource || "flips"); setFlipNavSource(null); setFlipInitialTab(null); }} backLabel={flipNavSource === "flipdashboard" ? "Back to Dashboard" : "Back to Deals"} onNavigateToExpense={navigateToFlipExpense} onNavigateToContractor={(con) => { setSelectedContractor(con); setNavSource("flipDetail"); setActiveView("contractorDetail"); }} initialTab={flipInitialTab} /></ErrorBoundary>}
           {activeView === "fliprehab"        && <RehabTracker />}
           {activeView === "flipexpenses"    && <FlipExpenses highlightExpId={highlightExpId} onBack={navSource === "flipDetail" ? () => { setActiveView("flipDetail"); setHighlightExpId(null); setNavSource(null); } : navSource === "flipdashboard" ? () => { setActiveView("flipdashboard"); setHighlightExpId(null); setNavSource(null); } : null} backLabel={navSource === "flipdashboard" ? "Back to Dashboard" : "Back to Deal"} onClearHighlight={() => setHighlightExpId(null)} />}
           {activeView === "flipcontractors" && <FlipContractors onSelectContractor={handleSelectContractor} />}
-          {activeView === "contractorDetail" && selectedContractor && <ContractorDetail contractor={selectedContractor} onBack={() => { setSelectedContractor(null); setActiveView("flipcontractors"); }} />}
+          {activeView === "contractorDetail" && selectedContractor && <ContractorDetail contractor={selectedContractor} onBack={() => { setSelectedContractor(null); if (navSource === "flipDetail" && selectedFlip) { setActiveView("flipDetail"); setFlipInitialTab("contractors"); setNavSource(null); } else { setActiveView("flipcontractors"); } }} />}
           {activeView === "flipmilestones"  && <FlipMilestones highlightMilestoneKey={highlightMilestoneKey} onBack={navSource === "flipdashboard" ? () => { setActiveView("flipdashboard"); setHighlightMilestoneKey(null); setNavSource(null); } : null} onClearHighlight={() => setHighlightMilestoneKey(null)} />}
           {activeView === "flipnotes"       && <FlipNotes highlightNoteId={highlightFlipNoteId} onBack={navSource === "flipdashboard" ? () => { setActiveView("flipdashboard"); setHighlightFlipNoteId(null); setNavSource(null); } : null} onClearHighlight={() => setHighlightFlipNoteId(null)} />}
           {activeView === "flipanalytics"   && <FlipAnalytics />}
