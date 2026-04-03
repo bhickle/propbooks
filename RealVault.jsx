@@ -12,7 +12,7 @@ import {
   Hammer, Clock, Target, Flag, Wrench,
   Users, Route, Calculator, FileCheck, UserCheck, Truck, Layers, Car,
   CheckSquare, Square, PlusCircle, Receipt, UploadCloud, Trash2, Pencil, Info, List,
-  CreditCard, MessageSquare, Copy, Camera, Image, AlertTriangle, ArrowRight
+  CreditCard, MessageSquare, Copy, Camera, Image, AlertTriangle, ArrowRight, ArrowLeft
 } from "lucide-react";
 import {
   newId, fmt, fmtK,
@@ -488,7 +488,7 @@ function Badge({ status }) {
 // VIEWS
 // ---------------------------------------------
 
-function Dashboard({ onNavigate, onNavigateToTx, onSelectProperty, onNavigateToTenantAdd }) {
+function Dashboard({ onNavigate, onNavigateToTx, onSelectProperty, onNavigateToTenantAdd, onNavigateToNote }) {
   const now = new Date();
   const todayStr = now.toISOString().slice(0, 10);
   const [, forceRender] = useState(0);
@@ -578,7 +578,7 @@ function Dashboard({ onNavigate, onNavigateToTx, onSelectProperty, onNavigateToT
         items.push({ type: "note", date: n.date, icon: MessageSquare, color: "#8b5cf6", bg: "#ede9fe",
           title: n.text.length > 60 ? n.text.slice(0, 60) + "..." : n.text,
           sub: `${prop?.name?.split(" ").slice(0, 2).join(" ") || "Property"} · ${n.date}`,
-          propId: Number(propId) });
+          propId: Number(propId), noteId: n.id });
       });
     });
     return items.sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 8);
@@ -894,7 +894,7 @@ function Dashboard({ onNavigate, onNavigateToTx, onSelectProperty, onNavigateToT
             {recentActivity.length === 0 ? (
               <p style={{ color: "#94a3b8", fontSize: 13, textAlign: "center", padding: 24 }}>No recent activity.</p>
             ) : recentActivity.map((a, i) => (
-              <div key={i} onClick={() => { if (a.txId && onNavigateToTx) onNavigateToTx(a.txId); else if (a.propId && onSelectProperty) { const prop = PROPERTIES.find(p => p.id === a.propId); if (prop) onSelectProperty(prop); } }}
+              <div key={i} onClick={() => { if (a.txId && onNavigateToTx) onNavigateToTx(a.txId); else if (a.type === "note" && a.noteId && onNavigateToNote) onNavigateToNote(a.noteId); else if (a.propId && onSelectProperty) { const prop = PROPERTIES.find(p => p.id === a.propId); if (prop) onSelectProperty(prop); } }}
                 style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 8px", borderRadius: 10, cursor: "pointer", transition: "background 0.15s" }}
                 onMouseEnter={e => e.currentTarget.style.background = "#f8fafc"}
                 onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
@@ -6771,7 +6771,7 @@ function DealAnalyzer() {
 // ---------------------------------------------
 // RENTAL NOTES
 // ---------------------------------------------
-function RentalNotes({ preFilterPropId, onBack }) {
+function RentalNotes({ preFilterPropId, onBack, highlightNoteId, onClearHighlight }) {
   const [propFilter, setPropFilter] = useState(preFilterPropId ? String(preFilterPropId) : "all");
   const [search, setSearch] = useState("");
   const [, rerender] = useState(0);
@@ -6779,6 +6779,19 @@ function RentalNotes({ preFilterPropId, onBack }) {
   const [noteForm, setNoteForm] = useState({ propId: "", text: "" });
   const [editId, setEditId] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [flashId, setFlashId] = useState(highlightNoteId);
+
+  useEffect(() => {
+    if (highlightNoteId) {
+      setFlashId(highlightNoteId);
+      setTimeout(() => {
+        const el = document.getElementById("note-" + highlightNoteId);
+        if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+      }, 100);
+      const timer = setTimeout(() => { setFlashId(null); onClearHighlight && onClearHighlight(); }, 2500);
+      return () => clearTimeout(timer);
+    }
+  }, [highlightNoteId]);
 
   const _RN = RENTAL_NOTES;
 
@@ -6846,7 +6859,7 @@ function RentalNotes({ preFilterPropId, onBack }) {
     <div>
       {onBack && (
         <button onClick={onBack} style={{ display: "flex", alignItems: "center", gap: 6, color: "#3b82f6", fontWeight: 600, fontSize: 14, background: "none", border: "none", cursor: "pointer", marginBottom: 14 }}>
-          Back to Property
+          <ArrowLeft size={15} /> {preFilterPropId ? "Back to Property" : "Back to Dashboard"}
         </button>
       )}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
@@ -6908,7 +6921,7 @@ function RentalNotes({ preFilterPropId, onBack }) {
           <p style={{ fontSize: 12, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 10 }}>{label}</p>
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {notes.map(n => (
-              <div key={n.id} style={{ background: "#fff", borderRadius: 16, padding: 18, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" }}>
+              <div key={n.id} id={"note-" + n.id} style={{ background: flashId === n.id ? "#ede9fe" : "#fff", borderRadius: 16, padding: 18, boxShadow: flashId === n.id ? "0 0 0 2px #8b5cf6" : "0 1px 3px rgba(0,0,0,0.06)", border: flashId === n.id ? "1px solid #8b5cf6" : "1px solid #f1f5f9", transition: "all 0.4s ease" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                     <div style={{ width: 26, height: 26, borderRadius: 7, background: n.propColor + "20", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, fontWeight: 700, color: n.propColor }}>{n.propImage}</div>
@@ -6989,6 +7002,7 @@ function AppShell() {
   const [highlightTxId, setHighlightTxId] = useState(null);
   const [highlightExpId, setHighlightExpId] = useState(null);
   const [highlightTenantId, setHighlightTenantId] = useState(null);
+  const [highlightNoteId, setHighlightNoteId] = useState(null);
   const [navSource, setNavSource] = useState(null);
   const [editPropertyId, setEditPropertyId] = useState(null); // triggers edit modal in Properties
   const [prefillTenant, setPrefillTenant] = useState(null);  // { propertyId, unit } for quick-add from Dashboard
@@ -7157,12 +7171,12 @@ function AppShell() {
           </div>
         </div>
         <div style={{ flex: 1, padding: 32, maxWidth: 1400, width: "100%" }}>
-          {activeView === "dashboard" && <Dashboard onNavigate={setActiveView} onNavigateToTx={navigateToTransaction} onSelectProperty={handlePropertySelect} onNavigateToTenantAdd={(propId, unit) => { setPrefillTenant({ propertyId: propId, unit }); setActiveView("tenants"); }} />}
+          {activeView === "dashboard" && <Dashboard onNavigate={setActiveView} onNavigateToTx={navigateToTransaction} onSelectProperty={handlePropertySelect} onNavigateToTenantAdd={(propId, unit) => { setPrefillTenant({ propertyId: propId, unit }); setActiveView("tenants"); }} onNavigateToNote={(noteId) => { setHighlightNoteId(noteId); setNavSource("dashboard"); setActiveView("notes"); }} />}
           {activeView === "properties" && <Properties onSelect={handlePropertySelect} editPropertyId={editPropertyId} onClearEditId={() => setEditPropertyId(null)} />}
           {activeView === "propertyDetail" && selectedProperty && <PropertyDetail property={selectedProperty} onBack={() => setActiveView("properties")} onEditProperty={(p) => { setEditPropertyId(p.id); setActiveView("properties"); }} onGoToTransactions={() => setActiveView("transactions")} onNavigateToTransaction={(txId) => { if (txId) { setHighlightTxId(txId); setNavSource("propertyDetail"); } setActiveView("transactions"); }} onNavigateToTenant={(tenantId) => { setHighlightTenantId(tenantId); setNavSource("propertyDetail"); setActiveView("tenants"); }} />}
           {activeView === "transactions" && <Transactions highlightTxId={highlightTxId} backLabel={navSource === "propertyDetail" ? "Back to Property" : "Back to Dashboard"} onBack={navSource === "dashboard" ? () => { setActiveView("dashboard"); setHighlightTxId(null); setNavSource(null); } : navSource === "propertyDetail" ? () => { setActiveView("propertyDetail"); setHighlightTxId(null); setNavSource(null); } : null} onClearHighlight={() => setHighlightTxId(null)} />}
           {activeView === "analytics" && <Analytics />}
-          {activeView === "notes" && <RentalNotes />}
+          {activeView === "notes" && <RentalNotes highlightNoteId={highlightNoteId} onBack={navSource === "dashboard" ? () => { setActiveView("dashboard"); setHighlightNoteId(null); setNavSource(null); } : null} onClearHighlight={() => setHighlightNoteId(null)} />}
           {activeView === "reports" && <Reports />}
           {activeView === "flipdashboard"   && <FlipDashboard onSelect={(f, tab) => handleFlipSelect(f, tab, "flipdashboard")} />}
           {activeView === "flips"           && <FlipPipeline onSelect={(f, tab) => handleFlipSelect(f, tab, "flips")} />}
