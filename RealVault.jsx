@@ -7003,6 +7003,7 @@ function AppShell() {
   const [highlightExpId, setHighlightExpId] = useState(null);
   const [highlightTenantId, setHighlightTenantId] = useState(null);
   const [highlightNoteId, setHighlightNoteId] = useState(null);
+  const [highlightFlipNoteId, setHighlightFlipNoteId] = useState(null);
   const [navSource, setNavSource] = useState(null);
   const [editPropertyId, setEditPropertyId] = useState(null); // triggers edit modal in Properties
   const [prefillTenant, setPrefillTenant] = useState(null);  // { propertyId, unit } for quick-add from Dashboard
@@ -7178,7 +7179,7 @@ function AppShell() {
           {activeView === "analytics" && <Analytics />}
           {activeView === "notes" && <RentalNotes highlightNoteId={highlightNoteId} onBack={navSource === "dashboard" ? () => { setActiveView("dashboard"); setHighlightNoteId(null); setNavSource(null); } : null} onClearHighlight={() => setHighlightNoteId(null)} />}
           {activeView === "reports" && <Reports />}
-          {activeView === "flipdashboard"   && <FlipDashboard onSelect={(f, tab) => handleFlipSelect(f, tab, "flipdashboard")} />}
+          {activeView === "flipdashboard"   && <FlipDashboard onSelect={(f, tab) => handleFlipSelect(f, tab, "flipdashboard")} onNavigateToNote={(noteId) => { setHighlightFlipNoteId(noteId); setNavSource("flipdashboard"); setActiveView("flipnotes"); }} />}
           {activeView === "flips"           && <FlipPipeline onSelect={(f, tab) => handleFlipSelect(f, tab, "flips")} />}
           {activeView === "flipDetail"      && selectedFlip && <FlipDetail key={selectedFlip.id + "-" + (flipInitialTab || "overview")} flip={selectedFlip} onBack={() => { setActiveView(flipNavSource || "flips"); setFlipNavSource(null); setFlipInitialTab(null); }} backLabel={flipNavSource === "flipdashboard" ? "Back to Dashboard" : "Back to Deals"} onNavigateToExpense={navigateToFlipExpense} initialTab={flipInitialTab} />}
           {activeView === "fliprehab"        && <RehabTracker />}
@@ -7186,7 +7187,7 @@ function AppShell() {
           {activeView === "flipcontractors" && <FlipContractors onSelectContractor={handleSelectContractor} />}
           {activeView === "contractorDetail" && selectedContractor && <ContractorDetail contractor={selectedContractor} onBack={() => { setSelectedContractor(null); setActiveView("flipcontractors"); }} />}
           {activeView === "flipmilestones"  && <FlipMilestones />}
-          {activeView === "flipnotes"       && <FlipNotes />}
+          {activeView === "flipnotes"       && <FlipNotes highlightNoteId={highlightFlipNoteId} onBack={navSource === "flipdashboard" ? () => { setActiveView("flipdashboard"); setHighlightFlipNoteId(null); setNavSource(null); } : null} onClearHighlight={() => setHighlightFlipNoteId(null)} />}
           {activeView === "flipanalytics"   && <FlipAnalytics />}
           {activeView === "flipreports"    && <FlipReports />}
           {activeView === "tenants" && <RentRoll onBack={navSource === "propertyDetail" ? () => { setActiveView("propertyDetail"); setHighlightTenantId(null); setNavSource(null); } : null} highlightTenantId={highlightTenantId} onClearHighlight={() => setHighlightTenantId(null)} prefillTenant={prefillTenant} onClearPrefill={() => setPrefillTenant(null)} />}

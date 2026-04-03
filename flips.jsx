@@ -112,7 +112,7 @@ const sectionS = { background: "#fff", borderRadius: 16, padding: 24, boxShadow:
 // ---------------------------------------------------------------------------
 // 1. FLIP DASHBOARD
 // ---------------------------------------------------------------------------
-export function FlipDashboard({ onSelect }) {
+export function FlipDashboard({ onSelect, onNavigateToNote }) {
   const [filterStage, setFilterStage] = useState("all");
 
   const allFlips = _FLIPS;
@@ -176,7 +176,7 @@ export function FlipDashboard({ onSelect }) {
       const notes = (_FN[f.id] || []).slice(-2);
       notes.forEach(n => {
         items.push({
-          flipId: f.id, flip: f, date: n.date, tab: "notes",
+          flipId: f.id, flip: f, date: n.date, tab: "notes", noteId: n.id,
           text: `${shortName(f)} – ${n.text.length > 50 ? n.text.slice(0, 50) + "…" : n.text}`,
           icon: MessageSquare, color: "#8b5cf6",
         });
@@ -289,7 +289,7 @@ export function FlipDashboard({ onSelect }) {
               <p style={{ color: "#94a3b8", fontSize: 12 }}>No activity yet. Complete milestones, log expenses, or add notes to see updates here.</p>
             )}
             {recentActivity.map((a, i) => (
-              <div key={i} onClick={() => onSelect && onSelect(a.flip, a.tab)} style={{ display: "flex", gap: 10, marginBottom: 12, cursor: "pointer", padding: "6px 8px", marginLeft: -8, marginRight: -8, borderRadius: 10, transition: "background 0.15s" }} onMouseEnter={e => e.currentTarget.style.background = "#f8fafc"} onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+              <div key={i} onClick={() => { if (a.tab === "notes" && a.noteId && onNavigateToNote) onNavigateToNote(a.noteId); else if (onSelect) onSelect(a.flip, a.tab); }} style={{ display: "flex", gap: 10, marginBottom: 12, cursor: "pointer", padding: "6px 8px", marginLeft: -8, marginRight: -8, borderRadius: 10, transition: "background 0.15s" }} onMouseEnter={e => e.currentTarget.style.background = "#f8fafc"} onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
                 <div style={{ width: 28, height: 28, borderRadius: 8, background: a.color + "18", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                   <a.icon size={13} color={a.color} />
                 </div>
@@ -2648,7 +2648,7 @@ export function FlipMilestones() {
 // ---------------------------------------------------------------------------
 // 7. NOTES (cross-deal activity log)
 // ---------------------------------------------------------------------------
-export function FlipNotes() {
+export function FlipNotes({ highlightNoteId, onBack, onClearHighlight }) {
   const [filterFlip, setFilterFlip] = useState("all");
   const [search, setSearch] = useState("");
   const [, rerender] = useState(0);
@@ -2656,6 +2656,19 @@ export function FlipNotes() {
   const [noteForm, setNoteForm] = useState({ flipId: "", text: "" });
   const [editId, setEditId] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [flashId, setFlashId] = useState(highlightNoteId);
+
+  useEffect(() => {
+    if (highlightNoteId) {
+      setFlashId(highlightNoteId);
+      setTimeout(() => {
+        const el = document.getElementById("flipnote-" + highlightNoteId);
+        if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+      }, 100);
+      const timer = setTimeout(() => { setFlashId(null); onClearHighlight && onClearHighlight(); }, 2500);
+      return () => clearTimeout(timer);
+    }
+  }, [highlightNoteId]);
 
   // Build flat list of all notes across deals
   const allNotes = useMemo(() => {
@@ -2719,6 +2732,11 @@ export function FlipNotes() {
 
   return (
     <div>
+      {onBack && (
+        <button onClick={onBack} style={{ display: "flex", alignItems: "center", gap: 6, color: "#f59e0b", fontWeight: 600, fontSize: 14, background: "none", border: "none", cursor: "pointer", marginBottom: 14 }}>
+          <ChevronLeft size={15} /> Back to Dashboard
+        </button>
+      )}
       <PageHeader
         title="Deal Notes"
         sub="Activity log and notes across all deals"
@@ -2772,7 +2790,7 @@ export function FlipNotes() {
           <p style={{ fontSize: 12, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 10 }}>{label}</p>
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {notes.map(n => (
-              <div key={n.id} onMouseEnter={e => e.currentTarget.style.background = "#f8fafc"} onMouseLeave={e => e.currentTarget.style.background = "#fff"} style={{ ...sectionS, marginBottom: 0, padding: 18, transition: "all 0.25s ease" }}>
+              <div key={n.id} id={"flipnote-" + n.id} onMouseEnter={e => { if (flashId !== n.id) e.currentTarget.style.background = "#f8fafc"; }} onMouseLeave={e => { if (flashId !== n.id) e.currentTarget.style.background = "#fff"; }} style={{ ...sectionS, marginBottom: 0, padding: 18, transition: "all 0.4s ease", ...(flashId === n.id ? { background: "#ede9fe", boxShadow: "0 0 0 2px #8b5cf6", border: "1px solid #8b5cf6" } : {}) }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                     <div style={{ width: 26, height: 26, borderRadius: 7, background: n.flipColor + "20", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, fontWeight: 700, color: n.flipColor }}>{n.flipImage}</div>
