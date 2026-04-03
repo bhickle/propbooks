@@ -12,7 +12,7 @@ import {
   Hammer, Clock, Target, Flag, Wrench,
   Users, Route, Calculator, FileCheck, UserCheck, Truck, Layers, Car,
   CheckSquare, Square, PlusCircle, Receipt, UploadCloud, Trash2, Pencil, Info, List,
-  CreditCard, MessageSquare, Copy, Camera, Image, AlertTriangle, ArrowRight, ArrowLeft, X
+  CreditCard, MessageSquare, Copy, Camera, Image, AlertTriangle, ArrowRight, ArrowLeft
 } from "lucide-react";
 import {
   newId, fmt, fmtK,
@@ -6809,8 +6809,8 @@ function RentalNotes({ preFilterPropId, onBack, highlightNoteId, onClearHighligh
 
   const _RN = RENTAL_NOTES;
 
-  // Build flat list of all notes across properties
-  const allNotes = useMemo(() => {
+  // Build flat list of all notes across properties (no memo — must recalculate after mutations)
+  const allNotes = (() => {
     const list = [];
     PROPERTIES.forEach(p => {
       (_RN[p.id] || []).forEach(n => {
@@ -6818,7 +6818,7 @@ function RentalNotes({ preFilterPropId, onBack, highlightNoteId, onClearHighligh
       });
     });
     return list.sort((a, b) => b.date.localeCompare(a.date));
-  }, [renderKey]);
+  })();
 
   const filtered = allNotes.filter(n => {
     if (propFilter !== "all" && n.propId !== parseInt(propFilter)) return false;

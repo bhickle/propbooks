@@ -2741,8 +2741,8 @@ export function FlipNotes({ highlightNoteId, onBack, onClearHighlight }) {
     }
   }, [highlightNoteId]);
 
-  // Build flat list of all notes across deals
-  const allNotes = useMemo(() => {
+  // Build flat list of all notes across deals (no memo — must recalculate after mutations)
+  const allNotes = (() => {
     const list = [];
     _FLIPS.forEach(f => {
       (_FN[f.id] || []).forEach(n => {
@@ -2750,7 +2750,7 @@ export function FlipNotes({ highlightNoteId, onBack, onClearHighlight }) {
       });
     });
     return list.sort((a, b) => b.date.localeCompare(a.date));
-  }, [renderKey]);
+  })();
 
   const filtered = allNotes.filter(n => {
     if (filterFlip !== "all" && n.flipId !== parseInt(filterFlip)) return false;
