@@ -2722,7 +2722,7 @@ export function FlipMilestones({ highlightMilestoneKey, onBack, onClearHighlight
 export function FlipNotes({ highlightNoteId, onBack, onClearHighlight }) {
   const [filterFlip, setFilterFlip] = useState("all");
   const [search, setSearch] = useState("");
-  const [, rerender] = useState(0);
+  const [renderKey, rerender] = useState(0);
   const [showAdd, setShowAdd] = useState(false);
   const [noteForm, setNoteForm] = useState({ flipId: "", text: "" });
   const [editId, setEditId] = useState(null);
@@ -2750,7 +2750,7 @@ export function FlipNotes({ highlightNoteId, onBack, onClearHighlight }) {
       });
     });
     return list.sort((a, b) => b.date.localeCompare(a.date));
-  }, []);
+  }, [renderKey]);
 
   const filtered = allNotes.filter(n => {
     if (filterFlip !== "all" && n.flipId !== parseInt(filterFlip)) return false;

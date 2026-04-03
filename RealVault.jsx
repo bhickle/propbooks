@@ -6788,7 +6788,7 @@ function DealAnalyzer() {
 function RentalNotes({ preFilterPropId, onBack, highlightNoteId, onClearHighlight }) {
   const [propFilter, setPropFilter] = useState(preFilterPropId ? String(preFilterPropId) : "all");
   const [search, setSearch] = useState("");
-  const [, rerender] = useState(0);
+  const [renderKey, rerender] = useState(0);
   const [showAdd, setShowAdd] = useState(false);
   const [noteForm, setNoteForm] = useState({ propId: "", text: "" });
   const [editId, setEditId] = useState(null);
@@ -6818,7 +6818,7 @@ function RentalNotes({ preFilterPropId, onBack, highlightNoteId, onClearHighligh
       });
     });
     return list.sort((a, b) => b.date.localeCompare(a.date));
-  }, []);
+  }, [renderKey]);
 
   const filtered = allNotes.filter(n => {
     if (propFilter !== "all" && n.propId !== parseInt(propFilter)) return false;
