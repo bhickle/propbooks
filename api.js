@@ -1,5 +1,5 @@
 // =============================================================================
-// RealVault API Service Layer
+// PropBooks API Service Layer
 // =============================================================================
 // All data access goes through this file. Right now every function returns
 // mock data. When you add a backend (Supabase, etc.) swap the implementation

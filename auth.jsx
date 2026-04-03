@@ -1,5 +1,5 @@
 // =============================================================================
-// RealVault Auth
+// PropBooks Auth
 // =============================================================================
 // Cosmetic auth UI for now — no real backend. When you add Supabase/Auth0:
 //   1. Replace signIn() and signUp() with real SDK calls
@@ -83,7 +83,7 @@ function Brand({ size = "lg" }) {
         <Building2 size={big ? 26 : 20} color="#fff" />
       </div>
       <div>
-        <p style={{ color: "#0f172a", fontSize: big ? 22 : 16, fontWeight: 800, lineHeight: 1 }}>RealVault</p>
+        <p style={{ color: "#0f172a", fontSize: big ? 22 : 16, fontWeight: 800, lineHeight: 1 }}>PropBooks</p>
         {big && <p style={{ color: "#94a3b8", fontSize: 13, marginTop: 2 }}>Pro Investor Suite</p>}
       </div>
     </div>
