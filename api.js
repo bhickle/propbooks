@@ -273,14 +273,20 @@ const _flipMilestones = {
 };
 
 const _tenants = [
-  { id:1, propertyId:1, unit:"Unit A",    name:"Marcus & Priya Williams",    rent:1900, leaseStart:"2024-02-01", leaseEnd:"2025-01-31", status:"current",        daysUntilExpiry:40,  lastPayment:"2026-03-01", phone:"512-555-0143", email:"mwilliams@email.com"   },
-  { id:2, propertyId:1, unit:"Unit B",    name:"Jordan Lee",                 rent:1900, leaseStart:"2023-08-01", leaseEnd:"2024-07-31", status:"month-to-month", daysUntilExpiry:null,lastPayment:"2026-03-01", phone:"512-555-0287", email:"jlee@email.com"        },
-  { id:3, propertyId:2, unit:"Main",      name:"Stephanie & Dan Kowalski",   rent:2950, leaseStart:"2024-06-01", leaseEnd:"2025-05-31", status:"current",        daysUntilExpiry:68,  lastPayment:"2026-03-15", phone:"303-555-0194", email:"kowalski@email.com"    },
-  { id:4, propertyId:3, unit:"#4B",       name:"Alexis Fontaine",            rent:2100, leaseStart:"2025-01-01", leaseEnd:"2025-12-31", status:"current",        daysUntilExpiry:282, lastPayment:"2026-03-01", phone:"404-555-0362", email:"afontaine@email.com"   },
-  { id:5, propertyId:4, unit:"Unit 1",    name:"Ryan & Keisha Thompson",     rent:1950, leaseStart:"2024-09-01", leaseEnd:"2025-08-31", status:"current",        daysUntilExpiry:159, lastPayment:"2026-03-08", phone:"503-555-0218", email:"kthompson@email.com"   },
-  { id:6, propertyId:4, unit:"Unit 2",    name:"Vacant",                     rent:1875, leaseStart:null,         leaseEnd:null,         status:"vacant",         daysUntilExpiry:null,lastPayment:null,          phone:null,           email:null                    },
-  { id:7, propertyId:4, unit:"Unit 3",    name:"Carlos Mendez",              rent:1875, leaseStart:"2025-03-01", leaseEnd:"2026-02-28", status:"month-to-month", daysUntilExpiry:null,lastPayment:"2026-03-08", phone:"503-555-0445", email:"cmendez@email.com"     },
-  { id:8, propertyId:5, unit:"Commercial",name:"Pacific Rim Restaurant Group",rent:8500,leaseStart:"2023-01-01", leaseEnd:"2027-12-31", status:"current",        daysUntilExpiry:648, lastPayment:"2026-03-10", phone:"310-555-0501", email:"leasing@pacificrimrg.com"},
+  // ── Active tenants ──
+  { id:1,  propertyId:1, unit:"Unit A",    name:"Marcus & Priya Williams",     rent:1900, leaseStart:"2024-02-01", leaseEnd:"2025-01-31", status:"active-lease",   lastPayment:"2026-03-01", phone:"512-555-0143", email:"mwilliams@email.com",    moveOutDate:null, moveOutReason:null, securityDeposit:1900  },
+  { id:2,  propertyId:1, unit:"Unit B",    name:"Jordan Lee",                  rent:1900, leaseStart:"2023-08-01", leaseEnd:"2024-07-31", status:"month-to-month", lastPayment:"2026-03-01", phone:"512-555-0287", email:"jlee@email.com",         moveOutDate:null, moveOutReason:null, securityDeposit:1900  },
+  { id:3,  propertyId:2, unit:"Main",      name:"Stephanie & Dan Kowalski",    rent:2950, leaseStart:"2024-06-01", leaseEnd:"2025-05-31", status:"active-lease",   lastPayment:"2026-03-15", phone:"303-555-0194", email:"kowalski@email.com",     moveOutDate:null, moveOutReason:null, securityDeposit:2950  },
+  { id:4,  propertyId:3, unit:"#4B",       name:"Alexis Fontaine",             rent:2100, leaseStart:"2025-01-01", leaseEnd:"2025-12-31", status:"active-lease",   lastPayment:"2026-03-01", phone:"404-555-0362", email:"afontaine@email.com",    moveOutDate:null, moveOutReason:null, securityDeposit:2100  },
+  { id:5,  propertyId:4, unit:"Unit 1",    name:"Ryan & Keisha Thompson",      rent:1950, leaseStart:"2024-09-01", leaseEnd:"2025-08-31", status:"active-lease",   lastPayment:"2026-03-08", phone:"503-555-0218", email:"kthompson@email.com",    moveOutDate:null, moveOutReason:null, securityDeposit:1950  },
+  { id:6,  propertyId:4, unit:"Unit 2",    name:"Vacant",                      rent:1875, leaseStart:null,         leaseEnd:null,         status:"vacant",         lastPayment:null,         phone:null,           email:null,                     moveOutDate:null, moveOutReason:null, securityDeposit:null  },
+  { id:7,  propertyId:4, unit:"Unit 3",    name:"Carlos Mendez",               rent:1875, leaseStart:"2025-03-01", leaseEnd:"2026-02-28", status:"month-to-month", lastPayment:"2026-03-08", phone:"503-555-0445", email:"cmendez@email.com",      moveOutDate:null, moveOutReason:null, securityDeposit:1875  },
+  { id:8,  propertyId:5, unit:"Commercial",name:"Pacific Rim Restaurant Group", rent:8500, leaseStart:"2023-01-01", leaseEnd:"2027-12-31", status:"active-lease",   lastPayment:"2026-03-10", phone:"310-555-0501", email:"leasing@pacificrimrg.com",moveOutDate:null, moveOutReason:null, securityDeposit:12000 },
+  // ── Past tenants (lease closed) ──
+  { id:101, propertyId:1, unit:"Unit A",   name:"David Chen",                  rent:1650, leaseStart:"2022-01-15", leaseEnd:"2024-01-14", status:"past",           lastPayment:"2024-01-01", phone:"512-555-0099", email:"dchen@email.com",        moveOutDate:"2024-01-31", moveOutReason:"Relocated for work",       securityDeposit:1650  },
+  { id:102, propertyId:2, unit:"Main",     name:"Angela & Tim Briggs",         rent:2650, leaseStart:"2021-06-01", leaseEnd:"2024-05-31", status:"past",           lastPayment:"2024-05-01", phone:"303-555-0077", email:"abriggs@email.com",      moveOutDate:"2024-05-31", moveOutReason:"Purchased own home",       securityDeposit:2650  },
+  { id:103, propertyId:4, unit:"Unit 2",   name:"Mei-Lin Patel",              rent:1750, leaseStart:"2023-04-01", leaseEnd:"2025-03-31", status:"past",           lastPayment:"2025-02-01", phone:"503-555-0333", email:"mpatel@email.com",       moveOutDate:"2025-03-15", moveOutReason:"Lease not renewed",        securityDeposit:1750  },
+  { id:104, propertyId:3, unit:"#4B",      name:"Jason & Marie Torres",        rent:1850, leaseStart:"2022-06-01", leaseEnd:"2024-12-31", status:"past",           lastPayment:"2024-12-01", phone:"404-555-0211", email:"jtorres@email.com",      moveOutDate:"2024-12-31", moveOutReason:"Lease ended, rent increase",securityDeposit:1850 },
 ];
 
 const _mileageTrips = [
@@ -408,7 +414,7 @@ export const FLIP_NOTES = {
 };
 
 // -----------------------------------------------------------------------------
-// Tenants / Rent Roll
+// Tenants
 // -----------------------------------------------------------------------------
 export function getTenants()            { return Promise.resolve([..._tenants]);       }
 export function addTenant(t)            { _tenants.push(t); return Promise.resolve(t); }

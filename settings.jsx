@@ -131,7 +131,7 @@ function ProfileTab() {
 // -----------------------------------------------------------------------------
 const PLAN_FEATURES = {
   starter: ["Up to 3 properties", "Transactions & reports", "Deal Analyzer", "Email support"],
-  pro:     ["Unlimited properties", "Fix & Flip Pipeline", "Rent Roll & tenants", "Mileage tracker", "Priority support", "Advanced analytics"],
+  pro:     ["Unlimited properties", "Fix & Flip Pipeline", "Tenant Management", "Mileage tracker", "Priority support", "Advanced analytics"],
   team:    ["Everything in Pro", "Up to 5 team members", "Shared portfolio access", "Admin controls", "Dedicated support"],
 };
 

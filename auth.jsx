@@ -175,7 +175,7 @@ function SignIn({ onSwitch }) {
 // -----------------------------------------------------------------------------
 const PLANS = [
   { id: "starter", label: "Starter", price: "$25/mo", features: ["Up to 3 properties", "Transactions & reports", "Deal Analyzer"] },
-  { id: "pro",     label: "Pro",     price: "$45/mo", features: ["Unlimited properties", "Flip Pipeline", "Rent Roll", "Mileage tracker"], highlight: true },
+  { id: "pro",     label: "Pro",     price: "$45/mo", features: ["Unlimited properties", "Flip Pipeline", "Tenant Management", "Mileage tracker"], highlight: true },
 ];
 
 function SignUp({ onSwitch }) {

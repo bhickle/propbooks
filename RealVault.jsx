@@ -12,7 +12,7 @@ import {
   Hammer, Clock, Target, Flag, Wrench,
   Users, Route, Calculator, FileCheck, UserCheck, Truck, Layers, Car,
   CheckSquare, Square, PlusCircle, Receipt, UploadCloud, Trash2, Pencil, Info, List,
-  CreditCard, MessageSquare, Copy, Camera, Image, AlertTriangle
+  CreditCard, MessageSquare, Copy, Camera, Image, AlertTriangle, ArrowRight
 } from "lucide-react";
 import {
   newId, fmt, fmtK,
@@ -1084,7 +1084,8 @@ function PropertyDetail({ property, onBack, onEditProperty, onGoToTransactions, 
   const eff = getEffectiveMonthly(property, TRANSACTIONS);
   const annualNOI = (eff.monthlyIncome - eff.monthlyExpenses) * 12;
   const propTransactions = TRANSACTIONS.filter(t => t.property === property.name);
-  const propTenants = TENANTS.filter(t => t.propertyId === property.id);
+  const propTenants = TENANTS.filter(t => t.propertyId === property.id && t.status !== "past");
+  const propPastTenants = TENANTS.filter(t => t.propertyId === property.id && t.status === "past");
   const detailHealth = getPropertyHealth(property, TRANSACTIONS);
   const [healthOpen, setHealthOpen] = useState(true);
   const [activeTab, setActiveTab] = useState("overview");
@@ -1348,7 +1349,7 @@ function PropertyDetail({ property, onBack, onEditProperty, onGoToTransactions, 
               { label: "Total Units", value: propTenants.length || property.units, color: "#3b82f6" },
               { label: "Occupied", value: propTenants.filter(t => t.status !== "vacant").length, color: "#10b981" },
               { label: "Vacant", value: propTenants.filter(t => t.status === "vacant").length, color: propTenants.some(t => t.status === "vacant") ? "#ef4444" : "#94a3b8" },
-              { label: "Monthly Rent Roll", value: fmt(propTenants.filter(t => t.status !== "vacant").reduce((s, t) => s + (t.rent || 0), 0)), color: "#f59e0b" },
+              { label: "Monthly Rent", value: fmt(propTenants.filter(t => t.status !== "vacant" && t.status !== "past").reduce((s, t) => s + (t.rent || 0), 0)), color: "#f59e0b" },
             ].map((m, i) => (
               <div key={i} style={{ background: "#fff", borderRadius: 12, padding: "16px 18px", boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" }}>
                 <p style={{ color: "#94a3b8", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 4 }}>{m.label}</p>
@@ -1358,14 +1359,14 @@ function PropertyDetail({ property, onBack, onEditProperty, onGoToTransactions, 
           </div>
 
           <div style={{ marginBottom: 14 }}>
-            <p style={{ color: "#64748b", fontSize: 13 }}>{propTenants.length} unit{propTenants.length !== 1 ? "s" : ""} on record</p>
+            <p style={{ color: "#64748b", fontSize: 13 }}>{propTenants.length} active unit{propTenants.length !== 1 ? "s" : ""}{propPastTenants.length > 0 ? ` · ${propPastTenants.length} past tenant${propPastTenants.length !== 1 ? "s" : ""}` : ""}</p>
           </div>
 
           {propTenants.length === 0 ? (
             <div style={{ background: "#fff", borderRadius: 16, padding: 48, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9", textAlign: "center" }}>
               <Users size={32} color="#cbd5e1" style={{ marginBottom: 12 }} />
               <p style={{ color: "#94a3b8", fontSize: 14 }}>No tenants on record for this property.</p>
-              <p style={{ color: "#cbd5e1", fontSize: 13, marginTop: 4 }}>Add tenants from the Rent Roll page.</p>
+              <p style={{ color: "#cbd5e1", fontSize: 13, marginTop: 4 }}>Add tenants from the Tenants page.</p>
             </div>
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -1375,7 +1376,6 @@ function PropertyDetail({ property, onBack, onEditProperty, onGoToTransactions, 
                   "active-lease": { bg: "#dcfce7", text: "#15803d", label: "Active Lease" },
                   "month-to-month": { bg: "#fef9c3", text: "#a16207", label: "Month-to-Month" },
                   "vacant": { bg: "#fee2e2", text: "#b91c1c", label: "Vacant" },
-                  "expiring-soon": { bg: "#ffedd5", text: "#c2410c", label: "Expiring Soon" },
                 };
                 const st = statusMap[t.status] || statusMap["active-lease"];
                 const daysLeft = t.leaseEnd ? Math.round((new Date(t.leaseEnd) - new Date()) / 86400000) : null;
@@ -1427,6 +1427,35 @@ function PropertyDetail({ property, onBack, onEditProperty, onGoToTransactions, 
                   </div>
                 );
               })}
+            </div>
+          )}
+
+          {/* Past Tenants Section */}
+          {propPastTenants.length > 0 && (
+            <div style={{ marginTop: 28 }}>
+              <h3 style={{ fontSize: 16, fontWeight: 700, color: "#0f172a", marginBottom: 4 }}>Past Tenants</h3>
+              <p style={{ fontSize: 13, color: "#94a3b8", marginBottom: 16 }}>Previous tenants who have moved out</p>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {propPastTenants.map(t => (
+                  <div key={t.id} style={{ background: "#fafafa", borderRadius: 12, padding: "14px 18px", border: "1px solid #f1f5f9" }}>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                        <div style={{ width: 34, height: 34, borderRadius: 9, background: "#f1f5f9", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                          <Clock size={15} color="#94a3b8" />
+                        </div>
+                        <div>
+                          <p style={{ fontSize: 13, fontWeight: 600, color: "#64748b" }}>{t.name}</p>
+                          <p style={{ fontSize: 11, color: "#94a3b8" }}>{t.unit} &middot; {t.leaseStart} — {t.leaseEnd}</p>
+                        </div>
+                      </div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                        <span style={{ background: "#f1f5f9", color: "#64748b", borderRadius: 20, padding: "3px 10px", fontSize: 11, fontWeight: 600 }}>{t.moveOutReason || "Moved out"}</span>
+                        <span style={{ fontSize: 13, color: "#94a3b8" }}>{fmt(t.rent)}/mo</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </div>
@@ -1911,7 +1940,7 @@ function Analytics() {
 
   // ── Portfolio-level computations ──
   const totalUnits = PROPERTIES.reduce((s, p) => s + p.units, 0);
-  const vacantUnits = TENANTS.filter(t => t.status === "vacant").length;
+  const vacantUnits = TENANTS.filter(t => t.status === "vacant").length; // past tenants auto-excluded — "vacant" is only for active units
   const occupancyRate = totalUnits > 0 ? ((totalUnits - vacantUnits) / totalUnits * 100).toFixed(1) : "100.0";
   const portfolioIncome = PROPERTIES.reduce((s, p) => s + getEffectiveMonthly(p, TRANSACTIONS).monthlyIncome, 0);
   const portfolioExpenses = PROPERTIES.reduce((s, p) => s + getEffectiveMonthly(p, TRANSACTIONS).monthlyExpenses, 0);
@@ -1951,7 +1980,7 @@ function Analytics() {
     return { month: label, income, expenses, net: income - expenses };
   }) : [];
 
-  const propTenants = selectedProp ? TENANTS.filter(t => t.propertyId === selectedProp.id) : [];
+  const propTenants = selectedProp ? TENANTS.filter(t => t.propertyId === selectedProp.id && t.status !== "past") : [];
 
   // Per-property DSCR
   const propDSCR = selectedProp ? (() => {
@@ -1967,7 +1996,7 @@ function Analytics() {
 
   // Per-property occupancy
   const propOccupancy = selectedProp ? (() => {
-    const tenants = TENANTS.filter(t => t.propertyId === selectedProp.id);
+    const tenants = TENANTS.filter(t => t.propertyId === selectedProp.id && t.status !== "past");
     if (tenants.length === 0) return selectedProp.status === "Occupied" ? "100" : "0";
     const occupied = tenants.filter(t => t.status !== "vacant").length;
     return tenants.length > 0 ? ((occupied / tenants.length) * 100).toFixed(0) : "100";
@@ -2097,7 +2126,7 @@ function Analytics() {
                 const coC = calcCashOnCash(p, TRANSACTIONS);
                 const appreciation = ((p.currentValue - p.purchasePrice) / p.purchasePrice * 100).toFixed(1);
                 const expRatio = pEff.monthlyIncome > 0 ? ((pEff.monthlyExpenses / pEff.monthlyIncome) * 100).toFixed(0) : "0";
-                const propTen = TENANTS.filter(t => t.propertyId === p.id);
+                const propTen = TENANTS.filter(t => t.propertyId === p.id && t.status !== "past");
                 const occUnits = propTen.filter(t => t.status !== "vacant").length;
                 const propOcc = propTen.length > 0 ? ((occUnits / propTen.length) * 100).toFixed(0) : (p.status === "Occupied" ? "100" : "0");
                 // DSCR per property
@@ -5306,6 +5335,15 @@ function RentRoll({ onBack, highlightTenantId, onClearHighlight }) {
   const [statusFilter, setStatusFilter] = useState("all");
   const [flashId, setFlashId] = useState(highlightTenantId);
   const highlightRef = useRef(null);
+  const [closingTenant, setClosingTenant] = useState(null);
+  const [closeForm, setCloseForm] = useState({ moveOutDate: "", moveOutReason: "Lease ended" });
+
+  // Compute days until lease expiry dynamically
+  const getDaysLeft = (leaseEnd) => {
+    if (!leaseEnd) return null;
+    const d = Math.ceil((new Date(leaseEnd) - new Date()) / 86400000);
+    return d > 0 ? d : 0;
+  };
 
   useEffect(() => {
     if (highlightTenantId) {
@@ -5354,18 +5392,13 @@ function RentRoll({ onBack, highlightTenantId, onClearHighlight }) {
 
   const handleSaveTenant = () => {
     if (!form.name && form.status !== "vacant") return;
-    const calcDays = leaseEnd => {
-      if (!leaseEnd) return null;
-      const d = Math.ceil((new Date(leaseEnd) - new Date()) / 86400000);
-      return d > 0 ? d : null;
-    };
     if (editId !== null) {
       setTenantData(prev => prev.map(t => t.id === editId
-        ? { ...t, propertyId: parseInt(form.propertyId), unit: form.unit || t.unit, name: form.name, rent: parseFloat(form.rent) || 0, securityDeposit: parseFloat(form.securityDeposit) || null, lateFeePct: parseFloat(form.lateFeePct) || null, renewalTerms: form.renewalTerms, notes: form.notes, leaseStart: form.leaseStart || null, leaseEnd: form.leaseEnd || null, daysUntilExpiry: calcDays(form.leaseEnd), status: form.status, phone: form.phone || null, email: form.email || null, leaseDoc: form.leaseDoc ?? t.leaseDoc }
+        ? { ...t, propertyId: parseInt(form.propertyId), unit: form.unit || t.unit, name: form.name, rent: parseFloat(form.rent) || 0, securityDeposit: parseFloat(form.securityDeposit) || null, lateFeePct: parseFloat(form.lateFeePct) || null, renewalTerms: form.renewalTerms, notes: form.notes, leaseStart: form.leaseStart || null, leaseEnd: form.leaseEnd || null, status: form.status, phone: form.phone || null, email: form.email || null, leaseDoc: form.leaseDoc ?? t.leaseDoc }
         : t
       ));
     } else {
-      setTenantData(prev => [...prev, { id: newId(), propertyId: parseInt(form.propertyId), unit: form.unit || "Main", name: form.name, rent: parseFloat(form.rent) || 0, securityDeposit: parseFloat(form.securityDeposit) || null, lateFeePct: parseFloat(form.lateFeePct) || null, renewalTerms: form.renewalTerms, notes: form.notes, leaseStart: form.leaseStart || null, leaseEnd: form.leaseEnd || null, daysUntilExpiry: calcDays(form.leaseEnd), status: form.status, lastPayment: null, phone: form.phone || null, email: form.email || null, leaseDoc: form.leaseDoc || null }]);
+      setTenantData(prev => [...prev, { id: newId(), propertyId: parseInt(form.propertyId), unit: form.unit || "Main", name: form.name, rent: parseFloat(form.rent) || 0, securityDeposit: parseFloat(form.securityDeposit) || null, lateFeePct: parseFloat(form.lateFeePct) || null, renewalTerms: form.renewalTerms, notes: form.notes, leaseStart: form.leaseStart || null, leaseEnd: form.leaseEnd || null, status: form.status, lastPayment: null, phone: form.phone || null, email: form.email || null, leaseDoc: form.leaseDoc || null, moveOutDate: null, moveOutReason: null }]);
     }
     setForm(emptyT);
     setShowModal(false);
@@ -5377,25 +5410,56 @@ function RentRoll({ onBack, highlightTenantId, onClearHighlight }) {
     setDeleteConfirm(null);
   };
 
+  // Close lease: move tenant to "past" and create a vacant unit record
+  const handleCloseLease = () => {
+    if (!closingTenant) return;
+    const t = closingTenant;
+    setTenantData(prev => {
+      const updated = prev.map(rec => rec.id === t.id
+        ? { ...rec, status: "past", moveOutDate: closeForm.moveOutDate || new Date().toISOString().split("T")[0], moveOutReason: closeForm.moveOutReason }
+        : rec
+      );
+      // Check if another active tenant already exists for this unit
+      const hasActiveOnUnit = updated.some(rec => rec.id !== t.id && rec.propertyId === t.propertyId && rec.unit === t.unit && rec.status !== "past");
+      if (!hasActiveOnUnit) {
+        updated.push({ id: newId(), propertyId: t.propertyId, unit: t.unit, name: "Vacant", rent: t.rent, leaseStart: null, leaseEnd: null, status: "vacant", lastPayment: null, phone: null, email: null, securityDeposit: null, moveOutDate: null, moveOutReason: null, leaseDoc: null });
+      }
+      return updated;
+    });
+    setClosingTenant(null);
+    setCloseForm({ moveOutDate: "", moveOutReason: "Lease ended" });
+  };
+
   const leaseStatusStyle = {
     "active-lease":   { bg: "#dcfce7", text: "#15803d" },
     "month-to-month": { bg: "#fef9c3", text: "#a16207" },
     "vacant":         { bg: "#fee2e2", text: "#b91c1c" },
+    "past":           { bg: "#f1f5f9", text: "#64748b" },
   };
+
+  const STATUS_LABELS = { "active-lease": "Active Lease", "month-to-month": "Month-to-Month", "vacant": "Vacant", "past": "Past Tenant" };
+
+  // Active tenants = everything except "past" status
+  const activeTenants = tenantData.filter(t => t.status !== "past");
+  const pastTenants = tenantData.filter(t => t.status === "past");
+  const isPastView = statusFilter === "past";
 
   const filteredTenants = tenantData.filter(t => {
     const matchProp = propFilter === "all" || t.propertyId === Number(propFilter);
-    const matchStatus = statusFilter === "all"
-      || t.status === statusFilter
-      || (statusFilter === "expiring" && t.daysUntilExpiry !== null && t.daysUntilExpiry <= 90);
-    return matchProp && matchStatus;
+    if (statusFilter === "past") return matchProp && t.status === "past";
+    if (statusFilter === "all") return matchProp && t.status !== "past";
+    if (statusFilter === "expiring") {
+      const days = getDaysLeft(t.leaseEnd);
+      return matchProp && t.status !== "past" && t.status !== "vacant" && days !== null && days <= 90;
+    }
+    return matchProp && t.status === statusFilter;
   });
 
-  const totalUnits = filteredTenants.length;
-  const occupied = filteredTenants.filter(t => t.status !== "vacant").length;
+  const totalUnits = activeTenants.filter(t => propFilter === "all" || t.propertyId === Number(propFilter)).length;
+  const occupied = activeTenants.filter(t => (propFilter === "all" || t.propertyId === Number(propFilter)) && t.status !== "vacant").length;
   const vacancyRate = totalUnits > 0 ? ((totalUnits - occupied) / totalUnits * 100).toFixed(0) : 0;
-  const grossRent = filteredTenants.filter(t => t.status !== "vacant").reduce((s, t) => s + t.rent, 0);
-  const expiringIn90 = tenantData.filter(t => t.daysUntilExpiry !== null && t.daysUntilExpiry <= 90);
+  const grossRent = activeTenants.filter(t => (propFilter === "all" || t.propertyId === Number(propFilter)) && t.status !== "vacant").reduce((s, t) => s + t.rent, 0);
+  const expiringIn90 = activeTenants.filter(t => { const d = getDaysLeft(t.leaseEnd); return d !== null && d <= 90 && t.status !== "vacant"; });
 
   return (
     <div>
@@ -5406,7 +5470,7 @@ function RentRoll({ onBack, highlightTenantId, onClearHighlight }) {
       )}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
         <div>
-          <h1 style={{ color: "#0f172a", fontSize: 26, fontWeight: 700, marginBottom: 4 }}>Rent Roll</h1>
+          <h1 style={{ color: "#0f172a", fontSize: 26, fontWeight: 700, marginBottom: 4 }}>Tenants</h1>
           <p style={{ color: "#64748b", fontSize: 15 }}>All tenants, leases, and occupancy status</p>
         </div>
         <select value={propFilter} onChange={e => setPropFilter(e.target.value)} style={{ ...iS, width: 200, fontSize: 14, padding: "9px 14px", fontWeight: 600 }}>
@@ -5416,15 +5480,18 @@ function RentRoll({ onBack, highlightTenantId, onClearHighlight }) {
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 24 }}>
         {[
-          { label: "Total Units", value: totalUnits, sub: "Across portfolio", color: "#3b82f6", icon: Home },
-          { label: "Occupied", value: `${occupied}/${totalUnits}`, sub: `${100 - Number(vacancyRate)}% occupancy`, color: "#10b981", icon: CheckSquare },
-          { label: "Vacancy Rate", value: `${vacancyRate}%`, sub: `${totalUnits - occupied} unit${totalUnits - occupied !== 1 ? "s" : ""} vacant`, color: Number(vacancyRate) > 10 ? "#ef4444" : "#f59e0b", icon: AlertCircle },
-          { label: "Gross Monthly Rent", value: fmt(grossRent), sub: "Occupied units only", color: "#8b5cf6", icon: DollarSign },
+          { label: "Total Units", value: totalUnits, sub: "Across portfolio", color: "#3b82f6", icon: Home, tip: "Count of all active unit records (excludes past tenants)" },
+          { label: "Occupied", value: `${occupied}/${totalUnits}`, sub: `${100 - Number(vacancyRate)}% occupancy`, color: "#10b981", icon: CheckSquare, tip: "Units with an active-lease or month-to-month tenant divided by total units" },
+          { label: "Vacancy Rate", value: `${vacancyRate}%`, sub: `${totalUnits - occupied} unit${totalUnits - occupied !== 1 ? "s" : ""} vacant`, color: Number(vacancyRate) > 10 ? "#ef4444" : "#f59e0b", icon: AlertCircle, tip: "Vacant units / total units. Red when above 10%" },
+          { label: "Gross Monthly Rent", value: fmt(grossRent), sub: "Occupied units only", color: "#8b5cf6", icon: DollarSign, tip: "Sum of monthly rent for all occupied units (excludes vacant)" },
         ].map((m, i) => (
           <div key={i} style={{ background: "#fff", borderRadius: 16, padding: 20, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
               <div>
-                <p style={{ color: "#94a3b8", fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 4 }}>{m.label}</p>
+                <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 4 }}>
+                  <p style={{ color: "#94a3b8", fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.04em" }}>{m.label}</p>
+                  <InfoTip text={m.tip} />
+                </div>
                 <p style={{ color: "#0f172a", fontSize: 24, fontWeight: 800 }}>{m.value}</p>
                 <p style={{ color: "#94a3b8", fontSize: 12, marginTop: 2 }}>{m.sub}</p>
               </div>
@@ -5444,11 +5511,13 @@ function RentRoll({ onBack, highlightTenantId, onClearHighlight }) {
             ["month-to-month", "Month-to-Month"],
             ["vacant", "Vacant"],
             ["expiring", "Expiring Soon"],
+            ["past", "Past Tenants"],
           ].map(([val, label]) => {
             const active = statusFilter === val;
+            const count = val === "expiring" ? expiringIn90.length : val === "past" ? pastTenants.filter(t => propFilter === "all" || t.propertyId === Number(propFilter)).length : 0;
             return (
               <button key={val} onClick={() => setStatusFilter(val)} style={{ padding: "7px 14px", borderRadius: 8, border: "none", background: active ? "#f59e0b" : "transparent", color: active ? "#fff" : "#64748b", fontWeight: active ? 700 : 500, fontSize: 12, cursor: "pointer", whiteSpace: "nowrap", transition: "all 0.15s" }}>
-                {label}{val === "expiring" && expiringIn90.length > 0 ? ` (${expiringIn90.length})` : ""}
+                {label}{(val === "expiring" || val === "past") && count > 0 ? ` (${count})` : ""}
               </button>
             );
           })}
@@ -5463,12 +5532,12 @@ function RentRoll({ onBack, highlightTenantId, onClearHighlight }) {
         </button>
       </div>
 
-      {expiringIn90.length > 0 && statusFilter !== "expiring" && (
+      {expiringIn90.length > 0 && statusFilter !== "expiring" && !isPastView && (
         <div style={{ background: "#fef9c3", border: "1px solid #fde68a", borderRadius: 12, padding: "14px 18px", marginBottom: 20, display: "flex", alignItems: "center", gap: 10 }}>
           <AlertCircle size={18} color="#a16207" />
           <p style={{ color: "#a16207", fontSize: 14, fontWeight: 600 }}>
-            {expiringIn90.length} lease{expiringIn90.length !== 1 ? "s" : ""} expiring within 90 days:
-            {expiringIn90.map(t => `${t.name.split(" ")[0]} (${t.daysUntilExpiry} days)`).join(", ")}
+            {expiringIn90.length} lease{expiringIn90.length !== 1 ? "s" : ""} expiring within 90 days:{" "}
+            {expiringIn90.map(t => { const d = getDaysLeft(t.leaseEnd); return `${t.name.split(" ")[0]} (${d}d)`; }).join(", ")}
           </p>
         </div>
       )}
@@ -5476,20 +5545,64 @@ function RentRoll({ onBack, highlightTenantId, onClearHighlight }) {
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
             <tr style={{ background: "#f8fafc" }}>
-              {["Property / Unit", "Tenant", "Monthly Rent", "Lease Start", "Lease End", "Days Left", "Status", "Last Payment", ""].map(h => (
+              {(isPastView
+                ? ["Property / Unit", "Tenant", "Rent (was)", "Lease Period", "Move-Out Date", "Reason", ""]
+                : ["Property / Unit", "Tenant", "Monthly Rent", "Lease Start", "Lease End", "Days Left", "Status", "Last Payment", ""]
+              ).map(h => (
                 <th key={h} style={{ padding: "14px 16px", textAlign: "left", color: "#94a3b8", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {filteredTenants.length === 0 && (
-              <tr><td colSpan={9} style={{ padding: "48px 20px", textAlign: "center", color: "#94a3b8", fontSize: 14 }}>No tenants match your filters. <button onClick={() => { setPropFilter("all"); setStatusFilter("all"); }} style={{ background: "none", border: "none", color: "#3b82f6", fontSize: 14, cursor: "pointer", textDecoration: "underline", padding: 0 }}>Clear filters</button></td></tr>
+              <tr><td colSpan={isPastView ? 7 : 9} style={{ padding: "48px 20px", textAlign: "center", color: "#94a3b8", fontSize: 14 }}>
+                {isPastView ? "No past tenant records found." : "No tenants match your filters."}{" "}
+                <button onClick={() => { setPropFilter("all"); setStatusFilter("all"); }} style={{ background: "none", border: "none", color: "#3b82f6", fontSize: 14, cursor: "pointer", textDecoration: "underline", padding: 0 }}>Clear filters</button>
+              </td></tr>
             )}
             {filteredTenants.map((t, i) => {
               const prop = PROPERTIES.find(p => p.id === t.propertyId);
-              const s = leaseStatusStyle[t.status];
-              const expiring = t.daysUntilExpiry !== null && t.daysUntilExpiry <= 90;
+              const s = leaseStatusStyle[t.status] || leaseStatusStyle["vacant"];
+              const daysLeft = getDaysLeft(t.leaseEnd);
+              const expiring = daysLeft !== null && daysLeft <= 90 && t.status !== "vacant" && t.status !== "past";
               const isFlash = flashId === t.id;
+              const isActiveTenant = t.status === "active-lease" || t.status === "month-to-month";
+
+              if (isPastView) {
+                return (
+                  <tr key={t.id} style={{ borderTop: "1px solid #f1f5f9", background: i % 2 === 0 ? "#fff" : "#fafafa" }}>
+                    <td style={{ padding: "14px 16px" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <div style={{ width: 8, height: 8, borderRadius: "50%", background: prop?.color || "#94a3b8", flexShrink: 0 }} />
+                        <div>
+                          <p style={{ fontSize: 13, fontWeight: 700, color: "#0f172a" }}>{prop?.name.split(" ").slice(0,2).join(" ")}</p>
+                          <p style={{ fontSize: 11, color: "#94a3b8" }}>{t.unit}</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td style={{ padding: "14px 16px" }}>
+                      <div>
+                        <p style={{ fontSize: 13, fontWeight: 600, color: "#64748b" }}>{t.name}</p>
+                        <p style={{ fontSize: 11, color: "#94a3b8" }}>{t.email}</p>
+                      </div>
+                    </td>
+                    <td style={{ padding: "14px 16px", fontSize: 14, fontWeight: 600, color: "#94a3b8" }}>{fmt(t.rent)}</td>
+                    <td style={{ padding: "14px 16px", fontSize: 12, color: "#64748b" }}>
+                      {t.leaseStart || "?"} &mdash; {t.leaseEnd || "?"}
+                    </td>
+                    <td style={{ padding: "14px 16px", fontSize: 13, fontWeight: 600, color: "#64748b" }}>{t.moveOutDate || "-"}</td>
+                    <td style={{ padding: "14px 16px" }}>
+                      <span style={{ background: "#f1f5f9", color: "#64748b", borderRadius: 20, padding: "3px 10px", fontSize: 11, fontWeight: 600 }}>{t.moveOutReason || "-"}</span>
+                    </td>
+                    <td style={{ padding: "14px 16px" }}>
+                      <button onClick={() => setDeleteConfirm(t)} style={{ background: "#fee2e2", border: "none", borderRadius: 8, padding: "6px 10px", cursor: "pointer", display: "flex", alignItems: "center", color: "#ef4444" }} title="Delete record">
+                        <Trash2 size={12} />
+                      </button>
+                    </td>
+                  </tr>
+                );
+              }
+
               return (
                 <tr key={t.id} ref={isFlash ? highlightRef : null} style={{ borderTop: "1px solid #f1f5f9", background: isFlash ? "#fef3c7" : i % 2 === 0 ? "#fff" : "#fafafa", transition: "background 2.5s ease" }}>
                   <td style={{ padding: "14px 16px" }}>
@@ -5515,18 +5628,23 @@ function RentRoll({ onBack, highlightTenantId, onClearHighlight }) {
                   <td style={{ padding: "14px 16px", fontSize: 13, color: "#64748b" }}>{t.leaseStart || "-"}</td>
                   <td style={{ padding: "14px 16px", fontSize: 13, color: "#64748b" }}>{t.leaseEnd || "-"}</td>
                   <td style={{ padding: "14px 16px" }}>
-                    {t.daysUntilExpiry !== null ? (
+                    {daysLeft !== null && t.status !== "vacant" ? (
                       <span style={{ fontSize: 13, fontWeight: 700, color: expiring ? "#a16207" : "#15803d" }}>
-                        {expiring ? "(!) " : ""}{t.daysUntilExpiry}d
+                        {expiring ? "(!) " : ""}{daysLeft}d
                       </span>
                     ) : <span style={{ color: "#94a3b8", fontSize: 13 }}>-</span>}
                   </td>
                   <td style={{ padding: "14px 16px" }}>
-                    <span style={{ background: s.bg, color: s.text, borderRadius: 20, padding: "3px 10px", fontSize: 11, fontWeight: 700 }}>{{ "active-lease": "Active Lease", "month-to-month": "Month-to-Month", vacant: "Vacant" }[t.status] || t.status}</span>
+                    <span style={{ background: s.bg, color: s.text, borderRadius: 20, padding: "3px 10px", fontSize: 11, fontWeight: 700 }}>{STATUS_LABELS[t.status] || t.status}</span>
                   </td>
                   <td style={{ padding: "14px 16px", fontSize: 13, color: "#64748b" }}>{t.lastPayment || "-"}</td>
                   <td style={{ padding: "14px 16px" }}>
                     <div style={{ display: "flex", gap: 4 }}>
+                      {isActiveTenant && (
+                        <button onClick={() => { setClosingTenant(t); setCloseForm({ moveOutDate: new Date().toISOString().split("T")[0], moveOutReason: "Lease ended" }); }} style={{ background: "#fef3c7", border: "none", borderRadius: 8, padding: "6px 10px", cursor: "pointer", display: "flex", alignItems: "center", gap: 5, color: "#a16207", fontSize: 12, fontWeight: 600, whiteSpace: "nowrap" }} title="Close this lease and move tenant to past records">
+                          <LogOut size={12} /> Close
+                        </button>
+                      )}
                       <button onClick={() => openEdit(t)} style={{ background: "#f1f5f9", border: "none", borderRadius: 8, padding: "6px 10px", cursor: "pointer", display: "flex", alignItems: "center", gap: 5, color: "#475569", fontSize: 12, fontWeight: 600, whiteSpace: "nowrap" }}>
                         <Pencil size={12} /> Edit
                       </button>
@@ -5541,6 +5659,144 @@ function RentRoll({ onBack, highlightTenantId, onClearHighlight }) {
           </tbody>
         </table>
       </div>
+
+      {/* ── Turnover Analytics ── */}
+      {!isPastView && pastTenants.length > 0 && (
+        <div style={{ background: "#fff", borderRadius: 16, padding: 24, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9", marginTop: 24 }}>
+          <h3 style={{ fontSize: 16, fontWeight: 700, color: "#0f172a", marginBottom: 4 }}>Turnover Analytics</h3>
+          <p style={{ fontSize: 13, color: "#94a3b8", marginBottom: 20 }}>Historical tenant turnover and rent trends</p>
+          {(() => {
+            const relevantPast = pastTenants.filter(t => propFilter === "all" || t.propertyId === Number(propFilter));
+            if (relevantPast.length === 0) return <p style={{ color: "#94a3b8", fontSize: 13 }}>No past tenant data for this property.</p>;
+
+            // Turnover rate: past tenants / (past + current active non-vacant) over all time
+            const relevantActive = activeTenants.filter(t => (propFilter === "all" || t.propertyId === Number(propFilter)) && t.status !== "vacant");
+            const turnoverRate = relevantActive.length + relevantPast.length > 0
+              ? ((relevantPast.length / (relevantActive.length + relevantPast.length)) * 100).toFixed(0) : 0;
+
+            // Avg vacancy days: for each past tenant, find the next tenant on same property+unit
+            const vacancyDays = [];
+            relevantPast.forEach(pt => {
+              if (!pt.moveOutDate) return;
+              // Find if a current or another past tenant took over this unit after this one left
+              const successors = tenantData.filter(t => t.id !== pt.id && t.propertyId === pt.propertyId && t.unit === pt.unit && t.leaseStart && new Date(t.leaseStart) >= new Date(pt.moveOutDate));
+              if (successors.length > 0) {
+                successors.sort((a, b) => new Date(a.leaseStart) - new Date(b.leaseStart));
+                const gap = Math.round((new Date(successors[0].leaseStart) - new Date(pt.moveOutDate)) / 86400000);
+                if (gap >= 0) vacancyDays.push(gap);
+              }
+            });
+            const avgVacancy = vacancyDays.length > 0 ? Math.round(vacancyDays.reduce((s, d) => s + d, 0) / vacancyDays.length) : null;
+
+            // Rent growth per unit: compare past tenant's rent to current tenant's rent on same unit
+            const rentChanges = [];
+            relevantPast.forEach(pt => {
+              const current = activeTenants.find(t => t.propertyId === pt.propertyId && t.unit === pt.unit && t.status !== "vacant");
+              if (current && pt.rent > 0) {
+                rentChanges.push({ unit: pt.unit, property: PROPERTIES.find(p => p.id === pt.propertyId)?.name?.split(" ").slice(0,2).join(" ") || "", from: pt.rent, to: current.rent, pct: ((current.rent - pt.rent) / pt.rent * 100).toFixed(1) });
+              }
+            });
+            const avgRentGrowth = rentChanges.length > 0 ? (rentChanges.reduce((s, r) => s + parseFloat(r.pct), 0) / rentChanges.length).toFixed(1) : null;
+
+            return (
+              <div>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, marginBottom: 20 }}>
+                  <div style={{ background: "#f8fafc", borderRadius: 12, padding: "16px 18px", border: "1px solid #f1f5f9" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 4 }}>
+                      <p style={{ color: "#94a3b8", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>Turnover Rate</p>
+                      <InfoTip text="Past tenants / (past + current active tenants). Higher rates may indicate tenant satisfaction issues." />
+                    </div>
+                    <p style={{ color: Number(turnoverRate) > 50 ? "#ef4444" : "#0f172a", fontSize: 22, fontWeight: 700 }}>{turnoverRate}%</p>
+                    <p style={{ color: "#94a3b8", fontSize: 11 }}>{relevantPast.length} past · {relevantActive.length} active</p>
+                  </div>
+                  <div style={{ background: "#f8fafc", borderRadius: 12, padding: "16px 18px", border: "1px solid #f1f5f9" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 4 }}>
+                      <p style={{ color: "#94a3b8", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>Avg Vacancy Gap</p>
+                      <InfoTip text="Average days between a tenant moving out and the next tenant's lease starting on the same unit." />
+                    </div>
+                    <p style={{ color: avgVacancy !== null && avgVacancy > 30 ? "#f59e0b" : "#0f172a", fontSize: 22, fontWeight: 700 }}>{avgVacancy !== null ? `${avgVacancy} days` : "—"}</p>
+                    <p style={{ color: "#94a3b8", fontSize: 11 }}>{vacancyDays.length > 0 ? `Based on ${vacancyDays.length} transition${vacancyDays.length !== 1 ? "s" : ""}` : "No transition data yet"}</p>
+                  </div>
+                  <div style={{ background: "#f8fafc", borderRadius: 12, padding: "16px 18px", border: "1px solid #f1f5f9" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 4 }}>
+                      <p style={{ color: "#94a3b8", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>Avg Rent Growth</p>
+                      <InfoTip text="Average rent increase (%) when a new tenant replaces a previous tenant on the same unit." />
+                    </div>
+                    <p style={{ color: avgRentGrowth !== null && parseFloat(avgRentGrowth) > 0 ? "#10b981" : "#0f172a", fontSize: 22, fontWeight: 700 }}>
+                      {avgRentGrowth !== null ? `${parseFloat(avgRentGrowth) > 0 ? "+" : ""}${avgRentGrowth}%` : "—"}
+                    </p>
+                    <p style={{ color: "#94a3b8", fontSize: 11 }}>{rentChanges.length > 0 ? `Across ${rentChanges.length} unit${rentChanges.length !== 1 ? "s" : ""}` : "No comparable data"}</p>
+                  </div>
+                </div>
+
+                {/* Rent growth breakdown per unit */}
+                {rentChanges.length > 0 && (
+                  <div>
+                    <p style={{ color: "#64748b", fontSize: 13, fontWeight: 600, marginBottom: 10 }}>Rent Growth by Unit</p>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                      {rentChanges.map((r, i) => (
+                        <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", background: "#fafafa", borderRadius: 10, border: "1px solid #f1f5f9" }}>
+                          <span style={{ fontSize: 12, fontWeight: 600, color: "#475569", minWidth: 120 }}>{r.property} · {r.unit}</span>
+                          <span style={{ fontSize: 12, color: "#94a3b8" }}>{fmt(r.from)}</span>
+                          <ArrowRight size={12} color="#94a3b8" />
+                          <span style={{ fontSize: 12, fontWeight: 700, color: "#0f172a" }}>{fmt(r.to)}</span>
+                          <span style={{ marginLeft: "auto", fontSize: 12, fontWeight: 700, color: parseFloat(r.pct) > 0 ? "#10b981" : parseFloat(r.pct) < 0 ? "#ef4444" : "#94a3b8" }}>
+                            {parseFloat(r.pct) > 0 ? "+" : ""}{r.pct}%
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+        </div>
+      )}
+
+      {/* Close Lease Modal */}
+      {closingTenant && (
+        <Modal title="Close Lease" onClose={() => setClosingTenant(null)} width={480}>
+          <div style={{ padding: "4px 0" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "14px 16px", background: "#fef9c3", borderRadius: 12, border: "1px solid #fde68a", marginBottom: 20 }}>
+              <AlertTriangle size={20} color="#a16207" />
+              <div>
+                <p style={{ fontSize: 14, fontWeight: 600, color: "#92400e" }}>This will end the lease for <strong>{closingTenant.name}</strong></p>
+                <p style={{ fontSize: 12, color: "#a16207", marginTop: 2 }}>
+                  {PROPERTIES.find(p => p.id === closingTenant.propertyId)?.name} &middot; {closingTenant.unit} &middot; {fmt(closingTenant.rent)}/mo
+                </p>
+              </div>
+            </div>
+            <p style={{ fontSize: 13, color: "#64748b", marginBottom: 16 }}>
+              The tenant will be moved to past records and the unit will be marked as vacant.
+            </p>
+            <div style={{ display: "grid", gap: 14, marginBottom: 20 }}>
+              <div>
+                <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Move-Out Date</label>
+                <input type="date" value={closeForm.moveOutDate} onChange={e => setCloseForm(f => ({ ...f, moveOutDate: e.target.value }))} style={iS} />
+              </div>
+              <div>
+                <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Reason</label>
+                <select value={closeForm.moveOutReason} onChange={e => setCloseForm(f => ({ ...f, moveOutReason: e.target.value }))} style={iS}>
+                  <option>Lease ended</option>
+                  <option>Lease not renewed</option>
+                  <option>Relocated for work</option>
+                  <option>Purchased own home</option>
+                  <option>Lease ended, rent increase</option>
+                  <option>Eviction</option>
+                  <option>Mutual agreement</option>
+                  <option>Other</option>
+                </select>
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: 10 }}>
+              <button onClick={() => setClosingTenant(null)} style={{ flex: 1, padding: "12px", border: "1px solid #e2e8f0", borderRadius: 10, background: "#fff", color: "#475569", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
+              <button onClick={handleCloseLease} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "#f59e0b", color: "#fff", fontWeight: 700, cursor: "pointer" }}>Close Lease</button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
       {showModal && (
         <Modal title={editId ? "Edit Tenant" : "Add Tenant"} onClose={() => setShowModal(false)}>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
@@ -5644,23 +5900,23 @@ function RentRoll({ onBack, highlightTenantId, onClearHighlight }) {
         </Modal>
       )}
       {deleteConfirm && (
-        <Modal title="Remove Tenant" onClose={() => setDeleteConfirm(null)} width={440}>
+        <Modal title={deleteConfirm.status === "past" ? "Delete Past Tenant Record" : "Remove Tenant"} onClose={() => setDeleteConfirm(null)} width={440}>
           <div style={{ textAlign: "center", padding: "8px 0" }}>
             <div style={{ width: 48, height: 48, borderRadius: 14, background: "#fee2e2", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 16 }}>
               <Trash2 size={22} color="#ef4444" />
             </div>
             <p style={{ color: "#0f172a", fontSize: 15, fontWeight: 600, marginBottom: 8 }}>
-              Remove <strong>{deleteConfirm.name || "Vacant Unit"}</strong> from {PROPERTIES.find(p => p.id === deleteConfirm.propertyId)?.name || "property"}?
+              {deleteConfirm.status === "past" ? "Delete" : "Remove"} <strong>{deleteConfirm.name || "Vacant Unit"}</strong> from {PROPERTIES.find(p => p.id === deleteConfirm.propertyId)?.name || "property"}?
             </p>
             <p style={{ color: "#64748b", fontSize: 13, marginBottom: 6 }}>
-              Unit {deleteConfirm.unit} · {deleteConfirm.status === "vacant" ? "Vacant" : `Rent ${fmt(deleteConfirm.rent)}/mo`}
+              Unit {deleteConfirm.unit} · {deleteConfirm.status === "vacant" ? "Vacant" : deleteConfirm.status === "past" ? `Past tenant · Moved out ${deleteConfirm.moveOutDate || "N/A"}` : `Rent ${fmt(deleteConfirm.rent)}/mo`}
             </p>
             <p style={{ color: "#94a3b8", fontSize: 12, marginBottom: 24 }}>
-              This will remove the tenant record and any associated lease data. This action cannot be undone.
+              This will permanently remove this {deleteConfirm.status === "past" ? "historical" : "tenant"} record. This action cannot be undone.
             </p>
             <div style={{ display: "flex", gap: 10 }}>
               <button onClick={() => setDeleteConfirm(null)} style={{ flex: 1, padding: "12px", border: "1px solid #e2e8f0", borderRadius: 10, background: "#fff", color: "#475569", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
-              <button onClick={handleDeleteTenant} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "#ef4444", color: "#fff", fontWeight: 700, cursor: "pointer" }}>Remove Tenant</button>
+              <button onClick={handleDeleteTenant} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "#ef4444", color: "#fff", fontWeight: 700, cursor: "pointer" }}>{deleteConfirm.status === "past" ? "Delete Record" : "Remove Tenant"}</button>
             </div>
           </div>
         </Modal>
@@ -6319,7 +6575,7 @@ function AppShell() {
   const rentalNavItems = [
     { id: "dashboard",    label: "Dashboard",    icon: LayoutDashboard },
     { id: "properties",   label: "Properties",   icon: Building2       },
-    { id: "rentroll",     label: "Rent Roll",     icon: Users           },
+    { id: "tenants",      label: "Tenants",        icon: Users           },
     { id: "transactions", label: "Transactions",  icon: ArrowUpDown     },
     { id: "analytics",    label: "Analytics",     icon: BarChart3       },
     { id: "notes",        label: "Notes",         icon: MessageSquare   },
@@ -6459,7 +6715,7 @@ function AppShell() {
         <div style={{ flex: 1, padding: 32, maxWidth: 1400, width: "100%" }}>
           {activeView === "dashboard" && <Dashboard onNavigate={setActiveView} onNavigateToTx={navigateToTransaction} />}
           {activeView === "properties" && <Properties onSelect={handlePropertySelect} editPropertyId={editPropertyId} onClearEditId={() => setEditPropertyId(null)} />}
-          {activeView === "propertyDetail" && selectedProperty && <PropertyDetail property={selectedProperty} onBack={() => setActiveView("properties")} onEditProperty={(p) => { setEditPropertyId(p.id); setActiveView("properties"); }} onGoToTransactions={() => setActiveView("transactions")} onNavigateToTransaction={(txId) => { if (txId) { setHighlightTxId(txId); setNavSource("propertyDetail"); } setActiveView("transactions"); }} onNavigateToTenant={(tenantId) => { setHighlightTenantId(tenantId); setNavSource("propertyDetail"); setActiveView("rentroll"); }} />}
+          {activeView === "propertyDetail" && selectedProperty && <PropertyDetail property={selectedProperty} onBack={() => setActiveView("properties")} onEditProperty={(p) => { setEditPropertyId(p.id); setActiveView("properties"); }} onGoToTransactions={() => setActiveView("transactions")} onNavigateToTransaction={(txId) => { if (txId) { setHighlightTxId(txId); setNavSource("propertyDetail"); } setActiveView("transactions"); }} onNavigateToTenant={(tenantId) => { setHighlightTenantId(tenantId); setNavSource("propertyDetail"); setActiveView("tenants"); }} />}
           {activeView === "transactions" && <Transactions highlightTxId={highlightTxId} backLabel={navSource === "propertyDetail" ? "Back to Property" : "Back to Dashboard"} onBack={navSource === "dashboard" ? () => { setActiveView("dashboard"); setHighlightTxId(null); setNavSource(null); } : navSource === "propertyDetail" ? () => { setActiveView("propertyDetail"); setHighlightTxId(null); setNavSource(null); } : null} onClearHighlight={() => setHighlightTxId(null)} />}
           {activeView === "analytics" && <Analytics />}
           {activeView === "notes" && <RentalNotes />}
@@ -6475,7 +6731,7 @@ function AppShell() {
           {activeView === "flipnotes"       && <FlipNotes />}
           {activeView === "flipanalytics"   && <FlipAnalytics />}
           {activeView === "flipreports"    && <FlipReports />}
-          {activeView === "rentroll" && <RentRoll onBack={navSource === "propertyDetail" ? () => { setActiveView("propertyDetail"); setHighlightTenantId(null); setNavSource(null); } : null} highlightTenantId={highlightTenantId} onClearHighlight={() => setHighlightTenantId(null)} />}
+          {activeView === "tenants" && <RentRoll onBack={navSource === "propertyDetail" ? () => { setActiveView("propertyDetail"); setHighlightTenantId(null); setNavSource(null); } : null} highlightTenantId={highlightTenantId} onClearHighlight={() => setHighlightTenantId(null)} />}
           {activeView === "mileage" && <MileageTracker />}
           {activeView === "dealanalyzer" && <DealAnalyzer />}
         </div>
