@@ -6775,7 +6775,7 @@ function AppShell() {
           {activeView === "reports" && <Reports />}
           {activeView === "flipdashboard"   && <FlipDashboard onSelect={(f, tab) => handleFlipSelect(f, tab, "flipdashboard")} />}
           {activeView === "flips"           && <FlipPipeline onSelect={(f, tab) => handleFlipSelect(f, tab, "flips")} />}
-          {activeView === "flipDetail"      && selectedFlip && <FlipDetail flip={selectedFlip} onBack={() => { setActiveView(flipNavSource || "flips"); setFlipNavSource(null); setFlipInitialTab(null); }} backLabel={flipNavSource === "flipdashboard" ? "Back to Dashboard" : "Back to Deals"} onNavigateToExpense={navigateToFlipExpense} initialTab={flipInitialTab} />}
+          {activeView === "flipDetail"      && selectedFlip && <FlipDetail key={selectedFlip.id + "-" + (flipInitialTab || "overview")} flip={selectedFlip} onBack={() => { setActiveView(flipNavSource || "flips"); setFlipNavSource(null); setFlipInitialTab(null); }} backLabel={flipNavSource === "flipdashboard" ? "Back to Dashboard" : "Back to Deals"} onNavigateToExpense={navigateToFlipExpense} initialTab={flipInitialTab} />}
           {activeView === "fliprehab"        && <RehabTracker />}
           {activeView === "flipexpenses"    && <FlipExpenses highlightExpId={highlightExpId} onBack={navSource === "flipDetail" ? () => { setActiveView("flipDetail"); setHighlightExpId(null); setNavSource(null); } : null} onClearHighlight={() => setHighlightExpId(null)} />}
           {activeView === "flipcontractors" && <FlipContractors onSelectContractor={handleSelectContractor} />}
