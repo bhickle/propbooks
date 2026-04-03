@@ -429,7 +429,7 @@ function InfoTip({ text }) {
           position: "absolute", bottom: "calc(100% + 8px)", left: "50%", transform: "translateX(-50%)",
           background: "#0f172a", color: "#f8fafc", fontSize: 12, lineHeight: 1.5, fontWeight: 400,
           padding: "10px 14px", borderRadius: 10, width: 240, zIndex: 50,
-          boxShadow: "0 8px 24px rgba(0,0,0,0.2)", pointerEvents: "none", whiteSpace: "normal",
+          boxShadow: "0 8px 24px rgba(0,0,0,0.2)", pointerEvents: "none", whiteSpace: "normal", border: "1px solid #e2e8f0",
         }}>
           {text}
           <span style={{
@@ -442,13 +442,16 @@ function InfoTip({ text }) {
   );
 }
 
-function StatCard({ icon: Icon, label, value, sub, trend, trendVal, color = "#3b82f6" }) {
+function StatCard({ icon: Icon, label, value, sub, trend, trendVal, color = "#3b82f6", tip }) {
   const up = trend === "up";
   return (
     <div style={{ background: "#fff", borderRadius: 16, padding: "24px", boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)", border: "1px solid #f1f5f9" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
         <div>
-          <p style={{ color: "#94a3b8", fontSize: 13, fontWeight: 500, marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.05em" }}>{label}</p>
+          <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 8 }}>
+            <p style={{ color: "#94a3b8", fontSize: 13, fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.05em" }}>{label}</p>
+            {tip && <InfoTip text={tip} />}
+          </div>
           <p style={{ color: "#0f172a", fontSize: 28, fontWeight: 700, lineHeight: 1 }}>{value}</p>
           {sub && <p style={{ color: "#64748b", fontSize: 13, marginTop: 6 }}>{sub}</p>}
         </div>
@@ -601,10 +604,10 @@ function Dashboard({ onNavigate, onNavigateToTx }) {
         </div>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 20, marginBottom: 28 }}>
-        <StatCard icon={Building2} label={isAll ? "Portfolio Value" : "Property Value"} value={fmtK(totalValue)} sub={isAll ? `${props.length} properties` : (selectedProp?.type || "")} trend="up" trendVal={isAll ? `${props.length} properties` : ""} color="#3b82f6" />
-        <StatCard icon={Wallet} label="Total Equity" value={fmtK(totalEquity)} sub="Net of mortgages" color="#10b981" />
-        <StatCard icon={DollarSign} label="Monthly Cash Flow" value={fmt(netCashFlow)} sub={`${fmt(monthlyIncome)} income - ${fmt(monthlyExpenses)} exp`} color="#8b5cf6" />
-        <StatCard icon={Percent} label={isAll ? "Avg. Cap Rate" : "Cap Rate"} value={`${avgCapRate}%`} sub={isAll ? "Across portfolio" : "This property"} color="#f59e0b" />
+        <StatCard icon={Building2} label={isAll ? "Portfolio Value" : "Property Value"} value={fmtK(totalValue)} sub={isAll ? `${props.length} properties` : (selectedProp?.type || "")} trend="up" trendVal={isAll ? `${props.length} properties` : ""} color="#3b82f6" tip="Sum of current market values for all properties (or this property if filtered)." />
+        <StatCard icon={Wallet} label="Total Equity" value={fmtK(totalEquity)} sub="Net of mortgages" color="#10b981" tip="Current Value − Mortgage Balance, summed across all properties." />
+        <StatCard icon={DollarSign} label="Monthly Cash Flow" value={fmt(netCashFlow)} sub={`${fmt(monthlyIncome)} income - ${fmt(monthlyExpenses)} exp`} color="#8b5cf6" tip="Total Monthly Income − Total Monthly Expenses across all properties." />
+        <StatCard icon={Percent} label={isAll ? "Avg. Cap Rate" : "Cap Rate"} value={`${avgCapRate}%`} sub={isAll ? "Across portfolio" : "This property"} color="#f59e0b" tip="Annual NOI ÷ Current Property Value × 100. Averaged across portfolio if viewing all properties." />
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 20, marginBottom: 28 }}>
         <div style={{ background: "#fff", borderRadius: 16, padding: 24, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" }}>
@@ -886,6 +889,13 @@ function Properties({ onSelect, editPropertyId, onClearEditId }) {
               </div>
             );
           })}
+          {filtered.length === 0 && (
+            <div style={{ textAlign: "center", padding: "48px 20px", color: "#94a3b8", gridColumn: "1 / -1" }}>
+              <Search size={32} style={{ marginBottom: 12, opacity: 0.5 }} />
+              <p style={{ fontSize: 15, fontWeight: 600, color: "#64748b", marginBottom: 4 }}>No properties found</p>
+              <p style={{ fontSize: 13 }}>Try adjusting your search filters</p>
+            </div>
+          )}
         </div>
       ) : (
         /* List View */
@@ -941,10 +951,10 @@ function Properties({ onSelect, editPropertyId, onClearEditId }) {
                   <td style={{ padding: "16px 20px" }}><Badge status={p.status} /></td>
                   <td style={{ padding: "16px 20px" }}>
                     <div style={{ display: "flex", gap: 4 }}>
-                      <button onClick={e => openEdit(e, p)} style={{ background: "#f1f5f9", border: "none", borderRadius: 8, padding: "6px 10px", cursor: "pointer", display: "flex", alignItems: "center", gap: 5, color: "#475569", fontSize: 12, fontWeight: 600 }}>
+                      <button onClick={e => openEdit(e, p)} style={{ background: "#f1f5f9", border: "none", borderRadius: 8, padding: "5px 8px", cursor: "pointer", display: "flex", alignItems: "center", gap: 5, color: "#475569", fontSize: 12, fontWeight: 600 }}>
                         <Pencil size={12} /> Edit
                       </button>
-                      <button onClick={e => { e.stopPropagation(); setDeleteConfirm(p); }} style={{ background: "#fee2e2", border: "none", borderRadius: 8, padding: "6px 10px", cursor: "pointer", display: "flex", alignItems: "center", color: "#ef4444" }} title="Delete">
+                      <button onClick={e => { e.stopPropagation(); setDeleteConfirm(p); }} style={{ background: "#fee2e2", border: "none", borderRadius: 8, padding: "5px 8px", cursor: "pointer", display: "flex", alignItems: "center", color: "#ef4444" }} title="Delete">
                         <Trash2 size={12} />
                       </button>
                     </div>
@@ -952,6 +962,15 @@ function Properties({ onSelect, editPropertyId, onClearEditId }) {
                 </tr>
                 );
               })}
+              {filtered.length === 0 && (
+                <tr><td colSpan={9} style={{ padding: "48px 20px", textAlign: "center", color: "#94a3b8" }}>
+                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+                    <Search size={32} style={{ marginBottom: 12, opacity: 0.5 }} />
+                    <p style={{ fontSize: 15, fontWeight: 600, color: "#64748b", marginBottom: 4 }}>No properties found</p>
+                    <p style={{ fontSize: 13 }}>Try adjusting your search filters</p>
+                  </div>
+                </td></tr>
+              )}
             </tbody>
           </table>
         </div>
@@ -1253,18 +1272,21 @@ function PropertyDetail({ property, onBack, onEditProperty, onGoToTransactions, 
 
           <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 24 }}>
             {[
-              { label: "Monthly Income", value: fmt(eff.monthlyIncome), color: "#10b981", sub: eff.source === "transactions" ? `Avg from ${eff.months}mo of transactions` : "Manual estimate — log transactions for actuals" },
-              { label: "Monthly Expenses", value: fmt(eff.monthlyExpenses), color: "#ef4444", sub: eff.source === "transactions" ? `Avg from ${eff.months}mo of transactions` : "Manual estimate — log transactions for actuals" },
-              { label: "Net Cash Flow", value: fmt(eff.monthlyIncome - eff.monthlyExpenses), color: "#3b82f6" },
-              { label: "Total Equity", value: fmt(equity), color: "#8b5cf6" },
-              { label: "Purchase Price", value: fmt(property.purchasePrice), color: "#0f172a" },
-              { label: "Closing Costs", value: property.closingCosts ? fmt(property.closingCosts) : "—", color: "#64748b" },
-              { label: calcBal !== null ? "Est. Mortgage Balance" : "Mortgage Balance", value: fmt(effectiveMortgage), color: "#f59e0b", sub: calcBal !== null ? "Calculated from loan terms" : null },
-              { label: "Cap Rate", value: `${calcCapRate(property, TRANSACTIONS)}%`, color: "#8b5cf6" },
-              { label: "Cash-on-Cash", value: `${calcCashOnCash(property, TRANSACTIONS)}%`, color: "#10b981" },
+              { label: "Monthly Income", value: fmt(eff.monthlyIncome), color: "#10b981", sub: eff.source === "transactions" ? `Avg from ${eff.months}mo of transactions` : "Manual estimate — log transactions for actuals", tip: "Average monthly rental income. Derived from transaction history when available, otherwise uses manually entered estimate." },
+              { label: "Monthly Expenses", value: fmt(eff.monthlyExpenses), color: "#ef4444", sub: eff.source === "transactions" ? `Avg from ${eff.months}mo of transactions` : "Manual estimate — log transactions for actuals", tip: "Average monthly operating expenses. Derived from transaction history when available, otherwise uses manually entered estimate." },
+              { label: "Net Cash Flow", value: fmt(eff.monthlyIncome - eff.monthlyExpenses), color: "#3b82f6", tip: "Monthly Income − Monthly Expenses. Positive means the property cash-flows." },
+              { label: "Total Equity", value: fmt(equity), color: "#8b5cf6", tip: "Current Property Value − Mortgage Balance." },
+              { label: "Purchase Price", value: fmt(property.purchasePrice), color: "#0f172a", tip: "Original acquisition cost of the property." },
+              { label: "Closing Costs", value: property.closingCosts ? fmt(property.closingCosts) : "—", color: "#64748b", tip: "One-time costs paid at closing (title, legal, inspection, etc.)." },
+              { label: calcBal !== null ? "Est. Mortgage Balance" : "Mortgage Balance", value: fmt(effectiveMortgage), color: "#f59e0b", sub: calcBal !== null ? "Calculated from loan terms" : null, tip: "Current outstanding loan balance. Calculated from loan terms if amortization data is available." },
+              { label: "Cap Rate", value: `${calcCapRate(property, TRANSACTIONS)}%`, color: "#8b5cf6", tip: "Annual NOI ÷ Current Property Value × 100. Measures return independent of financing." },
+              { label: "Cash-on-Cash", value: `${calcCashOnCash(property, TRANSACTIONS)}%`, color: "#10b981", tip: "Annual Cash Flow After Debt Service ÷ Total Cash Invested × 100." },
             ].map((m, i) => (
               <div key={i} style={{ background: "#fff", borderRadius: 12, padding: "16px 18px", boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" }}>
-                <p style={{ color: "#94a3b8", fontSize: 12, fontWeight: 500, marginBottom: 4 }}>{m.label}</p>
+                <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 4 }}>
+                  <p style={{ color: "#94a3b8", fontSize: 12, fontWeight: 500 }}>{m.label}</p>
+                  {m.tip && <InfoTip text={m.tip} />}
+                </div>
                 <p style={{ color: m.color, fontSize: 18, fontWeight: 700 }}>{m.value}</p>
                 {m.sub && <p style={{ color: "#cbd5e1", fontSize: 10, marginTop: 2 }}>{m.sub}</p>}
               </div>
@@ -1369,13 +1391,16 @@ function PropertyDetail({ property, onBack, onEditProperty, onGoToTransactions, 
           {/* Summary stat cards */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 20 }}>
             {[
-              { label: "Total Units", value: propTenants.length || property.units, color: "#3b82f6" },
-              { label: "Occupied", value: propTenants.filter(t => t.status !== "vacant").length, color: "#10b981" },
-              { label: "Vacant", value: propTenants.filter(t => t.status === "vacant").length, color: propTenants.some(t => t.status === "vacant") ? "#ef4444" : "#94a3b8" },
-              { label: "Monthly Rent", value: fmt(propTenants.filter(t => t.status !== "vacant" && t.status !== "past").reduce((s, t) => s + (t.rent || 0), 0)), color: "#f59e0b" },
+              { label: "Total Units", value: propTenants.length || property.units, color: "#3b82f6", tip: "Number of units at this property based on tenant records." },
+              { label: "Occupied", value: propTenants.filter(t => t.status !== "vacant").length, color: "#10b981", tip: "Units with an active or month-to-month tenant." },
+              { label: "Vacant", value: propTenants.filter(t => t.status === "vacant").length, color: propTenants.some(t => t.status === "vacant") ? "#ef4444" : "#94a3b8", tip: "Units without an active tenant. Vacant units don't generate rental income." },
+              { label: "Monthly Rent", value: fmt(propTenants.filter(t => t.status !== "vacant" && t.status !== "past").reduce((s, t) => s + (t.rent || 0), 0)), color: "#f59e0b", tip: "Combined rent from all active tenants at this property." },
             ].map((m, i) => (
               <div key={i} style={{ background: "#fff", borderRadius: 12, padding: "16px 18px", boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" }}>
-                <p style={{ color: "#94a3b8", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 4 }}>{m.label}</p>
+                <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 4 }}>
+                  <p style={{ color: "#94a3b8", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>{m.label}</p>
+                  {m.tip && <InfoTip text={m.tip} />}
+                </div>
                 <p style={{ color: m.color, fontSize: 22, fontWeight: 700 }}>{m.value}</p>
               </div>
             ))}
@@ -3935,7 +3960,7 @@ function FlipPipeline({ onSelect }) {
 
       {showAddDeal && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
-          <div style={{ background: "#fff", borderRadius: 20, width: 520, maxHeight: "90vh", overflow: "auto", padding: 28 }}>
+          <div style={{ background: "#fff", borderRadius: 20, width: 560, maxHeight: "90vh", overflow: "auto", padding: 28 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
               <h2 style={{ color: "#0f172a", fontSize: 20, fontWeight: 700 }}>Add Deal</h2>
               <button onClick={() => { setShowAddDeal(false); setDealForm(emptyDeal); }} style={{ background: "#f1f5f9", border: "none", borderRadius: 8, width: 32, height: 32, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><X size={16} color="#64748b" /></button>
@@ -4390,7 +4415,7 @@ function FlipDetail({ flip, onBack, backLabel, allFlips, setAllFlips, onNavigate
                 </div>
               ))}
             </div>
-            <p style={{ marginTop: 10, fontSize: 12, fontWeight: 600, color: flip.purchasePrice <= mao70 ? "#15803d" : "#b91c1c", background: flip.purchasePrice <= mao70 ? "#dcfce7" : "#fee2e2", borderRadius: 8, padding: "6px 10px" }}>
+            <p style={{ marginTop: 10, fontSize: 12, fontWeight: 600, color: flip.purchasePrice <= mao70 ? "#15803d" : "#b91c1c", background: flip.purchasePrice <= mao70 ? "#dcfce7" : "#fee2e2", borderRadius: 8, padding: "5px 8px" }}>
               {flip.purchasePrice <= mao70 ? `v Deal is ${fmt(mao70 - flip.purchasePrice)} under MAO - good spread` : `(!) Purchase is ${fmt(flip.purchasePrice - mao70)} over MAO - verify assumptions`}
             </p>
           </div>
@@ -4541,7 +4566,7 @@ function FlipDetail({ flip, onBack, backLabel, allFlips, setAllFlips, onNavigate
 
         {showAddRehab && (
           <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
-            <div style={{ background: "#fff", borderRadius: 20, width: 420, padding: 28 }}>
+            <div style={{ background: "#fff", borderRadius: 20, width: 480, padding: 28 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
                 <h2 style={{ color: "#0f172a", fontSize: 18, fontWeight: 700 }}>{editingRehabIdx !== null ? "Edit Rehab Item" : "Add Rehab Item"}</h2>
                 <button onClick={() => { setShowAddRehab(false); setRehabForm(emptyRehab); setEditingRehabIdx(null); }} style={{ background: "#f1f5f9", border: "none", borderRadius: 8, width: 32, height: 32, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><X size={16} color="#64748b" /></button>
@@ -5148,7 +5173,7 @@ function FlipDetail({ flip, onBack, backLabel, allFlips, setAllFlips, onNavigate
                       if (m.done) return null;
                       const isOverdue = m.targetDate && m.targetDate < today;
                       return (
-                        <tr key={i} style={{ borderTop: "1px solid #f1f5f9", background: isOverdue ? "#fef2f2" : "transparent" }}>
+                        <tr key={i} style={{ borderTop: "1px solid #f1f5f9", background: isOverdue ? "#fef2f2" : "transparent", transition: "all 0.25s ease" }}>
                           <td style={{ padding: "12px 16px", width: 40 }}>
                             <div onClick={() => {
                               const updated = milestones.map((item, idx) => idx === i ? { ...item, done: true, date: today } : item);
@@ -5644,7 +5669,7 @@ function RentRoll({ onBack, highlightTenantId, onClearHighlight }) {
                       <span style={{ background: "#f1f5f9", color: "#64748b", borderRadius: 20, padding: "3px 10px", fontSize: 11, fontWeight: 600 }}>{t.moveOutReason || "-"}</span>
                     </td>
                     <td style={{ padding: "14px 16px" }}>
-                      <button onClick={() => setDeleteConfirm(t)} style={{ background: "#fee2e2", border: "none", borderRadius: 8, padding: "6px 10px", cursor: "pointer", display: "flex", alignItems: "center", color: "#ef4444" }} title="Delete record">
+                      <button onClick={() => setDeleteConfirm(t)} style={{ background: "#fee2e2", border: "none", borderRadius: 8, padding: "5px 8px", cursor: "pointer", display: "flex", alignItems: "center", color: "#ef4444" }} title="Delete record">
                         <Trash2 size={12} />
                       </button>
                     </td>
@@ -5690,14 +5715,14 @@ function RentRoll({ onBack, highlightTenantId, onClearHighlight }) {
                   <td style={{ padding: "14px 16px" }}>
                     <div style={{ display: "flex", gap: 4 }}>
                       {isActiveTenant && (
-                        <button onClick={() => { setClosingTenant(t); setCloseForm({ moveOutDate: new Date().toISOString().split("T")[0], moveOutReason: "Lease ended" }); }} style={{ background: "#fef3c7", border: "none", borderRadius: 8, padding: "6px 10px", cursor: "pointer", display: "flex", alignItems: "center", gap: 5, color: "#a16207", fontSize: 12, fontWeight: 600, whiteSpace: "nowrap" }} title="Close this lease and move tenant to past records">
+                        <button onClick={() => { setClosingTenant(t); setCloseForm({ moveOutDate: new Date().toISOString().split("T")[0], moveOutReason: "Lease ended" }); }} style={{ background: "#fef3c7", border: "none", borderRadius: 8, padding: "5px 8px", cursor: "pointer", display: "flex", alignItems: "center", gap: 5, color: "#a16207", fontSize: 12, fontWeight: 600, whiteSpace: "nowrap" }} title="Close this lease and move tenant to past records">
                           <LogOut size={12} /> Close
                         </button>
                       )}
-                      <button onClick={() => openEdit(t)} style={{ background: "#f1f5f9", border: "none", borderRadius: 8, padding: "6px 10px", cursor: "pointer", display: "flex", alignItems: "center", gap: 5, color: "#475569", fontSize: 12, fontWeight: 600, whiteSpace: "nowrap" }}>
+                      <button onClick={() => openEdit(t)} style={{ background: "#f1f5f9", border: "none", borderRadius: 8, padding: "5px 8px", cursor: "pointer", display: "flex", alignItems: "center", gap: 5, color: "#475569", fontSize: 12, fontWeight: 600, whiteSpace: "nowrap" }}>
                         <Pencil size={12} /> Edit
                       </button>
-                      <button onClick={() => setDeleteConfirm(t)} style={{ background: "#fee2e2", border: "none", borderRadius: 8, padding: "6px 10px", cursor: "pointer", display: "flex", alignItems: "center", color: "#ef4444" }} title="Delete">
+                      <button onClick={() => setDeleteConfirm(t)} style={{ background: "#fee2e2", border: "none", borderRadius: 8, padding: "5px 8px", cursor: "pointer", display: "flex", alignItems: "center", color: "#ef4444" }} title="Delete">
                         <Trash2 size={12} />
                       </button>
                     </div>
@@ -6044,15 +6069,18 @@ function MileageTracker() {
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 24 }}>
         {[
-          { label: "Total Miles", value: totalMiles.toFixed(1), sub: dateFilter === "thisYear" ? "This year" : dateFilter === "thisMonth" ? "This month" : dateFilter === "lastMonth" ? "Last month" : "All time", color: "#3b82f6", icon: Car },
-          { label: "Business Miles", value: businessMiles.toFixed(1), sub: "100% deductible trips", color: "#10b981", icon: Route },
-          { label: "Mileage Deduction", value: fmt(deduction), sub: `@ $${IRS_RATE}/mile IRS rate`, color: "#8b5cf6", icon: DollarSign },
-          { label: "Trips", value: filteredTrips.length, sub: `of ${tripData.length} total logged`, color: "#f59e0b", icon: Truck },
+          { label: "Total Miles", value: totalMiles.toFixed(1), sub: dateFilter === "thisYear" ? "This year" : dateFilter === "thisMonth" ? "This month" : dateFilter === "lastMonth" ? "Last month" : "All time", color: "#3b82f6", icon: Car, tip: "Sum of all miles logged for the selected time period and purpose filter." },
+          { label: "Business Miles", value: businessMiles.toFixed(1), sub: "100% deductible trips", color: "#10b981", icon: Route, tip: "Miles from trips marked as 100% business deductible." },
+          { label: "Mileage Deduction", value: fmt(deduction), sub: `@ $${IRS_RATE}/mile IRS rate`, color: "#8b5cf6", icon: DollarSign, tip: "Total deductible miles × IRS standard mileage rate. Each trip's miles are multiplied by its business-use percentage." },
+          { label: "Trips", value: filteredTrips.length, sub: `of ${tripData.length} total logged`, color: "#f59e0b", icon: Truck, tip: "Number of trips matching the current filters out of all logged trips." },
         ].map((m, i) => (
           <div key={i} style={{ background: "#fff", borderRadius: 16, padding: 20, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-              <div>
-                <p style={{ color: "#94a3b8", fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 4 }}>{m.label}</p>
+              <div style={{ flex: 1 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 4 }}>
+                  <p style={{ color: "#94a3b8", fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.04em" }}>{m.label}</p>
+                  {m.tip && <InfoTip text={m.tip} />}
+                </div>
                 <p style={{ color: "#0f172a", fontSize: 22, fontWeight: 800 }}>{m.value}</p>
                 <p style={{ color: "#94a3b8", fontSize: 12, marginTop: 2 }}>{m.sub}</p>
               </div>
@@ -6568,7 +6596,7 @@ function RentalNotes({ preFilterPropId, onBack }) {
       {/* Delete Confirm */}
       {deleteConfirm && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
-          <div style={{ background: "#fff", borderRadius: 20, width: 420, padding: 28 }}>
+          <div style={{ background: "#fff", borderRadius: 20, width: 480, padding: 28 }}>
             <h2 style={{ color: "#0f172a", fontSize: 18, fontWeight: 700, marginBottom: 14 }}>Delete Note</h2>
             <p style={{ color: "#475569", fontSize: 14, marginBottom: 8 }}>Are you sure you want to delete this note?</p>
             <div style={{ background: "#f8fafc", borderRadius: 10, padding: 14, marginBottom: 18 }}>
