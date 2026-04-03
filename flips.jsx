@@ -2798,9 +2798,6 @@ export function FlipNotes({ highlightNoteId, onBack, onClearHighlight }) {
     grouped[n.date].notes.push(n);
   });
 
-  const totalNotes = allNotes.length;
-  const dealsWithNotes = new Set(allNotes.map(n => n.flipId)).size;
-
   return (
     <div>
       {onBack && (
@@ -2810,7 +2807,7 @@ export function FlipNotes({ highlightNoteId, onBack, onClearHighlight }) {
       )}
       <PageHeader
         title="Deal Notes"
-        sub="Activity log and notes across all deals"
+        sub={`${allNotes.length} note${allNotes.length !== 1 ? "s" : ""} across ${new Set(allNotes.map(n => n.flipId)).size} deal${new Set(allNotes.map(n => n.flipId)).size === 1 ? "" : "s"}`}
         filter={
           <select value={filterFlip} onChange={e => setFilterFlip(e.target.value)} style={{ ...iS, width: 200, fontSize: 14, padding: "9px 14px", fontWeight: 600 }}>
             <option value="all">All Deals</option>
@@ -2818,12 +2815,6 @@ export function FlipNotes({ highlightNoteId, onBack, onClearHighlight }) {
           </select>
         }
       />
-
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, marginBottom: 24 }}>
-        <StatCard icon={MessageSquare} label="Total Notes" value={totalNotes} sub="Across all deals" color="#f59e0b" tip="Total notes logged across all flip deals." />
-        <StatCard icon={Building2} label="Deals with Notes" value={dealsWithNotes} sub={`of ${_FLIPS.length} deals`} color="#3b82f6" tip="Number of deals that have at least one note." />
-        <StatCard icon={Calendar} label="Latest Entry" value={allNotes[0] ? new Date(allNotes[0].date).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "—"} sub={allNotes[0]?.flipName || ""} color="#8b5cf6" tip="Most recent note entry by date." />
-      </div>
 
       {/* Filter bar */}
       <div style={{ display: "flex", gap: 10, marginBottom: hasFilters ? 10 : 20, flexWrap: "wrap", alignItems: "center" }}>

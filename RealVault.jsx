@@ -6866,9 +6866,6 @@ function RentalNotes({ preFilterPropId, onBack, highlightNoteId, onClearHighligh
     grouped[n.date].notes.push(n);
   });
 
-  const totalNotes = allNotes.length;
-  const propsWithNotes = new Set(allNotes.map(n => n.propId)).size;
-
   return (
     <div>
       {onBack && (
@@ -6879,7 +6876,7 @@ function RentalNotes({ preFilterPropId, onBack, highlightNoteId, onClearHighligh
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
         <div>
           <h1 style={{ color: "#0f172a", fontSize: 26, fontWeight: 700, marginBottom: 4 }}>Property Notes</h1>
-          <p style={{ color: "#64748b", fontSize: 15 }}>Activity log and notes across all properties</p>
+          <p style={{ color: "#64748b", fontSize: 15 }}>{allNotes.length} note{allNotes.length !== 1 ? "s" : ""} across {new Set(allNotes.map(n => n.propId)).size} propert{new Set(allNotes.map(n => n.propId)).size === 1 ? "y" : "ies"}</p>
         </div>
         {!preFilterPropId && (
           <select value={propFilter} onChange={e => setPropFilter(e.target.value)} style={{ ...iS, width: 200, fontSize: 14, padding: "9px 14px", fontWeight: 600 }}>
@@ -6887,16 +6884,6 @@ function RentalNotes({ preFilterPropId, onBack, highlightNoteId, onClearHighligh
             {PROPERTIES.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
           </select>
         )}
-      </div>
-
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, marginBottom: 24 }}>
-        {[
-          { label: "Total Notes", value: totalNotes, sub: "Across all properties", color: "#3b82f6", icon: MessageSquare },
-          { label: "Properties with Notes", value: propsWithNotes, sub: `of ${PROPERTIES.length} properties`, color: "#10b981", icon: Building2 },
-          { label: "Latest Entry", value: allNotes[0] ? new Date(allNotes[0].date).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "—", sub: allNotes[0]?.propName || "", color: "#8b5cf6", icon: Calendar },
-        ].map((m, i) => (
-          <StatCard key={i} icon={m.icon} label={m.label} value={m.value} sub={m.sub} color={m.color} />
-        ))}
       </div>
 
       {/* Filter bar */}
