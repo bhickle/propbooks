@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useRef } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import {
   AreaChart, Area, BarChart, Bar, LineChart, Line,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend
@@ -60,6 +60,24 @@ function getDeprBasis(p) {
 // ────────────────────────────────────────────────────────────────────
 
 const iS = { width: "100%", padding: "10px 12px", border: "1px solid #e2e8f0", borderRadius: 10, fontSize: 14, color: "#0f172a", background: "#fff", outline: "none", boxSizing: "border-box" };
+
+// Error Boundary — catches runtime errors and displays them instead of white screen
+class ErrorBoundary extends React.Component {
+  constructor(props) { super(props); this.state = { hasError: false, error: null, errorInfo: null }; }
+  static getDerivedStateFromError(error) { return { hasError: true, error }; }
+  componentDidCatch(error, errorInfo) { this.setState({ errorInfo }); console.error("ErrorBoundary caught:", error, errorInfo); }
+  render() {
+    if (this.state.hasError) {
+      return React.createElement("div", { style: { padding: 32, maxWidth: 700, margin: "40px auto", background: "#fef2f2", borderRadius: 16, border: "1px solid #fecaca" } },
+        React.createElement("h2", { style: { color: "#991b1b", fontSize: 20, fontWeight: 700, marginBottom: 12 } }, "Something went wrong"),
+        React.createElement("pre", { style: { color: "#b91c1c", fontSize: 13, whiteSpace: "pre-wrap", wordBreak: "break-word", background: "#fff", padding: 16, borderRadius: 10, border: "1px solid #fecaca", marginBottom: 12 } }, String(this.state.error)),
+        this.state.errorInfo && React.createElement("pre", { style: { color: "#64748b", fontSize: 11, whiteSpace: "pre-wrap", wordBreak: "break-word", maxHeight: 200, overflow: "auto", background: "#f8fafc", padding: 12, borderRadius: 8 } }, this.state.errorInfo.componentStack),
+        React.createElement("button", { onClick: () => this.setState({ hasError: false, error: null, errorInfo: null }), style: { marginTop: 12, background: "#ef4444", color: "#fff", border: "none", borderRadius: 10, padding: "10px 20px", fontWeight: 600, cursor: "pointer" } }, "Try Again")
+      );
+    }
+    return this.props.children;
+  }
+}
 
 function Modal({ title, onClose, children, width = 500 }) {
   return (
@@ -2879,7 +2897,13 @@ function Reports() {
   const [activeReport, setActiveReport] = useState("scheduleE");
   const [taxYear, setTaxYear] = useState(String(TAX_CONFIG.currentYear));
   const [propFilter, setPropFilter] = useState("all");
-  const [ownerMonth, setOwnerMonth] = useState(new Date().getMonth());
+  const [ownerMonth, setOwnerMonth] = useState(() => {
+    // Default to the most recent month that has transaction data (current year), or current month
+    const yr = TAX_CONFIG.currentYear;
+    const yrTx = TRANSACTIONS.filter(t => new Date(t.date).getFullYear() === yr);
+    if (yrTx.length > 0) return Math.max(...yrTx.map(t => new Date(t.date).getMonth()));
+    return new Date().getMonth();
+  });
   const [taxRate, setTaxRate] = useState(TAX_CONFIG.defaultBracket);
   const [txSearch, setTxSearch] = useState("");
   const [txCatFilter, setTxCatFilter] = useState("all");
@@ -2891,6 +2915,18 @@ function Reports() {
 
   const reportProps = propFilter === "all" ? PROPERTIES : PROPERTIES.filter(p => p.id === Number(propFilter));
   const reportPropNames = new Set(reportProps.map(p => p.name));
+
+  // Smart-default ownerMonth: when a property is selected, jump to the most recent month with data
+  useEffect(() => {
+    if (propFilter === "all" || activeReport !== "ownerStatement") return;
+    const p = PROPERTIES.find(pr => pr.id === Number(propFilter));
+    if (!p) return;
+    const propTx = TRANSACTIONS.filter(t => t.property === p.name && new Date(t.date).getFullYear() === Number(taxYear));
+    if (propTx.length === 0) return; // no data at all — keep current month so the warning shows
+    // Find the most recent month with transactions
+    const latestMonth = Math.max(...propTx.map(t => new Date(t.date).getMonth()));
+    setOwnerMonth(latestMonth);
+  }, [propFilter, taxYear, activeReport]);
 
   // IRS Schedule E line mapping keyed by transaction category
   const CAT_TO_LINE = {
@@ -3109,7 +3145,7 @@ function Reports() {
           <p style={{ color: "#64748b", fontSize: 15 }}>Financial summaries, tax reports, and lender packages</p>
         </div>
         <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-          {activeReport !== "transactions" && (
+          {activeReport !== "transactions" && activeReport !== "ownerStatement" && (
             <select value={taxYear} onChange={e => setTaxYear(e.target.value)} style={{ ...iS, width: 110, fontWeight: 700 }}>
               {TAX_CONFIG.yearRange.slice().reverse().map(y => (
                 <option key={y} value={String(y)}>{isTaxReport ? `TY ${y}` : String(y)}</option>
@@ -7201,7 +7237,7 @@ function AppShell() {
           {activeView === "reports" && <Reports />}
           {activeView === "flipdashboard"   && <FlipDashboard onSelect={(f, tab) => handleFlipSelect(f, tab, "flipdashboard")} onNavigateToNote={(noteId) => { setHighlightFlipNoteId(noteId); setNavSource("flipdashboard"); setActiveView("flipnotes"); }} onNavigateToExpense={(expId) => { setHighlightExpId(expId); setNavSource("flipdashboard"); setActiveView("flipexpenses"); }} onNavigateToMilestone={(msKey) => { setHighlightMilestoneKey(msKey); setNavSource("flipdashboard"); setActiveView("flipmilestones"); }} />}
           {activeView === "flips"           && <FlipPipeline onSelect={(f, tab) => handleFlipSelect(f, tab, "flips")} />}
-          {activeView === "flipDetail"      && selectedFlip && <FlipDetail key={selectedFlip.id + "-" + (flipInitialTab || "overview")} flip={selectedFlip} onBack={() => { setActiveView(flipNavSource || "flips"); setFlipNavSource(null); setFlipInitialTab(null); }} backLabel={flipNavSource === "flipdashboard" ? "Back to Dashboard" : "Back to Deals"} onNavigateToExpense={navigateToFlipExpense} initialTab={flipInitialTab} />}
+          {activeView === "flipDetail"      && selectedFlip && <ErrorBoundary key={"eb-" + selectedFlip.id}><FlipDetail key={selectedFlip.id + "-" + (flipInitialTab || "overview")} flip={selectedFlip} onBack={() => { setActiveView(flipNavSource || "flips"); setFlipNavSource(null); setFlipInitialTab(null); }} backLabel={flipNavSource === "flipdashboard" ? "Back to Dashboard" : "Back to Deals"} onNavigateToExpense={navigateToFlipExpense} initialTab={flipInitialTab} /></ErrorBoundary>}
           {activeView === "fliprehab"        && <RehabTracker />}
           {activeView === "flipexpenses"    && <FlipExpenses highlightExpId={highlightExpId} onBack={navSource === "flipDetail" ? () => { setActiveView("flipDetail"); setHighlightExpId(null); setNavSource(null); } : navSource === "flipdashboard" ? () => { setActiveView("flipdashboard"); setHighlightExpId(null); setNavSource(null); } : null} backLabel={navSource === "flipdashboard" ? "Back to Dashboard" : "Back to Deal"} onClearHighlight={() => setHighlightExpId(null)} />}
           {activeView === "flipcontractors" && <FlipContractors onSelectContractor={handleSelectContractor} />}
