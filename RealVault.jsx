@@ -22,7 +22,7 @@ import {
   getFlips, addFlip, updateFlip,
   getFlipExpenses, addFlipExpense, getContractors, addContractor, CONTRACTORS,
   getFlipMilestones, updateFlipMilestones,
-  getTenants, getMileageTrips, addMileageTrip, RENTAL_NOTES,
+  getTenants, getMileageTrips, addMileageTrip, RENTAL_NOTES, FLIP_NOTES,
 } from "./api.js";
 import { AuthProvider, AuthScreen, useAuth } from "./auth.jsx";
 import { Settings, OnboardingWizard } from "./settings.jsx";
@@ -7043,6 +7043,152 @@ function RentalNotes({ preFilterPropId, onBack, highlightNoteId, onClearHighligh
 }
 
 // ---------------------------------------------
+// GLOBAL SEARCH
+// ---------------------------------------------
+function GlobalSearch({ onNavigate }) {
+  const [query, setQuery] = useState("");
+  const [focused, setFocused] = useState(false);
+  const ref = useRef(null);
+  const inputRef = useRef(null);
+
+  // Close on outside click
+  useEffect(() => {
+    const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setFocused(false); };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  // Keyboard shortcut: Cmd/Ctrl+K to focus
+  useEffect(() => {
+    const handler = (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") { e.preventDefault(); inputRef.current?.focus(); setFocused(true); }
+      if (e.key === "Escape") { setFocused(false); setQuery(""); }
+    };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, []);
+
+  const q = query.toLowerCase().trim();
+  const results = useMemo(() => {
+    if (!q) return [];
+    const r = [];
+    const MAX_PER = 4;
+
+    // Properties
+    const props = PROPERTIES.filter(p => p.name.toLowerCase().includes(q) || p.address.toLowerCase().includes(q) || p.type.toLowerCase().includes(q));
+    props.slice(0, MAX_PER).forEach(p => r.push({ type: "property", id: p.id, title: p.name, sub: p.address, icon: Building2, color: p.color, image: p.image, data: p }));
+
+    // Tenants
+    const tenants = TENANTS.filter(t => t.name.toLowerCase().includes(q) || (t.email && t.email.toLowerCase().includes(q)) || (t.phone && t.phone.includes(q)));
+    tenants.slice(0, MAX_PER).forEach(t => {
+      const prop = PROPERTIES.find(p => p.id === t.propertyId);
+      r.push({ type: "tenant", id: t.id, title: t.name, sub: `${prop?.name || ""} · ${t.unit}`, icon: User, color: "#3b82f6", data: t });
+    });
+
+    // Deals (Flips)
+    const deals = FLIPS.filter(f => f.name.toLowerCase().includes(q) || f.address.toLowerCase().includes(q) || f.stage.toLowerCase().includes(q));
+    deals.slice(0, MAX_PER).forEach(f => r.push({ type: "deal", id: f.id, title: f.name, sub: `${f.stage} · ${f.address.split(",")[1]?.trim() || f.address}`, icon: Hammer, color: f.color, image: f.image, data: f }));
+
+    // Transactions
+    const txs = TRANSACTIONS.filter(t => t.description.toLowerCase().includes(q) || t.property.toLowerCase().includes(q) || t.category.toLowerCase().includes(q) || (t.payee && t.payee.toLowerCase().includes(q)));
+    txs.slice(0, MAX_PER).forEach(t => r.push({ type: "transaction", id: t.id, title: t.description, sub: `${t.property} · ${t.date} · ${fmt(Math.abs(t.amount))}`, icon: ArrowUpDown, color: t.type === "income" ? "#10b981" : "#ef4444", data: t }));
+
+    // Contractors
+    const cons = CONTRACTORS.filter(c => c.name.toLowerCase().includes(q) || c.trade.toLowerCase().includes(q) || (c.email && c.email.toLowerCase().includes(q)));
+    cons.slice(0, MAX_PER).forEach(c => r.push({ type: "contractor", id: c.id, title: c.name, sub: c.trade, icon: UserCheck, color: "#8b5cf6", data: c }));
+
+    // Rental Notes
+    PROPERTIES.forEach(p => {
+      (RENTAL_NOTES[p.id] || []).forEach(n => {
+        if (n.text.toLowerCase().includes(q)) r.push({ type: "rental-note", id: n.id, title: n.text.length > 60 ? n.text.slice(0, 60) + "…" : n.text, sub: `${p.name} · ${n.date}`, icon: MessageSquare, color: "#f59e0b", data: { ...n, propId: p.id } });
+      });
+    });
+
+    // Flip Notes
+    FLIPS.forEach(f => {
+      (FLIP_NOTES[f.id] || []).forEach(n => {
+        if (n.text.toLowerCase().includes(q)) r.push({ type: "flip-note", id: n.id, title: n.text.length > 60 ? n.text.slice(0, 60) + "…" : n.text, sub: `${f.name} · ${n.date}`, icon: MessageSquare, color: "#f59e0b", data: { ...n, flipId: f.id } });
+      });
+    });
+
+    // Flip Expenses
+    FLIP_EXPENSES.filter(e => e.description.toLowerCase().includes(q) || (e.vendor && e.vendor.toLowerCase().includes(q)))
+      .slice(0, MAX_PER).forEach(e => {
+        const flip = FLIPS.find(f => f.id === e.flipId);
+        r.push({ type: "flip-expense", id: e.id, title: e.description, sub: `${flip?.name || "Deal"} · ${e.vendor} · ${fmt(e.amount)}`, icon: Receipt, color: "#ef4444", data: e });
+      });
+
+    return r.slice(0, 12); // Cap total results
+  }, [q]);
+
+  // Group results by type for display
+  const grouped = useMemo(() => {
+    const map = new Map();
+    const labels = { property: "Properties", tenant: "Tenants", deal: "Deals", transaction: "Transactions", contractor: "Contractors", "rental-note": "Rental Notes", "flip-note": "Flip Notes", "flip-expense": "Flip Expenses" };
+    results.forEach(r => {
+      const label = labels[r.type] || r.type;
+      if (!map.has(label)) map.set(label, []);
+      map.get(label).push(r);
+    });
+    return map;
+  }, [results]);
+
+  const handleSelect = (item) => {
+    setQuery("");
+    setFocused(false);
+    if (onNavigate) onNavigate(item);
+  };
+
+  const show = focused && q.length > 0;
+
+  return (
+    <div ref={ref} style={{ position: "relative" }}>
+      <div style={{ background: focused ? "#fff" : "#f1f5f9", borderRadius: 10, padding: "8px 14px", display: "flex", alignItems: "center", gap: 8, border: focused ? "1px solid #e2e8f0" : "1px solid transparent", boxShadow: focused ? "0 4px 16px rgba(0,0,0,0.08)" : "none", transition: "all 0.15s" }}>
+        <Search size={14} color="#94a3b8" />
+        <input ref={inputRef} value={query} onChange={e => setQuery(e.target.value)} onFocus={() => setFocused(true)} placeholder="Search everything…" style={{ border: "none", background: "transparent", fontSize: 14, color: "#0f172a", outline: "none", width: 200 }} />
+        {!query && <kbd style={{ fontSize: 10, color: "#94a3b8", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 4, padding: "1px 5px", fontFamily: "inherit" }}>⌘K</kbd>}
+        {query && <button onClick={() => { setQuery(""); inputRef.current?.focus(); }} style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8", padding: 0, display: "flex" }}><X size={14} /></button>}
+      </div>
+
+      {show && (
+        <div style={{ position: "absolute", top: "calc(100% + 6px)", right: 0, width: 420, background: "#fff", borderRadius: 14, boxShadow: "0 12px 40px rgba(0,0,0,0.15)", border: "1px solid #e2e8f0", maxHeight: 440, overflowY: "auto", zIndex: 999 }}>
+          {results.length === 0 ? (
+            <div style={{ padding: "28px 20px", textAlign: "center" }}>
+              <Search size={28} color="#cbd5e1" style={{ marginBottom: 8 }} />
+              <p style={{ color: "#94a3b8", fontSize: 13 }}>No results for "{query}"</p>
+              <p style={{ color: "#cbd5e1", fontSize: 12, marginTop: 4 }}>Try searching by name, address, category, or description</p>
+            </div>
+          ) : (
+            <div style={{ padding: "6px 0" }}>
+              {[...grouped.entries()].map(([label, items]) => (
+                <div key={label}>
+                  <p style={{ padding: "8px 16px 4px", fontSize: 10, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.06em" }}>{label}</p>
+                  {items.map(item => (
+                    <div key={item.type + "-" + item.id} onClick={() => handleSelect(item)}
+                      style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 16px", cursor: "pointer", transition: "background 0.1s" }}
+                      onMouseEnter={e => e.currentTarget.style.background = "#f8fafc"}
+                      onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                      <div style={{ width: 30, height: 30, borderRadius: 8, background: (item.color || "#64748b") + "18", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                        {item.image ? <span style={{ fontSize: 10, fontWeight: 700, color: item.color }}>{item.image}</span> : <item.icon size={14} color={item.color || "#64748b"} />}
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={{ fontSize: 13, fontWeight: 600, color: "#0f172a", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.title}</p>
+                        <p style={{ fontSize: 11, color: "#94a3b8", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.sub}</p>
+                      </div>
+                      <ChevronRight size={14} color="#cbd5e1" />
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------
 // MAIN APP
 // ---------------------------------------------
 function AppShell() {
@@ -7216,10 +7362,20 @@ function AppShell() {
             </span>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-            <div style={{ background: "#f1f5f9", borderRadius: 10, padding: "8px 14px", display: "flex", alignItems: "center", gap: 8 }}>
-              <Search size={14} color="#94a3b8" />
-              <input placeholder="Quick search..." style={{ border: "none", background: "transparent", fontSize: 14, color: "#475569", outline: "none", width: 160 }} />
-            </div>
+            <GlobalSearch onNavigate={(item) => {
+              if (item.type === "property") { handlePropertySelect(item.data); }
+              else if (item.type === "tenant") {
+                const prop = PROPERTIES.find(p => p.id === item.data.propertyId);
+                if (prop) { setSelectedProperty(prop); setPropDetailTab("tenants"); setPropDetailTenantHighlight(item.data.id); setActiveView("propertyDetail"); }
+                else { setHighlightTenantId(item.data.id); setActiveView("tenants"); }
+              }
+              else if (item.type === "deal") { handleFlipSelect(item.data, null, "flips"); }
+              else if (item.type === "transaction") { setHighlightTxId(item.data.id); setActiveView("transactions"); }
+              else if (item.type === "contractor") { setSelectedContractor(item.data); setActiveView("contractorDetail"); }
+              else if (item.type === "rental-note") { setHighlightNoteId(item.data.id); setActiveView("notes"); }
+              else if (item.type === "flip-note") { setHighlightFlipNoteId(item.data.id); setActiveView("flipnotes"); }
+              else if (item.type === "flip-expense") { setHighlightExpId(item.data.id); setActiveView("flipexpenses"); }
+            }} />
             <div style={{ position: "relative", cursor: "pointer" }}>
               <Bell size={20} color="#64748b" />
               <div style={{ position: "absolute", top: -3, right: -3, width: 8, height: 8, borderRadius: "50%", background: "#ef4444", border: "2px solid #fff" }} />
