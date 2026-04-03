@@ -22,7 +22,7 @@ import {
   getFlips, addFlip, updateFlip,
   getFlipExpenses, addFlipExpense, getContractors, addContractor, CONTRACTORS,
   getFlipMilestones, updateFlipMilestones,
-  getTenants, getMileageTrips, addMileageTrip,
+  getTenants, getMileageTrips, addMileageTrip, RENTAL_NOTES,
 } from "./api.js";
 import { AuthProvider, AuthScreen, useAuth } from "./auth.jsx";
 import { Settings, OnboardingWizard } from "./settings.jsx";
@@ -1121,10 +1121,12 @@ function PropertyDetail({ property, onBack, onEditProperty, onGoToTransactions, 
   const txCategories = [...new Set(propTransactions.map(t => t.category))].sort();
   const filteredTxTotal = filteredTx.reduce((s, t) => s + (t.type === "income" ? t.amount : -Math.abs(t.amount)), 0);
 
+  const propNotes = RENTAL_NOTES[property.id] || [];
   const tabs = [
     { id: "overview", label: "Overview", icon: Home },
     { id: "transactions", label: "Transactions", icon: Receipt, count: propTransactions.length },
     { id: "tenants", label: "Tenants", icon: Users, count: propTenants.filter(t => t.status !== "vacant").length },
+    { id: "notes", label: "Notes", icon: MessageSquare, count: propNotes.length },
   ];
 
   return (
@@ -1428,6 +1430,10 @@ function PropertyDetail({ property, onBack, onEditProperty, onGoToTransactions, 
             </div>
           )}
         </div>
+      )}
+
+      {activeTab === "notes" && (
+        <RentalNotes preFilterPropId={property.id} />
       )}
     </div>
   );
@@ -6068,6 +6074,214 @@ function DealAnalyzer() {
 }
 
 // ---------------------------------------------
+// RENTAL NOTES
+// ---------------------------------------------
+function RentalNotes({ preFilterPropId, onBack }) {
+  const [propFilter, setPropFilter] = useState(preFilterPropId ? String(preFilterPropId) : "all");
+  const [search, setSearch] = useState("");
+  const [, rerender] = useState(0);
+  const [showAdd, setShowAdd] = useState(false);
+  const [noteForm, setNoteForm] = useState({ propId: "", text: "" });
+  const [editId, setEditId] = useState(null);
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
+
+  const _RN = RENTAL_NOTES;
+
+  // Build flat list of all notes across properties
+  const allNotes = useMemo(() => {
+    const list = [];
+    PROPERTIES.forEach(p => {
+      (_RN[p.id] || []).forEach(n => {
+        list.push({ ...n, propId: p.id, propName: p.name, propColor: p.color, propImage: p.image });
+      });
+    });
+    return list.sort((a, b) => b.date.localeCompare(a.date));
+  }, []);
+
+  const filtered = allNotes.filter(n => {
+    if (propFilter !== "all" && n.propId !== parseInt(propFilter)) return false;
+    if (search && !n.text.toLowerCase().includes(search.toLowerCase())) return false;
+    return true;
+  });
+
+  const clearFilters = () => { setPropFilter(preFilterPropId ? String(preFilterPropId) : "all"); setSearch(""); };
+  const hasFilters = (preFilterPropId ? propFilter !== String(preFilterPropId) : propFilter !== "all") || search;
+
+  const handleSave = () => {
+    if (!noteForm.text.trim() || !noteForm.propId) return;
+    const pId = parseInt(noteForm.propId);
+    if (!_RN[pId]) _RN[pId] = [];
+    if (editId !== null) {
+      const idx = _RN[pId].findIndex(n => n.id === editId);
+      if (idx !== -1) _RN[pId][idx] = { ..._RN[pId][idx], text: noteForm.text.trim() };
+    } else {
+      _RN[pId].unshift({ id: newId(), date: new Date().toISOString().split("T")[0], text: noteForm.text.trim() });
+    }
+    setNoteForm({ propId: "", text: "" });
+    setEditId(null);
+    setShowAdd(false);
+    rerender(n => n + 1);
+  };
+
+  const handleDelete = (note) => {
+    if (!_RN[note.propId]) return;
+    _RN[note.propId] = _RN[note.propId].filter(n => n.id !== note.id);
+    setDeleteConfirm(null);
+    rerender(n => n + 1);
+  };
+
+  const openEdit = (note) => {
+    setEditId(note.id);
+    setNoteForm({ propId: String(note.propId), text: note.text });
+    setShowAdd(true);
+  };
+
+  // Group by date
+  const grouped = {};
+  filtered.forEach(n => {
+    const label = new Date(n.date).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" });
+    if (!grouped[n.date]) grouped[n.date] = { label, notes: [] };
+    grouped[n.date].notes.push(n);
+  });
+
+  const totalNotes = allNotes.length;
+  const propsWithNotes = new Set(allNotes.map(n => n.propId)).size;
+
+  return (
+    <div>
+      {onBack && (
+        <button onClick={onBack} style={{ display: "flex", alignItems: "center", gap: 6, color: "#3b82f6", fontWeight: 600, fontSize: 14, background: "none", border: "none", cursor: "pointer", marginBottom: 14 }}>
+          Back to Property
+        </button>
+      )}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
+        <div>
+          <h1 style={{ color: "#0f172a", fontSize: 26, fontWeight: 700, marginBottom: 4 }}>Property Notes</h1>
+          <p style={{ color: "#64748b", fontSize: 15 }}>Activity log and notes across all properties</p>
+        </div>
+        {!preFilterPropId && (
+          <select value={propFilter} onChange={e => setPropFilter(e.target.value)} style={{ ...iS, width: 200, fontSize: 14, padding: "9px 14px", fontWeight: 600 }}>
+            <option value="all">All Properties</option>
+            {PROPERTIES.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+          </select>
+        )}
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, marginBottom: 24 }}>
+        {[
+          { label: "Total Notes", value: totalNotes, sub: "Across all properties", color: "#3b82f6", icon: MessageSquare },
+          { label: "Properties with Notes", value: propsWithNotes, sub: `of ${PROPERTIES.length} properties`, color: "#10b981", icon: Building2 },
+          { label: "Latest Entry", value: allNotes[0] ? new Date(allNotes[0].date).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "—", sub: allNotes[0]?.propName || "", color: "#8b5cf6", icon: Calendar },
+        ].map((m, i) => (
+          <StatCard key={i} icon={m.icon} label={m.label} value={m.value} sub={m.sub} color={m.color} />
+        ))}
+      </div>
+
+      {/* Filter bar */}
+      <div style={{ display: "flex", gap: 10, marginBottom: hasFilters ? 10 : 20, flexWrap: "wrap", alignItems: "center" }}>
+        <div style={{ position: "relative", flex: "1 1 200px", minWidth: 180 }}>
+          <Search size={15} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "#94a3b8" }} />
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search notes..."
+            style={{ width: "100%", paddingLeft: 36, paddingRight: 12, paddingTop: 9, paddingBottom: 9, border: "1px solid #e2e8f0", borderRadius: 10, fontSize: 13, color: "#0f172a", background: "#fff", outline: "none", boxSizing: "border-box" }} />
+        </div>
+        {hasFilters && (
+          <button onClick={clearFilters} style={{ background: "none", border: "none", color: "#94a3b8", fontSize: 12, cursor: "pointer", textDecoration: "underline", padding: 0 }}>Clear filters</button>
+        )}
+        <button onClick={() => { setEditId(null); setNoteForm({ propId: preFilterPropId ? String(preFilterPropId) : (PROPERTIES[0] ? String(PROPERTIES[0].id) : ""), text: "" }); setShowAdd(true); }} style={{ marginLeft: "auto", background: "#3b82f6", color: "#fff", border: "none", borderRadius: 10, padding: "9px 16px", fontWeight: 600, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
+          <Plus size={14} /> Add Note
+        </button>
+      </div>
+
+      {/* Notes grouped by date */}
+      {Object.keys(grouped).length === 0 ? (
+        <div style={{ background: "#fff", borderRadius: 16, padding: 48, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9", textAlign: "center", color: "#94a3b8" }}>
+          <MessageSquare size={32} style={{ margin: "0 auto 12px", display: "block" }} />
+          {hasFilters ? (
+            <>
+              <p style={{ fontWeight: 600, marginBottom: 4 }}>No notes match your filters</p>
+              <button onClick={clearFilters} style={{ background: "none", border: "none", color: "#3b82f6", fontSize: 13, cursor: "pointer", textDecoration: "underline", padding: 0 }}>Clear filters</button>
+            </>
+          ) : (
+            <>
+              <p style={{ fontWeight: 600, marginBottom: 4 }}>No notes yet</p>
+              <p style={{ fontSize: 13 }}>Click "Add Note" to start documenting your properties.</p>
+            </>
+          )}
+        </div>
+      ) : Object.entries(grouped).map(([dateKey, { label, notes }]) => (
+        <div key={dateKey} style={{ marginBottom: 20 }}>
+          <p style={{ fontSize: 12, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 10 }}>{label}</p>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {notes.map(n => (
+              <div key={n.id} style={{ background: "#fff", borderRadius: 16, padding: 18, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <div style={{ width: 26, height: 26, borderRadius: 7, background: n.propColor + "20", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, fontWeight: 700, color: n.propColor }}>{n.propImage}</div>
+                    <span style={{ fontSize: 13, fontWeight: 600, color: "#0f172a" }}>{n.propName}</span>
+                  </div>
+                  <div style={{ display: "flex", gap: 4 }}>
+                    <button onClick={() => openEdit(n)} style={{ background: "#f1f5f9", border: "none", borderRadius: 7, padding: "4px 7px", cursor: "pointer", color: "#475569", display: "flex", alignItems: "center" }} title="Edit"><Pencil size={12} /></button>
+                    <button onClick={() => setDeleteConfirm(n)} style={{ background: "#fee2e2", border: "none", borderRadius: 7, padding: "4px 7px", cursor: "pointer", color: "#ef4444", display: "flex", alignItems: "center" }} title="Delete"><Trash2 size={12} /></button>
+                  </div>
+                </div>
+                <p style={{ fontSize: 13, color: "#475569", lineHeight: 1.6 }}>{n.text}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+
+      {/* Add/Edit Note Modal */}
+      {showAdd && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
+          <div style={{ background: "#fff", borderRadius: 20, padding: 32, width: 500, boxShadow: "0 20px 60px rgba(0,0,0,0.18)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 20 }}>
+              <h2 style={{ color: "#0f172a", fontSize: 19, fontWeight: 700 }}>{editId ? "Edit Note" : "Add Note"}</h2>
+              <button onClick={() => { setShowAdd(false); setEditId(null); }} style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8" }}><X size={20} /></button>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              <div>
+                <p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Property *</p>
+                <select style={iS} value={noteForm.propId} onChange={e => setNoteForm(f => ({ ...f, propId: e.target.value }))} disabled={!!editId || !!preFilterPropId}>
+                  <option value="">Select property...</option>
+                  {PROPERTIES.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                </select>
+              </div>
+              <div>
+                <p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Note *</p>
+                <textarea style={{ ...iS, minHeight: 120, resize: "vertical", fontFamily: "inherit" }} placeholder="Maintenance updates, tenant conversations, inspection notes, reminders..." value={noteForm.text} onChange={e => setNoteForm(f => ({ ...f, text: e.target.value }))} />
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
+              <button onClick={handleSave} style={{ flex: 1, padding: "11px", borderRadius: 10, border: "none", background: "#3b82f6", color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer", opacity: (!noteForm.text.trim() || !noteForm.propId) ? 0.5 : 1 }}>{editId ? "Save Changes" : "Add Note"}</button>
+              <button onClick={() => { setShowAdd(false); setEditId(null); }} style={{ padding: "11px 18px", borderRadius: 10, border: "1.5px solid #e2e8f0", background: "#fff", fontWeight: 600, fontSize: 14, cursor: "pointer", color: "#64748b" }}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirm */}
+      {deleteConfirm && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
+          <div style={{ background: "#fff", borderRadius: 20, width: 420, padding: 28 }}>
+            <h2 style={{ color: "#0f172a", fontSize: 18, fontWeight: 700, marginBottom: 14 }}>Delete Note</h2>
+            <p style={{ color: "#475569", fontSize: 14, marginBottom: 8 }}>Are you sure you want to delete this note?</p>
+            <div style={{ background: "#f8fafc", borderRadius: 10, padding: 14, marginBottom: 18 }}>
+              <p style={{ fontSize: 13, color: "#475569", lineHeight: 1.5 }}>{deleteConfirm.text.substring(0, 120)}{deleteConfirm.text.length > 120 ? "..." : ""}</p>
+            </div>
+            <p style={{ color: "#94a3b8", fontSize: 12, marginBottom: 18 }}>This action cannot be undone.</p>
+            <div style={{ display: "flex", gap: 10 }}>
+              <button onClick={() => setDeleteConfirm(null)} style={{ flex: 1, padding: "12px", border: "1px solid #e2e8f0", borderRadius: 10, background: "#fff", color: "#475569", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
+              <button onClick={() => handleDelete(deleteConfirm)} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "#ef4444", color: "#fff", fontWeight: 700, cursor: "pointer" }}>Delete</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------
 // MAIN APP
 // ---------------------------------------------
 function AppShell() {
@@ -6108,6 +6322,7 @@ function AppShell() {
     { id: "rentroll",     label: "Rent Roll",     icon: Users           },
     { id: "transactions", label: "Transactions",  icon: ArrowUpDown     },
     { id: "analytics",    label: "Analytics",     icon: BarChart3       },
+    { id: "notes",        label: "Notes",         icon: MessageSquare   },
     { id: "reports",      label: "Reports",       icon: FileText        },
   ];
 
@@ -6247,6 +6462,7 @@ function AppShell() {
           {activeView === "propertyDetail" && selectedProperty && <PropertyDetail property={selectedProperty} onBack={() => setActiveView("properties")} onEditProperty={(p) => { setEditPropertyId(p.id); setActiveView("properties"); }} onGoToTransactions={() => setActiveView("transactions")} onNavigateToTransaction={(txId) => { if (txId) { setHighlightTxId(txId); setNavSource("propertyDetail"); } setActiveView("transactions"); }} onNavigateToTenant={(tenantId) => { setHighlightTenantId(tenantId); setNavSource("propertyDetail"); setActiveView("rentroll"); }} />}
           {activeView === "transactions" && <Transactions highlightTxId={highlightTxId} backLabel={navSource === "propertyDetail" ? "Back to Property" : "Back to Dashboard"} onBack={navSource === "dashboard" ? () => { setActiveView("dashboard"); setHighlightTxId(null); setNavSource(null); } : navSource === "propertyDetail" ? () => { setActiveView("propertyDetail"); setHighlightTxId(null); setNavSource(null); } : null} onClearHighlight={() => setHighlightTxId(null)} />}
           {activeView === "analytics" && <Analytics />}
+          {activeView === "notes" && <RentalNotes />}
           {activeView === "reports" && <Reports />}
           {activeView === "flipdashboard"   && <FlipDashboard onSelect={handleFlipSelect} />}
           {activeView === "flips"           && <FlipPipeline onSelect={handleFlipSelect} />}

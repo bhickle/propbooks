@@ -372,6 +372,27 @@ export function updateFlipMilestones(flipId, milestones) {
 // Direct access to milestone data for cross-deal views
 export const FLIP_MILESTONES_DATA = _flipMilestones;
 
+// Rental notes — keyed by propertyId
+export const RENTAL_NOTES = {
+  1: [
+    { id: 2001, date: "2026-03-30", text: "Tenant in Unit B reported slow drain in kitchen. Scheduled plumber for April 2nd." },
+    { id: 2002, date: "2026-03-12", text: "Annual property inspection complete. Minor drywall crack in Unit A hallway — cosmetic only, will patch at next turnover." },
+    { id: 2003, date: "2026-02-20", text: "Renewed insurance policy with Liberty Mutual. Premium increased 4% — still competitive." },
+  ],
+  2: [
+    { id: 2004, date: "2026-03-25", text: "Tenant asked about installing a Ring doorbell. Approved as long as they restore on move-out." },
+    { id: 2005, date: "2026-02-01", text: "Lease renewal signed through Feb 2027. Rent bumped from $2,800 to $2,950." },
+  ],
+  3: [
+    { id: 2006, date: "2026-03-18", text: "HOA approved new landscaping plan for common areas. Assessment may increase $15/mo starting Q3." },
+  ],
+  4: [
+    { id: 2007, date: "2026-03-22", text: "Unit 3 still vacant. Dropped listing price to $1,800/mo and refreshed photos. Two showings this week." },
+    { id: 2008, date: "2026-03-05", text: "Replaced garbage disposal in Unit 1. Parts + labor = $285, logged as maintenance expense." },
+  ],
+  5: [],
+};
+
 // Flip notes — keyed by flipId
 export const FLIP_NOTES = {
   1: [
