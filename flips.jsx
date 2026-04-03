@@ -1165,8 +1165,8 @@ export function FlipContractors({ onSelectContractor }) {
     return true;
   });
 
-  const totalBids = _CON.reduce((s, c) => s + (c.bids || []).reduce((bs, b) => bs + (b.status === "accepted" ? b.amount : 0), 0), 0);
-  const totalPaid = _CON.reduce((s, c) => s + (c.payments || []).reduce((ps, p) => ps + p.amount, 0), 0);
+  const totalBids = filtered.reduce((s, c) => s + (c.bids || []).reduce((bs, b) => bs + (b.status === "accepted" ? b.amount : 0), 0), 0);
+  const totalPaid = filtered.reduce((s, c) => s + (c.payments || []).reduce((ps, p) => ps + p.amount, 0), 0);
   const outstanding = totalBids - totalPaid;
 
   const handleAdd = () => {
@@ -1199,10 +1199,10 @@ export function FlipContractors({ onSelectContractor }) {
         } />
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 24 }}>
-        <StatCard icon={Users} label="Total Contractors" value={_CON.length} sub={`${_CON.filter(c => (c.dealIds || []).length > 0).length} with active deals`} color="#f59e0b" tip="Total contractors in the registry." />
-        <StatCard icon={DollarSign} label="Accepted Bids" value={fmt(totalBids)} sub="Across all deals" color="#3b82f6" tip="Sum of all accepted bid amounts across all deals." />
-        <StatCard icon={CheckCircle} label="Total Paid" value={fmt(totalPaid)} sub="Disbursed to date" color="#10b981" tip="Total payments disbursed to contractors to date." />
-        <StatCard icon={AlertCircle} label="Outstanding" value={fmt(outstanding)} sub="Remaining balance" color="#f59e0b" tip="Accepted Bids − Total Paid. Amount still owed to contractors." />
+        <StatCard icon={Users} label="Contractors" value={filtered.length} sub={filterFlip !== "all" ? `of ${_CON.length} total` : `${_CON.filter(c => (c.dealIds || []).length > 0).length} with active deals`} color="#f59e0b" tip="Number of contractors matching the current filters." />
+        <StatCard icon={DollarSign} label="Accepted Bids" value={fmt(totalBids)} sub={`${filtered.length} contractor${filtered.length !== 1 ? "s" : ""}`} color="#3b82f6" tip="Sum of all accepted bid amounts for contractors in the current view." />
+        <StatCard icon={CheckCircle} label="Total Paid" value={fmt(totalPaid)} sub="Disbursed to date" color="#10b981" tip="Total payments disbursed to contractors in the current view." />
+        <StatCard icon={AlertCircle} label="Outstanding" value={fmt(outstanding)} sub="Remaining balance" color={outstanding > 0 ? "#f59e0b" : "#94a3b8"} tip="Accepted Bids − Total Paid. Amount still owed to contractors in the current view." />
       </div>
 
       <div style={{ display: "flex", gap: 10, marginBottom: 18 }}>
