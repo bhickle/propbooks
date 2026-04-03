@@ -2367,7 +2367,7 @@ export function FlipAnalytics() {
 export function FlipMilestones({ highlightMilestoneKey, onBack, onClearHighlight }) {
   const [filterFlip, setFilterFlip] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
-  const [, rerender] = useState(0);
+  const [renderKey, rerender] = useState(0);
   const [showAdd, setShowAdd] = useState(false);
   const [msForm, setMsForm] = useState({ flipId: "", label: "", targetDate: "" });
   const [editItem, setEditItem] = useState(null); // { flipId, idx }
@@ -2397,7 +2397,7 @@ export function FlipMilestones({ highlightMilestoneKey, onBack, onClearHighlight
     const labels = new Set(DEFAULT_MILESTONES);
     Object.values(_FM).forEach(arr => arr.forEach(m => { if (m.label) labels.add(m.label); }));
     return [...labels].sort();
-  }, []);
+  }, [renderKey]);
 
   // Build flat list of all milestones across deals
   const allMilestones = useMemo(() => {
@@ -2409,7 +2409,7 @@ export function FlipMilestones({ highlightMilestoneKey, onBack, onClearHighlight
       });
     });
     return list;
-  }, []);
+  }, [renderKey]);
 
   const filtered = allMilestones.filter(m => {
     if (filterFlip !== "all" && m.flipId !== parseInt(filterFlip)) return false;
@@ -2644,14 +2644,14 @@ export function FlipMilestones({ highlightMilestoneKey, onBack, onClearHighlight
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               <div>
-                <p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Deal</p>
+                <p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Deal *</p>
                 <select value={msForm.flipId} onChange={e => setMsForm(f => ({ ...f, flipId: e.target.value }))} style={iS}>
                   <option value="">Select deal...</option>
                   {_FLIPS.filter(f => f.stage !== "Sold").map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
                 </select>
               </div>
               <div style={{ position: "relative" }}>
-                <p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Milestone Label</p>
+                <p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Milestone Label *</p>
                 <input value={msForm.label} style={iS} placeholder="Start typing to search or add new..."
                   onChange={e => { setMsForm(f => ({ ...f, label: e.target.value })); setLabelFocus(true); }}
                   onFocus={() => setLabelFocus(true)} onBlur={() => setTimeout(() => setLabelFocus(false), 150)} />

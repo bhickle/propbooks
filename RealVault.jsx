@@ -1216,7 +1216,7 @@ function Properties({ onSelect, editPropertyId, onClearEditId }) {
           {/* Basic Info */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
             {[
-              { label: "Property Name", key: "name", type: "text", placeholder: "e.g. Maple Ridge Duplex", full: true },
+              { label: "Property Name *", key: "name", type: "text", placeholder: "e.g. Maple Ridge Duplex", full: true },
               { label: "Address", key: "address", type: "text", placeholder: "Street, City, State ZIP", full: true },
               { label: "Purchase Price ($)", key: "purchasePrice", type: "number", placeholder: "0" },
               { label: "Current Value ($)", key: "currentValue", type: "number", placeholder: "0" },
@@ -2073,7 +2073,7 @@ function Transactions({ highlightTxId, onBack, onClearHighlight, backLabel }) {
                 <input type="date" value={form.date} onChange={sf("date")} style={iS} />
               </div>
               <div>
-                <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Amount ($)</label>
+                <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Amount ($) *</label>
                 <input type="number" placeholder="0.00" value={form.amount} onChange={sf("amount")} style={iS} />
               </div>
 
@@ -2144,7 +2144,7 @@ function Transactions({ highlightTxId, onBack, onClearHighlight, backLabel }) {
               </div>
 
               <div style={{ gridColumn: "1 / -1" }}>
-                <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Description</label>
+                <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Description *</label>
                 <input type="text" placeholder="Brief description" value={form.description} onChange={sf("description")} style={iS} />
               </div>
               <div style={{ gridColumn: "1 / -1" }}>
@@ -3475,34 +3475,36 @@ function Reports() {
                       </div>
                     </div>
 
-                    {/* NOI + Management Fee + Distribution breakdown */}
+                    {/* Income → Operating Expenses → NOI → Debt Service → Owner Distribution */}
                     {(() => {
                       const mgmtTx = expenses.filter(t => ["Property Management", "Management Fee", "Leasing Fee"].includes(t.category));
                       const mgmtFee = mgmtTx.reduce((s, t) => s + Math.abs(t.amount), 0);
-                      const mortgageTx = expenses.filter(t => ["Mortgage", "Mortgage Payment"].includes(t.category));
-                      const mortgageAmt = mortgageTx.reduce((s, t) => s + Math.abs(t.amount), 0);
-                      const ownerDist = net - mgmtFee;
+                      const debtTx = expenses.filter(t => ["Mortgage", "Mortgage Payment"].includes(t.category));
+                      const debtService = debtTx.reduce((s, t) => s + Math.abs(t.amount), 0);
+                      const opEx = totalOut - debtService;
+                      const noi = totalIn - opEx;
+                      const cashFlow = noi - debtService;
                       return (
                         <div style={{ marginTop: 20 }}>
-                          <div style={{ background: net >= 0 ? "#f0fdf4" : "#fef2f2", borderRadius: "12px 12px 0 0", padding: "14px 20px", border: `1px solid ${net >= 0 ? "#bbf7d0" : "#fecaca"}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                          <div style={{ background: noi >= 0 ? "#f0fdf4" : "#fef2f2", borderRadius: "12px 12px 0 0", padding: "14px 20px", border: `1px solid ${noi >= 0 ? "#bbf7d0" : "#fecaca"}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                             <p style={{ fontWeight: 700, fontSize: 14, color: "#0f172a" }}>Net Operating Income — {MONTH_NAMES[ownerMonth]} {taxYear}</p>
-                            <p style={{ fontWeight: 800, fontSize: 20, color: net >= 0 ? "#15803d" : "#b91c1c" }}>{net >= 0 ? "+" : "-"}{fmt(Math.abs(net))}</p>
+                            <p style={{ fontWeight: 800, fontSize: 20, color: noi >= 0 ? "#15803d" : "#b91c1c" }}>{noi >= 0 ? "+" : "-"}{fmt(Math.abs(noi))}</p>
                           </div>
                           <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderTop: "none", padding: "14px 20px" }}>
                             <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: "1px solid #f1f5f9" }}>
-                              <span style={{ fontSize: 13, color: "#475569" }}>Less: Management Fee{mgmtFee === 0 ? " (none logged)" : ""}</span>
-                              <span style={{ fontSize: 13, fontWeight: 600, color: "#b91c1c" }}>{mgmtFee > 0 ? `-${fmt(mgmtFee)}` : "$0"}</span>
+                              <span style={{ fontSize: 13, color: "#475569" }}>Operating Expenses (incl. mgmt{mgmtFee > 0 ? ` ${fmt(mgmtFee)}` : ""})</span>
+                              <span style={{ fontSize: 13, fontWeight: 600, color: "#b91c1c" }}>-{fmt(opEx)}</span>
                             </div>
-                            {mortgageAmt > 0 && (
+                            {debtService > 0 && (
                               <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: "1px solid #f1f5f9" }}>
-                                <span style={{ fontSize: 13, color: "#475569" }}>Less: Mortgage Payment (P&I)</span>
-                                <span style={{ fontSize: 13, fontWeight: 600, color: "#b91c1c" }}>-{fmt(mortgageAmt)}</span>
+                                <span style={{ fontSize: 13, color: "#475569" }}>Less: Debt Service (P&I)</span>
+                                <span style={{ fontSize: 13, fontWeight: 600, color: "#b91c1c" }}>-{fmt(debtService)}</span>
                               </div>
                             )}
                           </div>
                           <div style={{ background: "#eff6ff", borderRadius: "0 0 12px 12px", padding: "14px 20px", border: "1px solid #bfdbfe", borderTop: "2px solid #3b82f6", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                            <p style={{ fontWeight: 700, fontSize: 14, color: "#1e40af" }}>Owner Distribution</p>
-                            <p style={{ fontWeight: 800, fontSize: 20, color: ownerDist - mortgageAmt >= 0 ? "#1e40af" : "#b91c1c" }}>{fmt(ownerDist - mortgageAmt)}</p>
+                            <p style={{ fontWeight: 700, fontSize: 14, color: "#1e40af" }}>Owner Distribution (Cash Flow)</p>
+                            <p style={{ fontWeight: 800, fontSize: 20, color: cashFlow >= 0 ? "#1e40af" : "#b91c1c" }}>{cashFlow >= 0 ? "+" : "-"}{fmt(Math.abs(cashFlow))}</p>
                           </div>
                         </div>
                       );
@@ -4292,7 +4294,7 @@ function FlipDetail({ flip, onBack, backLabel, allFlips, setAllFlips, onNavigate
   const sfM = k => e => setMilestoneForm(f => ({ ...f, [k]: e.target.value }));
   const [editingMilestoneId, setEditingMilestoneId] = useState(null); // index when editing
   const [completingMsIdx, setCompletingMsIdx] = useState(null);
-  const [msCompletionDate, setMsCompletionDate] = useState(today);
+  const [msCompletionDate, setMsCompletionDate] = useState(new Date().toISOString().split("T")[0]);
   const [showAddRehab, setShowAddRehab] = useState(false);
   const emptyRehab = { category: "", budgeted: "", spent: "0", status: "pending", photos: [] };
   const [rehabForm, setRehabForm] = useState(emptyRehab);
@@ -5118,7 +5120,7 @@ function FlipDetail({ flip, onBack, backLabel, allFlips, setAllFlips, onNavigate
                   <input type="date" value={expForm.date} onChange={sfE("date")} style={iS} />
                 </div>
                 <div>
-                  <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Amount ($)</label>
+                  <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Amount ($) *</label>
                   <input type="number" placeholder="0.00" value={expForm.amount} onChange={sfE("amount")} style={iS} />
                 </div>
                 <div style={{ gridColumn: "1 / -1", position: "relative" }}>
@@ -6170,7 +6172,7 @@ function RentRoll({ onBack, highlightTenantId, onClearHighlight, prefillTenant, 
               </select>
             </div>
             <div style={{ gridColumn: "1 / -1" }}>
-              <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Tenant Name</label>
+              <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Tenant Name *</label>
               <input type="text" placeholder="Full name" value={form.name} onChange={sf("name")} style={iS} />
             </div>
             <div>
