@@ -112,7 +112,7 @@ const sectionS = { background: "#fff", borderRadius: 16, padding: 24, boxShadow:
 // ---------------------------------------------------------------------------
 // 1. FLIP DASHBOARD
 // ---------------------------------------------------------------------------
-export function FlipDashboard({ onSelect, onNavigateToNote }) {
+export function FlipDashboard({ onSelect, onNavigateToNote, onNavigateToExpense, onNavigateToMilestone }) {
   const [filterStage, setFilterStage] = useState("all");
 
   const allFlips = _FLIPS;
@@ -151,6 +151,7 @@ export function FlipDashboard({ onSelect, onNavigateToNote }) {
           const isSold = m.label.toLowerCase().includes("sold") || m.label.toLowerCase().includes("closed");
           items.push({
             flipId: f.id, flip: f, date: m.date, tab: "milestones",
+            milestoneKey: f.id + "-" + m.label, milestoneDone: m.done,
             text: `${shortName(f)} – ${m.label}`,
             icon: isSold ? Star : m.label.toLowerCase().includes("inspect") ? Flag : CheckCircle,
             color: isSold ? "#6b7280" : "#10b981",
@@ -164,7 +165,7 @@ export function FlipDashboard({ onSelect, onNavigateToNote }) {
       const exps = _FE.filter(e => e.flipId === f.id).slice(-3);
       exps.forEach(e => {
         items.push({
-          flipId: f.id, flip: f, date: e.date, tab: "expenses",
+          flipId: f.id, flip: f, date: e.date, tab: "expenses", expenseId: e.id,
           text: `${shortName(f)} – ${e.description || e.category}`,
           icon: Receipt, color: "#3b82f6",
         });
@@ -289,7 +290,7 @@ export function FlipDashboard({ onSelect, onNavigateToNote }) {
               <p style={{ color: "#94a3b8", fontSize: 12 }}>No activity yet. Complete milestones, log expenses, or add notes to see updates here.</p>
             )}
             {recentActivity.map((a, i) => (
-              <div key={i} onClick={() => { if (a.tab === "notes" && a.noteId && onNavigateToNote) onNavigateToNote(a.noteId); else if (onSelect) onSelect(a.flip, a.tab); }} style={{ display: "flex", gap: 10, marginBottom: 12, cursor: "pointer", padding: "6px 8px", marginLeft: -8, marginRight: -8, borderRadius: 10, transition: "background 0.15s" }} onMouseEnter={e => e.currentTarget.style.background = "#f8fafc"} onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+              <div key={i} onClick={() => { if (a.tab === "notes" && a.noteId && onNavigateToNote) onNavigateToNote(a.noteId); else if (a.tab === "expenses" && a.expenseId && onNavigateToExpense) onNavigateToExpense(a.expenseId); else if (a.tab === "milestones" && a.milestoneKey && onNavigateToMilestone) onNavigateToMilestone(a.milestoneKey, a.milestoneDone); else if (onSelect) onSelect(a.flip, a.tab); }} style={{ display: "flex", gap: 10, marginBottom: 12, cursor: "pointer", padding: "6px 8px", marginLeft: -8, marginRight: -8, borderRadius: 10, transition: "background 0.15s" }} onMouseEnter={e => e.currentTarget.style.background = "#f8fafc"} onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
                 <div style={{ width: 28, height: 28, borderRadius: 8, background: a.color + "18", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                   <a.icon size={13} color={a.color} />
                 </div>
@@ -775,7 +776,7 @@ const FLIP_EXPENSE_GROUPS = {
 };
 const EXPENSE_CATS = Object.values(FLIP_EXPENSE_GROUPS).flat();
 
-export function FlipExpenses({ highlightExpId, onBack, onClearHighlight }) {
+export function FlipExpenses({ highlightExpId, onBack, onClearHighlight, backLabel }) {
   const [expenses, setExpenses] = useState([..._FE]);
   const [filterFlip, setFilterFlip]     = useState("all");
   const [filterCat, setFilterCat]       = useState("all");
@@ -899,7 +900,7 @@ export function FlipExpenses({ highlightExpId, onBack, onClearHighlight }) {
     <div>
       {onBack && (
         <button onClick={onBack} style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: "none", color: "#f59e0b", fontSize: 13, fontWeight: 600, cursor: "pointer", padding: "0 0 12px" }}>
-          <ChevronRight size={14} style={{ transform: "rotate(180deg)" }} /> Back to Deal
+          <ChevronLeft size={14} /> {backLabel || "Back to Deal"}
         </button>
       )}
       <PageHeader
@@ -2365,7 +2366,7 @@ export function FlipAnalytics() {
 // ---------------------------------------------------------------------------
 // 6. MILESTONES (cross-deal view)
 // ---------------------------------------------------------------------------
-export function FlipMilestones() {
+export function FlipMilestones({ highlightMilestoneKey, onBack, onClearHighlight }) {
   const [filterFlip, setFilterFlip] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
   const [, rerender] = useState(0);
@@ -2375,6 +2376,25 @@ export function FlipMilestones() {
   const [editForm, setEditForm] = useState({ label: "", targetDate: "" });
   const [deleteConfirm, setDeleteConfirm] = useState(null); // { flipId, idx, label }
   const [labelFocus, setLabelFocus] = useState(false);
+  const [flashKey, setFlashKey] = useState(highlightMilestoneKey);
+
+  useEffect(() => {
+    if (highlightMilestoneKey) {
+      setFlashKey(highlightMilestoneKey);
+      // If the highlighted milestone is completed, set filter to show completed items
+      const [hFlipId, ...hLabelParts] = highlightMilestoneKey.split("-");
+      const hLabel = hLabelParts.join("-");
+      const flipMs = _FM[parseInt(hFlipId)] || [];
+      const targetMs = flipMs.find(m => m.label === hLabel);
+      if (targetMs?.done && filterStatus === "upcoming") setFilterStatus("all");
+      setTimeout(() => {
+        const el = document.getElementById("ms-" + highlightMilestoneKey);
+        if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+      }, 150);
+      const timer = setTimeout(() => { setFlashKey(null); onClearHighlight && onClearHighlight(); }, 2500);
+      return () => clearTimeout(timer);
+    }
+  }, [highlightMilestoneKey]);
   const allMilestoneLabels = useMemo(() => {
     const labels = new Set(DEFAULT_MILESTONES);
     Object.values(_FM).forEach(arr => arr.forEach(m => { if (m.label) labels.add(m.label); }));
@@ -2461,6 +2481,11 @@ export function FlipMilestones() {
 
   return (
     <div>
+      {onBack && (
+        <button onClick={onBack} style={{ display: "flex", alignItems: "center", gap: 6, color: "#f59e0b", fontWeight: 600, fontSize: 14, background: "none", border: "none", cursor: "pointer", marginBottom: 14 }}>
+          <ChevronLeft size={15} /> Back to Dashboard
+        </button>
+      )}
       <PageHeader
         title="Milestones"
         sub="Track progress across all your flips"
@@ -2536,7 +2561,7 @@ export function FlipMilestones() {
                     <button onClick={() => setEditItem(null)} style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8", padding: 0 }}><X size={14} /></button>
                   </div>
                 ) : (
-                  <div key={i} className="ms-row" onMouseEnter={e => e.currentTarget.style.background = "#f8fafc"} onMouseLeave={e => e.currentTarget.style.background = m.done ? "#f0fdf4" : overdue ? "#fef2f2" : "#f8fafc"} style={{ display: "flex", alignItems: "center", gap: 12, padding: "8px 10px", borderRadius: 8, background: m.done ? "#f0fdf4" : overdue ? "#fef2f2" : "#f8fafc", border: `1px solid ${m.done ? "#bbf7d0" : overdue ? "#fecaca" : "#f1f5f9"}`, position: "relative", transition: "all 0.25s ease" }}>
+                  <div key={i} id={"ms-" + flip.id + "-" + m.label} className="ms-row" onMouseEnter={e => { if (flashKey !== (flip.id + "-" + m.label)) e.currentTarget.style.background = "#f8fafc"; }} onMouseLeave={e => { if (flashKey !== (flip.id + "-" + m.label)) e.currentTarget.style.background = m.done ? "#f0fdf4" : overdue ? "#fef2f2" : "#f8fafc"; }} style={{ display: "flex", alignItems: "center", gap: 12, padding: "8px 10px", borderRadius: 8, background: flashKey === (flip.id + "-" + m.label) ? "#fef9c3" : m.done ? "#f0fdf4" : overdue ? "#fef2f2" : "#f8fafc", border: `1px solid ${flashKey === (flip.id + "-" + m.label) ? "#f59e0b" : m.done ? "#bbf7d0" : overdue ? "#fecaca" : "#f1f5f9"}`, boxShadow: flashKey === (flip.id + "-" + m.label) ? "0 0 0 2px #f59e0b" : "none", position: "relative", transition: "all 0.4s ease" }}>
                     <button onClick={() => toggleMilestone(flip.id, m._idx)} style={{ background: "none", border: "none", cursor: "pointer", padding: 0, display: "flex", flexShrink: 0 }}>
                       {m.done ? <CheckCircle size={18} color="#10b981" /> : <Circle size={18} color={overdue ? "#ef4444" : "#cbd5e1"} />}
                     </button>
