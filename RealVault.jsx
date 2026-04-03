@@ -2085,9 +2085,6 @@ function Analytics() {
             <option value="">All Properties</option>
             {PROPERTIES.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
           </select>
-          <button onClick={() => exportAnalyticsCSV(selectedProp, PROPERTIES, TRANSACTIONS, TENANTS)} style={{ background: "#fff", color: "#475569", border: "1px solid #e2e8f0", borderRadius: 10, padding: "10px 16px", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
-            <Download size={16} /> Export CSV
-          </button>
         </div>
       </div>
 
@@ -2487,60 +2484,6 @@ function downloadFile(content, filename, mimeType) {
   document.body.removeChild(a); URL.revokeObjectURL(url);
 }
 
-function exportAnalyticsCSV(selectedProp, properties, transactions, tenants) {
-  let csv = "";
-  const currentYear = new Date().getFullYear();
-
-  if (!selectedProp) {
-    // Portfolio view: all properties
-    csv = "Property,Monthly Income,Monthly Expenses,Net Cash Flow,Annual NOI,Cap Rate %,Cash-on-Cash %,Current Value,Purchase Price,Equity,Appreciation %,Expense Ratio %,DSCR\n";
-    properties.forEach(p => {
-      const eff = getEffectiveMonthly(p, transactions);
-      const monthlyIncome = eff.monthlyIncome;
-      const monthlyExpenses = eff.monthlyExpenses;
-      const netCashFlow = monthlyIncome - monthlyExpenses;
-      const annualNOI = netCashFlow * 12;
-      const capRate = calcCapRate(p, transactions);
-      const cashOnCash = calcCashOnCash(p, transactions);
-      const equity = p.currentValue - (calcLoanBalance(p.loanAmount, p.loanRate, p.loanTermYears, p.loanStartDate) ?? p.loanAmount ?? 0);
-      const appreciation = p.purchasePrice > 0 ? ((p.currentValue - p.purchasePrice) / p.purchasePrice * 100).toFixed(1) : "0";
-      const expenseRatio = monthlyIncome > 0 ? ((monthlyExpenses / monthlyIncome) * 100).toFixed(1) : "0";
-
-      // DSCR calculation
-      let dscr = "N/A";
-      if (p.loanAmount && p.loanRate && p.loanTermYears) {
-        const r = p.loanRate / 100 / 12;
-        const n = p.loanTermYears * 12;
-        const M = p.loanAmount * r * Math.pow(1 + r, n) / (Math.pow(1 + r, n) - 1);
-        const annualDS = M * 12;
-        if (annualDS > 0) dscr = (annualNOI / annualDS).toFixed(2);
-      }
-
-      csv += `"${p.name}",${monthlyIncome},${monthlyExpenses},${netCashFlow},${annualNOI},${capRate},${cashOnCash},${p.currentValue},${p.purchasePrice},${Math.round(equity)},${appreciation},${expenseRatio},${dscr}\n`;
-    });
-  } else {
-    // Single property view: trailing 12 months
-    csv = "Month,Income,Expenses,Net\n";
-    const EXP_FACTORS = [1.0, 0.88, 1.15, 0.92, 1.05, 1.18, 0.97, 1.22, 0.89, 1.08, 1.30, 0.95];
-    const ALL_MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-    const currentMonth = new Date().getMonth();
-    const TRAILING_MONTHS = Array.from({ length: 12 }, (_, i) => {
-      const idx = (currentMonth - 11 + i + 12) % 12;
-      return { label: ALL_MONTHS[idx], idx };
-    });
-
-    const eff = getEffectiveMonthly(selectedProp, transactions);
-    TRAILING_MONTHS.forEach(({ label, idx }) => {
-      const income = eff.monthlyIncome;
-      const expenses = Math.round(eff.monthlyExpenses * EXP_FACTORS[idx]);
-      const net = income - expenses;
-      csv += `${label},${income},${expenses},${net}\n`;
-    });
-  }
-
-  const filename = selectedProp ? `RealVault_Analytics_${selectedProp.name}_${currentYear}.csv` : `RealVault_Analytics_Portfolio_${currentYear}.csv`;
-  downloadFile(csv, filename, "text/csv");
-}
 
 function exportReportCSV(activeReport, reportProps, monthlyData, deprRows, lenderData, calcPropLines, taxYear, ownerMonth) {
   let csv = "";

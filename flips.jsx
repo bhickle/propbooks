@@ -14,7 +14,7 @@ import {
   Wrench, Users, Receipt, BarChart3, Target, Calendar, Flag,
   ArrowUp, ArrowDown, Truck, Building2, MapPin, Home, Info,
   MessageSquare, FileText, Circle, Phone, Mail, Shield, Upload,
-  ChevronLeft, Eye, FileCheck, Award, Download,
+  ChevronLeft, Eye, FileCheck, Award,
 } from "lucide-react";
 import {
   fmt, fmtK, newId, STAGE_ORDER, STAGE_COLORS, DEFAULT_MILESTONES,
@@ -109,20 +109,6 @@ function InfoTip({ text }) {
 const sectionS = { background: "#fff", borderRadius: 16, padding: 24, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9", marginBottom: 24 };
 
 // ---------------------------------------------------------------------------
-// Helper: Download file to user's computer
-// ---------------------------------------------------------------------------
-function downloadFile(content, filename, mimeType = "text/csv") {
-  const blob = new Blob([content], { type: mimeType });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-}
-
 // ---------------------------------------------------------------------------
 // 1. FLIP DASHBOARD
 // ---------------------------------------------------------------------------
@@ -1925,48 +1911,6 @@ export function FlipAnalytics() {
 
   const cardS = { background: "#fff", borderRadius: 16, padding: "20px", boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" };
 
-  // Export CSV logic
-  const handleExportCSV = () => {
-    if (filterDeal === "all") {
-      // Portfolio view: all deals
-      const rows = [
-        ["Deal", "Stage", "Purchase Price", "Rehab Budget", "Rehab Spent", "ARV/Sale Price", "Holding Costs", "Selling Costs", "Net Profit", "ROI %", "Days Owned"],
-      ];
-      profitBreakdown.forEach((pb) => {
-        rows.push([
-          pb.fullName,
-          pb.stage,
-          pb.purchase,
-          pb.rehab,
-          pb.rehab,
-          pb.sale,
-          pb.holding,
-          pb.selling,
-          pb.profit,
-          `${roiData.find(r => r.fullName === pb.fullName)?.roi || 0}%`,
-          timelineData.find(t => t.name === pb.name)?.days || 0,
-        ]);
-      });
-      const csv = rows.map(r => r.map(v => `"${v}"`).join(",")).join("\n");
-      downloadFile(csv, `flip-analytics-portfolio-${new Date().toISOString().split("T")[0]}.csv`, "text/csv");
-    } else {
-      // Single deal view: expense detail
-      const rows = [
-        ["Date", "Category", "Description", "Vendor", "Amount"],
-      ];
-      dealExpenses.forEach((e) => {
-        rows.push([
-          e.date || "",
-          e.category || "",
-          e.description || "",
-          e.vendor || "",
-          e.amount || 0,
-        ]);
-      });
-      const csv = rows.map(r => r.map(v => `"${v}"`).join(",")).join("\n");
-      downloadFile(csv, `flip-analytics-${singleDeal.name.replace(/\s+/g, "-")}-${new Date().toISOString().split("T")[0]}.csv`, "text/csv");
-    }
-  };
 
   return (
     <div>
@@ -1983,10 +1927,6 @@ export function FlipAnalytics() {
             <option value="all">All Deals</option>
             {allFlips.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
           </select>
-          <button onClick={handleExportCSV} style={{ background: "#fff", color: "#475569", border: "1px solid #e2e8f0", borderRadius: 10, padding: "10px 16px", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
-            <Download size={16} />
-            Export CSV
-          </button>
         </div>
       </div>
 
