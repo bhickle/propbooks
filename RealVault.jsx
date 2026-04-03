@@ -12,7 +12,7 @@ import {
   Hammer, Clock, Target, Flag, Wrench,
   Users, Route, Calculator, FileCheck, UserCheck, Truck, Layers, Car,
   CheckSquare, Square, PlusCircle, Receipt, UploadCloud, Trash2, Pencil, Info, List,
-  CreditCard, MessageSquare, Copy, Camera, Image, AlertTriangle, ArrowRight, ArrowLeft
+  CreditCard, MessageSquare, Copy, Camera, Image, AlertTriangle, ArrowRight, ArrowLeft, X
 } from "lucide-react";
 import {
   newId, fmt, fmtK,
@@ -4277,6 +4277,8 @@ function FlipDetail({ flip, onBack, backLabel, allFlips, setAllFlips, onNavigate
   const [milestoneForm, setMilestoneForm] = useState(emptyMilestone);
   const sfM = k => e => setMilestoneForm(f => ({ ...f, [k]: e.target.value }));
   const [editingMilestoneId, setEditingMilestoneId] = useState(null); // index when editing
+  const [completingMsIdx, setCompletingMsIdx] = useState(null);
+  const [msCompletionDate, setMsCompletionDate] = useState(today);
   const [showAddRehab, setShowAddRehab] = useState(false);
   const emptyRehab = { category: "", budgeted: "", spent: "0", status: "pending", photos: [] };
   const [rehabForm, setRehabForm] = useState(emptyRehab);
@@ -5415,27 +5417,38 @@ function FlipDetail({ flip, onBack, backLabel, allFlips, setAllFlips, onNavigate
                       return (
                         <tr key={i} style={{ borderTop: "1px solid #f1f5f9", background: isOverdue ? "#fef2f2" : "transparent", transition: "all 0.25s ease" }}>
                           <td style={{ padding: "12px 16px", width: 40 }}>
-                            <div onClick={() => {
-                              const updated = milestones.map((item, idx) => idx === i ? { ...item, done: true, date: today } : item);
-                              setMilestones(updated);
-                            }} style={{ color: "#cbd5e1", cursor: "pointer" }}>
+                            <div onClick={() => { setCompletingMsIdx(i); setMsCompletionDate(today); }} style={{ color: "#cbd5e1", cursor: "pointer" }}>
                               <Square size={20} />
                             </div>
                           </td>
-                          <td style={{ padding: "12px 16px" }}>
-                            <p style={{ fontSize: 14, fontWeight: isOverdue ? 700 : 500, color: isOverdue ? "#b91c1c" : "#0f172a" }}>{m.label}</p>
-                          </td>
-                          <td style={{ padding: "12px 16px", fontSize: 13, color: isOverdue ? "#b91c1c" : "#64748b", fontWeight: isOverdue ? 700 : 400 }}>
-                            {m.targetDate || <span style={{ color: "#cbd5e1" }}>-</span>}
-                          </td>
-                          <td style={{ padding: "12px 16px", fontSize: 13, color: "#cbd5e1" }}>-</td>
-                          <td style={{ padding: "12px 16px" }}>
-                            {isOverdue ? (
-                              <span style={{ background: "#fee2e2", color: "#b91c1c", borderRadius: 20, padding: "3px 10px", fontSize: 12, fontWeight: 600 }}>Overdue</span>
-                            ) : (
-                              <span style={{ background: "#f1f5f9", color: "#64748b", borderRadius: 20, padding: "3px 10px", fontSize: 12, fontWeight: 600 }}>Pending</span>
-                            )}
-                          </td>
+                          {completingMsIdx === i ? (
+                            <td colSpan={4} style={{ padding: "12px 16px" }}>
+                              <div style={{ display: "flex", alignItems: "center", gap: 10, background: "#f0fdf4", borderRadius: 10, padding: "8px 14px", border: "1px solid #bbf7d0" }}>
+                                <span style={{ fontSize: 13, fontWeight: 600, color: "#0f172a" }}>{m.label}</span>
+                                <span style={{ fontSize: 12, color: "#64748b", marginLeft: "auto" }}>Completed:</span>
+                                <input type="date" value={msCompletionDate} onChange={e => setMsCompletionDate(e.target.value)} style={{ ...iS, width: 150, padding: "5px 10px", fontSize: 12 }} />
+                                <button onClick={() => { const updated = milestones.map((item, idx) => idx === i ? { ...item, done: true, date: msCompletionDate } : item); setMilestones(updated); setCompletingMsIdx(null); }} style={{ background: "#10b981", color: "#fff", border: "none", borderRadius: 7, padding: "6px 14px", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>Confirm</button>
+                                <button onClick={() => setCompletingMsIdx(null)} style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8" }}><X size={14} /></button>
+                              </div>
+                            </td>
+                          ) : (
+                            <>
+                            <td style={{ padding: "12px 16px" }}>
+                              <p style={{ fontSize: 14, fontWeight: isOverdue ? 700 : 500, color: isOverdue ? "#b91c1c" : "#0f172a" }}>{m.label}</p>
+                            </td>
+                            <td style={{ padding: "12px 16px", fontSize: 13, color: isOverdue ? "#b91c1c" : "#64748b", fontWeight: isOverdue ? 700 : 400 }}>
+                              {m.targetDate || <span style={{ color: "#cbd5e1" }}>-</span>}
+                            </td>
+                            <td style={{ padding: "12px 16px", fontSize: 13, color: "#cbd5e1" }}>-</td>
+                            <td style={{ padding: "12px 16px" }}>
+                              {isOverdue ? (
+                                <span style={{ background: "#fee2e2", color: "#b91c1c", borderRadius: 20, padding: "3px 10px", fontSize: 12, fontWeight: 600 }}>Overdue</span>
+                              ) : (
+                                <span style={{ background: "#f1f5f9", color: "#64748b", borderRadius: 20, padding: "3px 10px", fontSize: 12, fontWeight: 600 }}>Pending</span>
+                              )}
+                            </td>
+                            </>
+                          )}
                           <td style={{ padding: "12px 16px" }}>
                             <div style={{ display: "flex", gap: 4 }}>
                               <button onClick={() => openEditMilestone(m, i)} style={{ background: "#f1f5f9", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "#475569", display: "flex", alignItems: "center" }} title="Edit"><Pencil size={13} /></button>

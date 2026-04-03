@@ -2427,13 +2427,33 @@ export function FlipMilestones({ highlightMilestoneKey, onBack, onClearHighlight
   const clearFilters = () => { setFilterFlip("all"); setFilterStatus("all"); };
   const hasFilters = filterFlip !== "all" || filterStatus !== "all";
 
-  const toggleMilestone = (flipId, idx) => {
+  // Inline completion date picker state
+  const [completingItem, setCompletingItem] = useState(null); // { flipId, idx }
+  const [completionDate, setCompletionDate] = useState(new Date().toISOString().split("T")[0]);
+
+  const startComplete = (flipId, idx) => {
+    setCompletingItem({ flipId, idx });
+    setCompletionDate(new Date().toISOString().split("T")[0]);
+  };
+
+  const confirmComplete = () => {
+    if (!completingItem) return;
+    const ms = _FM[completingItem.flipId];
+    if (ms && ms[completingItem.idx]) {
+      ms[completingItem.idx].done = true;
+      ms[completingItem.idx].date = completionDate;
+    }
+    setCompletingItem(null);
+    rerender(n => n + 1);
+  };
+
+  const uncomplete = (flipId, idx) => {
     const ms = _FM[flipId];
     if (ms && ms[idx]) {
-      ms[idx].done = !ms[idx].done;
-      ms[idx].date = ms[idx].done ? new Date().toISOString().split("T")[0] : null;
-      rerender(n => n + 1);
+      ms[idx].done = false;
+      ms[idx].date = null;
     }
+    rerender(n => n + 1);
   };
 
   const saveMilestone = () => {
@@ -2448,7 +2468,7 @@ export function FlipMilestones({ highlightMilestoneKey, onBack, onClearHighlight
 
   const startEdit = (flipId, idx, m) => {
     setEditItem({ flipId, idx });
-    setEditForm({ label: m.label, targetDate: m.targetDate || "" });
+    setEditForm({ label: m.label, targetDate: m.targetDate || "", completedDate: m.date || "" });
   };
 
   const saveEdit = () => {
@@ -2457,6 +2477,13 @@ export function FlipMilestones({ highlightMilestoneKey, onBack, onClearHighlight
     if (ms && ms[editItem.idx]) {
       ms[editItem.idx].label = editForm.label.trim() || ms[editItem.idx].label;
       ms[editItem.idx].targetDate = editForm.targetDate || null;
+      if (editForm.completedDate) {
+        ms[editItem.idx].date = editForm.completedDate;
+        ms[editItem.idx].done = true;
+      } else {
+        ms[editItem.idx].date = null;
+        ms[editItem.idx].done = false;
+      }
     }
     setEditItem(null);
     rerender(n => n + 1);
@@ -2551,16 +2578,37 @@ export function FlipMilestones({ highlightMilestoneKey, onBack, onClearHighlight
               {items.map((m, i) => {
                 const overdue = !m.done && m.targetDate && m.targetDate < today;
                 const isEditing = editItem?.flipId === flip.id && editItem?.idx === m._idx;
+                const isCompleting = completingItem?.flipId === flip.id && completingItem?.idx === m._idx;
                 return isEditing ? (
-                  <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 10px", borderRadius: 8, background: "#fffbeb", border: "1px solid #fde68a" }}>
-                    <input value={editForm.label} onChange={e => setEditForm(f => ({ ...f, label: e.target.value }))} style={{ ...iS, flex: 1, padding: "6px 10px", fontSize: 13 }} placeholder="Milestone label" />
-                    <input type="date" value={editForm.targetDate} onChange={e => setEditForm(f => ({ ...f, targetDate: e.target.value }))} style={{ ...iS, width: 140, padding: "6px 10px", fontSize: 12 }} />
-                    <button onClick={saveEdit} style={{ background: "#f59e0b", color: "#fff", border: "none", borderRadius: 6, padding: "5px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>Save</button>
-                    <button onClick={() => setEditItem(null)} style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8", padding: 0 }}><X size={14} /></button>
+                  <div key={i} style={{ padding: "10px 12px", borderRadius: 8, background: "#fffbeb", border: "1px solid #fde68a" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                      <input value={editForm.label} onChange={e => setEditForm(f => ({ ...f, label: e.target.value }))} style={{ ...iS, flex: 1, padding: "6px 10px", fontSize: 13 }} placeholder="Milestone label" />
+                      <button onClick={saveEdit} style={{ background: "#f59e0b", color: "#fff", border: "none", borderRadius: 6, padding: "5px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>Save</button>
+                      <button onClick={() => setEditItem(null)} style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8", padding: 0 }}><X size={14} /></button>
+                    </div>
+                    <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                      <div style={{ flex: 1 }}>
+                        <p style={{ fontSize: 11, color: "#94a3b8", marginBottom: 3 }}>Target Date</p>
+                        <input type="date" value={editForm.targetDate} onChange={e => setEditForm(f => ({ ...f, targetDate: e.target.value }))} style={{ ...iS, padding: "5px 10px", fontSize: 12, width: "100%" }} />
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <p style={{ fontSize: 11, color: "#94a3b8", marginBottom: 3 }}>Completed Date</p>
+                        <input type="date" value={editForm.completedDate} onChange={e => setEditForm(f => ({ ...f, completedDate: e.target.value }))} style={{ ...iS, padding: "5px 10px", fontSize: 12, width: "100%" }} />
+                      </div>
+                    </div>
+                  </div>
+                ) : isCompleting ? (
+                  <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", borderRadius: 8, background: "#f0fdf4", border: "1px solid #bbf7d0" }}>
+                    <CheckCircle size={18} color="#10b981" />
+                    <span style={{ fontSize: 13, fontWeight: 500, color: "#0f172a", flex: 1 }}>{m.label}</span>
+                    <span style={{ fontSize: 11, color: "#64748b" }}>Completed:</span>
+                    <input type="date" value={completionDate} onChange={e => setCompletionDate(e.target.value)} style={{ ...iS, width: 140, padding: "5px 10px", fontSize: 12 }} />
+                    <button onClick={confirmComplete} style={{ background: "#10b981", color: "#fff", border: "none", borderRadius: 6, padding: "5px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>Confirm</button>
+                    <button onClick={() => setCompletingItem(null)} style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8", padding: 0 }}><X size={14} /></button>
                   </div>
                 ) : (
                   <div key={i} id={"ms-" + flip.id + "-" + m.label} className="ms-row" onMouseEnter={e => { if (flashKey !== (flip.id + "-" + m.label)) e.currentTarget.style.background = "#f8fafc"; }} onMouseLeave={e => { if (flashKey !== (flip.id + "-" + m.label)) e.currentTarget.style.background = m.done ? "#f0fdf4" : overdue ? "#fef2f2" : "#f8fafc"; }} style={{ display: "flex", alignItems: "center", gap: 12, padding: "8px 10px", borderRadius: 8, background: flashKey === (flip.id + "-" + m.label) ? "#fef9c3" : m.done ? "#f0fdf4" : overdue ? "#fef2f2" : "#f8fafc", border: `1px solid ${flashKey === (flip.id + "-" + m.label) ? "#f59e0b" : m.done ? "#bbf7d0" : overdue ? "#fecaca" : "#f1f5f9"}`, boxShadow: flashKey === (flip.id + "-" + m.label) ? "0 0 0 2px #f59e0b" : "none", position: "relative", transition: "all 0.4s ease" }}>
-                    <button onClick={() => toggleMilestone(flip.id, m._idx)} style={{ background: "none", border: "none", cursor: "pointer", padding: 0, display: "flex", flexShrink: 0 }}>
+                    <button onClick={() => m.done ? uncomplete(flip.id, m._idx) : startComplete(flip.id, m._idx)} style={{ background: "none", border: "none", cursor: "pointer", padding: 0, display: "flex", flexShrink: 0 }}>
                       {m.done ? <CheckCircle size={18} color="#10b981" /> : <Circle size={18} color={overdue ? "#ef4444" : "#cbd5e1"} />}
                     </button>
                     <span style={{ flex: 1, fontSize: 13, fontWeight: 500, color: m.done ? "#6b7280" : "#0f172a", textDecoration: m.done ? "line-through" : "none" }}>{m.label}</span>
