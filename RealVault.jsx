@@ -46,6 +46,17 @@ const TAX_CONFIG = {
   recaptureRate: 0.25,                         // Depreciation recapture rate on sale
   qbiDeductionPct: 0.20,                       // Sec. 199A QBI deduction (informational)
 };
+
+// Helper: compute depreciable basis for a property
+// Uses per-property landValue when available, falls back to TAX_CONFIG.landValuePct estimate
+function getDeprBasis(p) {
+  const pp = p.purchasePrice || 0;
+  if (p.landValue != null && p.landValue > 0) {
+    return { basis: Math.max(0, Math.round(pp - p.landValue)), estimated: false, landValue: p.landValue };
+  }
+  const estLand = Math.round(pp * TAX_CONFIG.landValuePct);
+  return { basis: Math.round(pp * TAX_CONFIG.buildingValuePct), estimated: true, landValue: estLand };
+}
 // ────────────────────────────────────────────────────────────────────
 
 const iS = { width: "100%", padding: "10px 12px", border: "1px solid #e2e8f0", borderRadius: 10, fontSize: 14, color: "#0f172a", background: "#fff", outline: "none", boxSizing: "border-box" };
@@ -123,6 +134,8 @@ function getPropertyHealth(p, transactions) {
   if (p.loanAmount && !p.loanStartDate) items.push({ key: "loanStart", severity: "medium", label: "Loan start date", detail: "Needed to estimate current mortgage balance", action: "Add loan start date", field: "loanStartDate" });
   // 5. Missing purchase date
   if (!p.purchaseDate) items.push({ key: "purchaseDate", severity: "low", label: "Purchase date", detail: "Needed for depreciation schedule and hold period", action: "Add purchase date", field: "purchaseDate" });
+  // 5b. Missing land value (depreciation accuracy)
+  if (!p.landValue && p.purchasePrice > 0) items.push({ key: "landValue", severity: "low", label: "Land value", detail: "Using 20% estimate — depreciation may be inaccurate", action: "Add land value from tax assessment", field: "landValue" });
   // 6. Income/expenses still estimated (no transactions)
   const eff = getEffectiveMonthly(p, transactions);
   if (eff.source === "estimate") items.push({ key: "transactions", severity: "low", label: "Income & expenses", detail: "Using manual estimates — no transaction history yet", action: "Log transactions for actual averages", field: null });
@@ -707,7 +720,7 @@ function Properties({ onSelect, editPropertyId, onClearEditId }) {
   const [showModal, setShowModal] = useState(false);
   const [editId, setEditId] = useState(null); // null = add, id = edit
   const [deleteConfirm, setDeleteConfirm] = useState(null); // property object to confirm delete
-  const emptyP = { name: "", address: "", type: "Single Family", units: "1", purchasePrice: "", currentValue: "", closingCosts: "", loanAmount: "", loanRate: "", loanTermYears: "30", loanStartDate: "", monthlyRent: "", monthlyExpenses: "", status: "Occupied", purchaseDate: "", photo: null };
+  const emptyP = { name: "", address: "", type: "Single Family", units: "1", purchasePrice: "", currentValue: "", closingCosts: "", landValue: "", loanAmount: "", loanRate: "", loanTermYears: "30", loanStartDate: "", monthlyRent: "", monthlyExpenses: "", status: "Occupied", purchaseDate: "", photo: null };
   const [form, setForm] = useState(emptyP);
   const sf = k => e => setForm(f => ({ ...f, [k]: e.target.value }));
 
@@ -717,7 +730,7 @@ function Properties({ onSelect, editPropertyId, onClearEditId }) {
       const p = propData.find(pr => pr.id === editPropertyId);
       if (p) {
         setEditId(p.id);
-        setForm({ name: p.name, address: p.address, type: p.type, units: String(p.units), purchasePrice: String(p.purchasePrice), currentValue: String(p.currentValue), closingCosts: String(p.closingCosts || ""), loanAmount: String(p.loanAmount || ""), loanRate: String(p.loanRate || ""), loanTermYears: String(p.loanTermYears || "30"), loanStartDate: p.loanStartDate || "", monthlyRent: String(p.monthlyRent), monthlyExpenses: String(p.monthlyExpenses), status: p.status, purchaseDate: p.purchaseDate || "", photo: p.photo || null });
+        setForm({ name: p.name, address: p.address, type: p.type, units: String(p.units), purchasePrice: String(p.purchasePrice), currentValue: String(p.currentValue), closingCosts: String(p.closingCosts || ""), landValue: String(p.landValue || ""), loanAmount: String(p.loanAmount || ""), loanRate: String(p.loanRate || ""), loanTermYears: String(p.loanTermYears || "30"), loanStartDate: p.loanStartDate || "", monthlyRent: String(p.monthlyRent), monthlyExpenses: String(p.monthlyExpenses), status: p.status, purchaseDate: p.purchaseDate || "", photo: p.photo || null });
         setShowModal(true);
       }
       onClearEditId && onClearEditId();
@@ -737,7 +750,7 @@ function Properties({ onSelect, editPropertyId, onClearEditId }) {
   const openEdit = (e, p) => {
     e.stopPropagation();
     setEditId(p.id);
-    setForm({ name: p.name, address: p.address, type: p.type, units: String(p.units), purchasePrice: String(p.purchasePrice), currentValue: String(p.currentValue), closingCosts: String(p.closingCosts || ""), loanAmount: String(p.loanAmount || ""), loanRate: String(p.loanRate || ""), loanTermYears: String(p.loanTermYears || "30"), loanStartDate: p.loanStartDate || "", monthlyRent: String(p.monthlyRent), monthlyExpenses: String(p.monthlyExpenses), status: p.status, purchaseDate: p.purchaseDate || "", photo: p.photo || null });
+    setForm({ name: p.name, address: p.address, type: p.type, units: String(p.units), purchasePrice: String(p.purchasePrice), currentValue: String(p.currentValue), closingCosts: String(p.closingCosts || ""), landValue: String(p.landValue || ""), loanAmount: String(p.loanAmount || ""), loanRate: String(p.loanRate || ""), loanTermYears: String(p.loanTermYears || "30"), loanStartDate: p.loanStartDate || "", monthlyRent: String(p.monthlyRent), monthlyExpenses: String(p.monthlyExpenses), status: p.status, purchaseDate: p.purchaseDate || "", photo: p.photo || null });
     setShowModal(true);
   };
 
@@ -757,12 +770,14 @@ function Properties({ onSelect, editPropertyId, onClearEditId }) {
       setPropData(prev => prev.map(p => {
         if (p.id !== editId) return p;
         const valChanged = val !== p.currentValue;
-        return { ...p, name: form.name, address: form.address, type: form.type, units: parseInt(form.units) || 1, purchasePrice: parseFloat(form.purchasePrice) || 0, currentValue: val, valueUpdatedAt: valChanged ? today : (p.valueUpdatedAt || today), loanAmount: loanAmt, loanRate, loanTermYears: loanTerm, loanStartDate: loanStart, closingCosts: cc, monthlyRent: rent, monthlyExpenses: exp, purchaseDate: form.purchaseDate, status: form.status, photo: form.photo ?? p.photo };
+        const land = parseFloat(form.landValue) || null;
+        return { ...p, name: form.name, address: form.address, type: form.type, units: parseInt(form.units) || 1, purchasePrice: parseFloat(form.purchasePrice) || 0, currentValue: val, valueUpdatedAt: valChanged ? today : (p.valueUpdatedAt || today), loanAmount: loanAmt, loanRate, loanTermYears: loanTerm, loanStartDate: loanStart, closingCosts: cc, landValue: land, monthlyRent: rent, monthlyExpenses: exp, purchaseDate: form.purchaseDate, status: form.status, photo: form.photo ?? p.photo };
       }));
     } else {
       const usedColors = propData.map(p => p.color);
       const color = PROP_COLORS.find(c => !usedColors.includes(c)) || PROP_COLORS[propData.length % PROP_COLORS.length];
-      setPropData(prev => [...prev, { id: newId(), name: form.name, address: form.address, type: form.type, units: parseInt(form.units) || 1, purchasePrice: parseFloat(form.purchasePrice) || 0, currentValue: val, valueUpdatedAt: today, loanAmount: loanAmt, loanRate, loanTermYears: loanTerm, loanStartDate: loanStart, closingCosts: cc, monthlyRent: rent, monthlyExpenses: exp, purchaseDate: form.purchaseDate, status: form.status, image: form.name.slice(0, 2).toUpperCase(), color, photo: form.photo || null }]);
+      const land = parseFloat(form.landValue) || null;
+      setPropData(prev => [...prev, { id: newId(), name: form.name, address: form.address, type: form.type, units: parseInt(form.units) || 1, purchasePrice: parseFloat(form.purchasePrice) || 0, currentValue: val, valueUpdatedAt: today, loanAmount: loanAmt, loanRate, loanTermYears: loanTerm, loanStartDate: loanStart, closingCosts: cc, landValue: land, monthlyRent: rent, monthlyExpenses: exp, purchaseDate: form.purchaseDate, status: form.status, image: form.name.slice(0, 2).toUpperCase(), color, photo: form.photo || null }]);
     }
     setForm(emptyP);
     setShowModal(false);
@@ -984,6 +999,7 @@ function Properties({ onSelect, editPropertyId, onClearEditId }) {
               { label: "Purchase Price ($)", key: "purchasePrice", type: "number", placeholder: "0" },
               { label: "Current Value ($)", key: "currentValue", type: "number", placeholder: "0" },
               { label: "Closing Costs ($)", key: "closingCosts", type: "number", placeholder: "0" },
+              { label: "Land Value ($)", key: "landValue", type: "number", placeholder: "From tax assessment" },
               { label: "Est. Monthly Rent ($)", key: "monthlyRent", type: "number", placeholder: "0" },
               { label: "Est. Monthly Expenses ($)", key: "monthlyExpenses", type: "number", placeholder: "0" },
               { label: "Units", key: "units", type: "number", placeholder: "1" },
@@ -992,6 +1008,13 @@ function Properties({ onSelect, editPropertyId, onClearEditId }) {
               <div key={f.key} style={{ gridColumn: f.full ? "1 / -1" : "auto" }}>
                 <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>{f.label}</label>
                 <input type={f.type} placeholder={f.placeholder} value={form[f.key]} onChange={sf(f.key)} style={iS} />
+                {f.key === "landValue" && (
+                  <p style={{ fontSize: 11, color: "#94a3b8", marginTop: 4 }}>
+                    {form.landValue && parseFloat(form.purchasePrice) > 0
+                      ? `Building value: ${fmt(parseFloat(form.purchasePrice) - parseFloat(form.landValue))} (depreciable basis for Schedule E)`
+                      : "From county tax assessment. Used for depreciation — if blank, 20% of purchase price is estimated."}
+                  </p>
+                )}
               </div>
             ))}
             <div>
@@ -2456,9 +2479,9 @@ function exportReportCSV(activeReport, reportProps, monthlyData, deprRows, lende
       csv += `${m.month},${m.isActual ? "Actual" : "Estimated"},${m.income},${m.expenses},${m.net},${margin}\n`;
     });
   } else if (activeReport === "depreciation") {
-    csv = "Property,Placed in Service,Purchase Price,Depr Basis,Annual Deduction,Years Held,Cumulative,Remaining\n";
-    deprRows.forEach(({ p, basis, annual, yearsHeld, cumul, remaining }) => {
-      csv += `"${p.name}",${p.purchaseDate || ""},${p.purchasePrice},${basis},${annual},${yearsHeld},${cumul},${remaining}\n`;
+    csv = "Property,Placed in Service,Purchase Price,Land Value,Land Source,Depr Basis,Annual Deduction,Years Held,Cumulative,Remaining\n";
+    deprRows.forEach(({ p, basis, annual, yearsHeld, cumul, remaining, estimated, landValue }) => {
+      csv += `"${p.name}",${p.purchaseDate || ""},${p.purchasePrice},${landValue},${estimated ? "Estimated (20%)" : "User Entered"},${basis},${annual},${yearsHeld},${cumul},${remaining}\n`;
     });
   } else if (activeReport === "lenderPackage") {
     csv = "Property,Annual NOI,Loan Balance,Current Value,Equity,Monthly DS,DSCR,LTV %\n";
@@ -2472,7 +2495,7 @@ function exportReportCSV(activeReport, reportProps, monthlyData, deprRows, lende
       const annRent = cEff.monthlyIncome * 12;
       const annExp = cEff.monthlyExpenses * 12;
       const yrs = p.type === "Commercial" ? TAX_CONFIG.depreciationCommercial : TAX_CONFIG.depreciationResidential;
-      const depr = Math.round(p.purchasePrice * TAX_CONFIG.buildingValuePct / yrs);
+      const depr = Math.round(getDeprBasis(p).basis / yrs);
       const bal = calcLoanBalance(p.loanAmount, p.loanRate, p.loanTermYears, p.loanStartDate) ?? (p.loanAmount || 0);
       const intEst = Math.round(bal * (p.loanRate || 4) / 100);
       csv += `"${p.name}",${annRent},${annExp},${depr},${intEst},${annRent - annExp - depr - intEst}\n`;
@@ -2508,7 +2531,8 @@ function exportReportPDF(activeReport, reportProps, monthlyData, deprRows, lende
       const { lines, grossRent, totalExp, net, interestSource } = calcPropLines(p);
       tableHTML += `<h3>${p.name}</h3><p style="color:#888">${p.address}</p><table><tr><th>Line</th><th>Description</th><th style="text-align:right">Amount</th></tr>`;
       tableHTML += `<tr><td>3</td><td>Rents Received</td><td style="text-align:right;color:green">+$${grossRent.toLocaleString()}</td></tr>`;
-      const labels = { "5":"Advertising","6":"Auto & Travel","7":"Cleaning","9":"Insurance","10":"Legal & Professional","11":"Management Fees","12":`Mortgage Interest (${interestSource})`,"14":"Repairs","15":"Supplies","16":"Taxes","17":"Utilities","18":"Depreciation (est.)","19":"Other" };
+      const deprLabel = getDeprBasis(p).estimated ? "Depreciation (est. — no land value entered)" : "Depreciation";
+      const labels = { "5":"Advertising","6":"Auto & Travel","7":"Cleaning","9":"Insurance","10":"Legal & Professional","11":"Management Fees","12":`Mortgage Interest (${interestSource})`,"14":"Repairs","15":"Supplies","16":"Taxes","17":"Utilities","18":deprLabel,"19":"Other" };
       Object.entries(lines).sort((a,b) => Number(a[0]) - Number(b[0])).forEach(([line, amt]) => {
         if (amt > 0) tableHTML += `<tr><td>${line}</td><td>${labels[line] || "Other"}</td><td style="text-align:right;color:#b91c1c">-$${Math.round(amt).toLocaleString()}</td></tr>`;
       });
@@ -2699,9 +2723,10 @@ function Reports() {
       lines["12"] = Math.round(bal * (p.loanRate || 4) / 100);
     }
 
-    // Line 18: Depreciation — always estimated (no single transaction represents this)
+    // Line 18: Depreciation — uses per-property land value when available
     const deprYrs = p.type === "Commercial" ? TAX_CONFIG.depreciationCommercial : TAX_CONFIG.depreciationResidential;
-    lines["18"] = Math.round(p.purchasePrice * TAX_CONFIG.buildingValuePct / deprYrs);
+    const deprInfo = getDeprBasis(p);
+    lines["18"] = Math.round(deprInfo.basis / deprYrs);
 
     const txIncome = TRANSACTIONS.filter(t =>
       new Date(t.date).getFullYear() === Number(taxYear) && t.property === p.name && t.type === "income"
@@ -2718,7 +2743,7 @@ function Reports() {
     const cEff = getEffectiveMonthly(p, TRANSACTIONS);
     const annRent = cEff.monthlyIncome * 12;
     const annExp = cEff.monthlyExpenses * 12;
-    const depr = Math.round(p.purchasePrice * TAX_CONFIG.buildingValuePct / (p.type === "Commercial" ? TAX_CONFIG.depreciationCommercial : TAX_CONFIG.depreciationResidential));
+    const depr = Math.round(getDeprBasis(p).basis / (p.type === "Commercial" ? TAX_CONFIG.depreciationCommercial : TAX_CONFIG.depreciationResidential));
     const bal = calcLoanBalance(p.loanAmount, p.loanRate, p.loanTermYears, p.loanStartDate) ?? (p.loanAmount || 0);
     const intEst = Math.round(bal * (p.loanRate || 4) / 100);
     const net = annRent - annExp - depr - intEst;
@@ -2749,17 +2774,19 @@ function Reports() {
     return { month, income, expenses, net: income - expenses, isActual: false };
   });
 
-  // Depreciation schedule
+  // Depreciation schedule — uses per-property landValue when available, falls back to TAX_CONFIG estimate
   const taxYearEnd = new Date(`${taxYear}-12-31`);
   const deprRows = reportProps.map(p => {
-    const basis = Math.round(p.purchasePrice * TAX_CONFIG.buildingValuePct);
+    const depr = getDeprBasis(p);
+    const basis = depr.basis;
     const deprLife = p.type === "Commercial" ? TAX_CONFIG.depreciationCommercial : TAX_CONFIG.depreciationResidential;
     const annual = Math.round(basis / deprLife);
     const start = p.purchaseDate ? new Date(p.purchaseDate) : new Date("2020-01-01");
     const yearsHeld = Math.max(0, (taxYearEnd - start) / (365.25 * 86400000));
     const cumul = Math.min(basis, Math.round(annual * yearsHeld));
-    return { p, basis, annual, deprLife, yearsHeld: yearsHeld.toFixed(1), cumul, remaining: basis - cumul };
+    return { p, basis, annual, deprLife, yearsHeld: yearsHeld.toFixed(1), cumul, remaining: basis - cumul, estimated: depr.estimated, landValue: depr.landValue };
   });
+  const hasAnyEstimatedDepr = deprRows.some(r => r.estimated);
 
   // Lender package data
   const lenderData = reportProps.map(p => {
@@ -2834,7 +2861,7 @@ function Reports() {
           const tNet  = allCalc.reduce((s, c) => s + c.net, 0);
           const tDepr = reportProps.reduce((s, p) => {
             const yrs = p.type === "Commercial" ? TAX_CONFIG.depreciationCommercial : TAX_CONFIG.depreciationResidential;
-            return s + Math.round(p.purchasePrice * TAX_CONFIG.buildingValuePct / yrs);
+            return s + Math.round(getDeprBasis(p).basis / yrs);
           }, 0);
           const actualPct = Math.round((allCalc.filter(c => c.hasActual).length / Math.max(1, allCalc.length)) * 100);
           return [
@@ -2885,6 +2912,7 @@ function Reports() {
               <p style={{ color: "#94a3b8", fontSize: 13, marginBottom: 24 }}>Tax Year {taxYear} · Part I: Income or Loss From Rental Real Estate</p>
               {reportProps.map(p => {
                 const { lines, grossRent, totalExp, net, hasActual, interestSource } = calcPropLines(p);
+                const pDeprEst = getDeprBasis(p).estimated;
                 const lineOrder = [
                   { n: "3",  label: "Rents Received",         income: true },
                   { n: "5",  label: "Advertising" },
@@ -2898,7 +2926,7 @@ function Reports() {
                   { n: "15", label: "Supplies" },
                   { n: "16", label: "Taxes" },
                   { n: "17", label: "Utilities" },
-                  { n: "18", label: "Depreciation (est.)" },
+                  { n: "18", label: pDeprEst ? "Depreciation (est. *)" : "Depreciation" },
                   { n: "19", label: "Other" },
                 ];
                 const filledLines = lineOrder.filter(l => l.income ? grossRent > 0 : (lines[l.n] || 0) > 0);
@@ -2962,7 +2990,7 @@ function Reports() {
                       { label: "Total Gross Rents", value: fmt(tRent), color: "#15803d" },
                       { label: "Total Expenses (incl. depr.)", value: `-${fmt(tExp)}`, color: "#b91c1c" },
                       { label: "Net Taxable Rental Income", value: fmt(tNet), color: tNet >= 0 ? "#15803d" : "#b91c1c" },
-                      { label: "Total Depreciation", value: `-${fmt(reportProps.reduce((s, p) => s + Math.round(p.purchasePrice*0.8/(p.type === "Commercial" ? TAX_CONFIG.depreciationCommercial : TAX_CONFIG.depreciationResidential)), 0))}`, color: "#b91c1c" },
+                      { label: "Total Depreciation", value: `-${fmt(reportProps.reduce((s, p) => s + Math.round(getDeprBasis(p).basis/(p.type === "Commercial" ? TAX_CONFIG.depreciationCommercial : TAX_CONFIG.depreciationResidential)), 0))}`, color: "#b91c1c" },
                       { label: "Mortgage Interest (est.)", value: `-${fmt(reportProps.reduce((s, p) => { const b = calcLoanBalance(p.loanAmount, p.loanRate, p.loanTermYears, p.loanStartDate) ?? (p.loanAmount||0); return s + Math.round(b*(p.loanRate||4)/100); }, 0))}`, color: "#b91c1c" },
                       { label: "Est. Tax Liability @ 28%", value: tNet > 0 ? `-${fmt(Math.round(tNet * 0.28))}` : "$0", color: "#b91c1c" },
                     ].map((m, i) => (
@@ -3298,17 +3326,29 @@ function Reports() {
             <div>
               <h2 style={{ color: "#0f172a", fontSize: 18, fontWeight: 700, marginBottom: 4 }}>Depreciation Schedule</h2>
               <p style={{ color: "#94a3b8", fontSize: 13, marginBottom: 6 }}>Tax Year {taxYear} · IRS MACRS — Residential ({TAX_CONFIG.depreciationResidential} yr) &amp; Commercial ({TAX_CONFIG.depreciationCommercial} yr), straight-line</p>
-              <p style={{ color: "#64748b", fontSize: 12, marginBottom: 24 }}>Land value excluded at {TAX_CONFIG.landValuePct * 100}% of purchase price. Depreciable basis = {TAX_CONFIG.buildingValuePct * 100}% of purchase price.</p>
+              <p style={{ color: "#64748b", fontSize: 12, marginBottom: 24 }}>Depreciable basis = Purchase Price − Land Value. Land is not depreciable per IRS rules.</p>
+              {hasAnyEstimatedDepr && (
+                <div style={{ background: "#fff7ed", border: "1px solid #fed7aa", borderRadius: 12, padding: "12px 16px", marginBottom: 20, display: "flex", alignItems: "flex-start", gap: 10 }}>
+                  <AlertTriangle size={16} color="#c2410c" style={{ flexShrink: 0, marginTop: 1 }} />
+                  <div>
+                    <p style={{ fontSize: 12, fontWeight: 700, color: "#c2410c", marginBottom: 2 }}>Estimated land values in use</p>
+                    <p style={{ fontSize: 12, color: "#9a3412" }}>
+                      {deprRows.filter(r => r.estimated).map(r => r.p.name.split(" ").slice(0,2).join(" ")).join(", ")} {deprRows.filter(r => r.estimated).length === 1 ? "is" : "are"} using the default {TAX_CONFIG.landValuePct * 100}% land estimate.
+                      Enter actual land values (from county tax assessment) in each property's settings for accurate depreciation.
+                    </p>
+                  </div>
+                </div>
+              )}
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead>
                   <tr>
-                    {["Property", "Placed in Service", "Purchase Price", "Depr. Basis (80%)", "Life", "Annual Deduction", "Yrs Held", "Cumul. Taken", "Remaining Basis"].map(h => (
+                    {["Property", "Placed in Service", "Purchase Price", "Land Value", "Depr. Basis", "Life", "Annual Deduction", "Yrs Held", "Cumul. Taken", "Remaining"].map(h => (
                       <th key={h} style={thStyle}>{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
-                  {deprRows.map(({ p, basis, annual, yearsHeld, cumul, remaining, deprLife }, i) => (
+                  {deprRows.map(({ p, basis, annual, yearsHeld, cumul, remaining, deprLife, estimated, landValue }, i) => (
                     <tr key={p.id} style={{ background: i % 2 === 0 ? "#fff" : "#fafafa" }}>
                       <td style={{ ...tdStyle, fontWeight: 600 }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -3318,6 +3358,11 @@ function Reports() {
                       </td>
                       <td style={tdStyle}>{p.purchaseDate || "—"}</td>
                       <td style={tdStyle}>{fmt(p.purchasePrice)}</td>
+                      <td style={tdStyle}>
+                        <span style={{ color: estimated ? "#c2410c" : "#64748b" }}>
+                          {fmt(landValue)}{estimated ? " *" : ""}
+                        </span>
+                      </td>
                       <td style={{ ...tdStyle, color: "#8b5cf6", fontWeight: 600 }}>{fmt(basis)}</td>
                       <td style={{ ...tdStyle, fontSize: 12 }}>{deprLife} yr</td>
                       <td style={{ ...tdStyle, color: "#b91c1c", fontWeight: 700 }}>-{fmt(annual)}</td>
@@ -3329,7 +3374,7 @@ function Reports() {
                 </tbody>
                 <tfoot>
                   <tr style={{ background: "#f0f9ff", borderTop: "2px solid #bae6fd" }}>
-                    <td colSpan={5} style={{ ...tdStyle, fontWeight: 800, color: "#0c4a6e" }}>Portfolio Total</td>
+                    <td colSpan={6} style={{ ...tdStyle, fontWeight: 800, color: "#0c4a6e" }}>Portfolio Total</td>
                     <td style={{ ...tdStyle, fontWeight: 800, color: "#b91c1c" }}>-{fmt(deprRows.reduce((s, r) => s + r.annual, 0))}</td>
                     <td style={tdStyle} />
                     <td style={{ ...tdStyle, fontWeight: 700, color: "#b91c1c" }}>-{fmt(deprRows.reduce((s, r) => s + r.cumul, 0))}</td>
@@ -3337,8 +3382,11 @@ function Reports() {
                   </tr>
                 </tfoot>
               </table>
-              <div style={{ background: "#fef9c3", border: "1px solid #fde68a", borderRadius: 12, padding: "12px 16px", marginTop: 20 }}>
-                <p style={{ fontSize: 12, color: "#854d0e" }}>⚠️ Depreciation recapture at {TAX_CONFIG.recaptureRate * 100}% applies if you sell. Buildings placed in service mid-year use the mid-month convention for the first year. Consult your CPA for the exact first-year deduction.</p>
+              {hasAnyEstimatedDepr && (
+                <p style={{ fontSize: 11, color: "#9a3412", marginTop: 10 }}>* Estimated — land value not entered, using default {TAX_CONFIG.landValuePct * 100}% of purchase price</p>
+              )}
+              <div style={{ background: "#fef9c3", border: "1px solid #fde68a", borderRadius: 12, padding: "12px 16px", marginTop: 16 }}>
+                <p style={{ fontSize: 12, color: "#854d0e" }}>⚠️ Depreciation recapture at {TAX_CONFIG.recaptureRate * 100}% applies if you sell. Buildings placed in service mid-year use the mid-month convention for the first year. This report is for informational purposes — consult your CPA for your exact tax deduction.</p>
               </div>
             </div>
           )}
@@ -3406,7 +3454,7 @@ function Reports() {
                       { label: "Operating Expenses (repairs, insurance, mgmt, etc.)", value: totExpenses },
                       { label: hasMortgageTx ? "Mortgage Interest — Line 12 (from P&I split)" : "Mortgage Interest — Line 12 (est.)", value: actualInterest },
                       ...(hasMortgageTx && actualPrincipal > 0 ? [{ label: "Mortgage Principal (not deductible — equity building)", value: actualPrincipal, isInfo: true }] : []),
-                      { label: `Depreciation — straight-line`, value: totDepr },
+                      { label: hasAnyEstimatedDepr ? "Depreciation — straight-line (some land values estimated *)" : "Depreciation — straight-line", value: totDepr },
                       { label: propTaxHasActual ? "Property Taxes (from transactions)" : "Property Taxes (no transactions logged)", value: propTaxActual, note: !propTaxHasActual },
                     ].map((row, i) => (
                       <tr key={i} style={{ borderBottom: "1px solid #f1f5f9", background: row.isInfo ? "#f8fafc" : "transparent" }}>
