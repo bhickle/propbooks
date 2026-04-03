@@ -488,9 +488,19 @@ function Badge({ status }) {
 // VIEWS
 // ---------------------------------------------
 
-function Dashboard({ onNavigate, onNavigateToTx, onSelectProperty }) {
+function Dashboard({ onNavigate, onNavigateToTx, onSelectProperty, onNavigateToTenantAdd }) {
   const now = new Date();
   const todayStr = now.toISOString().slice(0, 10);
+  const [, forceRender] = useState(0);
+  const rerender = () => forceRender(n => n + 1);
+
+  // ── Quick Action State ─────────────────────────────────────────────────
+  const [quickPay, setQuickPay] = useState(null);       // tenant object being marked paid
+  const [quickPayMode, setQuickPayMode] = useState("full"); // "full" | "partial"
+  const [quickPayAmt, setQuickPayAmt] = useState("");
+  const [quickPayDate, setQuickPayDate] = useState(todayStr);
+  const [quickRenew, setQuickRenew] = useState(null);   // lease alert being renewed
+  const [renewForm, setRenewForm] = useState({ newEnd: "", newRent: "" });
 
   // ── KPIs ────────────────────────────────────────────────────────────────
   const totalValue = PROPERTIES.reduce((s, p) => s + p.currentValue, 0);
@@ -587,7 +597,60 @@ function Dashboard({ onNavigate, onNavigateToTx, onSelectProperty }) {
     return { ...p, monthlyNet: eff.monthlyIncome - eff.monthlyExpenses, occPct: propOccPct, occupied: propOccupied, total: propTotal, nextExpiry };
   });
 
+  // ── Quick Action Handlers ────────────────────────────────────────────────
+  const handleMarkPaid = (tenant) => {
+    setQuickPay(tenant);
+    setQuickPayMode("full");
+    setQuickPayAmt(String(tenant.rent || ""));
+    setQuickPayDate(todayStr);
+  };
+
+  const confirmMarkPaid = () => {
+    if (!quickPay) return;
+    const amt = quickPayMode === "full" ? (quickPay.rent || 0) : (parseFloat(quickPayAmt) || 0);
+    if (amt <= 0) return;
+    const prop = PROPERTIES.find(p => p.id === quickPay.propertyId);
+    const desc = quickPayMode === "full"
+      ? `${new Date(quickPayDate).toLocaleString("en-US", { month: "long" })} rent — ${quickPay.unit}`
+      : `Partial rent payment — ${quickPay.unit}`;
+    // Add transaction to global array
+    TRANSACTIONS.unshift({
+      id: newId(), date: quickPayDate, property: prop?.name || "", category: "Rent Income",
+      description: desc, amount: Math.abs(amt), type: "income", payee: quickPay.name,
+    });
+    // Update tenant's lastPayment
+    const ti = TENANTS.findIndex(t => t.id === quickPay.id);
+    if (ti !== -1) TENANTS[ti].lastPayment = quickPayDate;
+    setQuickPay(null);
+    rerender();
+  };
+
+  const handleQuickRenew = (alert) => {
+    const t = alert.tenant;
+    // Default: extend 1 year from current end, keep same rent
+    const curEnd = t.leaseEnd ? new Date(t.leaseEnd) : new Date();
+    const newEnd = new Date(curEnd);
+    newEnd.setFullYear(newEnd.getFullYear() + 1);
+    setRenewForm({ newEnd: newEnd.toISOString().slice(0, 10), newRent: String(t.rent || "") });
+    setQuickRenew(alert);
+  };
+
+  const confirmRenew = () => {
+    if (!quickRenew) return;
+    const t = quickRenew.tenant;
+    const ti = TENANTS.findIndex(tn => tn.id === t.id);
+    if (ti !== -1) {
+      TENANTS[ti].leaseEnd = renewForm.newEnd;
+      TENANTS[ti].rent = parseFloat(renewForm.newRent) || TENANTS[ti].rent;
+      TENANTS[ti].status = "active-lease";
+      TENANTS[ti].leaseStart = todayStr;
+    }
+    setQuickRenew(null);
+    rerender();
+  };
+
   const sectionS = { background: "#fff", borderRadius: 16, padding: 24, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" };
+  const qInput = { padding: "8px 12px", borderRadius: 8, border: "1.5px solid #e2e8f0", fontSize: 13, color: "#0f172a", background: "#fff", outline: "none", width: "100%" };
 
   return (
     <div>
@@ -625,21 +688,63 @@ function Dashboard({ onNavigate, onNavigateToTx, onSelectProperty }) {
               <p style={{ color: "#94a3b8", fontSize: 12, marginTop: 2 }}>No lease alerts right now.</p>
             </div>
           ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-              {leaseAlerts.slice(0, 5).map((a, i) => (
-                <div key={i} onClick={() => a.prop && onSelectProperty && onSelectProperty(a.prop)} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 10px", borderRadius: 10, cursor: a.prop ? "pointer" : "default", transition: "background 0.15s" }}
-                  onMouseEnter={e => { if (a.prop) e.currentTarget.style.background = "#f8fafc"; }}
-                  onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
-                  <div style={{ width: 32, height: 32, borderRadius: 8, background: a.bg, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                    <a.icon size={14} color={a.color} />
+            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+              {leaseAlerts.slice(0, 5).map((a, i) => {
+                const isRenewing = quickRenew?.tenant?.id === a.tenant?.id;
+                return (
+                  <div key={i} style={{ borderRadius: 10, border: isRenewing ? "1.5px solid #dbeafe" : "1px solid transparent", background: isRenewing ? "#f8fafc" : "transparent", transition: "all 0.15s" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 10px", borderRadius: 10, cursor: "pointer", transition: "background 0.15s" }}
+                      onClick={() => !isRenewing && a.prop && onSelectProperty && onSelectProperty(a.prop)}
+                      onMouseEnter={e => { if (!isRenewing) e.currentTarget.style.background = "#f8fafc"; }}
+                      onMouseLeave={e => { if (!isRenewing) e.currentTarget.style.background = "transparent"; }}>
+                      <div style={{ width: 32, height: 32, borderRadius: 8, background: a.bg, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                        <a.icon size={14} color={a.color} />
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={{ fontSize: 13, fontWeight: 600, color: "#0f172a", marginBottom: 1 }}>{a.title}</p>
+                        <p style={{ fontSize: 12, color: "#94a3b8" }}>{a.sub}</p>
+                      </div>
+                      {/* Quick action buttons */}
+                      {(a.type === "expired" || a.type === "expiring" || a.type === "mtm") && (
+                        <button onClick={e => { e.stopPropagation(); isRenewing ? setQuickRenew(null) : handleQuickRenew(a); }}
+                          style={{ padding: "4px 10px", borderRadius: 7, border: "1px solid #e2e8f0", background: isRenewing ? "#e2e8f0" : "#fff", color: isRenewing ? "#475569" : "#3b82f6", fontSize: 11, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap" }}>
+                          {isRenewing ? "Cancel" : "Renew"}
+                        </button>
+                      )}
+                      {a.type === "vacant" && onNavigateToTenantAdd && (
+                        <button onClick={e => { e.stopPropagation(); onNavigateToTenantAdd(a.tenant.propertyId, a.tenant.unit); }}
+                          style={{ padding: "4px 10px", borderRadius: 7, border: "1px solid #e2e8f0", background: "#fff", color: "#10b981", fontSize: 11, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap" }}>
+                          List Unit
+                        </button>
+                      )}
+                      {!(a.type === "expired" || a.type === "expiring" || a.type === "mtm" || a.type === "vacant") && (
+                        <ChevronRight size={14} color="#cbd5e1" />
+                      )}
+                    </div>
+                    {/* Quick Renew Inline Form */}
+                    {isRenewing && (
+                      <div style={{ padding: "8px 10px 12px", borderTop: "1px solid #e2e8f0" }}>
+                        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                          <div style={{ flex: 1 }}>
+                            <p style={{ fontSize: 11, color: "#64748b", fontWeight: 600, marginBottom: 3 }}>New Lease End</p>
+                            <input type="date" value={renewForm.newEnd} onChange={e => setRenewForm(f => ({ ...f, newEnd: e.target.value }))}
+                              style={qInput} />
+                          </div>
+                          <div style={{ flex: 1 }}>
+                            <p style={{ fontSize: 11, color: "#64748b", fontWeight: 600, marginBottom: 3 }}>New Rent</p>
+                            <input type="number" value={renewForm.newRent} onChange={e => setRenewForm(f => ({ ...f, newRent: e.target.value }))}
+                              style={qInput} placeholder={String(a.tenant?.rent || "")} />
+                          </div>
+                          <button onClick={confirmRenew}
+                            style={{ padding: "8px 16px", borderRadius: 8, border: "none", background: "#3b82f6", color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap", marginTop: 16 }}>
+                            Confirm
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ fontSize: 13, fontWeight: 600, color: "#0f172a", marginBottom: 1 }}>{a.title}</p>
-                    <p style={{ fontSize: 12, color: "#94a3b8" }}>{a.sub}</p>
-                  </div>
-                  <ChevronRight size={14} color="#cbd5e1" />
-                </div>
-              ))}
+                );
+              })}
               {leaseAlerts.length > 5 && (
                 <button onClick={() => onNavigate && onNavigate("tenants")} style={{ background: "none", border: "none", color: "#3b82f6", fontSize: 13, fontWeight: 600, cursor: "pointer", padding: "8px 0", textAlign: "center" }}>
                   View all {leaseAlerts.length} alerts
@@ -676,13 +781,49 @@ function Dashboard({ onNavigate, onNavigateToTx, onSelectProperty }) {
               <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                 {unpaidTenants.slice(0, 4).map(t => {
                   const prop = PROPERTIES.find(p => p.id === t.propertyId);
+                  const isExpanded = quickPay?.id === t.id;
                   return (
-                    <div key={t.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 8px", borderRadius: 8 }}>
-                      <div>
-                        <p style={{ fontSize: 13, fontWeight: 600, color: "#0f172a" }}>{t.name}</p>
-                        <p style={{ fontSize: 12, color: "#94a3b8" }}>{prop?.name?.split(" ").slice(0, 2).join(" ") || ""} · {t.unit}</p>
+                    <div key={t.id} style={{ borderRadius: 10, border: isExpanded ? "1.5px solid #dbeafe" : "1px solid transparent", background: isExpanded ? "#f8fafc" : "transparent", transition: "all 0.15s" }}>
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 10px" }}>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <p style={{ fontSize: 13, fontWeight: 600, color: "#0f172a" }}>{t.name}</p>
+                          <p style={{ fontSize: 12, color: "#94a3b8" }}>{prop?.name?.split(" ").slice(0, 2).join(" ") || ""} · {t.unit}</p>
+                        </div>
+                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                          <span style={{ fontSize: 14, fontWeight: 700, color: "#b91c1c" }}>{fmt(t.rent)}</span>
+                          <button onClick={e => { e.stopPropagation(); isExpanded ? setQuickPay(null) : handleMarkPaid(t); }}
+                            style={{ padding: "5px 10px", borderRadius: 8, border: "none", background: isExpanded ? "#e2e8f0" : "#10b981", color: isExpanded ? "#475569" : "#fff", fontSize: 12, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap", transition: "all 0.15s" }}>
+                            {isExpanded ? "Cancel" : "Mark Paid"}
+                          </button>
+                        </div>
                       </div>
-                      <span style={{ fontSize: 14, fontWeight: 700, color: "#b91c1c" }}>{fmt(t.rent)}</span>
+                      {/* Quick Pay Inline Form */}
+                      {isExpanded && (
+                        <div style={{ padding: "8px 10px 12px", borderTop: "1px solid #e2e8f0" }}>
+                          <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
+                            <button onClick={() => { setQuickPayMode("full"); setQuickPayAmt(String(t.rent || "")); }}
+                              style={{ flex: 1, padding: "7px 0", borderRadius: 8, border: quickPayMode === "full" ? "1.5px solid #10b981" : "1.5px solid #e2e8f0", background: quickPayMode === "full" ? "#dcfce7" : "#fff", color: quickPayMode === "full" ? "#15803d" : "#64748b", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
+                              Full — {fmt(t.rent)}
+                            </button>
+                            <button onClick={() => { setQuickPayMode("partial"); setQuickPayAmt(""); }}
+                              style={{ flex: 1, padding: "7px 0", borderRadius: 8, border: quickPayMode === "partial" ? "1.5px solid #f59e0b" : "1.5px solid #e2e8f0", background: quickPayMode === "partial" ? "#fef3c7" : "#fff", color: quickPayMode === "partial" ? "#a16207" : "#64748b", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
+                              Partial
+                            </button>
+                          </div>
+                          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                            {quickPayMode === "partial" && (
+                              <input type="number" placeholder="Amount" value={quickPayAmt} onChange={e => setQuickPayAmt(e.target.value)}
+                                style={{ ...qInput, width: 100 }} />
+                            )}
+                            <input type="date" value={quickPayDate} onChange={e => setQuickPayDate(e.target.value)}
+                              style={{ ...qInput, width: quickPayMode === "partial" ? 130 : "auto", flex: quickPayMode === "full" ? 1 : undefined }} />
+                            <button onClick={confirmMarkPaid}
+                              style={{ padding: "8px 16px", borderRadius: 8, border: "none", background: "#10b981", color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" }}>
+                              Confirm
+                            </button>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   );
                 })}
@@ -5494,7 +5635,7 @@ function FlipDetail({ flip, onBack, backLabel, allFlips, setAllFlips, onNavigate
 // ---------------------------------------------
 // RENT ROLL
 // ---------------------------------------------
-function RentRoll({ onBack, highlightTenantId, onClearHighlight }) {
+function RentRoll({ onBack, highlightTenantId, onClearHighlight, prefillTenant, onClearPrefill }) {
   const [tenantData, setTenantData] = useState(TENANTS);
   const [showModal, setShowModal] = useState(false);
   const [editId, setEditId] = useState(null);
@@ -5535,6 +5676,16 @@ function RentRoll({ onBack, highlightTenantId, onClearHighlight }) {
     reader.readAsDataURL(file);
     e.target.value = "";
   };
+
+  // Auto-open add form when navigating from Dashboard "List Unit" quick action
+  useEffect(() => {
+    if (prefillTenant) {
+      setEditId(null);
+      setForm({ ...emptyT, propertyId: prefillTenant.propertyId, unit: prefillTenant.unit || "" });
+      setShowModal(true);
+      onClearPrefill && onClearPrefill();
+    }
+  }, [prefillTenant]);
 
   const openAdd = () => { setEditId(null); setForm(emptyT); setShowModal(true); };
   const openEdit = t => {
@@ -6836,6 +6987,7 @@ function AppShell() {
   const [highlightTenantId, setHighlightTenantId] = useState(null);
   const [navSource, setNavSource] = useState(null);
   const [editPropertyId, setEditPropertyId] = useState(null); // triggers edit modal in Properties
+  const [prefillTenant, setPrefillTenant] = useState(null);  // { propertyId, unit } for quick-add from Dashboard
   const [selectedContractor, setSelectedContractor] = useState(null);
 
   const handleSelectContractor = (contractor) => {
@@ -7001,7 +7153,7 @@ function AppShell() {
           </div>
         </div>
         <div style={{ flex: 1, padding: 32, maxWidth: 1400, width: "100%" }}>
-          {activeView === "dashboard" && <Dashboard onNavigate={setActiveView} onNavigateToTx={navigateToTransaction} onSelectProperty={handlePropertySelect} />}
+          {activeView === "dashboard" && <Dashboard onNavigate={setActiveView} onNavigateToTx={navigateToTransaction} onSelectProperty={handlePropertySelect} onNavigateToTenantAdd={(propId, unit) => { setPrefillTenant({ propertyId: propId, unit }); setActiveView("tenants"); }} />}
           {activeView === "properties" && <Properties onSelect={handlePropertySelect} editPropertyId={editPropertyId} onClearEditId={() => setEditPropertyId(null)} />}
           {activeView === "propertyDetail" && selectedProperty && <PropertyDetail property={selectedProperty} onBack={() => setActiveView("properties")} onEditProperty={(p) => { setEditPropertyId(p.id); setActiveView("properties"); }} onGoToTransactions={() => setActiveView("transactions")} onNavigateToTransaction={(txId) => { if (txId) { setHighlightTxId(txId); setNavSource("propertyDetail"); } setActiveView("transactions"); }} onNavigateToTenant={(tenantId) => { setHighlightTenantId(tenantId); setNavSource("propertyDetail"); setActiveView("tenants"); }} />}
           {activeView === "transactions" && <Transactions highlightTxId={highlightTxId} backLabel={navSource === "propertyDetail" ? "Back to Property" : "Back to Dashboard"} onBack={navSource === "dashboard" ? () => { setActiveView("dashboard"); setHighlightTxId(null); setNavSource(null); } : navSource === "propertyDetail" ? () => { setActiveView("propertyDetail"); setHighlightTxId(null); setNavSource(null); } : null} onClearHighlight={() => setHighlightTxId(null)} />}
@@ -7019,7 +7171,7 @@ function AppShell() {
           {activeView === "flipnotes"       && <FlipNotes />}
           {activeView === "flipanalytics"   && <FlipAnalytics />}
           {activeView === "flipreports"    && <FlipReports />}
-          {activeView === "tenants" && <RentRoll onBack={navSource === "propertyDetail" ? () => { setActiveView("propertyDetail"); setHighlightTenantId(null); setNavSource(null); } : null} highlightTenantId={highlightTenantId} onClearHighlight={() => setHighlightTenantId(null)} />}
+          {activeView === "tenants" && <RentRoll onBack={navSource === "propertyDetail" ? () => { setActiveView("propertyDetail"); setHighlightTenantId(null); setNavSource(null); } : null} highlightTenantId={highlightTenantId} onClearHighlight={() => setHighlightTenantId(null)} prefillTenant={prefillTenant} onClearPrefill={() => setPrefillTenant(null)} />}
           {activeView === "mileage" && <MileageTracker />}
           {activeView === "dealanalyzer" && <DealAnalyzer />}
         </div>
