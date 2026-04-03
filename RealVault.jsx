@@ -27,6 +27,7 @@ import {
 import { AuthProvider, AuthScreen, useAuth } from "./auth.jsx";
 import { Settings, OnboardingWizard } from "./settings.jsx";
 import { FlipDashboard, RehabTracker, FlipExpenses, FlipContractors, ContractorDetail, FlipAnalytics, FlipMilestones, FlipNotes } from "./flips.jsx";
+import { FlipReports } from "./flipReports.jsx";
 
 // ─── Annual Tax Config ──────────────────────────────────────────────
 // Update this block once per year (typically January) when IRS publishes new rates.
@@ -6125,6 +6126,7 @@ function AppShell() {
     { id: "flipmilestones",  label: "Milestones",      icon: Flag            },
     { id: "flipnotes",       label: "Notes",            icon: MessageSquare   },
     { id: "flipanalytics",   label: "Analytics",       icon: BarChart3       },
+    { id: "flipreports",    label: "Reports",         icon: FileText        },
   ];
 
   // Cross-cutting tools — apply to both rentals and flips
@@ -6262,6 +6264,7 @@ function AppShell() {
           {activeView === "flipmilestones"  && <FlipMilestones />}
           {activeView === "flipnotes"       && <FlipNotes />}
           {activeView === "flipanalytics"   && <FlipAnalytics />}
+          {activeView === "flipreports"    && <FlipReports />}
           {activeView === "rentroll" && <RentRoll onBack={navSource === "propertyDetail" ? () => { setActiveView("propertyDetail"); setHighlightTenantId(null); setNavSource(null); } : null} highlightTenantId={highlightTenantId} onClearHighlight={() => setHighlightTenantId(null)} />}
           {activeView === "mileage" && <MileageTracker />}
           {activeView === "dealanalyzer" && <DealAnalyzer />}
