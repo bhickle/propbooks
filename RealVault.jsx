@@ -3999,8 +3999,8 @@ function FlipPipeline({ onSelect }) {
   );
 }
 
-function FlipDetail({ flip, onBack, allFlips, setAllFlips, onNavigateToExpense }) {
-  const [activeTab, setActiveTab] = useState("overview");
+function FlipDetail({ flip, onBack, allFlips, setAllFlips, onNavigateToExpense, initialTab }) {
+  const [activeTab, setActiveTab] = useState(initialTab || "overview");
   const [showExpenseModal, setShowExpenseModal] = useState(false);
   const [showContractorModal, setShowContractorModal] = useState(false);
   const [expData, setExpData] = useState(FLIP_EXPENSES.filter(e => e.flipId === flip.id));
@@ -6653,8 +6653,10 @@ function AppShell() {
     setActiveView("propertyDetail");
   };
 
-  const handleFlipSelect = (f) => {
+  const [flipInitialTab, setFlipInitialTab] = useState(null);
+  const handleFlipSelect = (f, tab) => {
     setSelectedFlip(f);
+    setFlipInitialTab(tab || null);
     setActiveView("flipDetail");
   };
 
@@ -6770,7 +6772,7 @@ function AppShell() {
           {activeView === "reports" && <Reports />}
           {activeView === "flipdashboard"   && <FlipDashboard onSelect={handleFlipSelect} />}
           {activeView === "flips"           && <FlipPipeline onSelect={handleFlipSelect} />}
-          {activeView === "flipDetail"      && selectedFlip && <FlipDetail flip={selectedFlip} onBack={() => setActiveView("flips")} onNavigateToExpense={navigateToFlipExpense} />}
+          {activeView === "flipDetail"      && selectedFlip && <FlipDetail flip={selectedFlip} onBack={() => setActiveView("flips")} onNavigateToExpense={navigateToFlipExpense} initialTab={flipInitialTab} />}
           {activeView === "fliprehab"        && <RehabTracker />}
           {activeView === "flipexpenses"    && <FlipExpenses highlightExpId={highlightExpId} onBack={navSource === "flipDetail" ? () => { setActiveView("flipDetail"); setHighlightExpId(null); setNavSource(null); } : null} onClearHighlight={() => setHighlightExpId(null)} />}
           {activeView === "flipcontractors" && <FlipContractors onSelectContractor={handleSelectContractor} />}

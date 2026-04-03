@@ -139,14 +139,14 @@ export function FlipDashboard({ onSelect }) {
     const items = [];
     const shortName = f => f.name.split(" ").slice(0, 2).join(" ");
 
-    // Completed milestones
+    // Completed milestones → milestones tab
     allFlips.forEach(f => {
       const ms = _FM[f.id] || [];
       ms.forEach(m => {
         if (m.done && m.date) {
           const isSold = m.label.toLowerCase().includes("sold") || m.label.toLowerCase().includes("closed");
           items.push({
-            flipId: f.id, flip: f, date: m.date,
+            flipId: f.id, flip: f, date: m.date, tab: "milestones",
             text: `${shortName(f)} – ${m.label}`,
             icon: isSold ? Star : m.label.toLowerCase().includes("inspect") ? Flag : CheckCircle,
             color: isSold ? "#6b7280" : "#10b981",
@@ -155,24 +155,24 @@ export function FlipDashboard({ onSelect }) {
       });
     });
 
-    // Recent expenses (FLIP_EXPENSES is a flat array with flipId field)
+    // Recent expenses → expenses tab
     allFlips.forEach(f => {
       const exps = _FE.filter(e => e.flipId === f.id).slice(-3);
       exps.forEach(e => {
         items.push({
-          flipId: f.id, flip: f, date: e.date,
+          flipId: f.id, flip: f, date: e.date, tab: "expenses",
           text: `${shortName(f)} – ${e.description || e.category}`,
           icon: Receipt, color: "#3b82f6",
         });
       });
     });
 
-    // Recent notes
+    // Recent notes → notes tab
     allFlips.forEach(f => {
       const notes = (_FN[f.id] || []).slice(-2);
       notes.forEach(n => {
         items.push({
-          flipId: f.id, flip: f, date: n.date,
+          flipId: f.id, flip: f, date: n.date, tab: "notes",
           text: `${shortName(f)} – ${n.text.length > 50 ? n.text.slice(0, 50) + "…" : n.text}`,
           icon: MessageSquare, color: "#8b5cf6",
         });
@@ -285,7 +285,7 @@ export function FlipDashboard({ onSelect }) {
               <p style={{ color: "#94a3b8", fontSize: 12 }}>No activity yet. Complete milestones, log expenses, or add notes to see updates here.</p>
             )}
             {recentActivity.map((a, i) => (
-              <div key={i} onClick={() => onSelect && onSelect(a.flip)} style={{ display: "flex", gap: 10, marginBottom: 12, cursor: "pointer", padding: "6px 8px", marginLeft: -8, marginRight: -8, borderRadius: 10, transition: "background 0.15s" }} onMouseEnter={e => e.currentTarget.style.background = "#f8fafc"} onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+              <div key={i} onClick={() => onSelect && onSelect(a.flip, a.tab)} style={{ display: "flex", gap: 10, marginBottom: 12, cursor: "pointer", padding: "6px 8px", marginLeft: -8, marginRight: -8, borderRadius: 10, transition: "background 0.15s" }} onMouseEnter={e => e.currentTarget.style.background = "#f8fafc"} onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
                 <div style={{ width: 28, height: 28, borderRadius: 8, background: a.color + "18", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                   <a.icon size={13} color={a.color} />
                 </div>
