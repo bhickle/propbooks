@@ -863,8 +863,7 @@ export function FlipExpenses({ highlightExpId, onBack, onClearHighlight, backLab
   });
 
   const total     = filtered.reduce((s, e) => s + e.amount, 0);
-  const dealsWithExpenses = new Set(filtered.map(e => e.flipId)).size;
-  const avgPerDeal = dealsWithExpenses > 0 ? Math.round(total / dealsWithExpenses) : 0;
+  const highestExp = filtered.length > 0 ? filtered.reduce((max, e) => e.amount > max.amount ? e : max, filtered[0]) : null;
 
   const catTotals = EXPENSE_CATS.map(cat => ({
     cat, total: filtered.filter(e => e.category === cat).reduce((s, e) => s + e.amount, 0),
@@ -915,7 +914,7 @@ export function FlipExpenses({ highlightExpId, onBack, onClearHighlight, backLab
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, marginBottom: 24 }}>
         <StatCard icon={Receipt}    label="Total Expenses"    value={fmt(total)}     sub={`${filtered.length} transactions`} color="#f59e0b" tip="Sum of all expenses matching the current filters." />
-        <StatCard icon={DollarSign} label="Avg Per Deal"      value={fmt(avgPerDeal)} sub={`${dealsWithExpenses} deal${dealsWithExpenses !== 1 ? "s" : ""} with expenses`} color="#3b82f6" tip="Total filtered expenses divided by the number of deals that have at least one expense in the current view." />
+        <StatCard icon={TrendingUp}  label="Largest Expense"   value={highestExp ? fmt(highestExp.amount) : "—"} sub={highestExp ? `${highestExp.description || highestExp.category}` : "No expenses"} color="#3b82f6" tip="The single highest expense in the current filtered view." />
         <StatCard icon={Hammer}     label="Largest Category"  value={catTotals[0]?.cat || "—"} sub={catTotals[0] ? fmt(catTotals[0].total) : ""}  color="#8b5cf6" tip="The expense category with the highest total spend." />
       </div>
 
