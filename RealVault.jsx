@@ -2085,6 +2085,9 @@ function Analytics() {
             <option value="">All Properties</option>
             {PROPERTIES.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
           </select>
+          <button onClick={() => exportAnalyticsCSV(selectedProp, PROPERTIES, TRANSACTIONS, TENANTS)} style={{ background: "#fff", color: "#475569", border: "1px solid #e2e8f0", borderRadius: 10, padding: "10px 16px", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
+            <Download size={16} /> Export CSV
+          </button>
         </div>
       </div>
 
@@ -2484,7 +2487,62 @@ function downloadFile(content, filename, mimeType) {
   document.body.removeChild(a); URL.revokeObjectURL(url);
 }
 
-function exportReportCSV(activeReport, reportProps, monthlyData, deprRows, lenderData, calcPropLines, taxYear) {
+function exportAnalyticsCSV(selectedProp, properties, transactions, tenants) {
+  let csv = "";
+  const currentYear = new Date().getFullYear();
+
+  if (!selectedProp) {
+    // Portfolio view: all properties
+    csv = "Property,Monthly Income,Monthly Expenses,Net Cash Flow,Annual NOI,Cap Rate %,Cash-on-Cash %,Current Value,Purchase Price,Equity,Appreciation %,Expense Ratio %,DSCR\n";
+    properties.forEach(p => {
+      const eff = getEffectiveMonthly(p, transactions);
+      const monthlyIncome = eff.monthlyIncome;
+      const monthlyExpenses = eff.monthlyExpenses;
+      const netCashFlow = monthlyIncome - monthlyExpenses;
+      const annualNOI = netCashFlow * 12;
+      const capRate = calcCapRate(p, transactions);
+      const cashOnCash = calcCashOnCash(p, transactions);
+      const equity = p.currentValue - (calcLoanBalance(p.loanAmount, p.loanRate, p.loanTermYears, p.loanStartDate) ?? p.loanAmount ?? 0);
+      const appreciation = p.purchasePrice > 0 ? ((p.currentValue - p.purchasePrice) / p.purchasePrice * 100).toFixed(1) : "0";
+      const expenseRatio = monthlyIncome > 0 ? ((monthlyExpenses / monthlyIncome) * 100).toFixed(1) : "0";
+
+      // DSCR calculation
+      let dscr = "N/A";
+      if (p.loanAmount && p.loanRate && p.loanTermYears) {
+        const r = p.loanRate / 100 / 12;
+        const n = p.loanTermYears * 12;
+        const M = p.loanAmount * r * Math.pow(1 + r, n) / (Math.pow(1 + r, n) - 1);
+        const annualDS = M * 12;
+        if (annualDS > 0) dscr = (annualNOI / annualDS).toFixed(2);
+      }
+
+      csv += `"${p.name}",${monthlyIncome},${monthlyExpenses},${netCashFlow},${annualNOI},${capRate},${cashOnCash},${p.currentValue},${p.purchasePrice},${Math.round(equity)},${appreciation},${expenseRatio},${dscr}\n`;
+    });
+  } else {
+    // Single property view: trailing 12 months
+    csv = "Month,Income,Expenses,Net\n";
+    const EXP_FACTORS = [1.0, 0.88, 1.15, 0.92, 1.05, 1.18, 0.97, 1.22, 0.89, 1.08, 1.30, 0.95];
+    const ALL_MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+    const currentMonth = new Date().getMonth();
+    const TRAILING_MONTHS = Array.from({ length: 12 }, (_, i) => {
+      const idx = (currentMonth - 11 + i + 12) % 12;
+      return { label: ALL_MONTHS[idx], idx };
+    });
+
+    const eff = getEffectiveMonthly(selectedProp, transactions);
+    TRAILING_MONTHS.forEach(({ label, idx }) => {
+      const income = eff.monthlyIncome;
+      const expenses = Math.round(eff.monthlyExpenses * EXP_FACTORS[idx]);
+      const net = income - expenses;
+      csv += `${label},${income},${expenses},${net}\n`;
+    });
+  }
+
+  const filename = selectedProp ? `RealVault_Analytics_${selectedProp.name}_${currentYear}.csv` : `RealVault_Analytics_Portfolio_${currentYear}.csv`;
+  downloadFile(csv, filename, "text/csv");
+}
+
+function exportReportCSV(activeReport, reportProps, monthlyData, deprRows, lenderData, calcPropLines, taxYear, ownerMonth) {
   let csv = "";
   if (activeReport === "scheduleE") {
     csv = "Property,Line,Description,Amount\n";
@@ -2531,7 +2589,7 @@ function exportReportCSV(activeReport, reportProps, monthlyData, deprRows, lende
     if (p) {
       const monthTx = TRANSACTIONS.filter(t => {
         const d = new Date(t.date);
-        return d.getMonth() === new Date().getMonth() && d.getFullYear() === Number(taxYear) && t.property === p.name;
+        return d.getMonth() === ownerMonth && d.getFullYear() === Number(taxYear) && t.property === p.name;
       });
       monthTx.forEach(t => { csv += `${t.type},${t.date},"${t.description}","${t.category}",${t.amount}\n`; });
     }
@@ -2546,7 +2604,7 @@ function exportReportCSV(activeReport, reportProps, monthlyData, deprRows, lende
   downloadFile(csv, `RealVault_${activeReport}_${taxYear}.csv`, "text/csv");
 }
 
-function exportReportPDF(activeReport, reportProps, monthlyData, deprRows, lenderData, calcPropLines, taxYear, propFilter) {
+function exportReportPDF(activeReport, reportProps, monthlyData, deprRows, lenderData, calcPropLines, taxYear, propFilter, ownerMonth) {
   // Build printable HTML and open in new window for browser print-to-PDF
   const reportNames = { scheduleE: "Schedule E", cashflow: "Cash Flow Report", ownerStatement: "Owner's Statement", lenderPackage: "Lender Package", depreciation: "Depreciation Schedule", yearend: "Year-End Summary" };
   let tableHTML = "";
@@ -2594,6 +2652,37 @@ function exportReportPDF(activeReport, reportProps, monthlyData, deprRows, lende
     const totIn = allTx.filter(t => t.type === "income").reduce((s, t) => s + t.amount, 0);
     const totOut = allTx.filter(t => t.type === "expense").reduce((s, t) => s + Math.abs(t.amount), 0);
     tableHTML += `<tr style="border-top:2px solid #333;font-weight:bold"><td colspan="5">Totals (${allTx.length} transactions)</td><td style="text-align:right">In: $${totIn.toLocaleString()} | Out: $${totOut.toLocaleString()}</td></tr></table>`;
+  } else if (activeReport === "ownerStatement") {
+    tableHTML = `<table><tr><th>Type</th><th>Date</th><th>Description</th><th>Category</th><th style="text-align:right">Amount</th></tr>`;
+    const p = reportProps[0];
+    if (p) {
+      const MONTH_NAMES = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+      const monthTx = TRANSACTIONS.filter(t => {
+        const d = new Date(t.date);
+        return d.getMonth() === ownerMonth && d.getFullYear() === Number(taxYear) && t.property === p.name;
+      });
+      monthTx.forEach(t => {
+        const isIncome = t.type === "income";
+        tableHTML += `<tr><td>${t.type}</td><td>${t.date}</td><td>${t.description}</td><td>${t.category}</td><td style="text-align:right;color:${isIncome ? 'green' : '#b91c1c'}">${isIncome ? '+' : '-'}$${Math.abs(t.amount).toLocaleString()}</td></tr>`;
+      });
+      const totIn = monthTx.filter(t => t.type === "income").reduce((s, t) => s + t.amount, 0);
+      const totOut = monthTx.filter(t => t.type === "expense").reduce((s, t) => s + Math.abs(t.amount), 0);
+      tableHTML += `<tr style="border-top:2px solid #333;font-weight:bold"><td colspan="4">Totals</td><td style="text-align:right">In: $${totIn.toLocaleString()} | Out: $${totOut.toLocaleString()}</td></tr></table>`;
+    }
+  } else if (activeReport === "yearend") {
+    tableHTML = `<table><tr><th>Property</th><th style="text-align:right">Annual Rent</th><th style="text-align:right">Annual Expenses</th><th style="text-align:right">Depreciation</th><th style="text-align:right">Mortgage Interest (est)</th><th style="text-align:right">Net</th></tr>`;
+    reportProps.forEach(p => {
+      const cEff = getEffectiveMonthly(p, TRANSACTIONS);
+      const annRent = cEff.monthlyIncome * 12;
+      const annExp = cEff.monthlyExpenses * 12;
+      const yrs = p.type === "Commercial" ? TAX_CONFIG.depreciationCommercial : TAX_CONFIG.depreciationResidential;
+      const depr = Math.round(getDeprBasis(p).basis / yrs);
+      const bal = calcLoanBalance(p.loanAmount, p.loanRate, p.loanTermYears, p.loanStartDate) ?? (p.loanAmount || 0);
+      const intEst = Math.round(bal * (p.loanRate || 4) / 100);
+      const net = annRent - annExp - depr - intEst;
+      tableHTML += `<tr><td>${p.name}</td><td style="text-align:right">$${Math.round(annRent).toLocaleString()}</td><td style="text-align:right">$${Math.round(annExp).toLocaleString()}</td><td style="text-align:right">$${depr.toLocaleString()}</td><td style="text-align:right">$${intEst.toLocaleString()}</td><td style="text-align:right;color:${net >= 0 ? 'green' : '#b91c1c'}">$${Math.round(net).toLocaleString()}</td></tr>`;
+    });
+    tableHTML += `</table>`;
   } else {
     tableHTML = `<p>Use your browser's print dialog to save as PDF.</p>`;
   }
@@ -2868,10 +2957,10 @@ function Reports() {
             <option value="all">All Properties</option>
             {PROPERTIES.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
           </select>
-          <button onClick={() => exportReportCSV(activeReport, reportProps, monthlyData, deprRows, lenderData, calcPropLines, taxYear)} style={{ background: "#fff", color: "#475569", border: "1px solid #e2e8f0", borderRadius: 10, padding: "10px 16px", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
+          <button onClick={() => exportReportCSV(activeReport, reportProps, monthlyData, deprRows, lenderData, calcPropLines, taxYear, ownerMonth)} style={{ background: "#fff", color: "#475569", border: "1px solid #e2e8f0", borderRadius: 10, padding: "10px 16px", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
             <Download size={16} /> CSV
           </button>
-          <button onClick={() => exportReportPDF(activeReport, reportProps, monthlyData, deprRows, lenderData, calcPropLines, taxYear, propFilter)} style={{ background: "#3b82f6", color: "#fff", border: "none", borderRadius: 10, padding: "10px 16px", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
+          <button onClick={() => exportReportPDF(activeReport, reportProps, monthlyData, deprRows, lenderData, calcPropLines, taxYear, propFilter, ownerMonth)} style={{ background: "#3b82f6", color: "#fff", border: "none", borderRadius: 10, padding: "10px 16px", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
             <Download size={16} /> PDF
           </button>
         </div>
