@@ -134,12 +134,58 @@ export function FlipDashboard({ onSelect }) {
     color: STAGE_COLORS[s]?.dot || "#94a3b8",
   }));
 
-  const recentActivity = [
-    { text: "Oakdale Craftsman – flooring install started",  date: "Mar 22", icon: Wrench,   color: "#f59e0b" },
-    { text: "Pine Street Ranch – offer accepted",             date: "Mar 20", icon: CheckCircle, color: "#10b981" },
-    { text: "Hawthorne Heights – inspection complete",        date: "Mar 12", icon: Flag,     color: "#8b5cf6" },
-    { text: "Birchwood Colonial – closed at $361,500",        date: "Aug 29", icon: Star,     color: "#6b7280" },
-  ];
+  // Derive recent activity from real data: milestones, expenses, notes
+  const recentActivity = useMemo(() => {
+    const items = [];
+    const shortName = f => f.name.split(" ").slice(0, 2).join(" ");
+
+    // Completed milestones
+    allFlips.forEach(f => {
+      const ms = _FM[f.id] || [];
+      ms.forEach(m => {
+        if (m.done && m.date) {
+          const isSold = m.label.toLowerCase().includes("sold") || m.label.toLowerCase().includes("closed");
+          items.push({
+            flipId: f.id, flip: f, date: m.date,
+            text: `${shortName(f)} – ${m.label}`,
+            icon: isSold ? Star : m.label.toLowerCase().includes("inspect") ? Flag : CheckCircle,
+            color: isSold ? "#6b7280" : "#10b981",
+          });
+        }
+      });
+    });
+
+    // Recent expenses
+    allFlips.forEach(f => {
+      const exps = (_FE[f.id] || []).slice(-3);
+      exps.forEach(e => {
+        items.push({
+          flipId: f.id, flip: f, date: e.date,
+          text: `${shortName(f)} – ${e.description || e.category}`,
+          icon: Receipt, color: "#3b82f6",
+        });
+      });
+    });
+
+    // Recent notes
+    allFlips.forEach(f => {
+      const notes = (_FN[f.id] || []).slice(-2);
+      notes.forEach(n => {
+        items.push({
+          flipId: f.id, flip: f, date: n.date,
+          text: `${shortName(f)} – ${n.text.length > 50 ? n.text.slice(0, 50) + "…" : n.text}`,
+          icon: MessageSquare, color: "#8b5cf6",
+        });
+      });
+    });
+
+    // Sort by date descending, take latest 6
+    items.sort((a, b) => new Date(b.date) - new Date(a.date));
+    return items.slice(0, 6).map(item => ({
+      ...item,
+      dateLabel: new Date(item.date).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+    }));
+  }, [allFlips]);
 
   const isFiltered = filterStage !== "all";
 
@@ -235,15 +281,19 @@ export function FlipDashboard({ onSelect }) {
 
           <div style={{ background: "#fff", borderRadius: 16, padding: 22, border: "1px solid #f1f5f9", flex: 1 }}>
             <p style={{ color: "#0f172a", fontSize: 15, fontWeight: 700, marginBottom: 14 }}>Recent Activity</p>
+            {recentActivity.length === 0 && (
+              <p style={{ color: "#94a3b8", fontSize: 12 }}>No activity yet. Complete milestones, log expenses, or add notes to see updates here.</p>
+            )}
             {recentActivity.map((a, i) => (
-              <div key={i} style={{ display: "flex", gap: 10, marginBottom: 12 }}>
+              <div key={i} onClick={() => onSelect && onSelect(a.flip)} style={{ display: "flex", gap: 10, marginBottom: 12, cursor: "pointer", padding: "6px 8px", marginLeft: -8, marginRight: -8, borderRadius: 10, transition: "background 0.15s" }} onMouseEnter={e => e.currentTarget.style.background = "#f8fafc"} onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
                 <div style={{ width: 28, height: 28, borderRadius: 8, background: a.color + "18", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                   <a.icon size={13} color={a.color} />
                 </div>
-                <div>
-                  <p style={{ color: "#374151", fontSize: 12, lineHeight: 1.4 }}>{a.text}</p>
-                  <p style={{ color: "#94a3b8", fontSize: 11, marginTop: 2 }}>{a.date}</p>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ color: "#374151", fontSize: 12, lineHeight: 1.4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.text}</p>
+                  <p style={{ color: "#94a3b8", fontSize: 11, marginTop: 2 }}>{a.dateLabel}</p>
                 </div>
+                <ChevronRight size={12} color="#cbd5e1" style={{ flexShrink: 0, marginTop: 4 }} />
               </div>
             ))}
           </div>
