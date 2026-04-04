@@ -22,7 +22,7 @@ import {
 
 // Shared mock data refs (passed as props or imported directly)
 // Using module-level state so all modules stay in sync within a session
-import { FLIPS as _FLIPS, FLIP_EXPENSES as _FE, CONTRACTORS as _CON, FLIP_MILESTONES_DATA as _FM, FLIP_NOTES as _FN } from "./api.js";
+import { FLIPS as _FLIPS, FLIP_EXPENSES as _FE, CONTRACTORS as _CON, FLIP_MILESTONES, FLIP_NOTES, CONTRACTOR_BIDS as _BIDS, CONTRACTOR_PAYMENTS as _PAYMENTS, CONTRACTOR_DOCUMENTS as _DOCS } from "./api.js";
 
 // ---------------------------------------------------------------------------
 // Shared helpers
@@ -130,7 +130,7 @@ export function FlipDashboard({ onSelect, onNavigateToNote, onNavigateToExpense,
   const realizedProfit  = sold.reduce((s, f) => s + (f.netProfit || 0), 0);
   const projectedProfit = active.reduce((s, f) => {
     const cost = f.purchasePrice + f.rehabBudget + (f.holdingCostsPerMonth * ((f.daysOwned || 0) / 30));
-    return s + (f.arv - cost - f.arv * 0.06);
+    return s + (f.arv - cost - f.arv * ((f.sellingCostPct || 6) / 100));
   }, 0);
 
   const stageBreakdown = STAGE_ORDER.map(s => ({
@@ -145,7 +145,7 @@ export function FlipDashboard({ onSelect, onNavigateToNote, onNavigateToExpense,
 
     // Completed milestones → milestones tab
     allFlips.forEach(f => {
-      const ms = _FM[f.id] || [];
+      const ms = FLIP_MILESTONES.filter(m => m.flipId === f.id);
       ms.forEach(m => {
         if (m.done && m.date) {
           const isSold = m.label.toLowerCase().includes("sold") || m.label.toLowerCase().includes("closed");
@@ -174,7 +174,7 @@ export function FlipDashboard({ onSelect, onNavigateToNote, onNavigateToExpense,
 
     // Recent notes → notes tab
     allFlips.forEach(f => {
-      const notes = (_FN[f.id] || []).slice(-2);
+      const notes = FLIP_NOTES.filter(n => n.flipId === f.id).slice(-2);
       notes.forEach(n => {
         items.push({
           flipId: f.id, flip: f, date: n.date, tab: "notes", noteId: n.id,
@@ -242,7 +242,7 @@ export function FlipDashboard({ onSelect, onNavigateToNote, onNavigateToExpense,
               {active.map((f, i) => {
                 const budgetLeft = f.rehabBudget - f.rehabSpent;
                 const cost = f.purchasePrice + f.rehabBudget + (f.holdingCostsPerMonth * (f.daysOwned / 30));
-                const proj = f.arv - cost - (f.arv * 0.06);
+                const proj = f.arv - cost - (f.arv * ((f.sellingCostPct || 6) / 100));
                 return (
                   <tr key={f.id} style={{ borderBottom: i < active.length - 1 ? "1px solid #f8fafc" : "none" }}>
                     <td style={{ padding: "12px 0" }}>
@@ -557,7 +557,7 @@ export function RehabTracker() {
                             {assigned.map(asgn => {
                               const con = _CON.find(c => c.id === asgn.id);
                               if (!con) return null;
-                              const conBid = (con.bids || []).find(b => b.flipId === f.id && b.rehabItem === item.category);
+                              const conBid = _BIDS.find(b => b.contractorId === con.id && b.flipId === f.id && b.rehabItem === item.category);
                               const mm1 = item.status === "complete" && conBid?.status !== "accepted";
                               const mm2 = false;
                               return (
@@ -1165,13 +1165,13 @@ export function FlipContractors({ onSelectContractor }) {
     return true;
   });
 
-  const totalBids = filtered.reduce((s, c) => s + (c.bids || []).reduce((bs, b) => bs + (b.status === "accepted" ? b.amount : 0), 0), 0);
-  const totalPaid = filtered.reduce((s, c) => s + (c.payments || []).reduce((ps, p) => ps + p.amount, 0), 0);
+  const totalBids = filtered.reduce((s, c) => s + _BIDS.filter(b => b.contractorId === c.id && b.status === "accepted").reduce((bs, b) => bs + b.amount, 0), 0);
+  const totalPaid = filtered.reduce((s, c) => s + _PAYMENTS.filter(p => p.contractorId === c.id).reduce((ps, p) => ps + p.amount, 0), 0);
   const outstanding = totalBids - totalPaid;
 
   const handleAdd = () => {
     if (!form.name) return;
-    const newCon = { id: newId(), name: form.name, trade: form.trade, phone: form.phone, email: form.email || "", license: form.license || null, insuranceExpiry: form.insuranceExpiry || null, rating: 0, notes: form.notes || "", dealIds: [], bids: [], payments: [], documents: [] };
+    const newCon = { id: newId(), name: form.name, trade: form.trade, phone: form.phone, email: form.email || "", license: form.license || null, insuranceExpiry: form.insuranceExpiry || null, rating: 0, notes: form.notes || "", dealIds: [] };
     _CON.push(newCon);
     rerender(n => n + 1);
     setForm(emptyForm);
@@ -1217,10 +1217,12 @@ export function FlipContractors({ onSelectContractor }) {
       <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 14 }}>
         {filtered.map(c => {
           const deals = (c.dealIds || []).map(id => _FLIPS.find(f => f.id === id)).filter(Boolean);
-          const totalConBids = (c.bids || []).filter(b => b.status === "accepted").reduce((s, b) => s + b.amount, 0);
-          const totalConPaid = (c.payments || []).reduce((s, p) => s + p.amount, 0);
+          const totalConBids = _BIDS.filter(b => b.contractorId === c.id && b.status === "accepted").reduce((s, b) => s + b.amount, 0);
+          const totalConPaid = _PAYMENTS.filter(p => p.contractorId === c.id).reduce((s, p) => s + p.amount, 0);
           const pct = totalConBids > 0 ? Math.min((totalConPaid / totalConBids) * 100, 100) : 0;
           const stars = c.rating || 0;
+          const conBids = _BIDS.filter(b => b.contractorId === c.id);
+          const conDocs = _DOCS.filter(d => d.contractorId === c.id);
           return (
             <div key={c.id} onClick={() => onSelectContractor && onSelectContractor(c)}
               style={{ background: "#fff", borderRadius: 16, padding: 20, border: "1px solid #f1f5f9", cursor: "pointer", transition: "all 0.15s" }}
@@ -1259,8 +1261,8 @@ export function FlipContractors({ onSelectContractor }) {
                 <div style={{ height: "100%", width: `${pct}%`, background: "#10b981", borderRadius: 4 }} />
               </div>
               <div style={{ display: "flex", gap: 12, marginTop: 10, fontSize: 11, color: "#94a3b8" }}>
-                <span>{(c.bids || []).length} bid{(c.bids || []).length !== 1 ? "s" : ""}</span>
-                <span>{(c.documents || []).length} doc{(c.documents || []).length !== 1 ? "s" : ""}</span>
+                <span>{conBids.length} bid{conBids.length !== 1 ? "s" : ""}</span>
+                <span>{conDocs.length} doc{conDocs.length !== 1 ? "s" : ""}</span>
                 <span>{deals.length} deal{deals.length !== 1 ? "s" : ""}</span>
               </div>
             </div>
@@ -1367,9 +1369,9 @@ export function ContractorDetail({ contractor, onBack }) {
 
   const con = _CON.find(c => c.id === contractor.id) || contractor;
   const deals = (con.dealIds || []).map(id => _FLIPS.find(f => f.id === id)).filter(Boolean);
-  const bids = con.bids || [];
-  const payments = con.payments || [];
-  const documents = con.documents || [];
+  const bids = _BIDS.filter(b => b.contractorId === con.id);
+  const payments = _PAYMENTS.filter(p => p.contractorId === con.id);
+  const documents = _DOCS.filter(d => d.contractorId === con.id);
 
   const totalAccepted = bids.filter(b => b.status === "accepted").reduce((s, b) => s + b.amount, 0);
   const totalPending = bids.filter(b => b.status === "pending").reduce((s, b) => s + b.amount, 0);
@@ -1395,7 +1397,7 @@ export function ContractorDetail({ contractor, onBack }) {
     if (!fId || !rehabName || !bidForm.amount) return;
     const flip = _FLIPS.find(f => f.id === fId);
     if (editingBidId) {
-      const bid = con.bids.find(b => b.id === editingBidId);
+      const bid = _BIDS.find(b => b.id === editingBidId);
       if (bid) {
         bid.flipId = fId;
         bid.rehabItem = rehabName;
@@ -1403,8 +1405,8 @@ export function ContractorDetail({ contractor, onBack }) {
       }
       setEditingBidId(null);
     } else {
-      const newBid = { id: newId(), flipId: fId, rehabItem: rehabName, amount: parseFloat(bidForm.amount) || 0, status: "pending", date: new Date().toISOString().slice(0, 10) };
-      con.bids = [...bids, newBid];
+      const newBid = { id: newId(), contractorId: con.id, flipId: fId, rehabItem: rehabName, amount: parseFloat(bidForm.amount) || 0, status: "pending", date: new Date().toISOString().slice(0, 10) };
+      _BIDS.push(newBid);
       if (!con.dealIds.includes(fId)) con.dealIds.push(fId);
       // Auto-create rehab item on the deal if it doesn't exist
       if (flip) {
@@ -1426,11 +1428,16 @@ export function ContractorDetail({ contractor, onBack }) {
   };
 
   const toggleBidStatus = (bidId) => {
-    const bid = con.bids.find(b => b.id === bidId);
+    const bid = _BIDS.find(b => b.id === bidId);
     if (bid) { bid.status = bid.status === "accepted" ? "pending" : "accepted"; rerender(n => n + 1); }
   };
 
-  const deleteBid = (bidId) => { con.bids = con.bids.filter(b => b.id !== bidId); rerender(n => n + 1); setDeleteConfirm(null); };
+  const deleteBid = (bidId) => {
+    const idx = _BIDS.findIndex(b => b.id === bidId);
+    if (idx !== -1) _BIDS.splice(idx, 1);
+    rerender(n => n + 1);
+    setDeleteConfirm(null);
+  };
 
   const openEditDoc = (d) => {
     setEditingDocId(d.id);
@@ -1441,7 +1448,7 @@ export function ContractorDetail({ contractor, onBack }) {
   const saveDoc = () => {
     if (!docForm.name) return;
     if (editingDocId) {
-      const doc = con.documents.find(d => d.id === editingDocId);
+      const doc = _DOCS.find(d => d.id === editingDocId);
       if (doc) {
         doc.name = docForm.name;
         doc.type = docForm.type;
@@ -1449,15 +1456,20 @@ export function ContractorDetail({ contractor, onBack }) {
       }
       setEditingDocId(null);
     } else {
-      const newDoc = { id: newId(), name: docForm.name, type: docForm.type, flipId: docForm.flipId ? parseInt(docForm.flipId) : null, date: new Date().toISOString().slice(0, 10), size: "— KB" };
-      con.documents = [...documents, newDoc];
+      const newDoc = { id: newId(), contractorId: con.id, name: docForm.name, type: docForm.type, flipId: docForm.flipId ? parseInt(docForm.flipId) : null, date: new Date().toISOString().slice(0, 10), size: "— KB" };
+      _DOCS.push(newDoc);
     }
     rerender(n => n + 1);
     setDocForm({ name: "", type: "contract", flipId: "" });
     setShowDocModal(false);
   };
 
-  const deleteDoc = (docId) => { con.documents = con.documents.filter(d => d.id !== docId); rerender(n => n + 1); setDeleteConfirm(null); };
+  const deleteDoc = (docId) => {
+    const idx = _DOCS.findIndex(d => d.id === docId);
+    if (idx !== -1) _DOCS.splice(idx, 1);
+    rerender(n => n + 1);
+    setDeleteConfirm(null);
+  };
 
   const tabs = [
     { id: "overview", label: "Overview", icon: Home },
@@ -1823,7 +1835,7 @@ export function FlipAnalytics() {
   const roiData = flips.map(f => {
     const cost = f.purchasePrice + (f.stage === "Sold" ? f.rehabSpent : f.rehabBudget);
     const sale = f.stage === "Sold" ? f.salePrice : f.arv;
-    const profit = sale - cost - (f.stage === "Sold" ? f.sellingCosts + f.totalHoldingCosts : (sale * 0.06) + (f.holdingCostsPerMonth * (f.daysOwned || 0) / 30));
+    const profit = sale - cost - (f.stage === "Sold" ? f.sellingCosts + f.totalHoldingCosts : (sale * ((f.sellingCostPct || 6) / 100)) + (f.holdingCostsPerMonth * (f.daysOwned || 0) / 30));
     const roi = cost > 0 ? ((profit / cost) * 100).toFixed(1) : 0;
     return { name: f.image, fullName: f.name, roi: parseFloat(roi), profit: Math.round(profit), stage: f.stage, color: f.color };
   });
@@ -1865,7 +1877,7 @@ export function FlipAnalytics() {
     const purchase = f.purchasePrice;
     const rehab = f.stage === "Sold" ? f.rehabSpent : f.rehabBudget;
     const holding = f.stage === "Sold" ? f.totalHoldingCosts : (f.holdingCostsPerMonth * ((f.daysOwned || 0) / 30));
-    const selling = f.stage === "Sold" ? f.sellingCosts : ((f.stage === "Sold" ? f.salePrice : f.arv) * 0.06);
+    const selling = f.stage === "Sold" ? f.sellingCosts : ((f.stage === "Sold" ? f.salePrice : f.arv) * ((f.sellingCostPct || 6) / 100));
     const sale = f.stage === "Sold" ? f.salePrice : f.arv;
     const totalCost = purchase + rehab + holding + selling;
     const profit = sale - totalCost;
@@ -2382,7 +2394,7 @@ export function FlipMilestones({ highlightMilestoneKey, onBack, onClearHighlight
       // If the highlighted milestone is completed, set filter to show completed items
       const [hFlipId, ...hLabelParts] = highlightMilestoneKey.split("-");
       const hLabel = hLabelParts.join("-");
-      const flipMs = _FM[parseInt(hFlipId)] || [];
+      const flipMs = FLIP_MILESTONES.filter(m => m.flipId === parseInt(hFlipId));
       const targetMs = flipMs.find(m => m.label === hLabel);
       if (targetMs?.done && filterStatus === "upcoming") setFilterStatus("all");
       setTimeout(() => {
@@ -2395,7 +2407,7 @@ export function FlipMilestones({ highlightMilestoneKey, onBack, onClearHighlight
   }, [highlightMilestoneKey]);
   const allMilestoneLabels = useMemo(() => {
     const labels = new Set(DEFAULT_MILESTONES);
-    Object.values(_FM).forEach(arr => arr.forEach(m => { if (m.label) labels.add(m.label); }));
+    FLIP_MILESTONES.forEach(m => { if (m.label) labels.add(m.label); });
     return [...labels].sort();
   }, [renderKey]);
 
@@ -2403,7 +2415,7 @@ export function FlipMilestones({ highlightMilestoneKey, onBack, onClearHighlight
   const allMilestones = useMemo(() => {
     const list = [];
     _FLIPS.forEach(f => {
-      const ms = _FM[f.id] || DEFAULT_MILESTONES.map(label => ({ label, done: false, date: null, targetDate: null }));
+      const ms = FLIP_MILESTONES.filter(m => m.flipId === f.id) || DEFAULT_MILESTONES.map(label => ({ label, done: false, date: null, targetDate: null }));
       ms.forEach((m, idx) => {
         list.push({ ...m, flipId: f.id, flipName: f.name, flipColor: f.color, flipImage: f.image, flipStage: f.stage, _idx: idx });
       });
@@ -2438,7 +2450,7 @@ export function FlipMilestones({ highlightMilestoneKey, onBack, onClearHighlight
 
   const confirmComplete = () => {
     if (!completingItem) return;
-    const ms = _FM[completingItem.flipId];
+    const ms = FLIP_MILESTONES.filter(m => m.flipId === completingItem.flipId);
     if (ms && ms[completingItem.idx]) {
       ms[completingItem.idx].done = true;
       ms[completingItem.idx].date = completionDate;
@@ -2448,7 +2460,7 @@ export function FlipMilestones({ highlightMilestoneKey, onBack, onClearHighlight
   };
 
   const uncomplete = (flipId, idx) => {
-    const ms = _FM[flipId];
+    const ms = FLIP_MILESTONES.filter(m => m.flipId === flipId);
     if (ms && ms[idx]) {
       ms[idx].done = false;
       ms[idx].date = null;
@@ -2459,8 +2471,7 @@ export function FlipMilestones({ highlightMilestoneKey, onBack, onClearHighlight
   const saveMilestone = () => {
     const fId = parseInt(msForm.flipId);
     if (!fId || !msForm.label.trim()) return;
-    if (!_FM[fId]) _FM[fId] = [];
-    _FM[fId].push({ label: msForm.label.trim(), done: false, date: null, targetDate: msForm.targetDate || null });
+    FLIP_MILESTONES.push({ id: Date.now() + Math.random(), flipId: fId, label: msForm.label.trim(), done: false, date: null });
     setMsForm({ flipId: "", label: "", targetDate: "" });
     setShowAdd(false);
     rerender(n => n + 1);
@@ -2473,10 +2484,9 @@ export function FlipMilestones({ highlightMilestoneKey, onBack, onClearHighlight
 
   const saveEdit = () => {
     if (!editItem) return;
-    const ms = _FM[editItem.flipId];
+    const ms = FLIP_MILESTONES.filter(m => m.flipId === editItem.flipId);
     if (ms && ms[editItem.idx]) {
       ms[editItem.idx].label = editForm.label.trim() || ms[editItem.idx].label;
-      ms[editItem.idx].targetDate = editForm.targetDate || null;
       if (editForm.completedDate) {
         ms[editItem.idx].date = editForm.completedDate;
         ms[editItem.idx].done = true;
@@ -2491,8 +2501,8 @@ export function FlipMilestones({ highlightMilestoneKey, onBack, onClearHighlight
 
   const deleteMilestone = () => {
     if (!deleteConfirm) return;
-    const ms = _FM[deleteConfirm.flipId];
-    if (ms) { ms.splice(deleteConfirm.idx, 1); }
+    const msIdx = FLIP_MILESTONES.findIndex(m => m.flipId === deleteConfirm.flipId && FLIP_MILESTONES.filter(x => x.flipId === deleteConfirm.flipId)[deleteConfirm.idx]?.id === m.id);
+    if (msIdx !== -1) { FLIP_MILESTONES.splice(msIdx, 1); }
     setDeleteConfirm(null);
     rerender(n => n + 1);
   };
@@ -2744,10 +2754,11 @@ export function FlipNotes({ highlightNoteId, onBack, onClearHighlight }) {
   // Build flat list of all notes across deals (no memo — must recalculate after mutations)
   const allNotes = (() => {
     const list = [];
-    _FLIPS.forEach(f => {
-      (_FN[f.id] || []).forEach(n => {
-        list.push({ ...n, flipId: f.id, flipName: f.name, flipColor: f.color, flipImage: f.image });
-      });
+    FLIP_NOTES.forEach(n => {
+      const flip = _FLIPS.find(f => f.id === n.flipId);
+      if (flip) {
+        list.push({ ...n, flipId: n.flipId, flipName: flip.name, flipColor: flip.color, flipImage: flip.image });
+      }
     });
     return list.sort((a, b) => b.date.localeCompare(a.date));
   })();
@@ -2764,12 +2775,11 @@ export function FlipNotes({ highlightNoteId, onBack, onClearHighlight }) {
   const handleSave = () => {
     if (!noteForm.text.trim() || !noteForm.flipId) return;
     const fId = parseInt(noteForm.flipId);
-    if (!_FN[fId]) _FN[fId] = [];
     if (editId !== null) {
-      const idx = _FN[fId].findIndex(n => n.id === editId);
-      if (idx !== -1) _FN[fId][idx] = { ..._FN[fId][idx], text: noteForm.text.trim() };
+      const idx = FLIP_NOTES.findIndex(n => n.id === editId);
+      if (idx !== -1) FLIP_NOTES[idx] = { ...FLIP_NOTES[idx], text: noteForm.text.trim() };
     } else {
-      _FN[fId].unshift({ id: newId(), date: new Date().toISOString().split("T")[0], text: noteForm.text.trim() });
+      FLIP_NOTES.unshift({ id: newId(), flipId: fId, date: new Date().toISOString().split("T")[0], text: noteForm.text.trim() });
     }
     setNoteForm({ flipId: "", text: "" });
     setEditId(null);
@@ -2778,8 +2788,8 @@ export function FlipNotes({ highlightNoteId, onBack, onClearHighlight }) {
   };
 
   const handleDelete = (note) => {
-    if (!_FN[note.flipId]) return;
-    _FN[note.flipId] = _FN[note.flipId].filter(n => n.id !== note.id);
+    const idx = FLIP_NOTES.findIndex(n => n.id === note.id);
+    if (idx !== -1) FLIP_NOTES.splice(idx, 1);
     setDeleteConfirm(null);
     rerender(n => n + 1);
   };

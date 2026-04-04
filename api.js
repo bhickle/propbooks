@@ -46,29 +46,29 @@ export const DEFAULT_MILESTONES = [
 // Mock Data
 // -----------------------------------------------------------------------------
 const _properties = [
-  { id:1, name:"Maple Ridge Duplex",     address:"2847 Maple Ridge Dr, Austin, TX 78701",         type:"Multi-Family",  units:2, purchasePrice:385000,  currentValue:462000,  mortgage:298000, monthlyRent:3800, monthlyExpenses:1640, purchaseDate:"2021-03-15", status:"Occupied",         image:"MR", capRate:7.2, cashOnCash:9.1,  color:"#3b82f6", landValue:77000  },
-  { id:2, name:"Lakeview SFR",           address:"518 Lakeview Terrace, Denver, CO 80203",         type:"Single Family", units:1, purchasePrice:520000,  currentValue:598000,  mortgage:410000, monthlyRent:2950, monthlyExpenses:1120, purchaseDate:"2020-07-22", status:"Occupied",         image:"LV", capRate:5.6, cashOnCash:7.4,  color:"#10b981", landValue:130000 },
-  { id:3, name:"Midtown Condo #4B",      address:"1200 Peachtree St NE #4B, Atlanta, GA 30309",    type:"Condo",         units:1, purchasePrice:280000,  currentValue:315000,  mortgage:194000, monthlyRent:2100, monthlyExpenses:860,  purchaseDate:"2022-01-10", status:"Occupied",         image:"MC", capRate:6.9, cashOnCash:8.3,  color:"#8b5cf6", landValue:56000  },
-  { id:4, name:"Riverside Triplex",      address:"744 Riverside Blvd, Portland, OR 97201",         type:"Multi-Family",  units:3, purchasePrice:670000,  currentValue:745000,  mortgage:520000, monthlyRent:5700, monthlyExpenses:2380, purchaseDate:"2019-11-05", status:"Partial Vacancy",  image:"RT", capRate:8.1, cashOnCash:10.2, color:"#f59e0b", landValue:null   },
-  { id:5, name:"Sunset Strip Commercial",address:"9220 Sunset Blvd, West Hollywood, CA 90069",     type:"Commercial",    units:1, purchasePrice:1200000, currentValue:1380000, mortgage:920000, monthlyRent:8500, monthlyExpenses:3200, purchaseDate:"2018-06-30", status:"Occupied",         image:"SS", capRate:7.0, cashOnCash:6.8,  color:"#ef4444", landValue:480000 },
+  { id:1, name:"Maple Ridge Duplex",     address:"2847 Maple Ridge Dr, Austin, TX 78701",         type:"Multi-Family",  units:2, purchasePrice:385000,  currentValue:462000,  mortgage:298000, monthlyRent:3800, monthlyExpenses:1640, purchaseDate:"2021-03-15", status:"Occupied",         image:"MR", capRate:7.2, cashOnCash:9.1,  color:"#3b82f6", landValue:77000,   createdAt:"2021-03-15T09:00:00Z", updatedAt:"2021-03-15T09:00:00Z", userId:"usr_001" },
+  { id:2, name:"Lakeview SFR",           address:"518 Lakeview Terrace, Denver, CO 80203",         type:"Single Family", units:1, purchasePrice:520000,  currentValue:598000,  mortgage:410000, monthlyRent:2950, monthlyExpenses:1120, purchaseDate:"2020-07-22", status:"Occupied",         image:"LV", capRate:5.6, cashOnCash:7.4,  color:"#10b981", landValue:130000,  createdAt:"2020-07-22T09:00:00Z", updatedAt:"2020-07-22T09:00:00Z", userId:"usr_001" },
+  { id:3, name:"Midtown Condo #4B",      address:"1200 Peachtree St NE #4B, Atlanta, GA 30309",    type:"Condo",         units:1, purchasePrice:280000,  currentValue:315000,  mortgage:194000, monthlyRent:2100, monthlyExpenses:860,  purchaseDate:"2022-01-10", status:"Occupied",         image:"MC", capRate:6.9, cashOnCash:8.3,  color:"#8b5cf6", landValue:56000,   createdAt:"2022-01-10T09:00:00Z", updatedAt:"2022-01-10T09:00:00Z", userId:"usr_001" },
+  { id:4, name:"Riverside Triplex",      address:"744 Riverside Blvd, Portland, OR 97201",         type:"Multi-Family",  units:3, purchasePrice:670000,  currentValue:745000,  mortgage:520000, monthlyRent:5700, monthlyExpenses:2380, purchaseDate:"2019-11-05", status:"Partial Vacancy",  image:"RT", capRate:8.1, cashOnCash:10.2, color:"#f59e0b", landValue:null,    createdAt:"2019-11-05T09:00:00Z", updatedAt:"2019-11-05T09:00:00Z", userId:"usr_001" },
+  { id:5, name:"Sunset Strip Commercial",address:"9220 Sunset Blvd, West Hollywood, CA 90069",     type:"Commercial",    units:1, purchasePrice:1200000, currentValue:1380000, mortgage:920000, monthlyRent:8500, monthlyExpenses:3200, purchaseDate:"2018-06-30", status:"Occupied",         image:"SS", capRate:7.0, cashOnCash:6.8,  color:"#ef4444", landValue:480000,  createdAt:"2018-06-30T09:00:00Z", updatedAt:"2018-06-30T09:00:00Z", userId:"usr_001" },
 ];
 
 const _transactions = [
-  { id:1,  date:"2026-03-20", property:"Maple Ridge Duplex",      category:"Rent Income",  description:"March rent - Unit A",           amount:1900,  type:"income"  },
-  { id:2,  date:"2026-03-20", property:"Maple Ridge Duplex",      category:"Rent Income",  description:"March rent - Unit B",           amount:1900,  type:"income"  },
-  { id:3,  date:"2026-03-18", property:"Riverside Triplex",       category:"Maintenance",  description:"HVAC repair - Unit 2",          amount:-420,  type:"expense" },
-  { id:4,  date:"2026-03-15", property:"Lakeview SFR",            category:"Rent Income",  description:"March rent",                    amount:2950,  type:"income"  },
-  { id:5,  date:"2026-03-12", property:"Midtown Condo #4B",       category:"HOA Fees",     description:"Monthly HOA",                   amount:-285,  type:"expense" },
-  { id:6,  date:"2026-03-10", property:"Sunset Strip Commercial", category:"Rent Income",  description:"March commercial rent",         amount:8500,  type:"income"  },
-  { id:7,  date:"2026-03-08", property:"Riverside Triplex",       category:"Rent Income",  description:"March rent - Units 1,2,3",      amount:5700,  type:"income"  },
-  { id:8,  date:"2026-03-05", property:"Maple Ridge Duplex",      category:"Insurance",    description:"Q1 property insurance",         amount:-1200, type:"expense" },
-  { id:9,  date:"2026-03-03", property:"Lakeview SFR",            category:"Property Tax", description:"Semi-annual tax payment",       amount:-2100, type:"expense" },
-  { id:10, date:"2026-03-01", property:"Midtown Condo #4B",       category:"Rent Income",  description:"March rent",                    amount:2100,  type:"income"  },
-  { id:11, date:"2026-02-28", property:"Sunset Strip Commercial", category:"Maintenance",  description:"Parking lot reseal",            amount:-3500, type:"expense" },
-  { id:12, date:"2026-02-20", property:"Riverside Triplex",       category:"Mortgage",     description:"February mortgage",             amount:-2840, type:"expense" },
-  { id:13, date:"2026-02-15", property:"Maple Ridge Duplex",      category:"Mortgage",     description:"February mortgage",             amount:-1620, type:"expense" },
-  { id:14, date:"2026-02-10", property:"Lakeview SFR",            category:"Landscaping",  description:"Monthly lawn service",          amount:-180,  type:"expense" },
-  { id:15, date:"2026-02-05", property:"Midtown Condo #4B",       category:"Utilities",    description:"Common area utilities",         amount:-95,   type:"expense" },
+  { id:1,  date:"2026-03-20", propertyId:1, category:"Rent Income",  description:"March rent - Unit A",           amount:1900,  type:"income",   createdAt:"2026-03-20T10:00:00Z", updatedAt:"2026-03-20T10:00:00Z", userId:"usr_001" },
+  { id:2,  date:"2026-03-20", propertyId:1, category:"Rent Income",  description:"March rent - Unit B",           amount:1900,  type:"income",   createdAt:"2026-03-20T10:00:00Z", updatedAt:"2026-03-20T10:00:00Z", userId:"usr_001" },
+  { id:3,  date:"2026-03-18", propertyId:4, category:"Maintenance",  description:"HVAC repair - Unit 2",          amount:-420,  type:"expense",  createdAt:"2026-03-18T09:30:00Z", updatedAt:"2026-03-18T09:30:00Z", userId:"usr_001" },
+  { id:4,  date:"2026-03-15", propertyId:2, category:"Rent Income",  description:"March rent",                    amount:2950,  type:"income",   createdAt:"2026-03-15T10:00:00Z", updatedAt:"2026-03-15T10:00:00Z", userId:"usr_001" },
+  { id:5,  date:"2026-03-12", propertyId:3, category:"HOA Fees",     description:"Monthly HOA",                   amount:-285,  type:"expense",  createdAt:"2026-03-12T09:00:00Z", updatedAt:"2026-03-12T09:00:00Z", userId:"usr_001" },
+  { id:6,  date:"2026-03-10", propertyId:5, category:"Rent Income",  description:"March commercial rent",         amount:8500,  type:"income",   createdAt:"2026-03-10T10:00:00Z", updatedAt:"2026-03-10T10:00:00Z", userId:"usr_001" },
+  { id:7,  date:"2026-03-08", propertyId:4, category:"Rent Income",  description:"March rent - Units 1,2,3",      amount:5700,  type:"income",   createdAt:"2026-03-08T10:00:00Z", updatedAt:"2026-03-08T10:00:00Z", userId:"usr_001" },
+  { id:8,  date:"2026-03-05", propertyId:1, category:"Insurance",    description:"Q1 property insurance",         amount:-1200, type:"expense",  createdAt:"2026-03-05T11:00:00Z", updatedAt:"2026-03-05T11:00:00Z", userId:"usr_001" },
+  { id:9,  date:"2026-03-03", propertyId:2, category:"Property Tax", description:"Semi-annual tax payment",       amount:-2100, type:"expense",  createdAt:"2026-03-03T14:00:00Z", updatedAt:"2026-03-03T14:00:00Z", userId:"usr_001" },
+  { id:10, date:"2026-03-01", propertyId:3, category:"Rent Income",  description:"March rent",                    amount:2100,  type:"income",   createdAt:"2026-03-01T10:00:00Z", updatedAt:"2026-03-01T10:00:00Z", userId:"usr_001" },
+  { id:11, date:"2026-02-28", propertyId:5, category:"Maintenance",  description:"Parking lot reseal",            amount:-3500, type:"expense",  createdAt:"2026-02-28T08:30:00Z", updatedAt:"2026-02-28T08:30:00Z", userId:"usr_001" },
+  { id:12, date:"2026-02-20", propertyId:4, category:"Mortgage",     description:"February mortgage",             amount:-2840, type:"expense",  createdAt:"2026-02-20T09:00:00Z", updatedAt:"2026-02-20T09:00:00Z", userId:"usr_001" },
+  { id:13, date:"2026-02-15", propertyId:1, category:"Mortgage",     description:"February mortgage",             amount:-1620, type:"expense",  createdAt:"2026-02-15T09:00:00Z", updatedAt:"2026-02-15T09:00:00Z", userId:"usr_001" },
+  { id:14, date:"2026-02-10", propertyId:2, category:"Landscaping",  description:"Monthly lawn service",          amount:-180,  type:"expense",  createdAt:"2026-02-10T10:30:00Z", updatedAt:"2026-02-10T10:30:00Z", userId:"usr_001" },
+  { id:15, date:"2026-02-05", propertyId:3, category:"Utilities",    description:"Common area utilities",         amount:-95,   type:"expense",  createdAt:"2026-02-05T15:00:00Z", updatedAt:"2026-02-05T15:00:00Z", userId:"usr_001" },
 ];
 
 const _monthlyCashFlow = [
@@ -106,6 +106,8 @@ export const FLIPS = [
     purchasePrice:195000, arv:310000, rehabBudget:62000, rehabSpent:38500,
     holdingCostsPerMonth:1850, acquisitionDate:"2026-01-08", rehabStartDate:"2026-01-20",
     projectedListDate:"2026-04-15", projectedCloseDate:"2026-05-30", daysOwned:75,
+    sellingCostPct:6,
+    createdAt:"2026-01-08T09:00:00Z", updatedAt:"2026-01-08T09:00:00Z", userId:"usr_001",
     rehabItems:[
       { category:"Kitchen",          budgeted:18000, spent:16200, status:"complete",    contractors:[]  },
       { category:"Bathrooms (2)",    budgeted:12000, spent:11500, status:"complete",    contractors:[{id:1, bid:8500}] },
@@ -122,6 +124,8 @@ export const FLIPS = [
     purchasePrice:148000, arv:229000, listPrice:229000, rehabBudget:38000, rehabSpent:39200,
     holdingCostsPerMonth:1420, acquisitionDate:"2025-10-14", rehabStartDate:"2025-10-28",
     rehabEndDate:"2026-01-15", listDate:"2026-01-22", daysOwned:161,
+    sellingCostPct:6,
+    createdAt:"2025-10-14T09:00:00Z", updatedAt:"2025-10-14T09:00:00Z", userId:"usr_001",
     rehabItems:[
       { category:"Kitchen",          budgeted:14000, spent:15200, status:"complete", contractors:[]    },
       { category:"Bathroom",         budgeted:7000,  spent:7400,  status:"complete", contractors:[]    },
@@ -136,6 +140,8 @@ export const FLIPS = [
     stage:"Under Contract", image:"HH", color:"#8b5cf6",
     purchasePrice:268000, arv:445000, rehabBudget:95000, rehabSpent:0,
     holdingCostsPerMonth:2600, contractDate:"2026-03-10", projectedCloseDate:"2026-04-05", daysOwned:0,
+    sellingCostPct:6,
+    createdAt:"2026-03-10T09:00:00Z", updatedAt:"2026-03-10T09:00:00Z", userId:"usr_001",
     rehabItems:[
       { category:"Full Kitchen Remodel",   budgeted:28000, spent:0, status:"pending", contractors:[] },
       { category:"Master Bath",            budgeted:18000, spent:0, status:"pending", contractors:[] },
@@ -152,6 +158,8 @@ export const FLIPS = [
     holdingCostsPerMonth:2100, acquisitionDate:"2025-04-12", rehabStartDate:"2025-04-25",
     rehabEndDate:"2025-07-10", listDate:"2025-07-18", closeDate:"2025-08-29",
     daysOwned:139, totalHoldingCosts:9730, sellingCosts:21690, netProfit:61280,
+    sellingCostPct:6,
+    createdAt:"2025-04-12T09:00:00Z", updatedAt:"2025-04-12T09:00:00Z", userId:"usr_001",
     rehabItems:[
       { category:"Kitchen",          budgeted:16000, spent:15600, status:"complete", contractors:[] },
       { category:"Bathrooms (2)",    budgeted:13000, spent:12400, status:"complete", contractors:[] },
@@ -164,140 +172,135 @@ export const FLIPS = [
 ];
 
 export const FLIP_EXPENSES = [
-  { id:1,  flipId:1, date:"2026-03-18", vendor:"Home Depot",        category:"Materials & Supplies",     description:"Hardwood flooring - 680 sqft",        amount:2890 },
-  { id:2,  flipId:1, date:"2026-03-15", vendor:"ABC Plumbing",      category:"Subcontractor",            description:"Master bath rough-in",                amount:3200 },
-  { id:3,  flipId:1, date:"2026-03-10", vendor:"Lowe's",            category:"Fixtures & Hardware",      description:"Kitchen cabinet hardware + fixtures", amount:640  },
-  { id:4,  flipId:1, date:"2026-03-04", vendor:"City of Nashville", category:"Permits",                  description:"Renovation permit",                   amount:380  },
-  { id:5,  flipId:1, date:"2026-02-28", vendor:"Elite Electric",    category:"Subcontractor",            description:"Panel upgrade + recessed lighting",   amount:4100 },
-  { id:6,  flipId:1, date:"2026-02-20", vendor:"Lowe's",            category:"Materials & Supplies",     description:"Kitchen cabinets - shaker style",     amount:5800 },
-  { id:7,  flipId:1, date:"2026-02-14", vendor:"Budget Dumpster",   category:"Dumpster / Debris Removal",description:"Demo debris removal",                 amount:420  },
-  { id:8,  flipId:2, date:"2026-01-12", vendor:"Sherwin-Williams",  category:"Materials & Supplies",     description:"Interior/exterior paint + supplies",  amount:1150 },
-  { id:9,  flipId:2, date:"2026-01-08", vendor:"Pro Flooring Co.",  category:"Subcontractor",            description:"LVP install - 1,100 sqft",            amount:3900 },
-  { id:10, flipId:2, date:"2025-12-20", vendor:"Home Depot",        category:"Appliances",               description:"Stainless appliance package",         amount:2400 },
-  { id:11, flipId:2, date:"2025-12-10", vendor:"Jim's Windows",     category:"Subcontractor",            description:"Replace 8 windows",                   amount:5400 },
-  { id:12, flipId:2, date:"2025-11-18", vendor:"City of Memphis",   category:"Permits",                  description:"Electrical & structural permits",      amount:295  },
-  { id:13, flipId:4, date:"2025-07-02", vendor:"Summit HVAC",       category:"Subcontractor",            description:"Full HVAC replacement",               amount:7200 },
-  { id:14, flipId:4, date:"2025-06-15", vendor:"Habitat Flooring",  category:"Materials & Supplies",     description:"Engineered hardwood - whole house",   amount:4300 },
-  { id:15, flipId:4, date:"2025-06-01", vendor:"Raleigh Tile Co.",  category:"Subcontractor",            description:"Master bath tile work",               amount:3100 },
+  { id:1,  flipId:1, date:"2026-03-18", vendor:"Home Depot",        contractorId:null, category:"Materials & Supplies",     description:"Hardwood flooring - 680 sqft",        amount:2890, createdAt:"2026-03-18T11:00:00Z", updatedAt:"2026-03-18T11:00:00Z", userId:"usr_001" },
+  { id:2,  flipId:1, date:"2026-03-15", vendor:"ABC Plumbing",      contractorId:1,    category:"Subcontractor",            description:"Master bath rough-in",                amount:3200, createdAt:"2026-03-15T09:30:00Z", updatedAt:"2026-03-15T09:30:00Z", userId:"usr_001" },
+  { id:3,  flipId:1, date:"2026-03-10", vendor:"Lowe's",            contractorId:null, category:"Fixtures & Hardware",      description:"Kitchen cabinet hardware + fixtures", amount:640,  createdAt:"2026-03-10T10:00:00Z", updatedAt:"2026-03-10T10:00:00Z", userId:"usr_001" },
+  { id:4,  flipId:1, date:"2026-03-04", vendor:"City of Nashville", contractorId:null, category:"Permits",                  description:"Renovation permit",                   amount:380,  createdAt:"2026-03-04T14:00:00Z", updatedAt:"2026-03-04T14:00:00Z", userId:"usr_001" },
+  { id:5,  flipId:1, date:"2026-02-28", vendor:"Elite Electric",    contractorId:2,    category:"Subcontractor",            description:"Panel upgrade + recessed lighting",   amount:4100, createdAt:"2026-02-28T09:00:00Z", updatedAt:"2026-02-28T09:00:00Z", userId:"usr_001" },
+  { id:6,  flipId:1, date:"2026-02-20", vendor:"Lowe's",            contractorId:null, category:"Materials & Supplies",     description:"Kitchen cabinets - shaker style",     amount:5800, createdAt:"2026-02-20T10:30:00Z", updatedAt:"2026-02-20T10:30:00Z", userId:"usr_001" },
+  { id:7,  flipId:1, date:"2026-02-14", vendor:"Budget Dumpster",   contractorId:null, category:"Dumpster / Debris Removal",description:"Demo debris removal",                 amount:420,  createdAt:"2026-02-14T08:30:00Z", updatedAt:"2026-02-14T08:30:00Z", userId:"usr_001" },
+  { id:8,  flipId:2, date:"2026-01-12", vendor:"Sherwin-Williams",  contractorId:null, category:"Materials & Supplies",     description:"Interior/exterior paint + supplies",  amount:1150, createdAt:"2026-01-12T11:00:00Z", updatedAt:"2026-01-12T11:00:00Z", userId:"usr_001" },
+  { id:9,  flipId:2, date:"2026-01-08", vendor:"Pro Flooring Co.",  contractorId:4,    category:"Subcontractor",            description:"LVP install - 1,100 sqft",            amount:3900, createdAt:"2026-01-08T09:00:00Z", updatedAt:"2026-01-08T09:00:00Z", userId:"usr_001" },
+  { id:10, flipId:2, date:"2025-12-20", vendor:"Home Depot",        contractorId:null, category:"Appliances",               description:"Stainless appliance package",         amount:2400, createdAt:"2025-12-20T10:30:00Z", updatedAt:"2025-12-20T10:30:00Z", userId:"usr_001" },
+  { id:11, flipId:2, date:"2025-12-10", vendor:"Jim's Windows",     contractorId:5,    category:"Subcontractor",            description:"Replace 8 windows",                   amount:5400, createdAt:"2025-12-10T09:00:00Z", updatedAt:"2025-12-10T09:00:00Z", userId:"usr_001" },
+  { id:12, flipId:2, date:"2025-11-18", vendor:"City of Memphis",   contractorId:null, category:"Permits",                  description:"Electrical & structural permits",      amount:295,  createdAt:"2025-11-18T15:00:00Z", updatedAt:"2025-11-18T15:00:00Z", userId:"usr_001" },
+  { id:13, flipId:4, date:"2025-07-02", vendor:"Summit HVAC",       contractorId:6,    category:"Subcontractor",            description:"Full HVAC replacement",               amount:7200, createdAt:"2025-07-02T09:00:00Z", updatedAt:"2025-07-02T09:00:00Z", userId:"usr_001" },
+  { id:14, flipId:4, date:"2025-06-15", vendor:"Habitat Flooring",  contractorId:null, category:"Materials & Supplies",     description:"Engineered hardwood - whole house",   amount:4300, createdAt:"2025-06-15T10:00:00Z", updatedAt:"2025-06-15T10:00:00Z", userId:"usr_001" },
+  { id:15, flipId:4, date:"2025-06-01", vendor:"Raleigh Tile Co.",  contractorId:null, category:"Subcontractor",            description:"Master bath tile work",               amount:3100, createdAt:"2025-06-01T10:00:00Z", updatedAt:"2025-06-01T10:00:00Z", userId:"usr_001" },
 ];
 
 export const CONTRACTORS = [
-  { id:1, name:"ABC Plumbing",    trade:"Plumbing",   phone:"615-555-0182", email:"info@abcplumbing.com",  license:"PL-2024-1847", insuranceExpiry:"2027-03-15", rating:4, notes:"Reliable, occasionally runs a day behind schedule.",
-    dealIds:[1,3],
-    bids:[
-      { id:101, flipId:1, rehabItem:"Rough-In (Plumbing)", amount:8500, status:"accepted", date:"2026-01-10" },
-      { id:102, flipId:3, rehabItem:"Plumbing",             amount:6200, status:"pending",  date:"2026-03-15" },
-    ],
-    payments:[
-      { id:201, flipId:1, amount:3200, date:"2026-02-15", note:"Progress payment — rough-in complete" },
-    ],
-    documents:[
-      { id:301, name:"W-9 (2026)",         type:"w9",        flipId:null, date:"2026-01-02", size:"42 KB" },
-      { id:302, name:"Insurance Certificate", type:"insurance", flipId:null, date:"2026-01-05", size:"128 KB" },
-      { id:303, name:"Plumbing Contract — Oakdale", type:"contract", flipId:1, date:"2026-01-10", size:"84 KB" },
-    ],
-  },
-  { id:2, name:"Elite Electric",  trade:"Electrical", phone:"615-555-0247", email:"mike@eliteelectric.com", license:"EL-2023-9921", insuranceExpiry:"2026-11-30", rating:5, notes:"Top-notch work, always on schedule.",
-    dealIds:[1],
-    bids:[
-      { id:103, flipId:1, rehabItem:"Electrical Rough-In", amount:4100, status:"accepted", date:"2026-01-08" },
-    ],
-    payments:[
-      { id:202, flipId:1, amount:4100, date:"2026-02-28", note:"Final payment — work complete" },
-    ],
-    documents:[
-      { id:304, name:"W-9 (2026)", type:"w9", flipId:null, date:"2026-01-03", size:"38 KB" },
-    ],
-  },
-  { id:3, name:"Nash Drywall",    trade:"Drywall",    phone:"615-555-0318", email:"nashdrywalltn@gmail.com", license:null, insuranceExpiry:"2027-01-10", rating:3, notes:"Good quality but communication could improve.",
-    dealIds:[1],
-    bids:[
-      { id:104, flipId:1, rehabItem:"Drywall", amount:3800, status:"pending", date:"2026-02-20" },
-    ],
-    payments:[],
-    documents:[],
-  },
-  { id:4, name:"Pro Flooring Co.", trade:"Flooring",  phone:"901-555-0144", email:"quotes@proflooring.com", license:"FL-2025-0033", insuranceExpiry:"2027-06-01", rating:4, notes:"",
-    dealIds:[1,2],
-    bids:[
-      { id:105, flipId:2, rehabItem:"Flooring", amount:3900, status:"accepted", date:"2025-12-01" },
-      { id:106, flipId:1, rehabItem:"Flooring",  amount:4200, status:"pending",  date:"2026-03-01" },
-    ],
-    payments:[
-      { id:203, flipId:2, amount:3900, date:"2026-01-20", note:"Final — flooring complete" },
-    ],
-    documents:[],
-  },
-  { id:5, name:"Jim's Windows",   trade:"Windows",    phone:"901-555-0229", email:"jim@jimswindows.com", license:"WD-2024-4412", insuranceExpiry:"2026-09-15", rating:5, notes:"Family-owned, excellent craftsmanship.",
-    dealIds:[2],
-    bids:[
-      { id:107, flipId:2, rehabItem:"Windows & Doors", amount:5400, status:"accepted", date:"2025-11-15" },
-    ],
-    payments:[
-      { id:204, flipId:2, amount:5400, date:"2026-01-10", note:"Paid in full" },
-    ],
-    documents:[],
-  },
-  { id:6, name:"Summit HVAC",     trade:"HVAC",       phone:"919-555-0361", email:"service@summithvac.com", license:"HVAC-2023-7710", insuranceExpiry:"2026-12-31", rating:4, notes:"",
-    dealIds:[4],
-    bids:[
-      { id:108, flipId:4, rehabItem:"HVAC Replacement", amount:7200, status:"accepted", date:"2025-06-10" },
-    ],
-    payments:[
-      { id:205, flipId:4, amount:7200, date:"2025-08-20", note:"Final — system installed" },
-    ],
-    documents:[
-      { id:305, name:"HVAC Warranty Certificate", type:"warranty", flipId:4, date:"2025-08-20", size:"56 KB" },
-    ],
-  },
+  { id:1, name:"ABC Plumbing",    trade:"Plumbing",   phone:"615-555-0182", email:"info@abcplumbing.com",  license:"PL-2024-1847", insuranceExpiry:"2027-03-15", rating:4, notes:"Reliable, occasionally runs a day behind schedule.", dealIds:[1,3], createdAt:"2026-01-08T09:00:00Z", updatedAt:"2026-01-08T09:00:00Z", userId:"usr_001" },
+  { id:2, name:"Elite Electric",  trade:"Electrical", phone:"615-555-0247", email:"mike@eliteelectric.com", license:"EL-2023-9921", insuranceExpiry:"2026-11-30", rating:5, notes:"Top-notch work, always on schedule.", dealIds:[1], createdAt:"2026-01-08T09:00:00Z", updatedAt:"2026-01-08T09:00:00Z", userId:"usr_001" },
+  { id:3, name:"Nash Drywall",    trade:"Drywall",    phone:"615-555-0318", email:"nashdrywalltn@gmail.com", license:null, insuranceExpiry:"2027-01-10", rating:3, notes:"Good quality but communication could improve.", dealIds:[1], createdAt:"2026-01-08T09:00:00Z", updatedAt:"2026-01-08T09:00:00Z", userId:"usr_001" },
+  { id:4, name:"Pro Flooring Co.", trade:"Flooring",  phone:"901-555-0144", email:"quotes@proflooring.com", license:"FL-2025-0033", insuranceExpiry:"2027-06-01", rating:4, notes:"", dealIds:[1,2], createdAt:"2025-11-15T09:00:00Z", updatedAt:"2025-11-15T09:00:00Z", userId:"usr_001" },
+  { id:5, name:"Jim's Windows",   trade:"Windows",    phone:"901-555-0229", email:"jim@jimswindows.com", license:"WD-2024-4412", insuranceExpiry:"2026-09-15", rating:5, notes:"Family-owned, excellent craftsmanship.", dealIds:[2], createdAt:"2025-11-15T09:00:00Z", updatedAt:"2025-11-15T09:00:00Z", userId:"usr_001" },
+  { id:6, name:"Summit HVAC",     trade:"HVAC",       phone:"919-555-0361", email:"service@summithvac.com", license:"HVAC-2023-7710", insuranceExpiry:"2026-12-31", rating:4, notes:"", dealIds:[4], createdAt:"2025-06-10T09:00:00Z", updatedAt:"2025-06-10T09:00:00Z", userId:"usr_001" },
 ];
 
-const _flipMilestones = {
-  1: [
-    { label:"Contract Executed",           done:true,  date:"2026-01-06" },
-    { label:"Inspection Complete",         done:true,  date:"2026-01-07" },
-    { label:"Purchased / Closed",          done:true,  date:"2026-01-08" },
-    { label:"Demo Complete",               done:true,  date:"2026-01-22" },
-    { label:"Rough-In (Plumbing/Electric)",done:true,  date:"2026-02-10" },
-    { label:"Drywall",                     done:true,  date:"2026-02-24" },
-    { label:"Paint",                       done:false, date:null },
-    { label:"Flooring",                    done:false, date:null },
-    { label:"Kitchen & Baths",             done:false, date:null },
-    { label:"Punch List",                  done:false, date:null },
-    { label:"Listed for Sale",             done:false, date:null },
-    { label:"Sold / Closed",               done:false, date:null },
-  ],
-  2: DEFAULT_MILESTONES.map((label, i) => ({ label, done: i < 11, date: i < 11 ? "2026-01-15" : null })),
-  3: DEFAULT_MILESTONES.slice(0, 3).map((label, i) => ({ label, done: i < 2, date: i < 2 ? "2026-03-12" : null })),
-  4: DEFAULT_MILESTONES.map(label => ({ label, done: true, date: "2025-08-29" })),
-};
+export const CONTRACTOR_BIDS = [
+  { id:101, contractorId:1, flipId:1, rehabItem:"Rough-In (Plumbing)", amount:8500, status:"accepted", date:"2026-01-10", createdAt:"2026-01-10T10:00:00Z", updatedAt:"2026-01-10T10:00:00Z", userId:"usr_001" },
+  { id:102, contractorId:1, flipId:3, rehabItem:"Plumbing",             amount:6200, status:"pending",  date:"2026-03-15", createdAt:"2026-03-15T10:00:00Z", updatedAt:"2026-03-15T10:00:00Z", userId:"usr_001" },
+  { id:103, contractorId:2, flipId:1, rehabItem:"Electrical Rough-In", amount:4100, status:"accepted", date:"2026-01-08", createdAt:"2026-01-08T09:00:00Z", updatedAt:"2026-01-08T09:00:00Z", userId:"usr_001" },
+  { id:104, contractorId:3, flipId:1, rehabItem:"Drywall", amount:3800, status:"pending", date:"2026-02-20", createdAt:"2026-02-20T10:00:00Z", updatedAt:"2026-02-20T10:00:00Z", userId:"usr_001" },
+  { id:105, contractorId:4, flipId:2, rehabItem:"Flooring", amount:3900, status:"accepted", date:"2025-12-01", createdAt:"2025-12-01T09:00:00Z", updatedAt:"2025-12-01T09:00:00Z", userId:"usr_001" },
+  { id:106, contractorId:4, flipId:1, rehabItem:"Flooring",  amount:4200, status:"pending",  date:"2026-03-01", createdAt:"2026-03-01T10:00:00Z", updatedAt:"2026-03-01T10:00:00Z", userId:"usr_001" },
+  { id:107, contractorId:5, flipId:2, rehabItem:"Windows & Doors", amount:5400, status:"accepted", date:"2025-11-15", createdAt:"2025-11-15T09:00:00Z", updatedAt:"2025-11-15T09:00:00Z", userId:"usr_001" },
+  { id:108, contractorId:6, flipId:4, rehabItem:"HVAC Replacement", amount:7200, status:"accepted", date:"2025-06-10", createdAt:"2025-06-10T09:00:00Z", updatedAt:"2025-06-10T09:00:00Z", userId:"usr_001" },
+];
+
+export const CONTRACTOR_PAYMENTS = [
+  { id:201, contractorId:1, flipId:1, amount:3200, date:"2026-02-15", note:"Progress payment — rough-in complete", createdAt:"2026-02-15T09:00:00Z", updatedAt:"2026-02-15T09:00:00Z", userId:"usr_001" },
+  { id:202, contractorId:2, flipId:1, amount:4100, date:"2026-02-28", note:"Final payment — work complete", createdAt:"2026-02-28T09:00:00Z", updatedAt:"2026-02-28T09:00:00Z", userId:"usr_001" },
+  { id:203, contractorId:4, flipId:2, amount:3900, date:"2026-01-20", note:"Final — flooring complete", createdAt:"2026-01-20T09:00:00Z", updatedAt:"2026-01-20T09:00:00Z", userId:"usr_001" },
+  { id:204, contractorId:5, flipId:2, amount:5400, date:"2026-01-10", note:"Paid in full", createdAt:"2026-01-10T09:00:00Z", updatedAt:"2026-01-10T09:00:00Z", userId:"usr_001" },
+  { id:205, contractorId:6, flipId:4, amount:7200, date:"2025-08-20", note:"Final — system installed", createdAt:"2025-08-20T09:00:00Z", updatedAt:"2025-08-20T09:00:00Z", userId:"usr_001" },
+];
+
+export const CONTRACTOR_DOCUMENTS = [
+  { id:301, contractorId:1, name:"W-9 (2026)",         type:"w9",        flipId:null, date:"2026-01-02", size:"42 KB", createdAt:"2026-01-02T10:00:00Z", updatedAt:"2026-01-02T10:00:00Z", userId:"usr_001" },
+  { id:302, contractorId:1, name:"Insurance Certificate", type:"insurance", flipId:null, date:"2026-01-05", size:"128 KB", createdAt:"2026-01-05T10:00:00Z", updatedAt:"2026-01-05T10:00:00Z", userId:"usr_001" },
+  { id:303, contractorId:1, name:"Plumbing Contract — Oakdale", type:"contract", flipId:1, date:"2026-01-10", size:"84 KB", createdAt:"2026-01-10T10:00:00Z", updatedAt:"2026-01-10T10:00:00Z", userId:"usr_001" },
+  { id:304, contractorId:2, name:"W-9 (2026)", type:"w9", flipId:null, date:"2026-01-03", size:"38 KB", createdAt:"2026-01-03T10:00:00Z", updatedAt:"2026-01-03T10:00:00Z", userId:"usr_001" },
+  { id:305, contractorId:6, name:"HVAC Warranty Certificate", type:"warranty", flipId:4, date:"2025-08-20", size:"56 KB", createdAt:"2025-08-20T09:00:00Z", updatedAt:"2025-08-20T09:00:00Z", userId:"usr_001" },
+];
+
+export const FLIP_MILESTONES = [
+  // Flip 1 milestones (id 3001-3012)
+  { id: 3001, flipId: 1, label: "Contract Executed", done: true, date: "2026-01-06", createdAt:"2026-01-06T09:00:00Z", updatedAt:"2026-01-06T09:00:00Z", userId:"usr_001" },
+  { id: 3002, flipId: 1, label: "Inspection Complete", done: true, date: "2026-01-07", createdAt:"2026-01-07T09:00:00Z", updatedAt:"2026-01-07T09:00:00Z", userId:"usr_001" },
+  { id: 3003, flipId: 1, label: "Purchased / Closed", done: true, date: "2026-01-08", createdAt:"2026-01-08T09:00:00Z", updatedAt:"2026-01-08T09:00:00Z", userId:"usr_001" },
+  { id: 3004, flipId: 1, label: "Demo Complete", done: true, date: "2026-01-22", createdAt:"2026-01-22T09:00:00Z", updatedAt:"2026-01-22T09:00:00Z", userId:"usr_001" },
+  { id: 3005, flipId: 1, label: "Rough-In (Plumbing/Electric)", done: true, date: "2026-02-10", createdAt:"2026-02-10T09:00:00Z", updatedAt:"2026-02-10T09:00:00Z", userId:"usr_001" },
+  { id: 3006, flipId: 1, label: "Drywall", done: true, date: "2026-02-24", createdAt:"2026-02-24T09:00:00Z", updatedAt:"2026-02-24T09:00:00Z", userId:"usr_001" },
+  { id: 3007, flipId: 1, label: "Paint", done: false, date: null, createdAt:"2026-01-08T09:00:00Z", updatedAt:"2026-01-08T09:00:00Z", userId:"usr_001" },
+  { id: 3008, flipId: 1, label: "Flooring", done: false, date: null, createdAt:"2026-01-08T09:00:00Z", updatedAt:"2026-01-08T09:00:00Z", userId:"usr_001" },
+  { id: 3009, flipId: 1, label: "Kitchen & Baths", done: false, date: null, createdAt:"2026-01-08T09:00:00Z", updatedAt:"2026-01-08T09:00:00Z", userId:"usr_001" },
+  { id: 3010, flipId: 1, label: "Punch List", done: false, date: null, createdAt:"2026-01-08T09:00:00Z", updatedAt:"2026-01-08T09:00:00Z", userId:"usr_001" },
+  { id: 3011, flipId: 1, label: "Listed for Sale", done: false, date: null, createdAt:"2026-01-08T09:00:00Z", updatedAt:"2026-01-08T09:00:00Z", userId:"usr_001" },
+  { id: 3012, flipId: 1, label: "Sold / Closed", done: false, date: null, createdAt:"2026-01-08T09:00:00Z", updatedAt:"2026-01-08T09:00:00Z", userId:"usr_001" },
+  // Flip 2 milestones (id 3013-3026)
+  { id: 3013, flipId: 2, label: "Contract Executed", done: true, date: "2026-01-15", createdAt:"2026-01-15T09:00:00Z", updatedAt:"2026-01-15T09:00:00Z", userId:"usr_001" },
+  { id: 3014, flipId: 2, label: "Inspection Complete", done: true, date: "2026-01-15", createdAt:"2026-01-15T09:00:00Z", updatedAt:"2026-01-15T09:00:00Z", userId:"usr_001" },
+  { id: 3015, flipId: 2, label: "Financing Secured", done: true, date: "2026-01-15", createdAt:"2026-01-15T09:00:00Z", updatedAt:"2026-01-15T09:00:00Z", userId:"usr_001" },
+  { id: 3016, flipId: 2, label: "Purchased / Closed", done: true, date: "2026-01-15", createdAt:"2025-10-14T09:00:00Z", updatedAt:"2025-10-14T09:00:00Z", userId:"usr_001" },
+  { id: 3017, flipId: 2, label: "Demo Complete", done: true, date: "2026-01-15", createdAt:"2025-10-14T09:00:00Z", updatedAt:"2025-10-14T09:00:00Z", userId:"usr_001" },
+  { id: 3018, flipId: 2, label: "Rough-In (Plumbing/Electric)", done: true, date: "2026-01-15", createdAt:"2025-10-14T09:00:00Z", updatedAt:"2025-10-14T09:00:00Z", userId:"usr_001" },
+  { id: 3019, flipId: 2, label: "Drywall", done: true, date: "2026-01-15", createdAt:"2025-10-14T09:00:00Z", updatedAt:"2025-10-14T09:00:00Z", userId:"usr_001" },
+  { id: 3020, flipId: 2, label: "Paint", done: true, date: "2026-01-15", createdAt:"2025-10-14T09:00:00Z", updatedAt:"2025-10-14T09:00:00Z", userId:"usr_001" },
+  { id: 3021, flipId: 2, label: "Flooring", done: true, date: "2026-01-15", createdAt:"2025-10-14T09:00:00Z", updatedAt:"2025-10-14T09:00:00Z", userId:"usr_001" },
+  { id: 3022, flipId: 2, label: "Kitchen & Baths", done: true, date: "2026-01-15", createdAt:"2025-10-14T09:00:00Z", updatedAt:"2025-10-14T09:00:00Z", userId:"usr_001" },
+  { id: 3023, flipId: 2, label: "Punch List", done: true, date: "2026-01-15", createdAt:"2025-10-14T09:00:00Z", updatedAt:"2025-10-14T09:00:00Z", userId:"usr_001" },
+  { id: 3024, flipId: 2, label: "Listed for Sale", done: false, date: null, createdAt:"2025-10-14T09:00:00Z", updatedAt:"2025-10-14T09:00:00Z", userId:"usr_001" },
+  { id: 3025, flipId: 2, label: "Under Contract", done: false, date: null, createdAt:"2025-10-14T09:00:00Z", updatedAt:"2025-10-14T09:00:00Z", userId:"usr_001" },
+  { id: 3026, flipId: 2, label: "Sold / Closed", done: false, date: null, createdAt:"2025-10-14T09:00:00Z", updatedAt:"2025-10-14T09:00:00Z", userId:"usr_001" },
+  // Flip 3 milestones (id 3027-3029)
+  { id: 3027, flipId: 3, label: "Contract Executed", done: true, date: "2026-03-12", createdAt:"2026-03-12T09:00:00Z", updatedAt:"2026-03-12T09:00:00Z", userId:"usr_001" },
+  { id: 3028, flipId: 3, label: "Inspection Complete", done: true, date: "2026-03-12", createdAt:"2026-03-12T09:00:00Z", updatedAt:"2026-03-12T09:00:00Z", userId:"usr_001" },
+  { id: 3029, flipId: 3, label: "Financing Secured", done: false, date: null, createdAt:"2026-03-10T09:00:00Z", updatedAt:"2026-03-10T09:00:00Z", userId:"usr_001" },
+  // Flip 4 milestones (id 3030-3043)
+  { id: 3030, flipId: 4, label: "Contract Executed", done: true, date: "2025-08-29", createdAt:"2025-08-29T09:00:00Z", updatedAt:"2025-08-29T09:00:00Z", userId:"usr_001" },
+  { id: 3031, flipId: 4, label: "Inspection Complete", done: true, date: "2025-08-29", createdAt:"2025-08-29T09:00:00Z", updatedAt:"2025-08-29T09:00:00Z", userId:"usr_001" },
+  { id: 3032, flipId: 4, label: "Financing Secured", done: true, date: "2025-08-29", createdAt:"2025-08-29T09:00:00Z", updatedAt:"2025-08-29T09:00:00Z", userId:"usr_001" },
+  { id: 3033, flipId: 4, label: "Purchased / Closed", done: true, date: "2025-08-29", createdAt:"2025-04-12T09:00:00Z", updatedAt:"2025-04-12T09:00:00Z", userId:"usr_001" },
+  { id: 3034, flipId: 4, label: "Demo Complete", done: true, date: "2025-08-29", createdAt:"2025-04-12T09:00:00Z", updatedAt:"2025-04-12T09:00:00Z", userId:"usr_001" },
+  { id: 3035, flipId: 4, label: "Rough-In (Plumbing/Electric)", done: true, date: "2025-08-29", createdAt:"2025-04-12T09:00:00Z", updatedAt:"2025-04-12T09:00:00Z", userId:"usr_001" },
+  { id: 3036, flipId: 4, label: "Drywall", done: true, date: "2025-08-29", createdAt:"2025-04-12T09:00:00Z", updatedAt:"2025-04-12T09:00:00Z", userId:"usr_001" },
+  { id: 3037, flipId: 4, label: "Paint", done: true, date: "2025-08-29", createdAt:"2025-04-12T09:00:00Z", updatedAt:"2025-04-12T09:00:00Z", userId:"usr_001" },
+  { id: 3038, flipId: 4, label: "Flooring", done: true, date: "2025-08-29", createdAt:"2025-04-12T09:00:00Z", updatedAt:"2025-04-12T09:00:00Z", userId:"usr_001" },
+  { id: 3039, flipId: 4, label: "Kitchen & Baths", done: true, date: "2025-08-29", createdAt:"2025-04-12T09:00:00Z", updatedAt:"2025-04-12T09:00:00Z", userId:"usr_001" },
+  { id: 3040, flipId: 4, label: "Punch List", done: true, date: "2025-08-29", createdAt:"2025-04-12T09:00:00Z", updatedAt:"2025-04-12T09:00:00Z", userId:"usr_001" },
+  { id: 3041, flipId: 4, label: "Listed for Sale", done: true, date: "2025-08-29", createdAt:"2025-04-12T09:00:00Z", updatedAt:"2025-04-12T09:00:00Z", userId:"usr_001" },
+  { id: 3042, flipId: 4, label: "Under Contract", done: true, date: "2025-08-29", createdAt:"2025-04-12T09:00:00Z", updatedAt:"2025-04-12T09:00:00Z", userId:"usr_001" },
+  { id: 3043, flipId: 4, label: "Sold / Closed", done: true, date: "2025-08-29", createdAt:"2025-04-12T09:00:00Z", updatedAt:"2025-04-12T09:00:00Z", userId:"usr_001" },
+];
 
 const _tenants = [
   // ── Active tenants ──
-  { id:1,  propertyId:1, unit:"Unit A",    name:"Marcus & Priya Williams",     rent:1900, leaseStart:"2024-02-01", leaseEnd:"2025-01-31", status:"active-lease",   lastPayment:"2026-03-01", phone:"512-555-0143", email:"mwilliams@email.com",    moveOutDate:null, moveOutReason:null, securityDeposit:1900  },
-  { id:2,  propertyId:1, unit:"Unit B",    name:"Jordan Lee",                  rent:1900, leaseStart:"2023-08-01", leaseEnd:"2024-07-31", status:"month-to-month", lastPayment:"2026-03-01", phone:"512-555-0287", email:"jlee@email.com",         moveOutDate:null, moveOutReason:null, securityDeposit:1900  },
-  { id:3,  propertyId:2, unit:"Main",      name:"Stephanie & Dan Kowalski",    rent:2950, leaseStart:"2024-06-01", leaseEnd:"2025-05-31", status:"active-lease",   lastPayment:"2026-03-15", phone:"303-555-0194", email:"kowalski@email.com",     moveOutDate:null, moveOutReason:null, securityDeposit:2950  },
-  { id:4,  propertyId:3, unit:"#4B",       name:"Alexis Fontaine",             rent:2100, leaseStart:"2025-01-01", leaseEnd:"2025-12-31", status:"active-lease",   lastPayment:"2026-03-01", phone:"404-555-0362", email:"afontaine@email.com",    moveOutDate:null, moveOutReason:null, securityDeposit:2100  },
-  { id:5,  propertyId:4, unit:"Unit 1",    name:"Ryan & Keisha Thompson",      rent:1950, leaseStart:"2024-09-01", leaseEnd:"2025-08-31", status:"active-lease",   lastPayment:"2026-03-08", phone:"503-555-0218", email:"kthompson@email.com",    moveOutDate:null, moveOutReason:null, securityDeposit:1950  },
-  { id:6,  propertyId:4, unit:"Unit 2",    name:"Vacant",                      rent:1875, leaseStart:null,         leaseEnd:null,         status:"vacant",         lastPayment:null,         phone:null,           email:null,                     moveOutDate:null, moveOutReason:null, securityDeposit:null  },
-  { id:7,  propertyId:4, unit:"Unit 3",    name:"Carlos Mendez",               rent:1875, leaseStart:"2025-03-01", leaseEnd:"2026-02-28", status:"month-to-month", lastPayment:"2026-03-08", phone:"503-555-0445", email:"cmendez@email.com",      moveOutDate:null, moveOutReason:null, securityDeposit:1875  },
-  { id:8,  propertyId:5, unit:"Commercial",name:"Pacific Rim Restaurant Group", rent:8500, leaseStart:"2023-01-01", leaseEnd:"2027-12-31", status:"active-lease",   lastPayment:"2026-03-10", phone:"310-555-0501", email:"leasing@pacificrimrg.com",moveOutDate:null, moveOutReason:null, securityDeposit:12000 },
+  { id:1,  propertyId:1, unit:"Unit A",    name:"Marcus & Priya Williams",     rent:1900, leaseStart:"2024-02-01", leaseEnd:"2025-01-31", status:"active-lease",   lastPayment:"2026-03-01", phone:"512-555-0143", email:"mwilliams@email.com",    moveOutDate:null, moveOutReason:null, securityDeposit:1900, createdAt:"2024-02-01T09:00:00Z", updatedAt:"2024-02-01T09:00:00Z", userId:"usr_001"  },
+  { id:2,  propertyId:1, unit:"Unit B",    name:"Jordan Lee",                  rent:1900, leaseStart:"2023-08-01", leaseEnd:"2024-07-31", status:"month-to-month", lastPayment:"2026-03-01", phone:"512-555-0287", email:"jlee@email.com",         moveOutDate:null, moveOutReason:null, securityDeposit:1900, createdAt:"2023-08-01T09:00:00Z", updatedAt:"2023-08-01T09:00:00Z", userId:"usr_001"  },
+  { id:3,  propertyId:2, unit:"Main",      name:"Stephanie & Dan Kowalski",    rent:2950, leaseStart:"2024-06-01", leaseEnd:"2025-05-31", status:"active-lease",   lastPayment:"2026-03-15", phone:"303-555-0194", email:"kowalski@email.com",     moveOutDate:null, moveOutReason:null, securityDeposit:2950, createdAt:"2024-06-01T09:00:00Z", updatedAt:"2024-06-01T09:00:00Z", userId:"usr_001"  },
+  { id:4,  propertyId:3, unit:"#4B",       name:"Alexis Fontaine",             rent:2100, leaseStart:"2025-01-01", leaseEnd:"2025-12-31", status:"active-lease",   lastPayment:"2026-03-01", phone:"404-555-0362", email:"afontaine@email.com",    moveOutDate:null, moveOutReason:null, securityDeposit:2100, createdAt:"2025-01-01T09:00:00Z", updatedAt:"2025-01-01T09:00:00Z", userId:"usr_001"  },
+  { id:5,  propertyId:4, unit:"Unit 1",    name:"Ryan & Keisha Thompson",      rent:1950, leaseStart:"2024-09-01", leaseEnd:"2025-08-31", status:"active-lease",   lastPayment:"2026-03-08", phone:"503-555-0218", email:"kthompson@email.com",    moveOutDate:null, moveOutReason:null, securityDeposit:1950, createdAt:"2024-09-01T09:00:00Z", updatedAt:"2024-09-01T09:00:00Z", userId:"usr_001"  },
+  { id:6,  propertyId:4, unit:"Unit 2",    name:"Vacant",                      rent:1875, leaseStart:null,         leaseEnd:null,         status:"vacant",         lastPayment:null,         phone:null,           email:null,                     moveOutDate:null, moveOutReason:null, securityDeposit:null, createdAt:"2025-03-15T09:00:00Z", updatedAt:"2025-03-15T09:00:00Z", userId:"usr_001"  },
+  { id:7,  propertyId:4, unit:"Unit 3",    name:"Carlos Mendez",               rent:1875, leaseStart:"2025-03-01", leaseEnd:"2026-02-28", status:"month-to-month", lastPayment:"2026-03-08", phone:"503-555-0445", email:"cmendez@email.com",      moveOutDate:null, moveOutReason:null, securityDeposit:1875, createdAt:"2025-03-01T09:00:00Z", updatedAt:"2025-03-01T09:00:00Z", userId:"usr_001"  },
+  { id:8,  propertyId:5, unit:"Commercial",name:"Pacific Rim Restaurant Group", rent:8500, leaseStart:"2023-01-01", leaseEnd:"2027-12-31", status:"active-lease",   lastPayment:"2026-03-10", phone:"310-555-0501", email:"leasing@pacificrimrg.com",moveOutDate:null, moveOutReason:null, securityDeposit:12000, createdAt:"2023-01-01T09:00:00Z", updatedAt:"2023-01-01T09:00:00Z", userId:"usr_001" },
   // ── Past tenants (lease closed) ──
-  { id:101, propertyId:1, unit:"Unit A",   name:"David Chen",                  rent:1650, leaseStart:"2022-01-15", leaseEnd:"2024-01-14", status:"past",           lastPayment:"2024-01-01", phone:"512-555-0099", email:"dchen@email.com",        moveOutDate:"2024-01-31", moveOutReason:"Relocated for work",       securityDeposit:1650  },
-  { id:102, propertyId:2, unit:"Main",     name:"Angela & Tim Briggs",         rent:2650, leaseStart:"2021-06-01", leaseEnd:"2024-05-31", status:"past",           lastPayment:"2024-05-01", phone:"303-555-0077", email:"abriggs@email.com",      moveOutDate:"2024-05-31", moveOutReason:"Purchased own home",       securityDeposit:2650  },
-  { id:103, propertyId:4, unit:"Unit 2",   name:"Mei-Lin Patel",              rent:1750, leaseStart:"2023-04-01", leaseEnd:"2025-03-31", status:"past",           lastPayment:"2025-02-01", phone:"503-555-0333", email:"mpatel@email.com",       moveOutDate:"2025-03-15", moveOutReason:"Lease not renewed",        securityDeposit:1750  },
-  { id:104, propertyId:3, unit:"#4B",      name:"Jason & Marie Torres",        rent:1850, leaseStart:"2022-06-01", leaseEnd:"2024-12-31", status:"past",           lastPayment:"2024-12-01", phone:"404-555-0211", email:"jtorres@email.com",      moveOutDate:"2024-12-31", moveOutReason:"Lease ended, rent increase",securityDeposit:1850 },
+  { id:101, propertyId:1, unit:"Unit A",   name:"David Chen",                  rent:1650, leaseStart:"2022-01-15", leaseEnd:"2024-01-14", status:"past",           lastPayment:"2024-01-01", phone:"512-555-0099", email:"dchen@email.com",        moveOutDate:"2024-01-31", moveOutReason:"Relocated for work",       securityDeposit:1650, createdAt:"2022-01-15T09:00:00Z", updatedAt:"2022-01-15T09:00:00Z", userId:"usr_001"  },
+  { id:102, propertyId:2, unit:"Main",     name:"Angela & Tim Briggs",         rent:2650, leaseStart:"2021-06-01", leaseEnd:"2024-05-31", status:"past",           lastPayment:"2024-05-01", phone:"303-555-0077", email:"abriggs@email.com",      moveOutDate:"2024-05-31", moveOutReason:"Purchased own home",       securityDeposit:2650, createdAt:"2021-06-01T09:00:00Z", updatedAt:"2021-06-01T09:00:00Z", userId:"usr_001"  },
+  { id:103, propertyId:4, unit:"Unit 2",   name:"Mei-Lin Patel",              rent:1750, leaseStart:"2023-04-01", leaseEnd:"2025-03-31", status:"past",           lastPayment:"2025-02-01", phone:"503-555-0333", email:"mpatel@email.com",       moveOutDate:"2025-03-15", moveOutReason:"Lease not renewed",        securityDeposit:1750, createdAt:"2023-04-01T09:00:00Z", updatedAt:"2023-04-01T09:00:00Z", userId:"usr_001"  },
+  { id:104, propertyId:3, unit:"#4B",      name:"Jason & Marie Torres",        rent:1850, leaseStart:"2022-06-01", leaseEnd:"2024-12-31", status:"past",           lastPayment:"2024-12-01", phone:"404-555-0211", email:"jtorres@email.com",      moveOutDate:"2024-12-31", moveOutReason:"Lease ended, rent increase",securityDeposit:1850, createdAt:"2022-06-01T09:00:00Z", updatedAt:"2022-06-01T09:00:00Z", userId:"usr_001" },
 ];
 
 const _mileageTrips = [
-  { id:1, date:"2026-03-22", description:"Inspect Oakdale Craftsman - contractor walkthrough", from:"Home", to:"1422 Oakdale Ave, Nashville",     miles:14.2, purpose:"Flip",     businessPct:100 },
-  { id:2, date:"2026-03-20", description:"Collect rent - Maple Ridge Duplex",                  from:"Home", to:"2847 Maple Ridge Dr, Austin",     miles:8.5,  purpose:"Rental",   businessPct:100 },
-  { id:3, date:"2026-03-18", description:"Meet plumber - Oakdale Craftsman",                   from:"Home", to:"1422 Oakdale Ave, Nashville",     miles:14.2, purpose:"Flip",     businessPct:100 },
-  { id:4, date:"2026-03-15", description:"Annual inspection - Lakeview SFR",                   from:"Home", to:"518 Lakeview Terrace, Denver",    miles:22.7, purpose:"Rental",   businessPct:100 },
-  { id:5, date:"2026-03-12", description:"Pine Street Ranch showing",                          from:"Home", to:"874 Pine Street, Memphis",        miles:18.9, purpose:"Flip",     businessPct:100 },
-  { id:6, date:"2026-03-10", description:"Commercial property check-in",                       from:"Home", to:"9220 Sunset Blvd, W Hollywood",   miles:31.4, purpose:"Rental",   businessPct:100 },
-  { id:7, date:"2026-03-05", description:"Riverside Triplex - maintenance call",               from:"Home", to:"744 Riverside Blvd, Portland",    miles:12.1, purpose:"Rental",   businessPct:100 },
-  { id:8, date:"2026-02-28", description:"Accountant meeting - tax prep",                      from:"Home", to:"Downtown Office",                 miles:9.3,  purpose:"Business", businessPct:100 },
+  { id:1, date:"2026-03-22", description:"Inspect Oakdale Craftsman - contractor walkthrough", from:"Home", to:"1422 Oakdale Ave, Nashville",     miles:14.2, purpose:"Flip",     businessPct:100, createdAt:"2026-03-22T10:00:00Z", updatedAt:"2026-03-22T10:00:00Z", userId:"usr_001" },
+  { id:2, date:"2026-03-20", description:"Collect rent - Maple Ridge Duplex",                  from:"Home", to:"2847 Maple Ridge Dr, Austin",     miles:8.5,  purpose:"Rental",   businessPct:100, createdAt:"2026-03-20T10:00:00Z", updatedAt:"2026-03-20T10:00:00Z", userId:"usr_001" },
+  { id:3, date:"2026-03-18", description:"Meet plumber - Oakdale Craftsman",                   from:"Home", to:"1422 Oakdale Ave, Nashville",     miles:14.2, purpose:"Flip",     businessPct:100, createdAt:"2026-03-18T09:30:00Z", updatedAt:"2026-03-18T09:30:00Z", userId:"usr_001" },
+  { id:4, date:"2026-03-15", description:"Annual inspection - Lakeview SFR",                   from:"Home", to:"518 Lakeview Terrace, Denver",    miles:22.7, purpose:"Rental",   businessPct:100, createdAt:"2026-03-15T08:00:00Z", updatedAt:"2026-03-15T08:00:00Z", userId:"usr_001" },
+  { id:5, date:"2026-03-12", description:"Pine Street Ranch showing",                          from:"Home", to:"874 Pine Street, Memphis",        miles:18.9, purpose:"Flip",     businessPct:100, createdAt:"2026-03-12T10:00:00Z", updatedAt:"2026-03-12T10:00:00Z", userId:"usr_001" },
+  { id:6, date:"2026-03-10", description:"Commercial property check-in",                       from:"Home", to:"9220 Sunset Blvd, W Hollywood",   miles:31.4, purpose:"Rental",   businessPct:100, createdAt:"2026-03-10T14:00:00Z", updatedAt:"2026-03-10T14:00:00Z", userId:"usr_001" },
+  { id:7, date:"2026-03-05", description:"Riverside Triplex - maintenance call",               from:"Home", to:"744 Riverside Blvd, Portland",    miles:12.1, purpose:"Rental",   businessPct:100, createdAt:"2026-03-05T09:00:00Z", updatedAt:"2026-03-05T09:00:00Z", userId:"usr_001" },
+  { id:8, date:"2026-02-28", description:"Accountant meeting - tax prep",                      from:"Home", to:"Downtown Office",                 miles:9.3,  purpose:"Business", businessPct:100, createdAt:"2026-02-28T10:00:00Z", updatedAt:"2026-02-28T10:00:00Z", userId:"usr_001" },
 ];
 
 // -----------------------------------------------------------------------------
@@ -368,50 +371,38 @@ export function getContractors(flipId)  {
 }
 export function addContractor(c)        { CONTRACTORS.push(c); return Promise.resolve(c); }
 export function getFlipMilestones(flipId) {
-  return Promise.resolve([...(_flipMilestones[flipId] || DEFAULT_MILESTONES.map(label => ({ label, done: false, date: null })))]);
+  return Promise.resolve(FLIP_MILESTONES.filter(m => m.flipId === flipId));
 }
 export function updateFlipMilestones(flipId, milestones) {
-  _flipMilestones[flipId] = milestones;
+  // Remove old milestones for this flip
+  const oldIndices = FLIP_MILESTONES.map((m, i) => m.flipId === flipId ? i : -1).filter(i => i !== -1);
+  for (let i = oldIndices.length - 1; i >= 0; i--) {
+    FLIP_MILESTONES.splice(oldIndices[i], 1);
+  }
+  // Add updated milestones
+  FLIP_MILESTONES.push(...milestones);
   return Promise.resolve(milestones);
 }
 
-// Direct access to milestone data for cross-deal views
-export const FLIP_MILESTONES_DATA = _flipMilestones;
+// Rental notes — flat array with propertyId reference
+export const RENTAL_NOTES = [
+  { id: 2001, propertyId: 1, date: "2026-03-30", text: "Tenant in Unit B reported slow drain in kitchen. Scheduled plumber for April 2nd.", createdAt: "2026-03-30T10:00:00Z", updatedAt: "2026-03-30T10:00:00Z", userId: "usr_001" },
+  { id: 2002, propertyId: 1, date: "2026-03-12", text: "Annual property inspection complete. Minor drywall crack in Unit A hallway — cosmetic only, will patch at next turnover.", createdAt: "2026-03-12T09:00:00Z", updatedAt: "2026-03-12T09:00:00Z", userId: "usr_001" },
+  { id: 2003, propertyId: 1, date: "2026-02-20", text: "Renewed insurance policy with Liberty Mutual. Premium increased 4% — still competitive.", createdAt: "2026-02-20T10:00:00Z", updatedAt: "2026-02-20T10:00:00Z", userId: "usr_001" },
+  { id: 2004, propertyId: 2, date: "2026-03-25", text: "Tenant asked about installing a Ring doorbell. Approved as long as they restore on move-out.", createdAt: "2026-03-25T10:00:00Z", updatedAt: "2026-03-25T10:00:00Z", userId: "usr_001" },
+  { id: 2005, propertyId: 2, date: "2026-02-01", text: "Lease renewal signed through Feb 2027. Rent bumped from $2,800 to $2,950.", createdAt: "2026-02-01T09:00:00Z", updatedAt: "2026-02-01T09:00:00Z", userId: "usr_001" },
+  { id: 2006, propertyId: 3, date: "2026-03-18", text: "HOA approved new landscaping plan for common areas. Assessment may increase $15/mo starting Q3.", createdAt: "2026-03-18T10:00:00Z", updatedAt: "2026-03-18T10:00:00Z", userId: "usr_001" },
+  { id: 2007, propertyId: 4, date: "2026-03-22", text: "Unit 3 still vacant. Dropped listing price to $1,800/mo and refreshed photos. Two showings this week.", createdAt: "2026-03-22T10:00:00Z", updatedAt: "2026-03-22T10:00:00Z", userId: "usr_001" },
+  { id: 2008, propertyId: 4, date: "2026-03-05", text: "Replaced garbage disposal in Unit 1. Parts + labor = $285, logged as maintenance expense.", createdAt: "2026-03-05T14:00:00Z", updatedAt: "2026-03-05T14:00:00Z", userId: "usr_001" },
+];
 
-// Rental notes — keyed by propertyId
-export const RENTAL_NOTES = {
-  1: [
-    { id: 2001, date: "2026-03-30", text: "Tenant in Unit B reported slow drain in kitchen. Scheduled plumber for April 2nd." },
-    { id: 2002, date: "2026-03-12", text: "Annual property inspection complete. Minor drywall crack in Unit A hallway — cosmetic only, will patch at next turnover." },
-    { id: 2003, date: "2026-02-20", text: "Renewed insurance policy with Liberty Mutual. Premium increased 4% — still competitive." },
-  ],
-  2: [
-    { id: 2004, date: "2026-03-25", text: "Tenant asked about installing a Ring doorbell. Approved as long as they restore on move-out." },
-    { id: 2005, date: "2026-02-01", text: "Lease renewal signed through Feb 2027. Rent bumped from $2,800 to $2,950." },
-  ],
-  3: [
-    { id: 2006, date: "2026-03-18", text: "HOA approved new landscaping plan for common areas. Assessment may increase $15/mo starting Q3." },
-  ],
-  4: [
-    { id: 2007, date: "2026-03-22", text: "Unit 3 still vacant. Dropped listing price to $1,800/mo and refreshed photos. Two showings this week." },
-    { id: 2008, date: "2026-03-05", text: "Replaced garbage disposal in Unit 1. Parts + labor = $285, logged as maintenance expense." },
-  ],
-  5: [],
-};
-
-// Flip notes — keyed by flipId
-export const FLIP_NOTES = {
-  1: [
-    { id: 1001, date: "2026-03-28", text: "Spoke with inspector — back wall needs structural review before drywall. Getting quote from Nash Drywall." },
-    { id: 1002, date: "2026-03-15", text: "ABC Plumbing delayed 1 week on master bath rough-in. Pushed flooring start to 3/21." },
-    { id: 1003, date: "2026-02-10", text: "Demo went smooth. Dumpster picked up, ready for rough-in next week." },
-  ],
-  2: [
-    { id: 1004, date: "2026-01-20", text: "All rehab complete. Scheduling photographer for listing photos this week." },
-  ],
-  3: [],
-  4: [],
-};
+// Flip notes — flat array with flipId reference
+export const FLIP_NOTES = [
+  { id: 1001, flipId: 1, date: "2026-03-28", text: "Spoke with inspector — back wall needs structural review before drywall. Getting quote from Nash Drywall.", createdAt: "2026-03-28T10:00:00Z", updatedAt: "2026-03-28T10:00:00Z", userId: "usr_001" },
+  { id: 1002, flipId: 1, date: "2026-03-15", text: "ABC Plumbing delayed 1 week on master bath rough-in. Pushed flooring start to 3/21.", createdAt: "2026-03-15T10:00:00Z", updatedAt: "2026-03-15T10:00:00Z", userId: "usr_001" },
+  { id: 1003, flipId: 1, date: "2026-02-10", text: "Demo went smooth. Dumpster picked up, ready for rough-in next week.", createdAt: "2026-02-10T09:00:00Z", updatedAt: "2026-02-10T09:00:00Z", userId: "usr_001" },
+  { id: 1004, flipId: 2, date: "2026-01-20", text: "All rehab complete. Scheduling photographer for listing photos this week.", createdAt: "2026-01-20T10:00:00Z", updatedAt: "2026-01-20T10:00:00Z", userId: "usr_001" },
+];
 
 // -----------------------------------------------------------------------------
 // Tenants

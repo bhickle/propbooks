@@ -21,8 +21,9 @@ import {
   getMonthlyCashFlow, getEquityGrowth, getExpenseCategories,
   getFlips, addFlip, updateFlip,
   getFlipExpenses, addFlipExpense, getContractors, addContractor, CONTRACTORS,
-  getFlipMilestones, updateFlipMilestones,
-  getTenants, getMileageTrips, addMileageTrip, RENTAL_NOTES, FLIP_NOTES,
+  CONTRACTOR_BIDS, CONTRACTOR_PAYMENTS, CONTRACTOR_DOCUMENTS,
+  getFlipMilestones, updateFlipMilestones, FLIP_MILESTONES,
+  getTenants, getMileageTrips, addMileageTrip, RENTAL_NOTES, FLIP_NOTES, MOCK_USER,
 } from "./api.js";
 import { AuthProvider, AuthScreen, useAuth } from "./auth.jsx";
 import { Settings, OnboardingWizard } from "./settings.jsx";
@@ -182,8 +183,8 @@ const PROPERTIES = [
 // ── Derived financials from transactions ──
 // Returns { monthlyIncome, monthlyExpenses, months, source } for a property
 // "source" = "transactions" if 2+ months of data, else "estimate" (falls back to property fields)
-function calcMonthlyFromTx(propertyName, transactions, fallbackRent, fallbackExp) {
-  const propTx = transactions.filter(t => t.property === propertyName);
+function calcMonthlyFromTx(propertyId, transactions, fallbackRent, fallbackExp) {
+  const propTx = transactions.filter(t => t.propertyId === propertyId);
   if (propTx.length === 0) return { monthlyIncome: fallbackRent || 0, monthlyExpenses: fallbackExp || 0, months: 0, source: "estimate" };
 
   const dates = propTx.map(t => t.date).sort();
@@ -207,7 +208,7 @@ function calcMonthlyFromTx(propertyName, transactions, fallbackRent, fallbackExp
 
 // Convenience: get effective monthly numbers for a property (prefers transactions, falls back to estimates)
 function getEffectiveMonthly(p, transactions) {
-  return calcMonthlyFromTx(p.name, transactions, p.monthlyRent, p.monthlyExpenses);
+  return calcMonthlyFromTx(p.id, transactions, p.monthlyRent, p.monthlyExpenses);
 }
 
 // ── Derived metric helpers ──
@@ -386,26 +387,10 @@ const FLIP_EXPENSES = [
 // CONTRACTORS imported from api.js below
 
 // DEFAULT_MILESTONES imported from api.js
+// FLIP_MILESTONES is now imported as a flat array from api.js
 
-const FLIP_MILESTONES = {
-  1: [
-    { label: "Contract Executed", done: true, date: "2026-01-06", targetDate: "2026-01-06" },
-    { label: "Inspection Complete", done: true, date: "2026-01-07", targetDate: "2026-01-10" },
-    { label: "Purchased / Closed", done: true, date: "2026-01-08", targetDate: "2026-01-08" },
-    { label: "Demo Complete", done: true, date: "2026-01-22", targetDate: "2026-01-20" },
-    { label: "Rough-In (Plumbing/Electric)", done: true, date: "2026-02-10", targetDate: "2026-02-07" },
-    { label: "Drywall", done: true, date: "2026-02-24", targetDate: "2026-02-21" },
-    { label: "Paint", done: false, date: null, targetDate: "2026-03-14" },
-    { label: "Flooring", done: false, date: null, targetDate: "2026-03-21" },
-    { label: "Kitchen & Baths", done: false, date: null, targetDate: "2026-03-28" },
-    { label: "Punch List", done: false, date: null, targetDate: "2026-04-04" },
-    { label: "Listed for Sale", done: false, date: null, targetDate: "2026-04-15" },
-    { label: "Sold / Closed", done: false, date: null, targetDate: "2026-05-30" },
-  ],
-  2: DEFAULT_MILESTONES.map((label, i) => ({ label, done: i < 11, date: i < 11 ? "2026-01-15" : null, targetDate: null })),
-  3: DEFAULT_MILESTONES.slice(0, 3).map((label, i) => ({ label, done: i < 2, date: i < 2 ? "2026-03-12" : null, targetDate: null })),
-  4: DEFAULT_MILESTONES.map(label => ({ label, done: true, date: "2025-08-29", targetDate: null })),
-};
+// Local runtime state: maps flip IDs to milestone arrays with targetDate field added for UI
+const _LOCAL_FLIP_MILESTONES = {};
 
 const TENANTS = [
   { id: 1, propertyId: 1, unit: "Unit A", name: "Marcus & Priya Williams", rent: 1900, securityDeposit: 3800, lateFeePct: 5, renewalTerms: "Annual", notes: "Excellent tenants, always on time.", leaseStart: "2024-02-01", leaseEnd: "2025-01-31", status: "active-lease", daysUntilExpiry: 40, lastPayment: "2026-03-01", phone: "512-555-0143", email: "mwilliams@email.com", leaseDoc: null },
@@ -584,20 +569,19 @@ function Dashboard({ onNavigate, onNavigateToTx, onSelectProperty, onNavigateToT
     const items = [];
     // Recent transactions
     TRANSACTIONS.slice(0, 8).forEach(t => {
+      const propName = PROPERTIES.find(p => p.id === t.propertyId)?.name || "Unknown";
       items.push({ type: "transaction", date: t.date, icon: t.type === "income" ? ArrowUp : ArrowDown,
         color: t.type === "income" ? "#15803d" : "#b91c1c", bg: t.type === "income" ? "#dcfce7" : "#fee2e2",
-        title: t.description, sub: `${t.property.split(" ").slice(0, 2).join(" ")} · ${t.date}`,
+        title: t.description, sub: `${propName.split(" ").slice(0, 2).join(" ")} · ${t.date}`,
         amount: t.amount, txType: t.type, txId: t.id });
     });
     // Recent rental notes
-    Object.entries(RENTAL_NOTES).forEach(([propId, notes]) => {
-      const prop = PROPERTIES.find(p => p.id === Number(propId));
-      (notes || []).forEach(n => {
-        items.push({ type: "note", date: n.date, icon: MessageSquare, color: "#8b5cf6", bg: "#ede9fe",
-          title: n.text.length > 60 ? n.text.slice(0, 60) + "..." : n.text,
-          sub: `${prop?.name?.split(" ").slice(0, 2).join(" ") || "Property"} · ${n.date}`,
-          propId: Number(propId), noteId: n.id });
-      });
+    RENTAL_NOTES.forEach(n => {
+      const prop = PROPERTIES.find(p => p.id === n.propertyId);
+      items.push({ type: "note", date: n.date, icon: MessageSquare, color: "#8b5cf6", bg: "#ede9fe",
+        title: n.text.length > 60 ? n.text.slice(0, 60) + "..." : n.text,
+        sub: `${prop?.name?.split(" ").slice(0, 2).join(" ") || "Property"} · ${n.date}`,
+        propId: n.propertyId, noteId: n.id });
     });
     return items.sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 8);
   }, [renderKey]);
@@ -1347,7 +1331,7 @@ function PropertyDetail({ property, onBack, onEditProperty, onGoToTransactions, 
   const appreciation = property.currentValue - property.purchasePrice;
   const eff = getEffectiveMonthly(property, TRANSACTIONS);
   const annualNOI = (eff.monthlyIncome - eff.monthlyExpenses) * 12;
-  const propTransactions = TRANSACTIONS.filter(t => t.property === property.name);
+  const propTransactions = TRANSACTIONS.filter(t => t.propertyId === property.id);
   const propTenants = TENANTS.filter(t => t.propertyId === property.id && t.status !== "past");
   const propPastTenants = TENANTS.filter(t => t.propertyId === property.id && t.status === "past");
   const detailHealth = getPropertyHealth(property, TRANSACTIONS);
@@ -1400,7 +1384,7 @@ function PropertyDetail({ property, onBack, onEditProperty, onGoToTransactions, 
   const txCategories = [...new Set(propTransactions.map(t => t.category))].sort();
   const filteredTxTotal = filteredTx.reduce((s, t) => s + (t.type === "income" ? t.amount : -Math.abs(t.amount)), 0);
 
-  const propNotes = RENTAL_NOTES[property.id] || [];
+  const propNotes = RENTAL_NOTES.filter(n => n.propertyId === property.id);
 
   const tabs = [
     { id: "overview", label: "Overview", icon: Home },
@@ -1819,8 +1803,8 @@ function Transactions({ highlightTxId, onBack, onClearHighlight, backLabel }) {
   };
   // selectedGroup no longer needed — single grouped dropdown
 
-  const emptyIncome  = { date: "", property: PROPERTIES[0]?.name || "", type: "income",  category: "Rent Income",      description: "", amount: "", payee: "", piOverride: false, piPrincipal: "", piInterest: "" };
-  const emptyExpense = { date: "", property: PROPERTIES[0]?.name || "", type: "expense", category: "Mortgage Payment", description: "", amount: "", payee: "", piOverride: false, piPrincipal: "", piInterest: "" };
+  const emptyIncome  = { date: "", propertyId: PROPERTIES[0]?.id || "", type: "income",  category: "Rent Income",      description: "", amount: "", payee: "", piOverride: false, piPrincipal: "", piInterest: "", createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), userId: MOCK_USER.id };
+  const emptyExpense = { date: "", propertyId: PROPERTIES[0]?.id || "", type: "expense", category: "Mortgage Payment", description: "", amount: "", payee: "", piOverride: false, piPrincipal: "", piInterest: "", createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), userId: MOCK_USER.id };
   const [form, setForm] = useState(emptyIncome);
   const [payeeFocus, setPayeeFocus] = useState(false);
   const sf = k => e => setForm(f => ({ ...f, [k]: e.target.value }));
@@ -1830,7 +1814,7 @@ function Transactions({ highlightTxId, onBack, onClearHighlight, backLabel }) {
   const openAddExpense = () => { setEditId(null); setForm(emptyExpense); setPayeeFocus(false); setShowModal("expense"); };
   const openEdit = t => {
     setEditId(t.id);
-    setForm({ date: t.date, property: t.property, type: t.type, category: t.category, description: t.description, amount: String(Math.abs(t.amount)), payee: t.payee || "", piOverride: !!(t.piPrincipal || t.piInterest), piPrincipal: t.piPrincipal ? String(t.piPrincipal) : "", piInterest: t.piInterest ? String(t.piInterest) : "" });
+    setForm({ date: t.date, propertyId: t.propertyId, type: t.type, category: t.category, description: t.description, amount: String(Math.abs(t.amount)), payee: t.payee || "", piOverride: !!(t.piPrincipal || t.piInterest), piPrincipal: t.piPrincipal ? String(t.piPrincipal) : "", piInterest: t.piInterest ? String(t.piInterest) : "" });
     setPayeeFocus(false);
     setShowModal(t.type);
   };
@@ -1863,9 +1847,10 @@ function Transactions({ highlightTxId, onBack, onClearHighlight, backLabel }) {
 
   const filtered = txData.filter(t => {
     const matchType = filter === "all" || t.type === filter;
-    const matchProp = propFilter === "all" || t.property === propFilter;
+    const matchProp = propFilter === "all" || t.propertyId === Number(propFilter);
     const matchCat = catFilter === "all" || t.category === catFilter;
-    const matchSearch = t.description.toLowerCase().includes(search.toLowerCase()) || t.property.toLowerCase().includes(search.toLowerCase()) || t.category.toLowerCase().includes(search.toLowerCase()) || (t.payee || "").toLowerCase().includes(search.toLowerCase());
+    const propName = PROPERTIES.find(p => p.id === t.propertyId)?.name || "";
+    const matchSearch = t.description.toLowerCase().includes(search.toLowerCase()) || propName.toLowerCase().includes(search.toLowerCase()) || t.category.toLowerCase().includes(search.toLowerCase()) || (t.payee || "").toLowerCase().includes(search.toLowerCase());
     return matchType && matchProp && matchCat && matchSearch && matchesDate(t);
   });
 
@@ -1880,14 +1865,14 @@ function Transactions({ highlightTxId, onBack, onClearHighlight, backLabel }) {
     if (!form.description || !form.amount) return;
     const amt = parseFloat(form.amount) || 0;
     const isMortgage = ["Mortgage Payment", "Mortgage"].includes(form.category);
-    const built = { date: form.date || new Date().toISOString().split("T")[0], property: form.property, category: form.category || "Other", description: form.description, amount: form.type === "income" ? Math.abs(amt) : -Math.abs(amt), type: form.type, payee: (form.payee || "").trim() };
+    const built = { date: form.date || new Date().toISOString().split("T")[0], propertyId: Number(form.propertyId), category: form.category || "Other", description: form.description, amount: form.type === "income" ? Math.abs(amt) : -Math.abs(amt), type: form.type, payee: (form.payee || "").trim() };
     // Store P&I split if mortgage transaction
     if (isMortgage && form.piOverride && form.piPrincipal && form.piInterest) {
       built.piPrincipal = parseFloat(form.piPrincipal) || 0;
       built.piInterest = parseFloat(form.piInterest) || 0;
     } else if (isMortgage) {
       // Auto-calculate and store
-      const prop = PROPERTIES.find(p => p.name === form.property);
+      const prop = PROPERTIES.find(p => p.id === Number(form.propertyId));
       if (prop) {
         const payDate = form.date || new Date().toISOString().split("T")[0];
         const interest = calcPaymentInterest(prop.loanAmount, prop.loanRate, prop.loanTermYears, prop.loanStartDate, payDate);
@@ -2009,7 +1994,7 @@ function Transactions({ highlightTxId, onBack, onClearHighlight, backLabel }) {
             {filtered.map((t, i) => (
               <tr key={t.id} ref={t.id === flashId ? highlightRef : undefined} style={{ borderTop: "1px solid #f1f5f9", background: t.id === flashId ? "#dbeafe" : i % 2 === 0 ? "#fff" : "#fafafa", transition: "background 1.5s ease" }}>
                 <td style={{ padding: "14px 20px", fontSize: 13, color: "#64748b" }}>{t.date}</td>
-                <td style={{ padding: "14px 20px", fontSize: 13, fontWeight: 600, color: "#0f172a" }}>{t.property.split(" ").slice(0, 2).join(" ")}</td>
+                <td style={{ padding: "14px 20px", fontSize: 13, fontWeight: 600, color: "#0f172a" }}>{(PROPERTIES.find(p => p.id === t.propertyId)?.name || "Unknown").split(" ").slice(0, 2).join(" ")}</td>
                 <td style={{ padding: "14px 20px" }}>
                   {(() => { const group = parentOf(t.category, t.type); return group && group !== t.category ? <p style={{ fontSize: 10, color: "#94a3b8", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.03em", marginBottom: 2 }}>{group}</p> : null; })()}
                   <span style={{ background: "#f1f5f9", borderRadius: 6, padding: "3px 8px", fontSize: 12, fontWeight: 600, color: "#475569" }}>{t.category}</span>
@@ -2098,7 +2083,7 @@ function Transactions({ highlightTxId, onBack, onClearHighlight, backLabel }) {
 
               {/* P&I Split for mortgage payments */}
               {["Mortgage Payment", "Mortgage"].includes(form.category) && form.amount && (() => {
-                const prop = PROPERTIES.find(p => p.name === form.property);
+                const prop = PROPERTIES.find(p => p.id === Number(form.propertyId));
                 const amt = parseFloat(form.amount) || 0;
                 const payDate = form.date || new Date().toISOString().split("T")[0];
                 const autoInterest = prop ? calcPaymentInterest(prop.loanAmount, prop.loanRate, prop.loanTermYears, prop.loanStartDate, payDate) : null;
@@ -2168,8 +2153,8 @@ function Transactions({ highlightTxId, onBack, onClearHighlight, backLabel }) {
               </div>
               <div style={{ gridColumn: "1 / -1" }}>
                 <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Property</label>
-                <select value={form.property} onChange={sf("property")} style={iS}>
-                  {PROPERTIES.map(p => <option key={p.id} value={p.name}>{p.name}</option>)}
+                <select value={form.propertyId} onChange={sf("propertyId")} style={iS}>
+                  {PROPERTIES.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                 </select>
               </div>
               <div style={{ gridColumn: "1 / -1" }}>
@@ -2198,7 +2183,7 @@ function Transactions({ highlightTxId, onBack, onClearHighlight, backLabel }) {
           <p style={{ color: "#475569", fontSize: 14, marginBottom: 8 }}>Are you sure you want to delete this transaction?</p>
           <div style={{ background: "#f8fafc", borderRadius: 10, padding: 14, marginBottom: 18 }}>
             <p style={{ fontSize: 13, fontWeight: 600, color: "#0f172a" }}>{deleteConfirm.description}</p>
-            <p style={{ fontSize: 12, color: "#64748b", marginTop: 4 }}>{deleteConfirm.property} · {deleteConfirm.date} · <span style={{ color: deleteConfirm.type === "income" ? "#15803d" : "#b91c1c", fontWeight: 700 }}>{deleteConfirm.type === "income" ? "+" : "-"}{fmt(Math.abs(deleteConfirm.amount))}</span></p>
+            <p style={{ fontSize: 12, color: "#64748b", marginTop: 4 }}>{PROPERTIES.find(p => p.id === deleteConfirm.propertyId)?.name || "Unknown"} · {deleteConfirm.date} · <span style={{ color: deleteConfirm.type === "income" ? "#15803d" : "#b91c1c", fontWeight: 700 }}>{deleteConfirm.type === "income" ? "+" : "-"}{fmt(Math.abs(deleteConfirm.amount))}</span></p>
           </div>
           <p style={{ color: "#94a3b8", fontSize: 12, marginBottom: 18 }}>This action cannot be undone.</p>
           <div style={{ display: "flex", gap: 10 }}>
@@ -2771,16 +2756,17 @@ function exportReportCSV(activeReport, reportProps, monthlyData, deprRows, lende
     if (p) {
       const monthTx = TRANSACTIONS.filter(t => {
         const d = new Date(t.date);
-        return d.getMonth() === ownerMonth && d.getFullYear() === Number(taxYear) && t.property === p.name;
+        return d.getMonth() === ownerMonth && d.getFullYear() === Number(taxYear) && t.propertyId === p.id;
       });
       monthTx.forEach(t => { csv += `${t.type},${t.date},"${t.description}","${t.category}",${t.amount}\n`; });
     }
   } else if (activeReport === "transactions") {
-    const reportPropNames = new Set(reportProps.map(p => p.name));
-    const allTx = TRANSACTIONS.filter(t => reportPropNames.has(t.property));
+    const reportPropIds = new Set(reportProps.map(p => p.id));
+    const allTx = TRANSACTIONS.filter(t => reportPropIds.has(t.propertyId));
     csv = "Date,Property,Category,Type,Description,Amount\n";
     allTx.sort((a, b) => new Date(b.date) - new Date(a.date)).forEach(t => {
-      csv += `${t.date},"${t.property}","${t.category}",${t.type},"${t.description || t.vendor || ""}",${t.amount}\n`;
+      const propName = PROPERTIES.find(p => p.id === t.propertyId)?.name || "Unknown";
+      csv += `${t.date},"${propName}","${t.category}",${t.type},"${t.description || t.vendor || ""}",${t.amount}\n`;
     });
   }
   downloadFile(csv, `PropBooks_${activeReport}_${taxYear}.csv`, "text/csv");
@@ -2823,13 +2809,14 @@ function exportReportPDF(activeReport, reportProps, monthlyData, deprRows, lende
     });
     tableHTML += `</table>`;
   } else if (activeReport === "transactions") {
-    const reportPropNames = new Set(reportProps.map(p => p.name));
-    const allTx = TRANSACTIONS.filter(t => reportPropNames.has(t.property));
+    const reportPropIds = new Set(reportProps.map(p => p.id));
+    const allTx = TRANSACTIONS.filter(t => reportPropIds.has(t.propertyId));
     allTx.sort((a, b) => new Date(b.date) - new Date(a.date));
     tableHTML = `<table><tr><th>Date</th><th>Property</th><th>Category</th><th>Type</th><th>Description</th><th style="text-align:right">Amount</th></tr>`;
     allTx.forEach(t => {
       const isIncome = t.type === "income";
-      tableHTML += `<tr><td>${t.date}</td><td>${t.property}</td><td>${t.category}</td><td>${t.type}</td><td>${t.description || t.vendor || ""}</td><td style="text-align:right;color:${isIncome ? 'green' : '#b91c1c'}">${isIncome ? '+' : '-'}$${Math.abs(t.amount).toLocaleString()}</td></tr>`;
+      const propName = PROPERTIES.find(p => p.id === t.propertyId)?.name || "Unknown";
+      tableHTML += `<tr><td>${t.date}</td><td>${propName}</td><td>${t.category}</td><td>${t.type}</td><td>${t.description || t.vendor || ""}</td><td style="text-align:right;color:${isIncome ? 'green' : '#b91c1c'}">${isIncome ? '+' : '-'}$${Math.abs(t.amount).toLocaleString()}</td></tr>`;
     });
     const totIn = allTx.filter(t => t.type === "income").reduce((s, t) => s + t.amount, 0);
     const totOut = allTx.filter(t => t.type === "expense").reduce((s, t) => s + Math.abs(t.amount), 0);
@@ -2841,7 +2828,7 @@ function exportReportPDF(activeReport, reportProps, monthlyData, deprRows, lende
       const MONTH_NAMES = ["January","February","March","April","May","June","July","August","September","October","November","December"];
       const monthTx = TRANSACTIONS.filter(t => {
         const d = new Date(t.date);
-        return d.getMonth() === ownerMonth && d.getFullYear() === Number(taxYear) && t.property === p.name;
+        return d.getMonth() === ownerMonth && d.getFullYear() === Number(taxYear) && t.propertyId === p.id;
       });
       monthTx.forEach(t => {
         const isIncome = t.type === "income";
@@ -2922,7 +2909,7 @@ function Reports() {
     if (propFilter === "all" || activeReport !== "ownerStatement") return;
     const p = PROPERTIES.find(pr => pr.id === Number(propFilter));
     if (!p) return;
-    const propTx = TRANSACTIONS.filter(t => t.property === p.name && new Date(t.date).getFullYear() === Number(taxYear));
+    const propTx = TRANSACTIONS.filter(t => t.propertyId === p.id && new Date(t.date).getFullYear() === Number(taxYear));
     if (propTx.length === 0) return; // no data at all — keep current month so the warning shows
     // Find the most recent month with transactions
     const latestMonth = Math.max(...propTx.map(t => new Date(t.date).getMonth()));
@@ -3002,7 +2989,7 @@ function Reports() {
   // Build per-property Schedule E lines from real transactions
   const calcPropLines = p => {
     const propTx = TRANSACTIONS.filter(t =>
-      new Date(t.date).getFullYear() === Number(taxYear) && t.property === p.name && t.type === "expense"
+      new Date(t.date).getFullYear() === Number(taxYear) && t.propertyId === p.id && t.type === "expense"
     );
     const lines = {};
     propTx.forEach(t => {
@@ -3014,7 +3001,7 @@ function Reports() {
     // Line 12: Mortgage Interest — prefer stored P&I split from transactions, then amortization calc, then estimate
     const mortgageTx = TRANSACTIONS.filter(t =>
       new Date(t.date).getFullYear() === Number(taxYear) &&
-      t.property === p.name &&
+      t.propertyId === p.id &&
       (t.category === "Mortgage" || t.category === "Mortgage Payment")
     );
     let interestSource = "estimated";
@@ -3043,7 +3030,7 @@ function Reports() {
     lines["18"] = Math.round(deprInfo.basis / deprYrs);
 
     const txIncome = TRANSACTIONS.filter(t =>
-      new Date(t.date).getFullYear() === Number(taxYear) && t.property === p.name && t.type === "income"
+      new Date(t.date).getFullYear() === Number(taxYear) && t.propertyId === p.id && t.type === "income"
     ).reduce((s, t) => s + t.amount, 0);
     const rEff = getEffectiveMonthly(p, TRANSACTIONS);
     const grossRent = txIncome > 0 ? txIncome : rEff.monthlyIncome * 12;
@@ -3076,7 +3063,7 @@ function Reports() {
   const monthlyData = MONTHS.map((month, i) => {
     const monthTx = TRANSACTIONS.filter(t => {
       const d = new Date(t.date);
-      return d.getFullYear() === Number(taxYear) && d.getMonth() === i && reportPropNames.has(t.property);
+      return d.getFullYear() === Number(taxYear) && d.getMonth() === i && reportProps.some(p => p.id === t.propertyId);
     });
     if (monthTx.length > 0) {
       const income   = monthTx.filter(t => t.type === "income").reduce((s, t) => s + t.amount, 0);
@@ -3423,7 +3410,7 @@ function Reports() {
                 const MONTH_NAMES = ["January","February","March","April","May","June","July","August","September","October","November","December"];
                 const monthTx = TRANSACTIONS.filter(t => {
                   const d = new Date(t.date);
-                  return d.getMonth() === ownerMonth && d.getFullYear() === Number(taxYear) && t.property === p.name;
+                  return d.getMonth() === ownerMonth && d.getFullYear() === Number(taxYear) && t.propertyId === p.id;
                 });
                 const income   = monthTx.filter(t => t.type === "income");
                 const expenses = monthTx.filter(t => t.type === "expense");
@@ -3711,14 +3698,14 @@ function Reports() {
           {activeReport === "yearend" && (() => {
             // Pull actual other income (late fees, pet fees, app fees) from transactions
             const otherIncomeTx = TRANSACTIONS.filter(t =>
-              new Date(t.date).getFullYear() === Number(taxYear) && t.type === "income" && reportPropNames.has(t.property)
+              new Date(t.date).getFullYear() === Number(taxYear) && t.type === "income" && reportProps.some(p => p.id === t.propertyId)
               && !["Rent", "Rent Payment", "Monthly Rent"].includes(t.category)
             );
             const otherIncome = otherIncomeTx.reduce((s, t) => s + t.amount, 0);
 
             // Pull actual property tax from transactions
             const propTaxTx = TRANSACTIONS.filter(t =>
-              new Date(t.date).getFullYear() === Number(taxYear) && reportPropNames.has(t.property)
+              new Date(t.date).getFullYear() === Number(taxYear) && reportProps.some(p => p.id === t.propertyId)
               && (t.category === "Property Tax" || t.category === "Tax Penalties")
             );
             const propTaxActual = propTaxTx.reduce((s, t) => s + Math.abs(t.amount), 0);
@@ -3857,7 +3844,7 @@ function Reports() {
             const toDate = new Date(txDateTo + "T23:59:59");
             const allTx = TRANSACTIONS.filter(t => {
               const d = new Date(t.date);
-              return d >= fromDate && d <= toDate && reportPropNames.has(t.property);
+              return d >= fromDate && d <= toDate && reportProps.some(p => p.id === t.propertyId);
             });
 
             // Unique categories
@@ -3869,12 +3856,13 @@ function Reports() {
             if (txCatFilter !== "all") filtered = filtered.filter(t => t.category === txCatFilter);
             if (txSearch.trim()) {
               const q = txSearch.toLowerCase();
-              filtered = filtered.filter(t =>
-                (t.description || "").toLowerCase().includes(q) ||
-                (t.category || "").toLowerCase().includes(q) ||
-                (t.property || "").toLowerCase().includes(q) ||
-                (t.vendor || "").toLowerCase().includes(q)
-              );
+              filtered = filtered.filter(t => {
+                const propName = PROPERTIES.find(p => p.id === t.propertyId)?.name || "";
+                return (t.description || "").toLowerCase().includes(q) ||
+                  (t.category || "").toLowerCase().includes(q) ||
+                  propName.toLowerCase().includes(q) ||
+                  (t.vendor || "").toLowerCase().includes(q);
+              });
             }
 
             // Sort
@@ -3883,7 +3871,11 @@ function Reports() {
               if (txSort === "date-asc") return new Date(a.date) - new Date(b.date);
               if (txSort === "amount-desc") return Math.abs(b.amount) - Math.abs(a.amount);
               if (txSort === "amount-asc") return Math.abs(a.amount) - Math.abs(b.amount);
-              if (txSort === "property") return (a.property || "").localeCompare(b.property || "");
+              if (txSort === "property") {
+                const aPropName = PROPERTIES.find(p => p.id === a.propertyId)?.name || "";
+                const bPropName = PROPERTIES.find(p => p.id === b.propertyId)?.name || "";
+                return aPropName.localeCompare(bPropName);
+              }
               if (txSort === "category") return (a.category || "").localeCompare(b.category || "");
               return 0;
             });
@@ -3989,7 +3981,7 @@ function Reports() {
                         <tr key={t.id || i} style={{ background: i % 2 === 0 ? "#fff" : "#fafafa" }}>
                           <td style={{ ...tdStyle, fontSize: 12, whiteSpace: "nowrap" }}>{new Date(t.date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</td>
                           <td style={{ ...tdStyle, fontSize: 12 }}>
-                            <span style={{ fontWeight: 600 }}>{(t.property || "").split(" ").slice(0, 2).join(" ")}</span>
+                            <span style={{ fontWeight: 600 }}>{(PROPERTIES.find(p => p.id === t.propertyId)?.name || "Unknown").split(" ").slice(0, 2).join(" ")}</span>
                           </td>
                           <td style={tdStyle}>
                             <span style={{ fontSize: 11, fontWeight: 600, borderRadius: 6, padding: "3px 8px", background: isIncome ? "#dcfce7" : "#fee2e2", color: isIncome ? "#15803d" : "#b91c1c" }}>{t.category}</span>
@@ -4089,7 +4081,7 @@ function RehabProgress({ items }) {
 function FlipCard({ flip, onSelect }) {
   const s = STAGE_COLORS[flip.stage];
   const totalCost = flip.purchasePrice + flip.rehabBudget + (flip.holdingCostsPerMonth * (flip.daysOwned / 30));
-  const projectedProfit = flip.arv - totalCost - (flip.arv * 0.06);
+  const projectedProfit = flip.arv - totalCost - (flip.arv * ((flip.sellingCostPct || 6) / 100));
   const mao70 = (flip.arv * 0.70) - flip.rehabBudget;
   const rehabPct = flip.rehabBudget > 0 ? Math.round((flip.rehabSpent / flip.rehabBudget) * 100) : 0;
 
@@ -4179,7 +4171,7 @@ function FlipPipeline({ onSelect }) {
     };
     FLIPS.push(newDeal);
     // Auto-populate milestones for the new deal
-    FLIP_MILESTONES[newDeal.id] = DEFAULT_MILESTONES.map(label => ({ label, done: false, date: null, targetDate: null }));
+    _LOCAL_FLIP_MILESTONES[newDeal.id] = DEFAULT_MILESTONES.map(label => ({ label, done: false, date: null, targetDate: null }));
     setDealForm(emptyDeal);
     setShowAddDeal(false);
     forceRender(n => n + 1);
@@ -4189,7 +4181,7 @@ function FlipPipeline({ onSelect }) {
   const totalDeployed = activeFlips.reduce((s, f) => s + f.purchasePrice + f.rehabSpent, 0);
   const projectedProfits = FLIPS.filter(f => f.stage !== "Sold").map(f => {
     const totalCost = f.purchasePrice + f.rehabBudget + (f.holdingCostsPerMonth * (f.daysOwned / 30));
-    return f.arv - totalCost - (f.arv * 0.06);
+    return f.arv - totalCost - (f.arv * ((f.sellingCostPct || 6) / 100));
   });
   const totalProjected = projectedProfits.reduce((s, v) => s + v, 0);
   const realizedProfit = FLIPS.filter(f => f.stage === "Sold").reduce((s, f) => s + (f.netProfit || 0), 0);
@@ -4323,10 +4315,10 @@ function FlipDetail({ flip, onBack, backLabel, allFlips, setAllFlips, onNavigate
   const [expData, setExpData] = useState(FLIP_EXPENSES.filter(e => e.flipId === flip.id));
   const [conData, setConData] = useState(CONTRACTORS.filter(c => (c.dealIds || []).includes(flip.id)));
   const [rehabItems, setRehabItems] = useState(flip.rehabItems || []);
-  const [milestones, setMilestones] = useState(FLIP_MILESTONES[flip.id] || DEFAULT_MILESTONES.map(label => ({ label, done: false, date: null, targetDate: null })));
+  const [milestones, setMilestones] = useState(_LOCAL_FLIP_MILESTONES[flip.id] || DEFAULT_MILESTONES.map(label => ({ label, done: false, date: null, targetDate: null })));
   const [showMilestoneModal, setShowMilestoneModal] = useState(false);
   const [showCompletedMilestones, setShowCompletedMilestones] = useState(false);
-  const emptyMilestone = { label: "", targetDate: "", date: "" };
+  const emptyMilestone = { label: "", targetDate: "", date: "", createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), userId: MOCK_USER.id };
   const [milestoneForm, setMilestoneForm] = useState(emptyMilestone);
   const sfM = k => e => setMilestoneForm(f => ({ ...f, [k]: e.target.value }));
   const [editingMilestoneId, setEditingMilestoneId] = useState(null); // index when editing
@@ -4413,7 +4405,7 @@ function FlipDetail({ flip, onBack, backLabel, allFlips, setAllFlips, onNavigate
   };
 
   // Expense edit state
-  const emptyExp = { date: "", vendor: "", category: "Materials & Supplies", description: "", amount: "", status: "paid", contractorId: "" };
+  const emptyExp = { date: "", vendor: "", category: "Materials & Supplies", description: "", amount: "", status: "paid", contractorId: "", createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), userId: MOCK_USER.id };
   const [expForm, setExpForm] = useState(emptyExp);
   const sfE = k => e => setExpForm(f => ({ ...f, [k]: e.target.value }));
   const [editingExpId, setEditingExpId] = useState(null);
@@ -4421,12 +4413,12 @@ function FlipDetail({ flip, onBack, backLabel, allFlips, setAllFlips, onNavigate
   const allVendors = [...new Set(expData.map(e => e.vendor).filter(Boolean))].sort();
   const openEditExp = (e) => {
     setEditingExpId(e.id);
-    setExpForm({ date: e.date, vendor: e.vendor, category: e.category, description: e.description, amount: String(e.amount), status: e.status || "paid", contractorId: e.contractorId || "" });
+    setExpForm({ date: e.date, vendor: e.vendor, category: e.category, description: e.description, amount: String(e.amount), status: e.status || "paid", contractorId: e.contractorId || "", createdAt: e.createdAt || new Date().toISOString(), updatedAt: new Date().toISOString(), userId: e.userId || MOCK_USER.id });
     setShowExpenseModal(true);
   };
 
   // Contractor edit state
-  const emptyCon = { name: "", trade: "", phone: "", email: "", license: "", insuranceExpiry: "", notes: "" };
+  const emptyCon = { name: "", trade: "", phone: "", email: "", license: "", insuranceExpiry: "", notes: "", createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), userId: MOCK_USER.id };
   const [conForm, setConForm] = useState(emptyCon);
   const sfC = k => e => setConForm(f => ({ ...f, [k]: e.target.value }));
   const [editingConId, setEditingConId] = useState(null);
@@ -4438,8 +4430,8 @@ function FlipDetail({ flip, onBack, backLabel, allFlips, setAllFlips, onNavigate
 
   // Helper: derive bid/payment totals for this flip
   const conTotals = (c) => {
-    const flipBids = (c.bids || []).filter(b => b.flipId === flip.id);
-    const flipPayments = (c.payments || []).filter(p => p.flipId === flip.id);
+    const flipBids = CONTRACTOR_BIDS.filter(b => b.contractorId === c.id && b.flipId === flip.id);
+    const flipPayments = CONTRACTOR_PAYMENTS.filter(p => p.contractorId === c.id && p.flipId === flip.id);
     const totalBid = flipBids.reduce((s, b) => s + (b.amount || 0), 0);
     const totalPaid = flipPayments.reduce((s, p) => s + (p.amount || 0), 0);
     const acceptedBids = flipBids.filter(b => b.status === "accepted").length;
@@ -4455,11 +4447,11 @@ function FlipDetail({ flip, onBack, backLabel, allFlips, setAllFlips, onNavigate
   const handleRecordPayment = () => {
     if (!paymentAmount || !showPaymentModal) return;
     const amt = parseFloat(paymentAmount) || 0;
-    // Push payment into contractor's payments array
+    // Push payment into CONTRACTOR_PAYMENTS array
     const con = conData.find(c => c.id === showPaymentModal);
     if (con) {
-      const newPayment = { id: newId(), flipId: flip.id, amount: amt, date: paymentDate, note: paymentNote || `Payment to ${con.name}` };
-      con.payments = [...(con.payments || []), newPayment];
+      const newPayment = { id: newId(), contractorId: con.id, flipId: flip.id, amount: amt, date: paymentDate, note: paymentNote || `Payment to ${con.name}` };
+      CONTRACTOR_PAYMENTS.push(newPayment);
       setConData(prev => [...prev]); // trigger re-render
       // Also log as an expense automatically (linked to contractor)
       setExpData(prev => [{ id: newId(), flipId: flip.id, date: paymentDate, vendor: con.name, category: con.trade === "General Contractor" ? "General Contractor" : "Subcontractor", description: paymentNote || `Payment to ${con.name}`, amount: amt, status: "paid", contractorId: showPaymentModal }, ...prev]);
@@ -4539,7 +4531,7 @@ function FlipDetail({ flip, onBack, backLabel, allFlips, setAllFlips, onNavigate
   const currentFlip = { ...flip, stage };
   const holdingCosts = currentFlip.daysOwned > 0 ? Math.round(currentFlip.holdingCostsPerMonth * (currentFlip.daysOwned / 30)) : 0;
   const totalHolding = currentFlip.stage === "Sold" ? currentFlip.totalHoldingCosts : holdingCosts;
-  const sellingCosts = currentFlip.stage === "Sold" ? currentFlip.sellingCosts : Math.round((currentFlip.arv || 0) * 0.06);
+  const sellingCosts = currentFlip.stage === "Sold" ? currentFlip.sellingCosts : Math.round((currentFlip.arv || 0) * ((currentFlip.sellingCostPct || 6) / 100));
   const totalCost = currentFlip.purchasePrice + (currentFlip.stage === "Sold" ? currentFlip.rehabSpent : currentFlip.rehabBudget) + totalHolding + sellingCosts;
   const saleOrARV = currentFlip.stage === "Sold" ? currentFlip.salePrice : currentFlip.arv;
   const profit = saleOrARV - totalCost;
@@ -4632,7 +4624,7 @@ function FlipDetail({ flip, onBack, backLabel, allFlips, setAllFlips, onNavigate
                   rehabItems: rehabItems.map(r => ({ category: r.category, budgeted: r.budgeted, spent: 0, status: "pending", contractors: [], photos: [] })),
                 };
                 FLIPS.push(cloned);
-                FLIP_MILESTONES[cloned.id] = milestones.map(m => ({ label: m.label, done: false, date: null, targetDate: null }));
+                _LOCAL_FLIP_MILESTONES[cloned.id] = milestones.map(m => ({ label: m.label, done: false, date: null, targetDate: null }));
                 if (setAllFlips) setAllFlips([...FLIPS]);
                 setDealNotes(prev => [{ id: newId(), date: today, text: `Deal cloned as "${cloned.name}"` }, ...prev]);
               }} style={{ background: "rgba(255,255,255,0.7)", border: "1px solid rgba(0,0,0,0.08)", borderRadius: 8, padding: "6px 12px", fontSize: 12, fontWeight: 600, color: "#475569", cursor: "pointer", display: "flex", alignItems: "center", gap: 5 }}>
@@ -4670,7 +4662,7 @@ function FlipDetail({ flip, onBack, backLabel, allFlips, setAllFlips, onNavigate
             { label: "Purchase Price", value: fmt(flip.purchasePrice), color: "#b91c1c", sign: "-" },
             { label: "Rehab Cost", value: fmt(stage === "Sold" ? flip.rehabSpent : flip.rehabBudget), color: "#b91c1c", sign: "-" },
             { label: "Holding Costs", value: fmt(totalHolding), color: "#b91c1c", sign: "-" },
-            { label: "Selling Costs (~6%)", value: fmt(sellingCosts), color: "#b91c1c", sign: "-" },
+            { label: `Selling Costs (~${currentFlip.sellingCostPct || 6}%)`, value: fmt(sellingCosts), color: "#b91c1c", sign: "-" },
           ].map((r, i) => (
             <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 0", borderBottom: "1px solid #f8fafc" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -5736,7 +5728,7 @@ function RentRoll({ onBack, highlightTenantId, onClearHighlight, prefillTenant, 
       return () => clearTimeout(timer);
     }
   }, [highlightTenantId]);
-  const emptyT = { propertyId: PROPERTIES[0]?.id || 1, unit: "", name: "", rent: "", securityDeposit: "", lateFeePct: "5", renewalTerms: "Annual", notes: "", leaseStart: "", leaseEnd: "", status: "active-lease", phone: "", email: "", leaseDoc: null };
+  const emptyT = { propertyId: PROPERTIES[0]?.id || 1, unit: "", name: "", rent: "", securityDeposit: "", lateFeePct: "5", renewalTerms: "Annual", notes: "", leaseStart: "", leaseEnd: "", status: "active-lease", phone: "", email: "", leaseDoc: null, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), userId: MOCK_USER.id };
   const [form, setForm] = useState(emptyT);
   const sf = k => e => setForm(f => ({ ...f, [k]: e.target.value }));
 
@@ -6328,14 +6320,14 @@ function MileageTracker() {
   const [dateFilter, setDateFilter] = useState("thisYear");
   const [search, setSearch] = useState("");
   const [linkedFilter, setLinkedFilter] = useState("all"); // "all" | property name | deal name
-  const emptyTrip = { date: "", description: "", from: "Home", to: "", miles: "", purpose: "Rental", businessPct: "100", linkedTo: "" };
+  const emptyTrip = { date: "", description: "", from: "Home", to: "", miles: "", purpose: "Rental", businessPct: "100", linkedTo: "", createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), userId: MOCK_USER.id };
   const [form, setForm] = useState(emptyTrip);
   const sf = k => e => setForm(f => ({ ...f, [k]: e.target.value }));
 
   const openAdd = () => { setEditId(null); setForm(emptyTrip); setShowModal(true); };
   const openEdit = t => {
     setEditId(t.id);
-    setForm({ date: t.date, description: t.description, from: t.from, to: t.to, miles: String(t.miles), purpose: t.purpose, businessPct: String(t.businessPct), linkedTo: t.linkedTo || "" });
+    setForm({ date: t.date, description: t.description, from: t.from, to: t.to, miles: String(t.miles), purpose: t.purpose, businessPct: String(t.businessPct), linkedTo: t.linkedTo || "", createdAt: t.createdAt || new Date().toISOString(), updatedAt: new Date().toISOString(), userId: t.userId || MOCK_USER.id });
     setShowModal(true);
   };
 
@@ -6861,15 +6853,14 @@ function RentalNotes({ preFilterPropId, onBack, highlightNoteId, onClearHighligh
     }
   }, [highlightNoteId]);
 
-  const _RN = RENTAL_NOTES;
-
   // Build flat list of all notes across properties (no memo — must recalculate after mutations)
   const allNotes = (() => {
     const list = [];
-    PROPERTIES.forEach(p => {
-      (_RN[p.id] || []).forEach(n => {
-        list.push({ ...n, propId: p.id, propName: p.name, propColor: p.color, propImage: p.image });
-      });
+    RENTAL_NOTES.forEach(n => {
+      const prop = PROPERTIES.find(p => p.id === n.propertyId);
+      if (prop) {
+        list.push({ ...n, propId: n.propertyId, propName: prop.name, propColor: prop.color, propImage: prop.image });
+      }
     });
     return list.sort((a, b) => b.date.localeCompare(a.date));
   })();
@@ -7092,25 +7083,33 @@ function GlobalSearch({ onNavigate }) {
     deals.slice(0, MAX_PER).forEach(f => r.push({ type: "deal", id: f.id, title: f.name, sub: `${f.stage} · ${f.address.split(",")[1]?.trim() || f.address}`, icon: Hammer, color: f.color, image: f.image, data: f }));
 
     // Transactions
-    const txs = TRANSACTIONS.filter(t => t.description.toLowerCase().includes(q) || t.property.toLowerCase().includes(q) || t.category.toLowerCase().includes(q) || (t.payee && t.payee.toLowerCase().includes(q)));
-    txs.slice(0, MAX_PER).forEach(t => r.push({ type: "transaction", id: t.id, title: t.description, sub: `${t.property} · ${t.date} · ${fmt(Math.abs(t.amount))}`, icon: ArrowUpDown, color: t.type === "income" ? "#10b981" : "#ef4444", data: t }));
+    const txs = TRANSACTIONS.filter(t => {
+      const propName = PROPERTIES.find(p => p.id === t.propertyId)?.name || "";
+      return t.description.toLowerCase().includes(q) || propName.toLowerCase().includes(q) || t.category.toLowerCase().includes(q) || (t.payee && t.payee.toLowerCase().includes(q));
+    });
+    txs.slice(0, MAX_PER).forEach(t => {
+      const propName = PROPERTIES.find(p => p.id === t.propertyId)?.name || "Unknown";
+      r.push({ type: "transaction", id: t.id, title: t.description, sub: `${propName} · ${t.date} · ${fmt(Math.abs(t.amount))}`, icon: ArrowUpDown, color: t.type === "income" ? "#10b981" : "#ef4444", data: t });
+    });
 
     // Contractors
     const cons = CONTRACTORS.filter(c => c.name.toLowerCase().includes(q) || c.trade.toLowerCase().includes(q) || (c.email && c.email.toLowerCase().includes(q)));
     cons.slice(0, MAX_PER).forEach(c => r.push({ type: "contractor", id: c.id, title: c.name, sub: c.trade, icon: UserCheck, color: "#8b5cf6", data: c }));
 
     // Rental Notes
-    PROPERTIES.forEach(p => {
-      (RENTAL_NOTES[p.id] || []).forEach(n => {
-        if (n.text.toLowerCase().includes(q)) r.push({ type: "rental-note", id: n.id, title: n.text.length > 60 ? n.text.slice(0, 60) + "…" : n.text, sub: `${p.name} · ${n.date}`, icon: MessageSquare, color: "#f59e0b", data: { ...n, propId: p.id } });
-      });
+    RENTAL_NOTES.forEach(n => {
+      if (n.text.toLowerCase().includes(q)) {
+        const prop = PROPERTIES.find(p => p.id === n.propertyId);
+        r.push({ type: "rental-note", id: n.id, title: n.text.length > 60 ? n.text.slice(0, 60) + "…" : n.text, sub: `${prop?.name || "Property"} · ${n.date}`, icon: MessageSquare, color: "#f59e0b", data: { ...n, propId: n.propertyId } });
+      }
     });
 
     // Flip Notes
-    FLIPS.forEach(f => {
-      (FLIP_NOTES[f.id] || []).forEach(n => {
-        if (n.text.toLowerCase().includes(q)) r.push({ type: "flip-note", id: n.id, title: n.text.length > 60 ? n.text.slice(0, 60) + "…" : n.text, sub: `${f.name} · ${n.date}`, icon: MessageSquare, color: "#f59e0b", data: { ...n, flipId: f.id } });
-      });
+    FLIP_NOTES.forEach(n => {
+      if (n.text.toLowerCase().includes(q)) {
+        const flip = FLIPS.find(f => f.id === n.flipId);
+        r.push({ type: "flip-note", id: n.id, title: n.text.length > 60 ? n.text.slice(0, 60) + "…" : n.text, sub: `${flip?.name || "Deal"} · ${n.date}`, icon: MessageSquare, color: "#f59e0b", data: { ...n, flipId: n.flipId } });
+      }
     });
 
     // Flip Expenses
