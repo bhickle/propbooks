@@ -491,6 +491,280 @@ function Badge({ status }) {
 // VIEWS
 // ---------------------------------------------
 
+function PortfolioDashboard({ onNavigate, onSelectProperty, onSelectFlip }) {
+  const now = new Date();
+
+  // ── KPIs ────────────────────────────────────────────────────────────────
+  // Total Equity = rental equity + flip equity
+  const rentalEquity = PROPERTIES.reduce((s, p) => s + (p.currentValue - (calcLoanBalance(p.loanAmount, p.loanRate, p.loanTermYears, p.loanStartDate) ?? p.loanAmount ?? 0)), 0);
+
+  // Flip equity = purchasePrice invested (for active flips) minus owed if financed
+  const flipEquity = FLIPS.filter(f => f.stage !== "Sold").reduce((s, f) => {
+    return s + f.purchasePrice; // Simplified: assume equity = purchase price
+  }, 0);
+
+  const totalEquity = rentalEquity + flipEquity;
+
+  // Monthly Cash Flow = rental income - rental expenses
+  const monthlyIncome = PROPERTIES.reduce((s, p) => { const e = getEffectiveMonthly(p, TRANSACTIONS); return s + e.monthlyIncome; }, 0);
+  const monthlyExpenses = PROPERTIES.reduce((s, p) => { const e = getEffectiveMonthly(p, TRANSACTIONS); return s + e.monthlyExpenses; }, 0);
+  const netCashFlow = monthlyIncome - monthlyExpenses;
+
+  // Active Deals = count of flips not in "Sold" stage
+  const activeDeals = FLIPS.filter(f => f.stage !== "Sold").length;
+
+  // Capital Deployed = total purchasePrice + rehabSpent across active flips
+  const capitalDeployed = FLIPS.filter(f => f.stage !== "Sold").reduce((s, f) => s + f.purchasePrice + f.rehabSpent, 0);
+
+  // ── Rental snapshot cards ────────────────────────────────────────────────
+  const allTenants = TENANTS.filter(t => t.status !== "past");
+
+  const rentalSnapshots = PROPERTIES.map(p => {
+    const eff = getEffectiveMonthly(p, TRANSACTIONS);
+    const propTenants = allTenants.filter(t => t.propertyId === p.id);
+    const propOccupied = propTenants.filter(t => t.status !== "vacant").length;
+    const propTotal = propTenants.length || p.units || 1;
+    const propOccPct = Math.round((propOccupied / propTotal) * 100);
+    return { ...p, monthlyNet: eff.monthlyIncome - eff.monthlyExpenses, occPct: propOccPct, occupied: propOccupied, total: propTotal };
+  }).sort((a, b) => (b.monthlyNet || 0) - (a.monthlyNet || 0)).slice(0, 6); // Top 6
+
+  const totalOccupied = rentalSnapshots.reduce((s, p) => s + p.occupied, 0);
+  const totalRentalUnits = rentalSnapshots.reduce((s, p) => s + p.total, 0);
+  const rentalSummary = `${totalOccupied} of ${totalRentalUnits} units occupied · ${fmt(netCashFlow)}/mo net`;
+
+  // ── Flip snapshot cards ──────────────────────────────────────────────────
+  const flipSnapshots = FLIPS.filter(f => f.stage !== "Sold").sort((a, b) => {
+    const stageOrder = { "Pending": 0, "Active Rehab": 1, "Listed": 2 };
+    return (stageOrder[a.stage] ?? 99) - (stageOrder[b.stage] ?? 99);
+  });
+
+  const flipSummary = `${flipSnapshots.length} active · ${fmt(flipSnapshots.reduce((s, f) => s + f.rehabBudget, 0))} total budget`;
+
+  // ── Recent Activity ──────────────────────────────────────────────────────
+  const recentItems = [];
+
+  // Last 5 rental transactions
+  TRANSACTIONS.slice(0, 5).forEach(t => {
+    const propName = PROPERTIES.find(p => p.id === t.propertyId)?.name || "Unknown";
+    recentItems.push({
+      type: "transaction",
+      date: t.date,
+      icon: t.type === "income" ? ArrowUp : ArrowDown,
+      color: t.type === "income" ? "#15803d" : "#b91c1c",
+      bg: t.type === "income" ? "#dcfce7" : "#fee2e2",
+      title: t.description,
+      sub: propName.split(" ").slice(0, 2).join(" "),
+      amount: t.amount,
+      txType: t.type,
+      txId: t.id,
+    });
+  });
+
+  // Last 5 flip expenses
+  FLIP_EXPENSES.slice(0, 5).forEach(e => {
+    const flipName = FLIPS.find(f => f.id === e.flipId)?.name || "Unknown";
+    recentItems.push({
+      type: "flip-expense",
+      date: e.date,
+      icon: ArrowDown,
+      color: "#b91c1c",
+      bg: "#fee2e2",
+      title: e.description || `${e.vendor || "Expense"}`,
+      sub: flipName.split(" ").slice(0, 2).join(" "),
+      amount: e.amount,
+      expId: e.id,
+    });
+  });
+
+  // Sort by date and take top 10
+  const recentActivity = recentItems
+    .sort((a, b) => new Date(b.date) - new Date(a.date))
+    .slice(0, 10);
+
+  const sectionS = { background: "#fff", borderRadius: 16, padding: 24, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" };
+
+  return (
+    <div>
+      {/* Header */}
+      <div style={{ marginBottom: 28 }}>
+        <h1 style={{ fontSize: 26, fontWeight: 700, color: "#0f172a", margin: "0 0 8px 0" }}>Portfolio Overview</h1>
+        <p style={{ fontSize: 15, color: "#64748b", margin: 0 }}>Your complete real estate snapshot — rentals and flips combined.</p>
+      </div>
+
+      {/* Row 1: KPI Cards */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 20, marginBottom: 28 }}>
+        <StatCard
+          icon={Wallet}
+          label="Total Equity"
+          value={fmt(totalEquity)}
+          color="#3b82f6"
+          tip="Sum of rental equity (property value − mortgage balance) plus flip purchase prices invested."
+        />
+        <StatCard
+          icon={TrendingUp}
+          label="Monthly Cash Flow"
+          value={fmt(netCashFlow)}
+          color="#10b981"
+          tip="Net rental income across all properties (income minus expenses)."
+        />
+        <StatCard
+          icon={Target}
+          label="Active Deals"
+          value={String(activeDeals)}
+          color="#f59e0b"
+          tip="Number of flip deals currently in progress (not sold)."
+        />
+        <StatCard
+          icon={DollarSign}
+          label="Capital Deployed"
+          value={fmt(capitalDeployed)}
+          color="#8b5cf6"
+          tip="Total money invested in active flip deals (purchase price + rehab spent)."
+        />
+      </div>
+
+      {/* Row 2: Rentals & Flips Summary */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 28 }}>
+        {/* Rentals */}
+        <div style={sectionS}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <Building2 size={18} color="#3b82f6" />
+              <h3 style={{ fontSize: 16, fontWeight: 700, color: "#0f172a", margin: 0 }}>Rentals</h3>
+              <span style={{ fontSize: 13, color: "#94a3b8", fontWeight: 500 }}>({rentalSnapshots.length})</span>
+            </div>
+            <button onClick={() => onNavigate("dashboard")} style={{ background: "none", border: "none", color: "#3b82f6", cursor: "pointer", fontSize: 13, fontWeight: 600, display: "flex", alignItems: "center", gap: 4 }}>
+              View all
+              <ArrowRight size={14} />
+            </button>
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            {rentalSnapshots.map(p => (
+              <div
+                key={p.id}
+                onClick={() => onSelectProperty(p)}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 12,
+                  padding: 12,
+                  borderRadius: 10,
+                  background: "#f8fafc",
+                  border: "1px solid #e2e8f0",
+                  cursor: "pointer",
+                  transition: "all 0.15s",
+                }}
+                onMouseEnter={e => { e.currentTarget.style.background = "#f1f5f9"; e.currentTarget.style.borderColor = "#cbd5e1"; }}
+                onMouseLeave={e => { e.currentTarget.style.background = "#f8fafc"; e.currentTarget.style.borderColor = "#e2e8f0"; }}
+              >
+                <div style={{ width: 32, height: 32, borderRadius: 10, background: PROP_COLORS[p.color] || p.color, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 600, fontSize: 12, flexShrink: 0 }}>
+                  {p.image?.slice(0, 1) || "P"}
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ fontSize: 13, fontWeight: 600, color: "#0f172a", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</p>
+                  <p style={{ fontSize: 12, color: "#94a3b8", margin: "2px 0 0 0" }}>{fmt(p.monthlyNet)}/mo</p>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+                  <div style={{ width: 40, height: 6, borderRadius: 3, background: "#e2e8f0", overflow: "hidden" }}>
+                    <div style={{ height: "100%", width: `${p.occPct}%`, background: p.occPct === 100 ? "#10b981" : p.occPct >= 75 ? "#f59e0b" : "#ef4444", borderRadius: 3 }} />
+                  </div>
+                  <span style={{ fontSize: 11, color: "#64748b", fontWeight: 500, minWidth: 40 }}>{p.occPct}%</span>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div style={{ fontSize: 12, color: "#94a3b8", marginTop: 16, paddingTop: 12, borderTop: "1px solid #e2e8f0" }}>
+            {rentalSummary}
+          </div>
+        </div>
+
+        {/* Flips */}
+        <div style={sectionS}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <Hammer size={18} color="#f59e0b" />
+              <h3 style={{ fontSize: 16, fontWeight: 700, color: "#0f172a", margin: 0 }}>Active Flips</h3>
+              <span style={{ fontSize: 13, color: "#94a3b8", fontWeight: 500 }}>({flipSnapshots.length})</span>
+            </div>
+            <button onClick={() => onNavigate("flipdashboard")} style={{ background: "none", border: "none", color: "#f59e0b", cursor: "pointer", fontSize: 13, fontWeight: 600, display: "flex", alignItems: "center", gap: 4 }}>
+              View all
+              <ArrowRight size={14} />
+            </button>
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            {flipSnapshots.map(f => (
+              <div
+                key={f.id}
+                onClick={() => onSelectFlip(f)}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 12,
+                  padding: 12,
+                  borderRadius: 10,
+                  background: "#f8fafc",
+                  border: "1px solid #e2e8f0",
+                  cursor: "pointer",
+                  transition: "all 0.15s",
+                }}
+                onMouseEnter={e => { e.currentTarget.style.background = "#f1f5f9"; e.currentTarget.style.borderColor = "#cbd5e1"; }}
+                onMouseLeave={e => { e.currentTarget.style.background = "#f8fafc"; e.currentTarget.style.borderColor = "#e2e8f0"; }}
+              >
+                <div style={{ width: 32, height: 32, borderRadius: 10, background: FLIP_COLORS[f.color] || f.color, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 600, fontSize: 12, flexShrink: 0 }}>
+                  {f.image?.slice(0, 1) || "F"}
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+                    <p style={{ fontSize: 13, fontWeight: 600, color: "#0f172a", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{f.name}</p>
+                    <span style={{ fontSize: 11, fontWeight: 600, color: STAGE_COLORS[f.stage], background: STAGE_COLORS[f.stage] + "1a", borderRadius: 4, padding: "2px 6px" }}>{f.stage}</span>
+                  </div>
+                  <p style={{ fontSize: 12, color: "#94a3b8", margin: 0 }}>{fmt(f.rehabSpent)} of {fmt(f.rehabBudget)}</p>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+                  <div style={{ width: 40, height: 6, borderRadius: 3, background: "#e2e8f0", overflow: "hidden" }}>
+                    <div style={{ height: "100%", width: `${f.rehabBudget > 0 ? Math.min(100, (f.rehabSpent / f.rehabBudget) * 100) : 0}%`, background: "#f59e0b", borderRadius: 3 }} />
+                  </div>
+                  <span style={{ fontSize: 11, color: "#64748b", fontWeight: 500, minWidth: 30 }}>{f.rehabBudget > 0 ? Math.round((f.rehabSpent / f.rehabBudget) * 100) : 0}%</span>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div style={{ fontSize: 12, color: "#94a3b8", marginTop: 16, paddingTop: 12, borderTop: "1px solid #e2e8f0" }}>
+            {flipSummary}
+          </div>
+        </div>
+      </div>
+
+      {/* Row 3: Recent Activity */}
+      <div style={sectionS}>
+        <h3 style={{ fontSize: 16, fontWeight: 700, color: "#0f172a", margin: "0 0 20px 0" }}>Recent Activity</h3>
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          {recentActivity.length > 0 ? (
+            recentActivity.map((item, idx) => (
+              <div key={`${item.type}-${idx}`} style={{ display: "flex", alignItems: "center", gap: 12, padding: 12, borderRadius: 10, background: "#f8fafc", border: "1px solid #e2e8f0" }}>
+                <div style={{ width: 36, height: 36, borderRadius: 10, background: item.bg, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                  <item.icon size={16} color={item.color} />
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ fontSize: 13, fontWeight: 600, color: "#0f172a", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.title}</p>
+                  <p style={{ fontSize: 12, color: "#94a3b8", margin: "2px 0 0 0" }}>{item.sub} · {item.date}</p>
+                </div>
+                <div style={{ textAlign: "right", flexShrink: 0 }}>
+                  <p style={{ fontSize: 13, fontWeight: 600, color: item.color, margin: 0 }}>
+                    {item.type === "transaction" && item.txType === "income" ? "+" : "−"}{fmt(item.amount)}
+                  </p>
+                </div>
+              </div>
+            ))
+          ) : (
+            <p style={{ fontSize: 13, color: "#94a3b8", textAlign: "center", padding: "20px 0", margin: 0 }}>No activity yet</p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function Dashboard({ onNavigate, onNavigateToTx, onSelectProperty, onNavigateToTenantAdd, onNavigateToNote, onNavigateToLease }) {
   const now = new Date();
   const todayStr = now.toISOString().slice(0, 10);
@@ -617,8 +891,9 @@ function Dashboard({ onNavigate, onNavigateToTx, onSelectProperty, onNavigateToT
       : `Partial rent payment — ${quickPay.unit}`;
     // Add transaction to global array
     TRANSACTIONS.unshift({
-      id: newId(), date: quickPayDate, property: prop?.name || "", category: "Rent Income",
+      id: newId(), date: quickPayDate, propertyId: quickPay.propertyId, category: "Rent Income",
       description: desc, amount: Math.abs(amt), type: "income", payee: quickPay.name,
+      createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), userId: MOCK_USER.id,
     });
     // Update tenant's lastPayment
     const ti = TENANTS.findIndex(t => t.id === quickPay.id);
@@ -1352,6 +1627,31 @@ function PropertyDetail({ property, onBack, backLabel, onEditProperty, onGoToTra
     }
   }, [highlightTenantId]);
 
+  // ── Quick-Log State ──
+  const [qlOpen, setQlOpen] = useState(false);
+  const [qlType, setQlType] = useState("income");
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const [qlForm, setQlForm] = useState({ date: todayStr, amount: "", category: "Rent Income", description: "", payee: "" });
+  const [qlSuccess, setQlSuccess] = useState(false);
+  const [renderKey, setRenderKey] = useState(0);
+
+  const qlCategories = qlType === "income"
+    ? ["Rent Income", "Parking / Storage", "Laundry Income", "Late Fees", "Pet Fees", "Application Fees", "Other Income"]
+    : ["Mortgage Payment", "Property Tax", "Property Insurance", "HOA Dues", "General Maintenance", "Plumbing", "Electrical", "HVAC", "Landscaping", "Cleaning", "Management Fee", "Utilities", "Other Expenses"];
+
+  const handleQlSave = () => {
+    const amt = parseFloat(qlForm.amount);
+    if (!amt || amt <= 0) return;
+    TRANSACTIONS.unshift({
+      id: newId(), date: qlForm.date, propertyId: property.id,
+      category: qlForm.category, description: qlForm.description || qlForm.category,
+      amount: qlType === "income" ? amt : -amt, type: qlType,
+      payee: qlForm.payee || "", createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), userId: MOCK_USER.id,
+    });
+    setQlSuccess(true);
+    setTimeout(() => { setQlSuccess(false); setQlOpen(false); setQlForm({ date: todayStr, amount: "", category: qlType === "income" ? "Rent Income" : "Mortgage Payment", description: "", payee: "" }); setRenderKey(k => k + 1); }, 1200);
+  };
+
   // Transaction tab filters
   const [txSearch, setTxSearch] = useState("");
   const [txTypeFilter, setTxTypeFilter] = useState("all");
@@ -1512,6 +1812,94 @@ function PropertyDetail({ property, onBack, backLabel, onEditProperty, onGoToTra
                 {m.sub && <p style={{ color: "#cbd5e1", fontSize: 10, marginTop: 2 }}>{m.sub}</p>}
               </div>
             ))}
+          </div>
+
+          {/* ── Quick Log ── */}
+          <div style={{ background: "#fff", borderRadius: 16, padding: qlOpen ? 24 : "16px 24px", boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: qlOpen ? "1.5px solid #3b82f6" : "1px solid #f1f5f9", transition: "all 0.2s" }}>
+            {!qlOpen ? (
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <div style={{ width: 36, height: 36, borderRadius: 10, background: "#eff6ff", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <Plus size={18} color="#3b82f6" />
+                  </div>
+                  <div>
+                    <p style={{ fontSize: 14, fontWeight: 700, color: "#0f172a" }}>Quick Log</p>
+                    <p style={{ fontSize: 12, color: "#94a3b8" }}>Record income or expense for this property</p>
+                  </div>
+                </div>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <button onClick={() => { setQlType("income"); setQlForm({ date: todayStr, amount: "", category: "Rent Income", description: "", payee: "" }); setQlOpen(true); }}
+                    style={{ padding: "8px 16px", borderRadius: 10, border: "1.5px solid #dcfce7", background: "#f0fdf4", color: "#15803d", fontSize: 13, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 5 }}>
+                    <ArrowUp size={14} /> Income
+                  </button>
+                  <button onClick={() => { setQlType("expense"); setQlForm({ date: todayStr, amount: "", category: "Mortgage Payment", description: "", payee: "" }); setQlOpen(true); }}
+                    style={{ padding: "8px 16px", borderRadius: 10, border: "1.5px solid #fee2e2", background: "#fef2f2", color: "#b91c1c", fontSize: 13, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 5 }}>
+                    <ArrowDown size={14} /> Expense
+                  </button>
+                </div>
+              </div>
+            ) : qlSuccess ? (
+              <div style={{ textAlign: "center", padding: "20px 0" }}>
+                <CheckCircle size={32} color="#10b981" style={{ marginBottom: 8 }} />
+                <p style={{ color: "#15803d", fontSize: 15, fontWeight: 700 }}>Transaction logged!</p>
+              </div>
+            ) : (
+              <div>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <div style={{ width: 36, height: 36, borderRadius: 10, background: qlType === "income" ? "#dcfce7" : "#fee2e2", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      {qlType === "income" ? <ArrowUp size={18} color="#15803d" /> : <ArrowDown size={18} color="#b91c1c" />}
+                    </div>
+                    <p style={{ fontSize: 15, fontWeight: 700, color: "#0f172a" }}>Log {qlType === "income" ? "Income" : "Expense"}</p>
+                  </div>
+                  <div style={{ display: "flex", gap: 6 }}>
+                    <button onClick={() => { setQlType("income"); setQlForm(f => ({ ...f, category: "Rent Income" })); }}
+                      style={{ padding: "5px 12px", borderRadius: 8, border: "none", background: qlType === "income" ? "#dcfce7" : "#f1f5f9", color: qlType === "income" ? "#15803d" : "#94a3b8", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>Income</button>
+                    <button onClick={() => { setQlType("expense"); setQlForm(f => ({ ...f, category: "Mortgage Payment" })); }}
+                      style={{ padding: "5px 12px", borderRadius: 8, border: "none", background: qlType === "expense" ? "#fee2e2" : "#f1f5f9", color: qlType === "expense" ? "#b91c1c" : "#94a3b8", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>Expense</button>
+                  </div>
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 2fr", gap: 12, marginBottom: 12 }}>
+                  <div>
+                    <label style={{ display: "block", color: "#475569", fontSize: 12, fontWeight: 600, marginBottom: 4 }}>Amount *</label>
+                    <input type="number" placeholder="0.00" value={qlForm.amount} onChange={e => setQlForm(f => ({ ...f, amount: e.target.value }))}
+                      style={{ width: "100%", padding: "10px 12px", border: "1.5px solid #e2e8f0", borderRadius: 10, fontSize: 14, color: "#0f172a", background: "#fff", outline: "none", boxSizing: "border-box" }} autoFocus />
+                  </div>
+                  <div>
+                    <label style={{ display: "block", color: "#475569", fontSize: 12, fontWeight: 600, marginBottom: 4 }}>Date</label>
+                    <input type="date" value={qlForm.date} onChange={e => setQlForm(f => ({ ...f, date: e.target.value }))}
+                      style={{ width: "100%", padding: "10px 12px", border: "1.5px solid #e2e8f0", borderRadius: 10, fontSize: 14, color: "#0f172a", background: "#fff", outline: "none", boxSizing: "border-box" }} />
+                  </div>
+                  <div>
+                    <label style={{ display: "block", color: "#475569", fontSize: 12, fontWeight: 600, marginBottom: 4 }}>Category</label>
+                    <select value={qlForm.category} onChange={e => setQlForm(f => ({ ...f, category: e.target.value }))}
+                      style={{ width: "100%", padding: "10px 12px", border: "1.5px solid #e2e8f0", borderRadius: 10, fontSize: 14, color: "#0f172a", background: "#fff", outline: "none", boxSizing: "border-box" }}>
+                      {qlCategories.map(c => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                  </div>
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 }}>
+                  <div>
+                    <label style={{ display: "block", color: "#475569", fontSize: 12, fontWeight: 600, marginBottom: 4 }}>Description <span style={{ color: "#94a3b8", fontWeight: 400 }}>(optional)</span></label>
+                    <input type="text" placeholder={qlType === "income" ? "e.g. March rent" : "e.g. Monthly mortgage"} value={qlForm.description} onChange={e => setQlForm(f => ({ ...f, description: e.target.value }))}
+                      style={{ width: "100%", padding: "10px 12px", border: "1.5px solid #e2e8f0", borderRadius: 10, fontSize: 14, color: "#0f172a", background: "#fff", outline: "none", boxSizing: "border-box" }} />
+                  </div>
+                  <div>
+                    <label style={{ display: "block", color: "#475569", fontSize: 12, fontWeight: 600, marginBottom: 4 }}>{qlType === "income" ? "Received From" : "Paid To"} <span style={{ color: "#94a3b8", fontWeight: 400 }}>(optional)</span></label>
+                    <input type="text" placeholder={qlType === "income" ? "e.g. Tenant name" : "e.g. Bank of America"} value={qlForm.payee} onChange={e => setQlForm(f => ({ ...f, payee: e.target.value }))}
+                      style={{ width: "100%", padding: "10px 12px", border: "1.5px solid #e2e8f0", borderRadius: 10, fontSize: 14, color: "#0f172a", background: "#fff", outline: "none", boxSizing: "border-box" }} />
+                  </div>
+                </div>
+                <div style={{ display: "flex", gap: 10 }}>
+                  <button onClick={() => { setQlOpen(false); setQlForm({ date: todayStr, amount: "", category: qlType === "income" ? "Rent Income" : "Mortgage Payment", description: "", payee: "" }); }}
+                    style={{ padding: "10px 20px", borderRadius: 10, border: "1px solid #e2e8f0", background: "#fff", color: "#475569", fontWeight: 600, fontSize: 13, cursor: "pointer" }}>Cancel</button>
+                  <button onClick={handleQlSave}
+                    style={{ padding: "10px 24px", borderRadius: 10, border: "none", background: qlType === "income" ? "#10b981" : "#ef4444", color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
+                    <CheckCircle size={14} /> Log {qlType === "income" ? "Income" : "Expense"}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -7194,7 +7582,7 @@ function GlobalSearch({ onNavigate }) {
 // ---------------------------------------------
 function AppShell() {
   const { user, signOut } = useAuth();
-  const [activeView, setActiveView] = useState("dashboard");
+  const [activeView, setActiveView] = useState("portfolio");
   const [selectedProperty, setSelectedProperty] = useState(null);
   const [selectedFlip, setSelectedFlip] = useState(null);
   const [showSettings, setShowSettings] = useState(false);
@@ -7229,6 +7617,8 @@ function AppShell() {
     setNavSource("flipDetail");
     setActiveView("flipexpenses");
   };
+
+  const portfolioNavItem = { id: "portfolio", label: "Portfolio", icon: PieChartIcon };
 
   const rentalNavItems = [
     { id: "dashboard",    label: "Dashboard",    icon: LayoutDashboard },
@@ -7287,6 +7677,20 @@ function AppShell() {
           </div>
         </div>
         <nav style={{ flex: 1, padding: "16px 12px", overflowY: "auto" }}>
+          {/* Portfolio button */}
+          {portfolioNavItem && (
+            <>
+              <button onClick={() => { setActiveView(portfolioNavItem.id); setSelectedProperty(null); setSelectedFlip(null); setHighlightTxId(null); setNavSource(null); }}
+                style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 10, border: "none", background: activeView === portfolioNavItem.id ? "rgba(139,92,246,0.2)" : "transparent", color: activeView === portfolioNavItem.id ? "#c4b5fd" : "#64748b", fontWeight: activeView === portfolioNavItem.id ? 700 : 500, fontSize: 14, cursor: "pointer", marginBottom: 2, textAlign: "left", transition: "all 0.15s" }}
+                onMouseEnter={e => { if (activeView !== portfolioNavItem.id) e.currentTarget.style.background = "rgba(255,255,255,0.05)"; }}
+                onMouseLeave={e => { if (activeView !== portfolioNavItem.id) e.currentTarget.style.background = "transparent"; }}>
+                <portfolioNavItem.icon size={17} />
+                {portfolioNavItem.label}
+                {activeView === portfolioNavItem.id && <ChevronRight size={14} style={{ marginLeft: "auto" }} />}
+              </button>
+              <div style={{ height: 1, background: "rgba(255,255,255,0.07)", margin: "14px 8px 12px" }} />
+            </>
+          )}
           <p style={{ color: "#475569", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", padding: "0 8px", marginBottom: 8 }}>Rentals</p>
           {rentalNavItems.map(item => {
             const active = activeView === item.id || (item.id === "properties" && activeView === "propertyDetail");
@@ -7358,6 +7762,7 @@ function AppShell() {
             <span style={{ color: "#0f172a", fontSize: 15, fontWeight: 600 }}>
               {activeView === "propertyDetail" && selectedProperty ? selectedProperty.name :
                activeView === "flipDetail" && selectedFlip ? selectedFlip.name :
+               activeView === "portfolio" ? "Portfolio" :
                activeView === "dashboard" ? "Dashboard" :
                [...rentalNavItems, ...flipNavItems, ...toolNavItems].find(n => n.id === activeView)?.label || ""}
             </span>
@@ -7385,6 +7790,7 @@ function AppShell() {
           </div>
         </div>
         <div style={{ flex: 1, padding: 32, maxWidth: 1400, width: "100%" }}>
+          {activeView === "portfolio" && <PortfolioDashboard onNavigate={setActiveView} onSelectProperty={handlePropertySelect} onSelectFlip={(f) => handleFlipSelect(f, null, "flipdashboard")} />}
           {activeView === "dashboard" && <Dashboard onNavigate={setActiveView} onNavigateToTx={navigateToTransaction} onSelectProperty={handlePropertySelect} onNavigateToTenantAdd={(propId, unit) => { setPrefillTenant({ propertyId: propId, unit }); setActiveView("tenants"); }} onNavigateToNote={(noteId) => { setHighlightNoteId(noteId); setNavSource("dashboard"); setActiveView("notes"); }} onNavigateToLease={(prop, tenantId) => { setSelectedProperty(prop); setPropDetailTab("tenants"); setPropDetailTenantHighlight(tenantId); setNavSource("dashboard"); setActiveView("propertyDetail"); }} />}
           {activeView === "properties" && <Properties onSelect={handlePropertySelect} editPropertyId={editPropertyId} onClearEditId={() => setEditPropertyId(null)} />}
           {activeView === "propertyDetail" && selectedProperty && <PropertyDetail key={selectedProperty.id + "-" + (propDetailTab || "overview") + "-" + (propDetailTenantHighlight || "")} property={selectedProperty} onBack={() => { setActiveView(navSource === "dashboard" ? "dashboard" : "properties"); setPropDetailTab(null); setPropDetailTenantHighlight(null); setNavSource(null); }} backLabel={navSource === "dashboard" ? "Back to Dashboard" : "Back to Properties"} onEditProperty={(p) => { setEditPropertyId(p.id); setActiveView("properties"); }} onGoToTransactions={() => setActiveView("transactions")} onNavigateToTransaction={(txId) => { if (txId) { setHighlightTxId(txId); setNavSource("propertyDetail"); } setActiveView("transactions"); }} onNavigateToTenant={(tenantId) => { setHighlightTenantId(tenantId); setNavSource("propertyDetail"); setActiveView("tenants"); }} initialTab={propDetailTab} highlightTenantId={propDetailTenantHighlight} onClearHighlightTenant={() => setPropDetailTenantHighlight(null)} />}
