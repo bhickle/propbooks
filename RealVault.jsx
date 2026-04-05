@@ -240,21 +240,21 @@ function calcCashOnCash(p, transactions) {
 }
 
 const TRANSACTIONS = [
-  { id: 1,  date: "2026-03-20", property: "Maple Ridge Duplex",       category: "Rent Income", description: "March rent - Unit A",       amount:  1900, type: "income",  payee: "Jordan Williams" },
-  { id: 2,  date: "2026-03-20", property: "Maple Ridge Duplex",       category: "Rent Income", description: "March rent - Unit B",       amount:  1900, type: "income",  payee: "Priya Patel" },
-  { id: 3,  date: "2026-03-18", property: "Riverside Triplex",        category: "Maintenance", description: "HVAC repair - Unit 2",      amount:  -420, type: "expense", payee: "AirPro HVAC Services" },
-  { id: 4,  date: "2026-03-15", property: "Lakeview SFR",             category: "Rent Income", description: "March rent",               amount:  2950, type: "income",  payee: "Marcus Thompson" },
-  { id: 5,  date: "2026-03-12", property: "Midtown Condo #4B",        category: "HOA Fees",    description: "Monthly HOA",              amount:  -285, type: "expense", payee: "Midtown HOA" },
-  { id: 6,  date: "2026-03-10", property: "Sunset Strip Commercial",  category: "Rent Income", description: "March commercial rent",    amount:  8500, type: "income",  payee: "Acme Retail LLC" },
-  { id: 7,  date: "2026-03-08", property: "Riverside Triplex",        category: "Rent Income", description: "March rent - Units 1,2,3", amount:  5700, type: "income",  payee: "Various Tenants" },
-  { id: 8,  date: "2026-03-05", property: "Maple Ridge Duplex",       category: "Insurance",   description: "Q1 property insurance",   amount: -1200, type: "expense", payee: "State Farm" },
-  { id: 9,  date: "2026-03-03", property: "Lakeview SFR",             category: "Property Tax",description: "Semi-annual tax payment",  amount: -2100, type: "expense", payee: "Denver County Assessor" },
-  { id: 10, date: "2026-03-01", property: "Midtown Condo #4B",        category: "Rent Income", description: "March rent",               amount:  2100, type: "income",  payee: "Keisha Brown" },
-  { id: 11, date: "2026-02-28", property: "Sunset Strip Commercial",  category: "Maintenance", description: "Parking lot reseal",       amount: -3500, type: "expense", payee: "Pacific Paving Co." },
-  { id: 12, date: "2026-02-20", property: "Riverside Triplex",        category: "Mortgage",    description: "February mortgage",        amount: -2840, type: "expense", payee: "US Bank" },
-  { id: 13, date: "2026-02-15", property: "Maple Ridge Duplex",       category: "Mortgage",    description: "February mortgage",        amount: -1620, type: "expense", payee: "Chase Mortgage" },
-  { id: 14, date: "2026-02-10", property: "Lakeview SFR",             category: "Landscaping", description: "Monthly lawn service",     amount:  -180, type: "expense", payee: "Green Thumb Landscaping" },
-  { id: 15, date: "2026-02-05", property: "Midtown Condo #4B",        category: "Utilities",   description: "Common area utilities",    amount:   -95, type: "expense", payee: "Georgia Power" },
+  { id: 1,  date: "2026-03-20", propertyId: 1, category: "Rent Income", description: "March rent - Unit A",       amount:  1900, type: "income",  payee: "Jordan Williams" },
+  { id: 2,  date: "2026-03-20", propertyId: 1, category: "Rent Income", description: "March rent - Unit B",       amount:  1900, type: "income",  payee: "Priya Patel" },
+  { id: 3,  date: "2026-03-18", propertyId: 4, category: "Maintenance", description: "HVAC repair - Unit 2",      amount:  -420, type: "expense", payee: "AirPro HVAC Services" },
+  { id: 4,  date: "2026-03-15", propertyId: 2, category: "Rent Income", description: "March rent",               amount:  2950, type: "income",  payee: "Marcus Thompson" },
+  { id: 5,  date: "2026-03-12", propertyId: 3, category: "HOA Fees",    description: "Monthly HOA",              amount:  -285, type: "expense", payee: "Midtown HOA" },
+  { id: 6,  date: "2026-03-10", propertyId: 5, category: "Rent Income", description: "March commercial rent",    amount:  8500, type: "income",  payee: "Acme Retail LLC" },
+  { id: 7,  date: "2026-03-08", propertyId: 4, category: "Rent Income", description: "March rent - Units 1,2,3", amount:  5700, type: "income",  payee: "Various Tenants" },
+  { id: 8,  date: "2026-03-05", propertyId: 1, category: "Insurance",   description: "Q1 property insurance",   amount: -1200, type: "expense", payee: "State Farm" },
+  { id: 9,  date: "2026-03-03", propertyId: 2, category: "Property Tax",description: "Semi-annual tax payment",  amount: -2100, type: "expense", payee: "Denver County Assessor" },
+  { id: 10, date: "2026-03-01", propertyId: 3, category: "Rent Income", description: "March rent",               amount:  2100, type: "income",  payee: "Keisha Brown" },
+  { id: 11, date: "2026-02-28", propertyId: 5, category: "Maintenance", description: "Parking lot reseal",       amount: -3500, type: "expense", payee: "Pacific Paving Co." },
+  { id: 12, date: "2026-02-20", propertyId: 4, category: "Mortgage",    description: "February mortgage",        amount: -2840, type: "expense", payee: "US Bank" },
+  { id: 13, date: "2026-02-15", propertyId: 1, category: "Mortgage",    description: "February mortgage",        amount: -1620, type: "expense", payee: "Chase Mortgage" },
+  { id: 14, date: "2026-02-10", propertyId: 2, category: "Landscaping", description: "Monthly lawn service",     amount:  -180, type: "expense", payee: "Green Thumb Landscaping" },
+  { id: 15, date: "2026-02-05", propertyId: 3, category: "Utilities",   description: "Common area utilities",    amount:   -95, type: "expense", payee: "Georgia Power" },
 ];
 
 const MONTHLY_CASH_FLOW = [
@@ -2293,7 +2293,7 @@ function Transactions({ highlightTxId, onBack, onClearHighlight, backLabel }) {
         </div>
         <select value={propFilter} onChange={e => setPropFilter(e.target.value)} style={{ ...iS, width: 200, fontSize: 14, padding: "9px 14px", fontWeight: 600 }}>
           <option value="all">All Properties</option>
-          {PROPERTIES.map(p => <option key={p.id} value={p.name}>{p.name}</option>)}
+          {PROPERTIES.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
         </select>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, marginBottom: 24 }}>
@@ -2359,7 +2359,7 @@ function Transactions({ highlightTxId, onBack, onClearHighlight, backLabel }) {
       {(propFilter !== "all" || catFilter !== "all" || dateFilter !== "all" || search) && (
         <div style={{ display: "flex", gap: 8, marginBottom: 14, flexWrap: "wrap", alignItems: "center" }}>
           <span style={{ fontSize: 12, color: "#94a3b8", fontWeight: 600 }}>Filtered:</span>
-          {propFilter !== "all" && <span style={{ background: "#eff6ff", color: "#3b82f6", borderRadius: 20, padding: "3px 10px", fontSize: 12, fontWeight: 600 }}>{propFilter.split(" ").slice(0, 2).join(" ")}</span>}
+          {propFilter !== "all" && <span style={{ background: "#eff6ff", color: "#3b82f6", borderRadius: 20, padding: "3px 10px", fontSize: 12, fontWeight: 600 }}>{(PROPERTIES.find(p => p.id === Number(propFilter))?.name || "Property").split(" ").slice(0, 2).join(" ")}</span>}
           {catFilter !== "all" && <span style={{ background: "#f0fdf4", color: "#15803d", borderRadius: 20, padding: "3px 10px", fontSize: 12, fontWeight: 600 }}>{catFilter}</span>}
           {dateFilter !== "all" && <span style={{ background: "#fef9c3", color: "#854d0e", borderRadius: 20, padding: "3px 10px", fontSize: 12, fontWeight: 600 }}>{{ thisMonth: "This Month", lastMonth: "Last Month", thisYear: "This Year", lastYear: "Last Year", custom: dateFrom && dateTo ? `${dateFrom} – ${dateTo}` : "Custom Range" }[dateFilter]}</span>}
           {search && <span style={{ background: "#f1f5f9", color: "#475569", borderRadius: 20, padding: "3px 10px", fontSize: 12, fontWeight: 600 }}>"{search}"</span>}
