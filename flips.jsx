@@ -2471,7 +2471,7 @@ export function FlipMilestones({ highlightMilestoneKey, onBack, onClearHighlight
   const saveMilestone = () => {
     const fId = parseInt(msForm.flipId);
     if (!fId || !msForm.label.trim()) return;
-    FLIP_MILESTONES.push({ id: Date.now() + Math.random(), flipId: fId, label: msForm.label.trim(), done: false, date: null });
+    FLIP_MILESTONES.push({ id: Date.now() + Math.random(), flipId: fId, label: msForm.label.trim(), done: false, date: null, targetDate: msForm.targetDate || null });
     setMsForm({ flipId: "", label: "", targetDate: "" });
     setShowAdd(false);
     rerender(n => n + 1);
@@ -2487,6 +2487,7 @@ export function FlipMilestones({ highlightMilestoneKey, onBack, onClearHighlight
     const ms = FLIP_MILESTONES.filter(m => m.flipId === editItem.flipId);
     if (ms && ms[editItem.idx]) {
       ms[editItem.idx].label = editForm.label.trim() || ms[editItem.idx].label;
+      ms[editItem.idx].targetDate = editForm.targetDate || null;
       if (editForm.completedDate) {
         ms[editItem.idx].date = editForm.completedDate;
         ms[editItem.idx].done = true;
