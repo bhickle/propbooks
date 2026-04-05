@@ -491,29 +491,20 @@ function Badge({ status }) {
 // VIEWS
 // ---------------------------------------------
 
-function PortfolioDashboard({ onNavigate, onSelectProperty, onSelectFlip, onNavigateToTx, onNavigateToFlipExpense }) {
+function PortfolioDashboard({ onNavigate, onSelectProperty, onSelectFlip, onNavigateToTx, onNavigateToFlipExpense, onNavigateToLease }) {
   const now = new Date();
+  const todayStr = now.toISOString().slice(0, 10);
 
   // ── KPIs ────────────────────────────────────────────────────────────────
-  // Total Equity = rental equity + flip equity
   const rentalEquity = PROPERTIES.reduce((s, p) => s + (p.currentValue - (calcLoanBalance(p.loanAmount, p.loanRate, p.loanTermYears, p.loanStartDate) ?? p.loanAmount ?? 0)), 0);
-
-  // Flip equity = purchasePrice invested (for active flips) minus owed if financed
-  const flipEquity = FLIPS.filter(f => f.stage !== "Sold").reduce((s, f) => {
-    return s + f.purchasePrice; // Simplified: assume equity = purchase price
-  }, 0);
-
+  const flipEquity = FLIPS.filter(f => f.stage !== "Sold").reduce((s, f) => s + f.purchasePrice, 0);
   const totalEquity = rentalEquity + flipEquity;
 
-  // Monthly Cash Flow = rental income - rental expenses
   const monthlyIncome = PROPERTIES.reduce((s, p) => { const e = getEffectiveMonthly(p, TRANSACTIONS); return s + e.monthlyIncome; }, 0);
   const monthlyExpenses = PROPERTIES.reduce((s, p) => { const e = getEffectiveMonthly(p, TRANSACTIONS); return s + e.monthlyExpenses; }, 0);
   const netCashFlow = monthlyIncome - monthlyExpenses;
 
-  // Active Deals = count of flips not in "Sold" stage
   const activeDeals = FLIPS.filter(f => f.stage !== "Sold").length;
-
-  // Capital Deployed = total purchasePrice + rehabSpent across active flips
   const capitalDeployed = FLIPS.filter(f => f.stage !== "Sold").reduce((s, f) => s + f.purchasePrice + f.rehabSpent, 0);
 
   // ── Rental snapshot cards ────────────────────────────────────────────────
@@ -526,7 +517,7 @@ function PortfolioDashboard({ onNavigate, onSelectProperty, onSelectFlip, onNavi
     const propTotal = propTenants.length || p.units || 1;
     const propOccPct = Math.round((propOccupied / propTotal) * 100);
     return { ...p, monthlyNet: eff.monthlyIncome - eff.monthlyExpenses, occPct: propOccPct, occupied: propOccupied, total: propTotal };
-  }).sort((a, b) => (b.monthlyNet || 0) - (a.monthlyNet || 0)).slice(0, 6); // Top 6
+  }).sort((a, b) => (b.monthlyNet || 0) - (a.monthlyNet || 0)).slice(0, 6);
 
   const totalOccupied = rentalSnapshots.reduce((s, p) => s + p.occupied, 0);
   const totalRentalUnits = rentalSnapshots.reduce((s, p) => s + p.total, 0);
@@ -537,57 +528,125 @@ function PortfolioDashboard({ onNavigate, onSelectProperty, onSelectFlip, onNavi
     const stageOrder = { "Pending": 0, "Active Rehab": 1, "Listed": 2 };
     return (stageOrder[a.stage] ?? 99) - (stageOrder[b.stage] ?? 99);
   });
-
   const flipSummary = `${flipSnapshots.length} active · ${fmt(flipSnapshots.reduce((s, f) => s + f.rehabBudget, 0))} total budget`;
+
+  // ── Lease Alerts ─────────────────────────────────────────────────────────
+  const leaseAlerts = (() => {
+    const alerts = [];
+    allTenants.forEach(t => {
+      if (t.status === "vacant") {
+        const prop = PROPERTIES.find(p => p.id === t.propertyId);
+        alerts.push({ type: "vacant", severity: "high", icon: AlertTriangle, color: "#ef4444", bg: "#fee2e2",
+          title: `${prop?.name || "Property"} — ${t.unit}`, sub: "Vacant unit — no lease", tenant: t, prop });
+      } else if (t.leaseEnd) {
+        const daysLeft = Math.round((new Date(t.leaseEnd) - now) / 86400000);
+        const prop = PROPERTIES.find(p => p.id === t.propertyId);
+        if (daysLeft < 0) {
+          alerts.push({ type: "expired", severity: "high", icon: AlertCircle, color: "#ef4444", bg: "#fee2e2",
+            title: `${t.name}`, sub: `Lease expired ${Math.abs(daysLeft)}d ago · ${prop?.name || ""} ${t.unit}`, daysLeft, tenant: t, prop });
+        } else if (daysLeft <= 60) {
+          alerts.push({ type: "expiring", severity: "medium", icon: Clock, color: "#f59e0b", bg: "#fef3c7",
+            title: `${t.name}`, sub: `Lease expires in ${daysLeft}d · ${prop?.name || ""} ${t.unit}`, daysLeft, tenant: t, prop });
+        }
+      }
+      if (t.status === "month-to-month") {
+        const prop = PROPERTIES.find(p => p.id === t.propertyId);
+        const alreadyListed = alerts.some(a => a.tenant?.id === t.id);
+        if (!alreadyListed) {
+          alerts.push({ type: "mtm", severity: "low", icon: ArrowUpDown, color: "#3b82f6", bg: "#dbeafe",
+            title: `${t.name}`, sub: `Month-to-month · ${prop?.name || ""} ${t.unit}`, tenant: t, prop });
+        }
+      }
+    });
+    const order = { high: 0, medium: 1, low: 2 };
+    return alerts.sort((a, b) => order[a.severity] - order[b.severity]);
+  })();
+
+  // ── Flip Stage Summary with overdue milestones ───────────────────────────
+  const flipStageData = flipSnapshots.map(f => {
+    const ms = FLIP_MILESTONES.filter(m => m.flipId === f.id);
+    const totalMs = ms.length;
+    const doneMs = ms.filter(m => m.done).length;
+    const overdueMs = ms.filter(m => !m.done && m.targetDate && m.targetDate < todayStr).length;
+    const nextMs = ms.filter(m => !m.done).sort((a, b) => (a.targetDate || "9999") < (b.targetDate || "9999") ? -1 : 1)[0];
+    return { ...f, totalMs, doneMs, overdueMs, nextMs, pct: totalMs > 0 ? Math.round((doneMs / totalMs) * 100) : 0 };
+  });
+
+  // ── Cash Flow Trend (last 6 months) ──────────────────────────────────────
+  const cashFlowTrend = (() => {
+    const data = [];
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      const label = d.toLocaleString("default", { month: "short" });
+      const monthTx = TRANSACTIONS.filter(t => t.date && t.date.startsWith(key));
+      const inc = monthTx.filter(t => t.type === "income").reduce((s, t) => s + Math.abs(t.amount), 0);
+      const exp = monthTx.filter(t => t.type === "expense").reduce((s, t) => s + Math.abs(t.amount), 0);
+      data.push({ month: label, income: inc, expenses: exp, net: inc - exp });
+    }
+    return data;
+  })();
+
+  // ── Upcoming Expenses (recurring obligations) ────────────────────────────
+  const upcomingExpenses = (() => {
+    const items = [];
+    const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+    const nextMonthLabel = nextMonth.toLocaleString("default", { month: "long" });
+    // Mortgage payments
+    PROPERTIES.forEach(p => {
+      if (p.loanAmount && p.loanAmount > 0) {
+        const monthlyMortgage = p.loanAmount && p.loanRate && p.loanTermYears
+          ? (p.loanAmount * (p.loanRate / 100 / 12)) / (1 - Math.pow(1 + p.loanRate / 100 / 12, -p.loanTermYears * 12))
+          : 0;
+        if (monthlyMortgage > 0) {
+          items.push({ category: "Mortgage", property: p.name, amount: monthlyMortgage, icon: Home, color: "#3b82f6", bg: "#eff6ff", recurring: true });
+        }
+      }
+      // Insurance (estimated from transactions)
+      const insExp = TRANSACTIONS.filter(t => t.propertyId === p.id && t.type === "expense" && t.category === "Property Insurance");
+      if (insExp.length > 0) {
+        const avg = insExp.reduce((s, t) => s + Math.abs(t.amount), 0) / insExp.length;
+        items.push({ category: "Insurance", property: p.name, amount: avg, icon: FileText, color: "#8b5cf6", bg: "#ede9fe", recurring: true });
+      }
+      // Property Tax (estimated from transactions)
+      const taxExp = TRANSACTIONS.filter(t => t.propertyId === p.id && t.type === "expense" && t.category === "Property Tax");
+      if (taxExp.length > 0) {
+        const avg = taxExp.reduce((s, t) => s + Math.abs(t.amount), 0) / taxExp.length;
+        items.push({ category: "Property Tax", property: p.name, amount: avg, icon: DollarSign, color: "#ef4444", bg: "#fee2e2", recurring: true });
+      }
+      // HOA
+      const hoaExp = TRANSACTIONS.filter(t => t.propertyId === p.id && t.type === "expense" && t.category === "HOA Dues");
+      if (hoaExp.length > 0) {
+        const avg = hoaExp.reduce((s, t) => s + Math.abs(t.amount), 0) / hoaExp.length;
+        items.push({ category: "HOA Dues", property: p.name, amount: avg, icon: Building2, color: "#f59e0b", bg: "#fef3c7", recurring: true });
+      }
+    });
+    return items.sort((a, b) => b.amount - a.amount).slice(0, 8);
+  })();
+  const totalUpcoming = upcomingExpenses.reduce((s, e) => s + e.amount, 0);
 
   // ── Recent Activity ──────────────────────────────────────────────────────
   const recentItems = [];
-
-  // Last 10 rental transactions (sorted by date)
   [...TRANSACTIONS].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 10).forEach(t => {
     const prop = PROPERTIES.find(p => p.id === t.propertyId);
-    const propName = prop?.name || "Unknown";
-    recentItems.push({
-      source: "rental",
-      type: "transaction",
-      date: t.date,
+    recentItems.push({ source: "rental", type: "transaction", date: t.date,
       icon: t.type === "income" ? ArrowUp : ArrowDown,
       color: t.type === "income" ? "#15803d" : "#b91c1c",
       bg: t.type === "income" ? "#dcfce7" : "#fee2e2",
-      title: t.description,
-      sourceName: propName,
-      amount: t.amount,
-      txType: t.type,
-      txId: t.id,
-      propertyId: t.propertyId,
-    });
+      title: t.description, sourceName: prop?.name || "Unknown",
+      amount: t.amount, txType: t.type, txId: t.id, propertyId: t.propertyId });
   });
-
-  // Last 10 flip expenses (sorted by date)
   [...FLIP_EXPENSES].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 10).forEach(e => {
     const flip = FLIPS.find(f => f.id === e.flipId);
-    const flipName = flip?.name || "Unknown";
-    recentItems.push({
-      source: "flip",
-      type: "flip-expense",
-      date: e.date,
-      icon: ArrowDown,
-      color: "#b91c1c",
-      bg: "#fee2e2",
-      title: e.description || `${e.vendor || "Expense"}`,
-      sourceName: flipName,
-      amount: e.amount,
-      expId: e.id,
-      flipId: e.flipId,
-    });
+    recentItems.push({ source: "flip", type: "flip-expense", date: e.date,
+      icon: ArrowDown, color: "#b91c1c", bg: "#fee2e2",
+      title: e.description || `${e.vendor || "Expense"}`, sourceName: flip?.name || "Unknown",
+      amount: e.amount, expId: e.id, flipId: e.flipId });
   });
-
-  // Sort by date and take top 10
-  const recentActivity = recentItems
-    .sort((a, b) => new Date(b.date) - new Date(a.date))
-    .slice(0, 10);
+  const recentActivity = recentItems.sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 10);
 
   const sectionS = { background: "#fff", borderRadius: 16, padding: 24, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" };
+  const qaBtnS = (color, bg) => ({ display: "flex", flexDirection: "column", alignItems: "center", gap: 8, padding: "16px 12px", borderRadius: 12, border: "1px solid #e2e8f0", background: "#fff", cursor: "pointer", transition: "all 0.15s", flex: 1 });
 
   return (
     <div>
@@ -599,37 +658,101 @@ function PortfolioDashboard({ onNavigate, onSelectProperty, onSelectFlip, onNavi
 
       {/* Row 1: KPI Cards */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 20, marginBottom: 28 }}>
-        <StatCard
-          icon={Wallet}
-          label="Total Equity"
-          value={fmt(totalEquity)}
-          color="#3b82f6"
-          tip="Sum of rental equity (property value − mortgage balance) plus flip purchase prices invested."
-        />
-        <StatCard
-          icon={TrendingUp}
-          label="Monthly Cash Flow"
-          value={fmt(netCashFlow)}
-          color="#10b981"
-          tip="Net rental income across all properties (income minus expenses)."
-        />
-        <StatCard
-          icon={Target}
-          label="Active Deals"
-          value={String(activeDeals)}
-          color="#f59e0b"
-          tip="Number of flip deals currently in progress (not sold)."
-        />
-        <StatCard
-          icon={DollarSign}
-          label="Capital Deployed"
-          value={fmt(capitalDeployed)}
-          color="#8b5cf6"
-          tip="Total money invested in active flip deals (purchase price + rehab spent)."
-        />
+        <StatCard icon={Wallet} label="Total Equity" value={fmt(totalEquity)} color="#3b82f6" tip="Sum of rental equity (property value − mortgage balance) plus flip purchase prices invested." />
+        <StatCard icon={TrendingUp} label="Monthly Cash Flow" value={fmt(netCashFlow)} color="#10b981" tip="Net rental income across all properties (income minus expenses)." />
+        <StatCard icon={Target} label="Active Deals" value={String(activeDeals)} color="#f59e0b" tip="Number of flip deals currently in progress (not sold)." />
+        <StatCard icon={DollarSign} label="Capital Deployed" value={fmt(capitalDeployed)} color="#8b5cf6" tip="Total money invested in active flip deals (purchase price + rehab spent)." />
       </div>
 
-      {/* Row 2: Rentals & Flips Summary */}
+      {/* Row 2: Quick Actions */}
+      <div style={{ display: "flex", gap: 12, marginBottom: 28 }}>
+        {[
+          { label: "Log Rental Transaction", icon: ArrowUpDown, color: "#10b981", bg: "#dcfce7", action: () => onNavigate("transactions") },
+          { label: "Log Flip Expense", icon: Hammer, color: "#f59e0b", bg: "#fef3c7", action: () => onNavigate("flipexpenses") },
+          { label: "Add Property", icon: Building2, color: "#3b82f6", bg: "#eff6ff", action: () => onNavigate("properties") },
+          { label: "Add Deal", icon: Target, color: "#8b5cf6", bg: "#ede9fe", action: () => onNavigate("flipdeals") },
+        ].map((qa, i) => (
+          <button key={i} onClick={qa.action} style={qaBtnS(qa.color, qa.bg)}
+            onMouseEnter={e => { e.currentTarget.style.background = qa.bg; e.currentTarget.style.borderColor = qa.color + "40"; }}
+            onMouseLeave={e => { e.currentTarget.style.background = "#fff"; e.currentTarget.style.borderColor = "#e2e8f0"; }}>
+            <div style={{ width: 40, height: 40, borderRadius: 12, background: qa.bg, display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <qa.icon size={18} color={qa.color} />
+            </div>
+            <span style={{ fontSize: 12, fontWeight: 600, color: "#475569" }}>{qa.label}</span>
+          </button>
+        ))}
+      </div>
+
+      {/* Row 3: Lease Alerts + Cash Flow Trend */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 28 }}>
+        {/* Lease Alerts */}
+        <div style={sectionS}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <AlertCircle size={18} color="#ef4444" />
+              <h3 style={{ fontSize: 16, fontWeight: 700, color: "#0f172a", margin: 0 }}>Lease Alerts</h3>
+              {leaseAlerts.length > 0 && <span style={{ fontSize: 11, fontWeight: 700, color: "#fff", background: "#ef4444", borderRadius: 10, padding: "2px 8px", minWidth: 20, textAlign: "center" }}>{leaseAlerts.length}</span>}
+            </div>
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {leaseAlerts.length === 0 ? (
+              <div style={{ textAlign: "center", padding: "24px 0" }}>
+                <CheckCircle size={24} color="#10b981" style={{ marginBottom: 6 }} />
+                <p style={{ fontSize: 13, color: "#94a3b8", margin: 0 }}>All leases in good standing</p>
+              </div>
+            ) : leaseAlerts.slice(0, 5).map((a, i) => (
+              <div key={i} onClick={() => a.prop && onNavigateToLease && onNavigateToLease(a.prop, a.tenant?.id)}
+                style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 10, background: "#f8fafc", border: "1px solid #e2e8f0", cursor: "pointer", transition: "background 0.15s" }}
+                onMouseEnter={e => e.currentTarget.style.background = "#f1f5f9"}
+                onMouseLeave={e => e.currentTarget.style.background = "#f8fafc"}>
+                <div style={{ width: 32, height: 32, borderRadius: 8, background: a.bg, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                  <a.icon size={14} color={a.color} />
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ fontSize: 13, fontWeight: 600, color: "#0f172a", margin: 0 }}>{a.title}</p>
+                  <p style={{ fontSize: 12, color: "#94a3b8", margin: "2px 0 0 0" }}>{a.sub}</p>
+                </div>
+                <ChevronRight size={14} color="#cbd5e1" />
+              </div>
+            ))}
+            {leaseAlerts.length > 5 && (
+              <button onClick={() => onNavigate("dashboard")} style={{ background: "none", border: "none", color: "#3b82f6", fontSize: 12, fontWeight: 600, cursor: "pointer", padding: "6px 0", textAlign: "center" }}>
+                View all {leaseAlerts.length} alerts
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Cash Flow Trend */}
+        <div style={sectionS}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <TrendingUp size={18} color="#10b981" />
+              <h3 style={{ fontSize: 16, fontWeight: 700, color: "#0f172a", margin: 0 }}>Cash Flow Trend</h3>
+            </div>
+            <p style={{ fontSize: 13, color: "#94a3b8", margin: 0 }}>Last 6 months</p>
+          </div>
+          <ResponsiveContainer width="100%" height={180}>
+            <BarChart data={cashFlowTrend} barGap={2}>
+              <XAxis dataKey="month" tick={{ fontSize: 11, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fontSize: 10, fill: "#94a3b8" }} axisLine={false} tickLine={false} tickFormatter={v => v >= 1000 ? `$${(v / 1000).toFixed(0)}k` : `$${v}`} width={45} />
+              <Tooltip contentStyle={{ borderRadius: 10, border: "1px solid #e2e8f0", fontSize: 12 }} formatter={(v) => [fmt(v)]} />
+              <Bar dataKey="income" fill="#10b981" radius={[6, 6, 0, 0]} name="Income" />
+              <Bar dataKey="expenses" fill="#ef4444" radius={[6, 6, 0, 0]} name="Expenses" />
+            </BarChart>
+          </ResponsiveContainer>
+          <div style={{ display: "flex", justifyContent: "center", gap: 20, marginTop: 8 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: "#64748b" }}>
+              <div style={{ width: 8, height: 8, borderRadius: 2, background: "#10b981" }} /> Income
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: "#64748b" }}>
+              <div style={{ width: 8, height: 8, borderRadius: 2, background: "#ef4444" }} /> Expenses
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Row 4: Rentals & Flips Summary */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 28 }}>
         {/* Rentals */}
         <div style={sectionS}>
@@ -640,29 +763,15 @@ function PortfolioDashboard({ onNavigate, onSelectProperty, onSelectFlip, onNavi
               <span style={{ fontSize: 13, color: "#94a3b8", fontWeight: 500 }}>({rentalSnapshots.length})</span>
             </div>
             <button onClick={() => onNavigate("dashboard")} style={{ background: "none", border: "none", color: "#3b82f6", cursor: "pointer", fontSize: 13, fontWeight: 600, display: "flex", alignItems: "center", gap: 4 }}>
-              View all
-              <ArrowRight size={14} />
+              View all <ArrowRight size={14} />
             </button>
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             {rentalSnapshots.map(p => (
-              <div
-                key={p.id}
-                onClick={() => onSelectProperty(p)}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 12,
-                  padding: 12,
-                  borderRadius: 10,
-                  background: "#f8fafc",
-                  border: "1px solid #e2e8f0",
-                  cursor: "pointer",
-                  transition: "all 0.15s",
-                }}
+              <div key={p.id} onClick={() => onSelectProperty(p)}
+                style={{ display: "flex", alignItems: "center", gap: 12, padding: 12, borderRadius: 10, background: "#f8fafc", border: "1px solid #e2e8f0", cursor: "pointer", transition: "all 0.15s" }}
                 onMouseEnter={e => { e.currentTarget.style.background = "#f1f5f9"; e.currentTarget.style.borderColor = "#cbd5e1"; }}
-                onMouseLeave={e => { e.currentTarget.style.background = "#f8fafc"; e.currentTarget.style.borderColor = "#e2e8f0"; }}
-              >
+                onMouseLeave={e => { e.currentTarget.style.background = "#f8fafc"; e.currentTarget.style.borderColor = "#e2e8f0"; }}>
                 <div style={{ width: 32, height: 32, borderRadius: 10, background: PROP_COLORS[p.color] || p.color, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 600, fontSize: 12, flexShrink: 0 }}>
                   {p.image?.slice(0, 1) || "P"}
                 </div>
@@ -679,12 +788,10 @@ function PortfolioDashboard({ onNavigate, onSelectProperty, onSelectFlip, onNavi
               </div>
             ))}
           </div>
-          <div style={{ fontSize: 12, color: "#94a3b8", marginTop: 16, paddingTop: 12, borderTop: "1px solid #e2e8f0" }}>
-            {rentalSummary}
-          </div>
+          <div style={{ fontSize: 12, color: "#94a3b8", marginTop: 16, paddingTop: 12, borderTop: "1px solid #e2e8f0" }}>{rentalSummary}</div>
         </div>
 
-        {/* Flips */}
+        {/* Flips — Stage Summary with milestone progress */}
         <div style={sectionS}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -693,29 +800,15 @@ function PortfolioDashboard({ onNavigate, onSelectProperty, onSelectFlip, onNavi
               <span style={{ fontSize: 13, color: "#94a3b8", fontWeight: 500 }}>({flipSnapshots.length})</span>
             </div>
             <button onClick={() => onNavigate("flipdashboard")} style={{ background: "none", border: "none", color: "#f59e0b", cursor: "pointer", fontSize: 13, fontWeight: 600, display: "flex", alignItems: "center", gap: 4 }}>
-              View all
-              <ArrowRight size={14} />
+              View all <ArrowRight size={14} />
             </button>
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            {flipSnapshots.map(f => (
-              <div
-                key={f.id}
-                onClick={() => onSelectFlip(f)}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 12,
-                  padding: 12,
-                  borderRadius: 10,
-                  background: "#f8fafc",
-                  border: "1px solid #e2e8f0",
-                  cursor: "pointer",
-                  transition: "all 0.15s",
-                }}
+            {flipStageData.map(f => (
+              <div key={f.id} onClick={() => onSelectFlip(f)}
+                style={{ display: "flex", alignItems: "center", gap: 12, padding: 12, borderRadius: 10, background: "#f8fafc", border: "1px solid #e2e8f0", cursor: "pointer", transition: "all 0.15s" }}
                 onMouseEnter={e => { e.currentTarget.style.background = "#f1f5f9"; e.currentTarget.style.borderColor = "#cbd5e1"; }}
-                onMouseLeave={e => { e.currentTarget.style.background = "#f8fafc"; e.currentTarget.style.borderColor = "#e2e8f0"; }}
-              >
+                onMouseLeave={e => { e.currentTarget.style.background = "#f8fafc"; e.currentTarget.style.borderColor = "#e2e8f0"; }}>
                 <div style={{ width: 32, height: 32, borderRadius: 10, background: FLIP_COLORS[f.color] || f.color, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 600, fontSize: 12, flexShrink: 0 }}>
                   {f.image?.slice(0, 1) || "F"}
                 </div>
@@ -723,64 +816,104 @@ function PortfolioDashboard({ onNavigate, onSelectProperty, onSelectFlip, onNavi
                   <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
                     <p style={{ fontSize: 13, fontWeight: 600, color: "#0f172a", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{f.name}</p>
                     <span style={{ fontSize: 11, fontWeight: 600, color: STAGE_COLORS[f.stage], background: STAGE_COLORS[f.stage] + "1a", borderRadius: 4, padding: "2px 6px" }}>{f.stage}</span>
+                    {f.overdueMs > 0 && (
+                      <span style={{ fontSize: 10, fontWeight: 700, color: "#ef4444", background: "#fee2e2", borderRadius: 4, padding: "2px 6px" }}>
+                        {f.overdueMs} overdue
+                      </span>
+                    )}
                   </div>
-                  <p style={{ fontSize: 12, color: "#94a3b8", margin: 0 }}>{fmt(f.rehabSpent)} of {fmt(f.rehabBudget)}</p>
-                </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
-                  <div style={{ width: 40, height: 6, borderRadius: 3, background: "#e2e8f0", overflow: "hidden" }}>
-                    <div style={{ height: "100%", width: `${f.rehabBudget > 0 ? Math.min(100, (f.rehabSpent / f.rehabBudget) * 100) : 0}%`, background: "#f59e0b", borderRadius: 3 }} />
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <div style={{ flex: 1, height: 5, borderRadius: 3, background: "#e2e8f0", overflow: "hidden" }}>
+                      <div style={{ height: "100%", width: `${f.pct}%`, background: f.overdueMs > 0 ? "#f59e0b" : "#10b981", borderRadius: 3, transition: "width 0.3s" }} />
+                    </div>
+                    <span style={{ fontSize: 11, color: "#64748b", fontWeight: 500, whiteSpace: "nowrap" }}>{f.doneMs}/{f.totalMs}</span>
                   </div>
-                  <span style={{ fontSize: 11, color: "#64748b", fontWeight: 500, minWidth: 30 }}>{f.rehabBudget > 0 ? Math.round((f.rehabSpent / f.rehabBudget) * 100) : 0}%</span>
+                  {f.nextMs && (
+                    <p style={{ fontSize: 11, color: "#94a3b8", margin: "4px 0 0 0" }}>
+                      Next: {f.nextMs.label}{f.nextMs.targetDate ? ` · due ${f.nextMs.targetDate}` : ""}
+                    </p>
+                  )}
                 </div>
               </div>
             ))}
           </div>
-          <div style={{ fontSize: 12, color: "#94a3b8", marginTop: 16, paddingTop: 12, borderTop: "1px solid #e2e8f0" }}>
-            {flipSummary}
-          </div>
+          <div style={{ fontSize: 12, color: "#94a3b8", marginTop: 16, paddingTop: 12, borderTop: "1px solid #e2e8f0" }}>{flipSummary}</div>
         </div>
       </div>
 
-      {/* Row 3: Recent Activity */}
-      <div style={sectionS}>
-        <h3 style={{ fontSize: 16, fontWeight: 700, color: "#0f172a", margin: "0 0 20px 0" }}>Recent Activity</h3>
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          {recentActivity.length > 0 ? (
-            recentActivity.map((item, idx) => (
-              <div key={`${item.type}-${idx}`}
-                onClick={() => {
-                  if (item.source === "rental" && item.txId && onNavigateToTx) {
-                    onNavigateToTx(item.txId);
-                  } else if (item.source === "flip" && item.expId && onNavigateToFlipExpense) {
-                    onNavigateToFlipExpense(item.expId);
-                  }
-                }}
-                style={{ display: "flex", alignItems: "center", gap: 12, padding: 12, borderRadius: 10, background: "#f8fafc", border: "1px solid #e2e8f0", cursor: "pointer", transition: "background 0.15s" }}
-                onMouseEnter={e => e.currentTarget.style.background = "#f1f5f9"}
-                onMouseLeave={e => e.currentTarget.style.background = "#f8fafc"}>
-                <div style={{ width: 36, height: 36, borderRadius: 10, background: item.bg, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                  <item.icon size={16} color={item.color} />
+      {/* Row 5: Upcoming Expenses + Recent Activity */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 28 }}>
+        {/* Upcoming Expenses */}
+        <div style={sectionS}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <Calendar size={18} color="#8b5cf6" />
+              <h3 style={{ fontSize: 16, fontWeight: 700, color: "#0f172a", margin: 0 }}>Upcoming Monthly Expenses</h3>
+            </div>
+            <InfoTip text="Estimated recurring monthly expenses based on your transaction history — mortgages, insurance, taxes, HOA." />
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {upcomingExpenses.length === 0 ? (
+              <p style={{ fontSize: 13, color: "#94a3b8", textAlign: "center", padding: "24px 0", margin: 0 }}>No recurring expenses found</p>
+            ) : upcomingExpenses.map((e, i) => (
+              <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 10px", borderRadius: 8, background: i % 2 === 0 ? "#f8fafc" : "#fff" }}>
+                <div style={{ width: 28, height: 28, borderRadius: 8, background: e.bg, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                  <e.icon size={13} color={e.color} />
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <p style={{ fontSize: 13, fontWeight: 600, color: "#0f172a", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.title}</p>
-                  <p style={{ fontSize: 12, color: "#94a3b8", margin: "2px 0 0 0" }}>
-                    <span style={{ display: "inline-block", padding: "1px 6px", borderRadius: 4, fontSize: 10, fontWeight: 600, letterSpacing: "0.03em", marginRight: 6, background: item.source === "rental" ? "#eff6ff" : "#fef3c7", color: item.source === "rental" ? "#3b82f6" : "#d97706" }}>
-                      {item.source === "rental" ? "RENTAL" : "FLIP"}
-                    </span>
-                    {item.sourceName} · {item.date}
-                  </p>
+                  <p style={{ fontSize: 13, fontWeight: 600, color: "#0f172a", margin: 0 }}>{e.category}</p>
+                  <p style={{ fontSize: 11, color: "#94a3b8", margin: "1px 0 0 0" }}>{e.property}</p>
                 </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
-                  <p style={{ fontSize: 13, fontWeight: 600, color: item.color, margin: 0 }}>
-                    {item.type === "transaction" && item.txType === "income" ? "+" : "−"}{fmt(item.amount)}
-                  </p>
-                  <ChevronRight size={14} color="#cbd5e1" />
-                </div>
+                <span style={{ fontSize: 13, fontWeight: 600, color: "#b91c1c" }}>{fmt(e.amount)}</span>
               </div>
-            ))
-          ) : (
-            <p style={{ fontSize: 13, color: "#94a3b8", textAlign: "center", padding: "20px 0", margin: 0 }}>No activity yet</p>
+            ))}
+          </div>
+          {upcomingExpenses.length > 0 && (
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 13, fontWeight: 700, color: "#0f172a", marginTop: 12, paddingTop: 12, borderTop: "1px solid #e2e8f0" }}>
+              <span>Monthly Total</span>
+              <span style={{ color: "#b91c1c" }}>{fmt(totalUpcoming)}</span>
+            </div>
           )}
+        </div>
+
+        {/* Recent Activity */}
+        <div style={sectionS}>
+          <h3 style={{ fontSize: 16, fontWeight: 700, color: "#0f172a", margin: "0 0 16px 0" }}>Recent Activity</h3>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {recentActivity.length > 0 ? (
+              recentActivity.map((item, idx) => (
+                <div key={`${item.type}-${idx}`}
+                  onClick={() => {
+                    if (item.source === "rental" && item.txId && onNavigateToTx) onNavigateToTx(item.txId);
+                    else if (item.source === "flip" && item.expId && onNavigateToFlipExpense) onNavigateToFlipExpense(item.expId);
+                  }}
+                  style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 10px", borderRadius: 10, cursor: "pointer", transition: "background 0.15s" }}
+                  onMouseEnter={e => e.currentTarget.style.background = "#f8fafc"}
+                  onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                  <div style={{ width: 32, height: 32, borderRadius: 8, background: item.bg, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                    <item.icon size={14} color={item.color} />
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ fontSize: 13, fontWeight: 600, color: "#0f172a", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.title}</p>
+                    <p style={{ fontSize: 12, color: "#94a3b8", margin: "2px 0 0 0" }}>
+                      <span style={{ display: "inline-block", padding: "1px 5px", borderRadius: 3, fontSize: 10, fontWeight: 600, letterSpacing: "0.03em", marginRight: 5, background: item.source === "rental" ? "#eff6ff" : "#fef3c7", color: item.source === "rental" ? "#3b82f6" : "#d97706" }}>
+                        {item.source === "rental" ? "RENTAL" : "FLIP"}
+                      </span>
+                      {item.sourceName} · {item.date}
+                    </p>
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+                    <span style={{ fontSize: 13, fontWeight: 600, color: item.color }}>
+                      {item.type === "transaction" && item.txType === "income" ? "+" : "−"}{fmt(item.amount)}
+                    </span>
+                    <ChevronRight size={14} color="#cbd5e1" />
+                  </div>
+                </div>
+              ))
+            ) : (
+              <p style={{ fontSize: 13, color: "#94a3b8", textAlign: "center", padding: "24px 0", margin: 0 }}>No activity yet</p>
+            )}
+          </div>
         </div>
       </div>
     </div>
@@ -7718,10 +7851,10 @@ function AppShell() {
           </div>
         </div>
         <div style={{ flex: 1, padding: 32, maxWidth: 1400, width: "100%" }}>
-          {activeView === "portfolio" && <PortfolioDashboard onNavigate={setActiveView} onSelectProperty={handlePropertySelect} onSelectFlip={(f) => handleFlipSelect(f, null, "flipdashboard")} onNavigateToTx={(txId) => { setHighlightTxId(txId); setNavSource("portfolio"); setActiveView("transactions"); }} onNavigateToFlipExpense={(expId) => { setHighlightExpId(expId); setNavSource("portfolio"); setActiveView("flipexpenses"); }} />}
+          {activeView === "portfolio" && <PortfolioDashboard onNavigate={setActiveView} onSelectProperty={handlePropertySelect} onSelectFlip={(f) => handleFlipSelect(f, null, "flipdashboard")} onNavigateToTx={(txId) => { setHighlightTxId(txId); setNavSource("portfolio"); setActiveView("transactions"); }} onNavigateToFlipExpense={(expId) => { setHighlightExpId(expId); setNavSource("portfolio"); setActiveView("flipexpenses"); }} onNavigateToLease={(prop, tenantId) => { setSelectedProperty(prop); setPropDetailTab("tenants"); setPropDetailTenantHighlight(tenantId); setNavSource("portfolio"); setActiveView("propertyDetail"); }} />}
           {activeView === "dashboard" && <Dashboard onNavigate={setActiveView} onNavigateToTx={navigateToTransaction} onSelectProperty={handlePropertySelect} onNavigateToTenantAdd={(propId, unit) => { setPrefillTenant({ propertyId: propId, unit }); setActiveView("tenants"); }} onNavigateToNote={(noteId) => { setHighlightNoteId(noteId); setNavSource("dashboard"); setActiveView("notes"); }} onNavigateToLease={(prop, tenantId) => { setSelectedProperty(prop); setPropDetailTab("tenants"); setPropDetailTenantHighlight(tenantId); setNavSource("dashboard"); setActiveView("propertyDetail"); }} />}
           {activeView === "properties" && <Properties onSelect={handlePropertySelect} editPropertyId={editPropertyId} onClearEditId={() => setEditPropertyId(null)} />}
-          {activeView === "propertyDetail" && selectedProperty && <PropertyDetail key={selectedProperty.id + "-" + (propDetailTab || "overview") + "-" + (propDetailTenantHighlight || "")} property={selectedProperty} onBack={() => { setActiveView(navSource === "dashboard" ? "dashboard" : "properties"); setPropDetailTab(null); setPropDetailTenantHighlight(null); setNavSource(null); }} backLabel={navSource === "dashboard" ? "Back to Dashboard" : "Back to Properties"} onEditProperty={(p) => { setEditPropertyId(p.id); setActiveView("properties"); }} onGoToTransactions={() => setActiveView("transactions")} onNavigateToTransaction={(txId) => { if (txId) { setHighlightTxId(txId); setNavSource("propertyDetail"); } setActiveView("transactions"); }} onNavigateToTenant={(tenantId) => { setHighlightTenantId(tenantId); setNavSource("propertyDetail"); setActiveView("tenants"); }} initialTab={propDetailTab} highlightTenantId={propDetailTenantHighlight} onClearHighlightTenant={() => setPropDetailTenantHighlight(null)} />}
+          {activeView === "propertyDetail" && selectedProperty && <PropertyDetail key={selectedProperty.id + "-" + (propDetailTab || "overview") + "-" + (propDetailTenantHighlight || "")} property={selectedProperty} onBack={() => { setActiveView(navSource === "dashboard" ? "dashboard" : navSource === "portfolio" ? "portfolio" : "properties"); setPropDetailTab(null); setPropDetailTenantHighlight(null); setNavSource(null); }} backLabel={navSource === "dashboard" ? "Back to Dashboard" : navSource === "portfolio" ? "Back to Portfolio" : "Back to Properties"} onEditProperty={(p) => { setEditPropertyId(p.id); setActiveView("properties"); }} onGoToTransactions={() => setActiveView("transactions")} onNavigateToTransaction={(txId) => { if (txId) { setHighlightTxId(txId); setNavSource("propertyDetail"); } setActiveView("transactions"); }} onNavigateToTenant={(tenantId) => { setHighlightTenantId(tenantId); setNavSource("propertyDetail"); setActiveView("tenants"); }} initialTab={propDetailTab} highlightTenantId={propDetailTenantHighlight} onClearHighlightTenant={() => setPropDetailTenantHighlight(null)} />}
           {activeView === "transactions" && <Transactions highlightTxId={highlightTxId} backLabel={navSource === "propertyDetail" ? "Back to Property" : navSource === "portfolio" ? "Back to Portfolio" : "Back to Dashboard"} onBack={navSource === "dashboard" ? () => { setActiveView("dashboard"); setHighlightTxId(null); setNavSource(null); } : navSource === "portfolio" ? () => { setActiveView("portfolio"); setHighlightTxId(null); setNavSource(null); } : navSource === "propertyDetail" ? () => { setActiveView("propertyDetail"); setHighlightTxId(null); setNavSource(null); } : null} onClearHighlight={() => setHighlightTxId(null)} />}
           {activeView === "analytics" && <Analytics />}
           {activeView === "notes" && <RentalNotes highlightNoteId={highlightNoteId} onBack={navSource === "dashboard" ? () => { setActiveView("dashboard"); setHighlightNoteId(null); setNavSource(null); } : null} onClearHighlight={() => setHighlightNoteId(null)} />}
