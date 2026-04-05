@@ -4591,7 +4591,25 @@ function FlipDetail({ flip, onBack, backLabel, allFlips, setAllFlips, onNavigate
   const [expData, setExpData] = useState(FLIP_EXPENSES.filter(e => e.flipId === flip.id));
   const [conData, setConData] = useState(CONTRACTORS.filter(c => (c.dealIds || []).includes(flip.id)));
   const [rehabItems, setRehabItems] = useState(flip.rehabItems || []);
-  const [milestones, setMilestones] = useState(_LOCAL_FLIP_MILESTONES[flip.id] || DEFAULT_MILESTONES.map(label => ({ label, done: false, date: null, targetDate: null })));
+  const flipMsFromApi = FLIP_MILESTONES.filter(m => m.flipId === flip.id);
+  const [milestones, setMilestones] = useState(
+    flipMsFromApi.length > 0
+      ? flipMsFromApi.map(m => ({ ...m }))
+      : DEFAULT_MILESTONES.map(label => ({ label, done: false, date: null, targetDate: null }))
+  );
+  // Sync local milestone state back to global FLIP_MILESTONES array
+  useEffect(() => {
+    // Remove old entries for this flip
+    const idx = FLIP_MILESTONES.findIndex(m => m.flipId === flip.id);
+    while (idx >= 0 && FLIP_MILESTONES.findIndex(m => m.flipId === flip.id) >= 0) {
+      FLIP_MILESTONES.splice(FLIP_MILESTONES.findIndex(m => m.flipId === flip.id), 1);
+    }
+    // Push current state back
+    milestones.forEach((m, i) => {
+      FLIP_MILESTONES.push({ id: m.id || newId(), flipId: flip.id, label: m.label, done: !!m.done, date: m.date || null, targetDate: m.targetDate || null, createdAt: m.createdAt || new Date().toISOString(), updatedAt: new Date().toISOString(), userId: m.userId || MOCK_USER.id });
+    });
+  }, [milestones, flip.id]);
+
   const [showMilestoneModal, setShowMilestoneModal] = useState(false);
   const [showCompletedMilestones, setShowCompletedMilestones] = useState(false);
   const emptyMilestone = { label: "", targetDate: "", date: "", createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), userId: MOCK_USER.id };
