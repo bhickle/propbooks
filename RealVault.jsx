@@ -1634,19 +1634,57 @@ function PropertyDetail({ property, onBack, backLabel, onEditProperty, onGoToTra
   const [qlForm, setQlForm] = useState({ date: todayStr, amount: "", category: "Rent Income", description: "", payee: "" });
   const [qlSuccess, setQlSuccess] = useState(false);
   const [renderKey, setRenderKey] = useState(0);
+  const [qlPayeeFocus, setQlPayeeFocus] = useState(false);
 
-  const qlCategories = qlType === "income"
-    ? ["Rent Income", "Parking / Storage", "Laundry Income", "Late Fees", "Pet Fees", "Application Fees", "Other Income"]
-    : ["Mortgage Payment", "Property Tax", "Property Insurance", "HOA Dues", "General Maintenance", "Plumbing", "Electrical", "HVAC", "Landscaping", "Cleaning", "Management Fee", "Utilities", "Other Expenses"];
+  // Same grouped categories as main Transactions form
+  const QL_INCOME_GROUPS = {
+    "Rent":           ["Rent Income", "Parking / Storage", "Laundry Income"],
+    "Fees":           ["Late Fees", "Pet Fees", "Application Fees"],
+    "Other Income":   ["Damage Deposit Applied", "Other Income"],
+  };
+  const QL_EXPENSE_GROUPS = {
+    "Mortgage & Financing": ["Mortgage Payment", "Loan Interest", "Refinance Costs"],
+    "Taxes":                ["Property Tax", "Tax Penalties"],
+    "Insurance":            ["Property Insurance", "Liability Insurance", "Flood Insurance"],
+    "Repairs & Maintenance":["Plumbing", "Electrical", "HVAC", "Appliance Repair", "Roof Repair", "General Maintenance"],
+    "Capital Improvement":  ["Kitchen Remodel", "Bathroom Remodel", "Flooring", "New Roof", "Other Capital"],
+    "HOA / Condo Fees":     ["HOA Dues", "Special Assessment"],
+    "Property Management":  ["Management Fee", "Leasing Fee"],
+    "Utilities":            ["Electric", "Gas", "Water / Sewer", "Trash", "Internet / Cable"],
+    "Grounds":              ["Landscaping", "Snow Removal", "Pest Control"],
+    "Professional Services":["Legal Fees", "Accounting / CPA", "Inspection Fees"],
+    "Marketing":            ["Advertising", "Listing Fees", "Signage"],
+    "General":              ["Cleaning", "Supplies & Materials", "Travel & Mileage", "Other Expenses"],
+  };
+  const qlGroups = qlType === "income" ? QL_INCOME_GROUPS : QL_EXPENSE_GROUPS;
+
+  // Payee typeahead pool — same pattern as main form
+  const qlPayeePool = qlType === "income"
+    ? [...new Set(TRANSACTIONS.filter(t => t.type === "income").map(t => t.payee).filter(Boolean))].sort()
+    : [...new Set(TRANSACTIONS.filter(t => t.type === "expense").map(t => t.payee).filter(Boolean))].sort();
+
+  // Smart description default based on category + month
+  const qlSmartDescription = (cat) => {
+    const monthName = new Date(qlForm.date || todayStr).toLocaleString("default", { month: "long" });
+    if (cat === "Rent Income") return `${monthName} rent`;
+    if (cat === "Mortgage Payment") return `${monthName} mortgage`;
+    if (cat === "Property Tax") return `${monthName} property tax`;
+    if (cat === "Property Insurance") return `${monthName} insurance`;
+    if (cat === "HOA Dues") return `${monthName} HOA dues`;
+    if (cat === "Management Fee") return `${monthName} management fee`;
+    return "";
+  };
 
   const handleQlSave = () => {
     const amt = parseFloat(qlForm.amount);
     if (!amt || amt <= 0) return;
+    const desc = (qlForm.description || "").trim();
+    if (!desc) return; // description required — matches main form
     TRANSACTIONS.unshift({
       id: newId(), date: qlForm.date, propertyId: property.id,
-      category: qlForm.category, description: qlForm.description || qlForm.category,
+      category: qlForm.category, description: desc,
       amount: qlType === "income" ? amt : -amt, type: qlType,
-      payee: qlForm.payee || "", createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), userId: MOCK_USER.id,
+      payee: (qlForm.payee || "").trim(), createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), userId: MOCK_USER.id,
     });
     setQlSuccess(true);
     setTimeout(() => { setQlSuccess(false); setQlOpen(false); setQlForm({ date: todayStr, amount: "", category: qlType === "income" ? "Rent Income" : "Mortgage Payment", description: "", payee: "" }); setRenderKey(k => k + 1); }, 1200);
@@ -1828,11 +1866,11 @@ function PropertyDetail({ property, onBack, backLabel, onEditProperty, onGoToTra
                   </div>
                 </div>
                 <div style={{ display: "flex", gap: 8 }}>
-                  <button onClick={() => { setQlType("income"); setQlForm({ date: todayStr, amount: "", category: "Rent Income", description: "", payee: "" }); setQlOpen(true); }}
+                  <button onClick={() => { setQlType("income"); const cat = "Rent Income"; setQlForm({ date: todayStr, amount: "", category: cat, description: qlSmartDescription(cat), payee: "" }); setQlOpen(true); }}
                     style={{ padding: "8px 16px", borderRadius: 10, border: "1.5px solid #dcfce7", background: "#f0fdf4", color: "#15803d", fontSize: 13, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 5 }}>
                     <ArrowUp size={14} /> Income
                   </button>
-                  <button onClick={() => { setQlType("expense"); setQlForm({ date: todayStr, amount: "", category: "Mortgage Payment", description: "", payee: "" }); setQlOpen(true); }}
+                  <button onClick={() => { setQlType("expense"); const cat = "Mortgage Payment"; setQlForm({ date: todayStr, amount: "", category: cat, description: qlSmartDescription(cat), payee: "" }); setQlOpen(true); }}
                     style={{ padding: "8px 16px", borderRadius: 10, border: "1.5px solid #fee2e2", background: "#fef2f2", color: "#b91c1c", fontSize: 13, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 5 }}>
                     <ArrowDown size={14} /> Expense
                   </button>
@@ -1872,29 +1910,59 @@ function PropertyDetail({ property, onBack, backLabel, onEditProperty, onGoToTra
                   </div>
                   <div>
                     <label style={{ display: "block", color: "#475569", fontSize: 12, fontWeight: 600, marginBottom: 4 }}>Category</label>
-                    <select value={qlForm.category} onChange={e => setQlForm(f => ({ ...f, category: e.target.value }))}
+                    <select value={qlForm.category} onChange={e => { const cat = e.target.value; setQlForm(f => ({ ...f, category: cat, description: f.description || qlSmartDescription(cat) })); }}
                       style={{ width: "100%", padding: "10px 12px", border: "1.5px solid #e2e8f0", borderRadius: 10, fontSize: 14, color: "#0f172a", background: "#fff", outline: "none", boxSizing: "border-box" }}>
-                      {qlCategories.map(c => <option key={c} value={c}>{c}</option>)}
+                      {Object.entries(qlGroups).map(([group, subs]) => (
+                        <optgroup key={group} label={group}>
+                          {subs.map(c => <option key={c} value={c}>{c}</option>)}
+                        </optgroup>
+                      ))}
                     </select>
                   </div>
                 </div>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 }}>
                   <div>
-                    <label style={{ display: "block", color: "#475569", fontSize: 12, fontWeight: 600, marginBottom: 4 }}>Description <span style={{ color: "#94a3b8", fontWeight: 400 }}>(optional)</span></label>
-                    <input type="text" placeholder={qlType === "income" ? "e.g. March rent" : "e.g. Monthly mortgage"} value={qlForm.description} onChange={e => setQlForm(f => ({ ...f, description: e.target.value }))}
+                    <label style={{ display: "block", color: "#475569", fontSize: 12, fontWeight: 600, marginBottom: 4 }}>Description *</label>
+                    <input type="text" placeholder={qlSmartDescription(qlForm.category) || (qlType === "income" ? "e.g. March rent - Unit A" : "e.g. Monthly mortgage")} value={qlForm.description} onChange={e => setQlForm(f => ({ ...f, description: e.target.value }))}
                       style={{ width: "100%", padding: "10px 12px", border: "1.5px solid #e2e8f0", borderRadius: 10, fontSize: 14, color: "#0f172a", background: "#fff", outline: "none", boxSizing: "border-box" }} />
                   </div>
-                  <div>
-                    <label style={{ display: "block", color: "#475569", fontSize: 12, fontWeight: 600, marginBottom: 4 }}>{qlType === "income" ? "Received From" : "Paid To"} <span style={{ color: "#94a3b8", fontWeight: 400 }}>(optional)</span></label>
-                    <input type="text" placeholder={qlType === "income" ? "e.g. Tenant name" : "e.g. Bank of America"} value={qlForm.payee} onChange={e => setQlForm(f => ({ ...f, payee: e.target.value }))}
+                  <div style={{ position: "relative" }}>
+                    <label style={{ display: "block", color: "#475569", fontSize: 12, fontWeight: 600, marginBottom: 4 }}>{qlType === "income" ? "Received From" : "Paid To"}</label>
+                    <input type="text" placeholder={qlType === "income" ? "e.g. Tenant name" : "e.g. Bank of America"} value={qlForm.payee}
+                      onChange={e => setQlForm(f => ({ ...f, payee: e.target.value }))}
+                      onFocus={() => setQlPayeeFocus(true)} onBlur={() => setTimeout(() => setQlPayeeFocus(false), 150)}
                       style={{ width: "100%", padding: "10px 12px", border: "1.5px solid #e2e8f0", borderRadius: 10, fontSize: 14, color: "#0f172a", background: "#fff", outline: "none", boxSizing: "border-box" }} />
+                    {qlPayeeFocus && (() => {
+                      const q = (qlForm.payee || "").toLowerCase();
+                      const matches = q ? qlPayeePool.filter(p => p.toLowerCase().includes(q) && p.toLowerCase() !== q) : qlPayeePool.slice(0, 6);
+                      const exactExists = qlPayeePool.some(p => p.toLowerCase() === q);
+                      const showNew = q && !exactExists;
+                      if (matches.length === 0 && !showNew) return null;
+                      return (
+                        <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, background: "#fff", border: "1px solid #e2e8f0", borderRadius: 12, boxShadow: "0 8px 24px rgba(0,0,0,0.10)", zIndex: 200, overflow: "hidden", maxHeight: 180, overflowY: "auto" }}>
+                          {matches.slice(0, 6).map(p => (
+                            <button key={p} onMouseDown={() => { setQlForm(f => ({ ...f, payee: p })); setQlPayeeFocus(false); }}
+                              style={{ width: "100%", padding: "9px 14px", background: "none", border: "none", borderBottom: "1px solid #f1f5f9", textAlign: "left", cursor: "pointer", fontSize: 13, color: "#0f172a", display: "flex", alignItems: "center", gap: 8 }}>
+                              <User size={13} style={{ color: "#94a3b8", flexShrink: 0 }} /> {p}
+                            </button>
+                          ))}
+                          {showNew && (
+                            <button onMouseDown={() => setQlPayeeFocus(false)}
+                              style={{ width: "100%", padding: "9px 14px", display: "flex", alignItems: "center", gap: 8, background: "#fffbeb", border: "none", borderTop: matches.length > 0 ? "1px solid #e2e8f0" : "none", cursor: "pointer", textAlign: "left" }}>
+                              <Plus size={13} style={{ color: "#f59e0b", flexShrink: 0 }} />
+                              <span style={{ fontSize: 13, color: "#f59e0b", fontWeight: 600 }}>Add "{qlForm.payee}" as new</span>
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })()}
                   </div>
                 </div>
-                <div style={{ display: "flex", gap: 10 }}>
+                <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
                   <button onClick={() => { setQlOpen(false); setQlForm({ date: todayStr, amount: "", category: qlType === "income" ? "Rent Income" : "Mortgage Payment", description: "", payee: "" }); }}
                     style={{ padding: "10px 20px", borderRadius: 10, border: "1px solid #e2e8f0", background: "#fff", color: "#475569", fontWeight: 600, fontSize: 13, cursor: "pointer" }}>Cancel</button>
                   <button onClick={handleQlSave}
-                    style={{ padding: "10px 24px", borderRadius: 10, border: "none", background: qlType === "income" ? "#10b981" : "#ef4444", color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
+                    style={{ padding: "10px 24px", borderRadius: 10, border: "none", background: (!qlForm.amount || !qlForm.description?.trim()) ? "#cbd5e1" : (qlType === "income" ? "#10b981" : "#ef4444"), color: "#fff", fontWeight: 700, fontSize: 13, cursor: (!qlForm.amount || !qlForm.description?.trim()) ? "not-allowed" : "pointer", display: "flex", alignItems: "center", gap: 6, opacity: (!qlForm.amount || !qlForm.description?.trim()) ? 0.6 : 1 }}>
                     <CheckCircle size={14} /> Log {qlType === "income" ? "Income" : "Expense"}
                   </button>
                 </div>
