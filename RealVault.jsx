@@ -543,36 +543,42 @@ function PortfolioDashboard({ onNavigate, onSelectProperty, onSelectFlip }) {
   // ── Recent Activity ──────────────────────────────────────────────────────
   const recentItems = [];
 
-  // Last 5 rental transactions
-  TRANSACTIONS.slice(0, 5).forEach(t => {
-    const propName = PROPERTIES.find(p => p.id === t.propertyId)?.name || "Unknown";
+  // Last 10 rental transactions (sorted by date)
+  [...TRANSACTIONS].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 10).forEach(t => {
+    const prop = PROPERTIES.find(p => p.id === t.propertyId);
+    const propName = prop?.name || "Unknown";
     recentItems.push({
+      source: "rental",
       type: "transaction",
       date: t.date,
       icon: t.type === "income" ? ArrowUp : ArrowDown,
       color: t.type === "income" ? "#15803d" : "#b91c1c",
       bg: t.type === "income" ? "#dcfce7" : "#fee2e2",
       title: t.description,
-      sub: propName.split(" ").slice(0, 2).join(" "),
+      sourceName: propName,
       amount: t.amount,
       txType: t.type,
       txId: t.id,
+      propertyId: t.propertyId,
     });
   });
 
-  // Last 5 flip expenses
-  FLIP_EXPENSES.slice(0, 5).forEach(e => {
-    const flipName = FLIPS.find(f => f.id === e.flipId)?.name || "Unknown";
+  // Last 10 flip expenses (sorted by date)
+  [...FLIP_EXPENSES].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 10).forEach(e => {
+    const flip = FLIPS.find(f => f.id === e.flipId);
+    const flipName = flip?.name || "Unknown";
     recentItems.push({
+      source: "flip",
       type: "flip-expense",
       date: e.date,
       icon: ArrowDown,
       color: "#b91c1c",
       bg: "#fee2e2",
       title: e.description || `${e.vendor || "Expense"}`,
-      sub: flipName.split(" ").slice(0, 2).join(" "),
+      sourceName: flipName,
       amount: e.amount,
       expId: e.id,
+      flipId: e.flipId,
     });
   });
 
@@ -741,18 +747,36 @@ function PortfolioDashboard({ onNavigate, onSelectProperty, onSelectFlip }) {
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           {recentActivity.length > 0 ? (
             recentActivity.map((item, idx) => (
-              <div key={`${item.type}-${idx}`} style={{ display: "flex", alignItems: "center", gap: 12, padding: 12, borderRadius: 10, background: "#f8fafc", border: "1px solid #e2e8f0" }}>
+              <div key={`${item.type}-${idx}`}
+                onClick={() => {
+                  if (item.source === "rental" && item.propertyId) {
+                    const prop = PROPERTIES.find(p => p.id === item.propertyId);
+                    if (prop) onSelectProperty(prop);
+                  } else if (item.source === "flip" && item.flipId) {
+                    const flip = FLIPS.find(f => f.id === item.flipId);
+                    if (flip) onSelectFlip(flip);
+                  }
+                }}
+                style={{ display: "flex", alignItems: "center", gap: 12, padding: 12, borderRadius: 10, background: "#f8fafc", border: "1px solid #e2e8f0", cursor: "pointer", transition: "background 0.15s" }}
+                onMouseEnter={e => e.currentTarget.style.background = "#f1f5f9"}
+                onMouseLeave={e => e.currentTarget.style.background = "#f8fafc"}>
                 <div style={{ width: 36, height: 36, borderRadius: 10, background: item.bg, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                   <item.icon size={16} color={item.color} />
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <p style={{ fontSize: 13, fontWeight: 600, color: "#0f172a", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.title}</p>
-                  <p style={{ fontSize: 12, color: "#94a3b8", margin: "2px 0 0 0" }}>{item.sub} · {item.date}</p>
+                  <p style={{ fontSize: 12, color: "#94a3b8", margin: "2px 0 0 0" }}>
+                    <span style={{ display: "inline-block", padding: "1px 6px", borderRadius: 4, fontSize: 10, fontWeight: 600, letterSpacing: "0.03em", marginRight: 6, background: item.source === "rental" ? "#eff6ff" : "#fef3c7", color: item.source === "rental" ? "#3b82f6" : "#d97706" }}>
+                      {item.source === "rental" ? "RENTAL" : "FLIP"}
+                    </span>
+                    {item.sourceName} · {item.date}
+                  </p>
                 </div>
-                <div style={{ textAlign: "right", flexShrink: 0 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
                   <p style={{ fontSize: 13, fontWeight: 600, color: item.color, margin: 0 }}>
                     {item.type === "transaction" && item.txType === "income" ? "+" : "−"}{fmt(item.amount)}
                   </p>
+                  <ChevronRight size={14} color="#cbd5e1" />
                 </div>
               </div>
             ))
