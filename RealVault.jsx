@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useRef } from "react";
+import React, { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import propbooksLogo from "./logos/PropBooks Horizontal Logo (3).png";
 import {
   AreaChart, Area, BarChart, Bar, LineChart, Line,
@@ -98,6 +98,48 @@ function Modal({ title, onClose, children, width = 500 }) {
         </div>
         {children}
       </div>
+    </div>
+  );
+}
+
+// Toast notification context & component
+const ToastContext = React.createContext({ showToast: () => {} });
+function useToast() { return React.useContext(ToastContext); }
+function ToastProvider({ children }) {
+  const [toasts, setToasts] = useState([]);
+  const showToast = useCallback((message, type = "success") => {
+    const id = Date.now() + Math.random();
+    setToasts(prev => [...prev, { id, message, type }]);
+    setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 3200);
+  }, []);
+  return (
+    <ToastContext.Provider value={{ showToast }}>
+      {children}
+      <div style={{ position: "fixed", bottom: 24, right: 24, zIndex: 9999, display: "flex", flexDirection: "column", gap: 8, pointerEvents: "none" }}>
+        {toasts.map(t => {
+          const colors = { success: { bg: "#f0fdf4", border: "#bbf7d0", text: "#15803d", icon: "✓" }, error: { bg: "#fef2f2", border: "#fecaca", text: "#b91c1c", icon: "✕" }, info: { bg: "#f0f9ff", border: "#bae6fd", text: "#0369a1", icon: "ℹ" }, warning: { bg: "#fff7ed", border: "#fdba74", text: "#9a3412", icon: "⚠" } };
+          const c = colors[t.type] || colors.success;
+          return (
+            <div key={t.id} style={{ background: c.bg, border: `1px solid ${c.border}`, borderRadius: 12, padding: "12px 18px", color: c.text, fontSize: 14, fontWeight: 600, boxShadow: "0 8px 24px rgba(0,0,0,0.12)", display: "flex", alignItems: "center", gap: 10, animation: "slideInRight 0.25s ease-out", pointerEvents: "auto", maxWidth: 360 }}>
+              <span style={{ fontSize: 16, fontWeight: 800 }}>{c.icon}</span>
+              {t.message}
+            </div>
+          );
+        })}
+      </div>
+      <style>{`@keyframes slideInRight { from { opacity: 0; transform: translateX(40px); } to { opacity: 1; transform: translateX(0); } }`}</style>
+    </ToastContext.Provider>
+  );
+}
+
+// Empty state component for list views
+function EmptyState({ icon: Icon, title, subtitle, actionLabel, onAction }) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "60px 24px", textAlign: "center" }}>
+      {Icon && <div style={{ width: 64, height: 64, borderRadius: 20, background: "#f8fafc", border: "1px solid #e2e8f0", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 16 }}><Icon size={28} color="#94a3b8" /></div>}
+      <h3 style={{ color: "#041830", fontSize: 18, fontWeight: 700, marginBottom: 6 }}>{title}</h3>
+      {subtitle && <p style={{ color: "#94a3b8", fontSize: 14, maxWidth: 340, marginBottom: onAction ? 20 : 0 }}>{subtitle}</p>}
+      {onAction && actionLabel && <button onClick={onAction} style={{ background: "#e95e00", color: "#fff", border: "none", borderRadius: 10, padding: "10px 20px", fontSize: 14, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}><Plus size={16} /> {actionLabel}</button>}
     </div>
   );
 }
@@ -1648,6 +1690,7 @@ function Dashboard({ onNavigate, onNavigateToTx, onSelectProperty, onNavigateToT
 }
 
 function Properties({ onSelect, editPropertyId, onClearEditId, convertFlipData, onClearConvertFlip }) {
+  const { showToast } = useToast();
   const [propData, setPropData] = useState(PROPERTIES);
   const [view, setView] = useState("grid");
   const [search, setSearch] = useState("");
@@ -1733,8 +1776,10 @@ function Properties({ onSelect, editPropertyId, onClearEditId, convertFlipData, 
       const land = parseFloat(form.landValue) || null;
       setPropData(prev => [...prev, { id: newId(), name: form.name, address: form.address, type: form.type, units: parseInt(form.units) || 1, purchasePrice: parseFloat(form.purchasePrice) || 0, currentValue: val, valueUpdatedAt: today, loanAmount: loanAmt, loanRate, loanTermYears: loanTerm, loanStartDate: loanStart, closingCosts: cc, landValue: land, monthlyRent: rent, monthlyExpenses: exp, purchaseDate: form.purchaseDate, status: form.status, image: form.name.slice(0, 2).toUpperCase(), color, photo: form.photo || null }]);
     }
+    const wasEdit = editId !== null;
     setForm(emptyP);
     setShowModal(false);
+    showToast(wasEdit ? "Property updated" : "Property added to portfolio");
   };
 
   const handleDeleteProp = () => {
@@ -1841,10 +1886,11 @@ function Properties({ onSelect, editPropertyId, onClearEditId, convertFlipData, 
             );
           })}
           {filtered.length === 0 && (
-            <div style={{ textAlign: "center", padding: "48px 20px", color: "#94a3b8", gridColumn: "1 / -1" }}>
-              <Search size={32} style={{ marginBottom: 12, opacity: 0.5 }} />
-              <p style={{ fontSize: 15, fontWeight: 600, color: "#64748b", marginBottom: 4 }}>No properties found</p>
-              <p style={{ fontSize: 13 }}>Try adjusting your search filters</p>
+            <div style={{ gridColumn: "1 / -1" }}>
+              {propData.length === 0
+                ? <EmptyState icon={Home} title="No properties yet" subtitle="Add your first rental property to start tracking your portfolio." actionLabel="Add Property" onAction={openAdd} />
+                : <EmptyState icon={Search} title="No properties found" subtitle="Try adjusting your search or filters." />
+              }
             </div>
           )}
         </div>
@@ -1914,12 +1960,11 @@ function Properties({ onSelect, editPropertyId, onClearEditId, convertFlipData, 
                 );
               })}
               {filtered.length === 0 && (
-                <tr><td colSpan={9} style={{ padding: "48px 20px", textAlign: "center", color: "#94a3b8" }}>
-                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-                    <Search size={32} style={{ marginBottom: 12, opacity: 0.5 }} />
-                    <p style={{ fontSize: 15, fontWeight: 600, color: "#64748b", marginBottom: 4 }}>No properties found</p>
-                    <p style={{ fontSize: 13 }}>Try adjusting your search filters</p>
-                  </div>
+                <tr><td colSpan={9}>
+                  {propData.length === 0
+                    ? <EmptyState icon={Home} title="No properties yet" subtitle="Add your first rental property to start tracking your portfolio." actionLabel="Add Property" onAction={openAdd} />
+                    : <EmptyState icon={Search} title="No properties found" subtitle="Try adjusting your search or filters." />
+                  }
                 </td></tr>
               )}
             </tbody>
@@ -5258,6 +5303,7 @@ function FlipCard({ flip, onSelect }) {
 }
 
 function FlipPipeline({ onSelect }) {
+  const { showToast } = useToast();
   const [activeStage, setActiveStage] = useState("all");
   const [showAddDeal, setShowAddDeal] = useState(false);
   const emptyDeal = { name: "", address: "", purchasePrice: "", arv: "", rehabBudget: "", holdingCostsPerMonth: "", stage: "Under Contract", acquisitionDate: "", projectedCloseDate: "" };
@@ -5289,6 +5335,7 @@ function FlipPipeline({ onSelect }) {
     setDealForm(emptyDeal);
     setShowAddDeal(false);
     forceRender(n => n + 1);
+    showToast(`"${newDeal.name}" added to pipeline`);
   };
 
   const activeFlips = FLIPS.filter(f => f.stage !== "Sold");
@@ -5353,6 +5400,14 @@ function FlipPipeline({ onSelect }) {
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 20 }}>
         {filtered.map(f => <FlipCard key={f.id} flip={f} onSelect={onSelect} />)}
+        {filtered.length === 0 && (
+          <div style={{ gridColumn: "1 / -1" }}>
+            {FLIPS.length === 0
+              ? <EmptyState icon={Layers} title="No deals yet" subtitle="Add your first flip deal to start tracking your pipeline." actionLabel="Add Deal" onAction={() => setShowAddDeal(true)} />
+              : <EmptyState icon={Search} title="No deals match this filter" subtitle="Try selecting a different stage or clear the filter." />
+            }
+          </div>
+        )}
       </div>
 
       {showAddDeal && (
@@ -5421,7 +5476,8 @@ function FlipPipeline({ onSelect }) {
   );
 }
 
-function FlipDetail({ flip, onBack, backLabel, allFlips, setAllFlips, onNavigateToExpense, onNavigateToContractor, initialTab, onConvertToRental }) {
+function FlipDetail({ flip, onBack, backLabel, allFlips, setAllFlips, onNavigateToExpense, onNavigateToContractor, initialTab, onConvertToRental, onFlipUpdated }) {
+  const { showToast } = useToast();
   const [activeTab, setActiveTab] = useState(initialTab || "overview");
   useEffect(() => { if (initialTab) setActiveTab(initialTab); }, [initialTab]);
   const [showExpenseModal, setShowExpenseModal] = useState(false);
@@ -5537,6 +5593,8 @@ function FlipDetail({ flip, onBack, backLabel, allFlips, setAllFlips, onNavigate
     const idx = FLIPS.findIndex(f => f.id === flip.id);
     if (idx !== -1) Object.assign(FLIPS[idx], updated);
     if (setAllFlips) setAllFlips(prev => prev.map(f => f.id === flip.id ? { ...f, ...updated } : f));
+    if (onFlipUpdated) onFlipUpdated();
+    showToast("Deal updated");
     setShowEditDeal(false);
   };
 
@@ -5779,7 +5837,9 @@ function FlipDetail({ flip, onBack, backLabel, allFlips, setAllFlips, onNavigate
                 FLIPS.push(cloned);
                 _LOCAL_FLIP_MILESTONES[cloned.id] = milestones.map(m => ({ label: m.label, done: false, date: null, targetDate: null }));
                 if (setAllFlips) setAllFlips([...FLIPS]);
+                if (onFlipUpdated) onFlipUpdated();
                 setDealNotes(prev => [{ id: newId(), date: today, text: `Deal cloned as "${cloned.name}"` }, ...prev]);
+                showToast(`"${cloned.name}" created — find it in your pipeline`);
               }} style={{ background: "rgba(255,255,255,0.7)", border: "1px solid rgba(0,0,0,0.08)", borderRadius: 8, padding: "6px 12px", fontSize: 12, fontWeight: 600, color: "#475569", cursor: "pointer", display: "flex", alignItems: "center", gap: 5 }}>
                 <Copy size={12} /> Clone Deal
               </button>
@@ -5797,7 +5857,9 @@ function FlipDetail({ flip, onBack, backLabel, allFlips, setAllFlips, onNavigate
                       const idx = FLIPS.findIndex(f => f.id === flip.id);
                       if (idx !== -1) FLIPS[idx].stage = nextStage;
                       if (setAllFlips) setAllFlips(prev => prev.map(f => f.id === flip.id ? { ...f, stage: nextStage } : f));
+                      if (onFlipUpdated) onFlipUpdated();
                       setDealNotes(prev => [{ id: newId(), date: today, text: `Stage advanced to "${nextStage}".` }, ...prev]);
+                      showToast(`Stage advanced to "${nextStage}"`);
                     }} style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 8, padding: "6px 12px", fontSize: 12, fontWeight: 600, color: "#15803d", cursor: "pointer", display: "flex", alignItems: "center", gap: 5 }}>
                       <ArrowRight size={12} /> {nextStage}
                     </button>
@@ -6967,6 +7029,8 @@ function FlipDetail({ flip, onBack, backLabel, allFlips, setAllFlips, onNavigate
                   setDealNotes(prev => [{ id: newId(), date: today, text: closeForm.closingNotes.trim() }, ...prev]);
                 }
                 setDealNotes(prev => [{ id: newId(), date: today, text: `Deal closed — sold for ${fmt(sp)} with net profit of ${fmt(netProfit)}.` }, ...prev]);
+                if (onFlipUpdated) onFlipUpdated();
+                showToast(`Deal marked as sold — ${fmt(netProfit)} net profit`);
                 setShowCloseDeal(false);
               }} disabled={!closeForm.salePrice || !closeForm.closeDate} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: (!closeForm.salePrice || !closeForm.closeDate) ? "#cbd5e1" : "#15803d", color: "#fff", fontWeight: 700, cursor: (!closeForm.salePrice || !closeForm.closeDate) ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
                 <DollarSign size={14} /> Mark as Sold
@@ -7022,6 +7086,8 @@ function FlipDetail({ flip, onBack, backLabel, allFlips, setAllFlips, onNavigate
                 const idx = FLIPS.findIndex(f => f.id === flip.id);
                 if (idx !== -1) FLIPS[idx].stage = "Converted to Rental";
                 setDealNotes(prev => [{ id: newId(), date: today, text: "Deal converted to rental property." }, ...prev]);
+                if (onFlipUpdated) onFlipUpdated();
+                showToast("Converting to rental — review the property details");
                 setShowCloseDeal(false);
               }} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "#0369a1", color: "#fff", fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
                 <Home size={14} /> Convert to Rental
@@ -7069,6 +7135,7 @@ function FlipDetail({ flip, onBack, backLabel, allFlips, setAllFlips, onNavigate
 // RENT ROLL
 // ---------------------------------------------
 function RentRoll({ onBack, highlightTenantId, onClearHighlight, prefillTenant, onClearPrefill }) {
+  const { showToast } = useToast();
   const [tenantData, setTenantData] = useState(TENANTS);
   const [showModal, setShowModal] = useState(false);
   const [editId, setEditId] = useState(null);
@@ -7152,8 +7219,10 @@ function RentRoll({ onBack, highlightTenantId, onClearHighlight, prefillTenant, 
     } else {
       setTenantData(prev => [...prev, { id: newId(), propertyId: parseInt(form.propertyId), unit: form.unit || "Main", name: form.name, rent: parseFloat(form.rent) || 0, securityDeposit: parseFloat(form.securityDeposit) || null, lateFeePct: parseFloat(form.lateFeePct) || null, renewalTerms: form.renewalTerms, notes: form.notes, leaseStart: form.leaseStart || null, leaseEnd: form.leaseEnd || null, status: form.status, lastPayment: null, phone: form.phone || null, email: form.email || null, leaseDoc: form.leaseDoc || null, moveOutDate: null, moveOutReason: null }]);
     }
+    const wasEdit = editId !== null;
     setForm(emptyT);
     setShowModal(false);
+    showToast(wasEdit ? "Tenant updated" : "Tenant added");
   };
 
   const handleDeleteTenant = () => {
@@ -7307,9 +7376,14 @@ function RentRoll({ onBack, highlightTenantId, onClearHighlight, prefillTenant, 
           </thead>
           <tbody>
             {filteredTenants.length === 0 && (
-              <tr><td colSpan={isPastView ? 7 : 9} style={{ padding: "48px 20px", textAlign: "center", color: "#94a3b8", fontSize: 14 }}>
-                {isPastView ? "No past tenant records found." : "No tenants match your filters."}{" "}
-                <button onClick={() => { setPropFilter("all"); setStatusFilter("all"); }} style={{ background: "none", border: "none", color: "#3b82f6", fontSize: 14, cursor: "pointer", textDecoration: "underline", padding: 0 }}>Clear filters</button>
+              <tr><td colSpan={isPastView ? 7 : 9}>
+                {tenantData.length === 0 && !isPastView
+                  ? <EmptyState icon={Users} title="No tenants yet" subtitle="Add your first tenant to start tracking leases and rent." actionLabel="Add Tenant" onAction={() => setShowModal(true)} />
+                  : <div style={{ padding: "48px 20px", textAlign: "center", color: "#94a3b8", fontSize: 14 }}>
+                      {isPastView ? "No past tenant records found." : "No tenants match your filters."}{" "}
+                      <button onClick={() => { setPropFilter("all"); setStatusFilter("all"); }} style={{ background: "none", border: "none", color: "#e95e00", fontSize: 14, cursor: "pointer", textDecoration: "underline", padding: 0 }}>Clear filters</button>
+                    </div>
+                }
               </td></tr>
             )}
             {filteredTenants.map((t, i) => {
@@ -8582,6 +8656,8 @@ function AppShell() {
   const [propDetailTenantHighlight, setPropDetailTenantHighlight] = useState(null); // tenant id to highlight in PropertyDetail
   const [selectedContractor, setSelectedContractor] = useState(null);
   const [convertFlipData, setConvertFlipData] = useState(null); // flip data to pre-fill Add Property for flip-to-rental conversion
+  const [flipVersion, setFlipVersion] = useState(0); // bump to force re-render of flip-dependent views
+  const onFlipUpdated = useCallback(() => setFlipVersion(v => v + 1), []);
 
   const handleSelectContractor = (contractor) => {
     setSelectedContractor(contractor);
@@ -8779,7 +8855,7 @@ function AppShell() {
           {activeView === "reports" && <Reports />}
           {activeView === "flipdashboard"   && <FlipDashboard onSelect={(f, tab) => handleFlipSelect(f, tab, "flipdashboard")} onNavigateToNote={(noteId) => { setHighlightFlipNoteId(noteId); setNavSource("flipdashboard"); setActiveView("flipnotes"); }} onNavigateToExpense={(expId) => { setHighlightExpId(expId); setNavSource("flipdashboard"); setActiveView("flipexpenses"); }} onNavigateToMilestone={(msKey) => { setHighlightMilestoneKey(msKey); setNavSource("flipdashboard"); setActiveView("flipmilestones"); }} />}
           {activeView === "flips"           && <FlipPipeline onSelect={(f, tab) => handleFlipSelect(f, tab, "flips")} />}
-          {activeView === "flipDetail"      && selectedFlip && <ErrorBoundary key={"eb-" + selectedFlip.id}><FlipDetail key={selectedFlip.id + "-" + (flipInitialTab || "overview")} flip={selectedFlip} onBack={() => { setActiveView(flipNavSource || "flips"); setFlipNavSource(null); setPrevFlipNavSource(null); setFlipInitialTab(null); }} backLabel={flipNavSource === "flipdashboard" ? "Back to Dashboard" : flipNavSource === "portfolio" ? "Back to Portfolio" : "Back to Deals"} onNavigateToExpense={navigateToFlipExpense} onNavigateToContractor={(con) => { setSelectedContractor(con); setPrevFlipNavSource(flipNavSource); setNavSource("flipDetail"); setActiveView("contractorDetail"); }} initialTab={flipInitialTab} onConvertToRental={(flipData) => { setConvertFlipData(flipData); setActiveView("properties"); }} /></ErrorBoundary>}
+          {activeView === "flipDetail"      && selectedFlip && <ErrorBoundary key={"eb-" + selectedFlip.id}><FlipDetail key={selectedFlip.id + "-" + (flipInitialTab || "overview")} flip={selectedFlip} onBack={() => { setActiveView(flipNavSource || "flips"); setFlipNavSource(null); setPrevFlipNavSource(null); setFlipInitialTab(null); }} backLabel={flipNavSource === "flipdashboard" ? "Back to Dashboard" : flipNavSource === "portfolio" ? "Back to Portfolio" : "Back to Deals"} onNavigateToExpense={navigateToFlipExpense} onNavigateToContractor={(con) => { setSelectedContractor(con); setPrevFlipNavSource(flipNavSource); setNavSource("flipDetail"); setActiveView("contractorDetail"); }} initialTab={flipInitialTab} onConvertToRental={(flipData) => { setConvertFlipData(flipData); setActiveView("properties"); }} onFlipUpdated={onFlipUpdated} /></ErrorBoundary>}
           {activeView === "fliprehab"        && <RehabTracker />}
           {activeView === "flipexpenses"    && <FlipExpenses highlightExpId={highlightExpId} onBack={navSource === "flipDetail" ? () => { setActiveView("flipDetail"); setHighlightExpId(null); setNavSource(null); setFlipNavSource(prevFlipNavSource); setPrevFlipNavSource(null); } : navSource === "flipdashboard" ? () => { setActiveView("flipdashboard"); setHighlightExpId(null); setNavSource(null); } : navSource === "portfolio" ? () => { setActiveView("portfolio"); setHighlightExpId(null); setNavSource(null); } : null} backLabel={navSource === "flipdashboard" ? "Back to Dashboard" : navSource === "portfolio" ? "Back to Portfolio" : "Back to Deal"} onClearHighlight={() => setHighlightExpId(null)} />}
           {activeView === "flipcontractors" && <FlipContractors onSelectContractor={handleSelectContractor} />}
@@ -8811,9 +8887,11 @@ function AppShell() {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <AuthGate />
-    </AuthProvider>
+    <ToastProvider>
+      <AuthProvider>
+        <AuthGate />
+      </AuthProvider>
+    </ToastProvider>
   );
 }
 

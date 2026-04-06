@@ -103,6 +103,8 @@ function SignIn({ onSwitch }) {
   const [password, setPassword] = useState("");
   const [loading, setLoading]   = useState(false);
   const [error, setError]       = useState("");
+  const [forgotMode, setForgotMode] = useState(false);
+  const [resetSent, setResetSent]   = useState(false);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -110,6 +112,39 @@ function SignIn({ onSwitch }) {
     setLoading(true); setError("");
     const { error: err } = await signIn(email, password);
     if (err) { setError(err.message || "Sign in failed."); setLoading(false); }
+  }
+
+  if (forgotMode) {
+    return (
+      <div>
+        <h1 style={{ color: "#041830", fontSize: 26, fontWeight: 800, marginBottom: 6 }}>Reset password</h1>
+        <p style={{ color: "#64748b", fontSize: 14, marginBottom: 28 }}>
+          {resetSent ? "Check your inbox for a reset link." : "Enter your email and we'll send a reset link."}
+        </p>
+        {resetSent ? (
+          <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 10, padding: 16, textAlign: "center", marginBottom: 20 }}>
+            <CheckCircle size={28} color="#15803d" style={{ marginBottom: 8 }} />
+            <p style={{ color: "#15803d", fontSize: 14, fontWeight: 600 }}>Reset email sent to {email}</p>
+            <p style={{ color: "#64748b", fontSize: 13, marginTop: 4 }}>Didn't get it? Check your spam folder or try again.</p>
+          </div>
+        ) : (
+          <div style={{ marginBottom: 20 }}>
+            <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#374151", marginBottom: 6 }}>Email</label>
+            <input style={inp} type="email" placeholder="you@example.com" value={email} onChange={e => setEmail(e.target.value)} />
+          </div>
+        )}
+        <div style={{ display: "flex", gap: 10 }}>
+          <button type="button" onClick={() => { setForgotMode(false); setResetSent(false); }} style={{ flex: 1, padding: "12px", borderRadius: 10, border: "1px solid #e2e8f0", background: "#fff", color: "#475569", fontWeight: 600, cursor: "pointer", fontSize: 14 }}>
+            Back to sign in
+          </button>
+          {!resetSent && (
+            <button type="button" onClick={() => { if (email) { setResetSent(true); } }} style={{ ...primaryBtn(false), flex: 1, width: "auto" }}>
+              Send reset link
+            </button>
+          )}
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -127,7 +162,7 @@ function SignIn({ onSwitch }) {
         <div>
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
             <label style={{ fontSize: 13, fontWeight: 600, color: "#374151" }}>Password</label>
-            <button type="button" style={{ background: "none", border: "none", color: "#e95e00", fontSize: 13, cursor: "pointer", fontWeight: 500 }}>
+            <button type="button" onClick={() => setForgotMode(true)} style={{ background: "none", border: "none", color: "#e95e00", fontSize: 13, cursor: "pointer", fontWeight: 500 }}>
               Forgot password?
             </button>
           </div>
