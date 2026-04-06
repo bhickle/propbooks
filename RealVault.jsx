@@ -18,25 +18,25 @@ import {
 } from "lucide-react";
 import {
   newId, fmt, fmtK,
-  PROP_COLORS, FLIP_COLORS, STAGE_ORDER, STAGE_COLORS, DEFAULT_MILESTONES,
+  PROP_COLORS, DEAL_COLORS, STAGE_ORDER, STAGE_COLORS, DEFAULT_MILESTONES,
   getProperties, addProperty, getTransactions, addTransaction,
   getMonthlyCashFlow, getEquityGrowth, getExpenseCategories,
-  getFlips, addFlip, updateFlip,
-  getFlipExpenses, addFlipExpense, getContractors, addContractor, CONTRACTORS,
+  getDeals, addDeal, updateDeal,
+  getDealExpenses, addDealExpense, getContractors, addContractor, CONTRACTORS,
   CONTRACTOR_BIDS, CONTRACTOR_PAYMENTS, CONTRACTOR_DOCUMENTS,
-  getFlipMilestones, updateFlipMilestones, FLIP_MILESTONES,
-  getTenants, getMileageTrips, addMileageTrip, RENTAL_NOTES, FLIP_NOTES, GENERAL_NOTES, TEAM_MEMBERS, MOCK_USER,
+  getDealMilestones, updateDealMilestones, DEAL_MILESTONES,
+  getTenants, getMileageTrips, addMileageTrip, RENTAL_NOTES, DEAL_NOTES, GENERAL_NOTES, TEAM_MEMBERS, MOCK_USER,
   PROPERTY_DOCUMENTS, addPropertyDocument, deletePropertyDocument,
   DEAL_DOCUMENTS, addDealDocument, deleteDealDocument,
   TENANT_DOCUMENTS, addTenantDocument, deleteTenantDocument,
   TRANSACTION_RECEIPTS, addTransactionReceipt, deleteTransactionReceipt,
-  FLIP_EXPENSE_RECEIPTS, addFlipExpenseReceipt, deleteFlipExpenseReceipt,
+  DEAL_EXPENSE_RECEIPTS, addDealExpenseReceipt, deleteDealExpenseReceipt,
   mockOcrScan,
 } from "./api.js";
 import { AuthProvider, AuthScreen, useAuth } from "./auth.jsx";
 import { Settings, OnboardingWizard } from "./settings.jsx";
-import { FlipDashboard, RehabTracker, FlipExpenses, FlipContractors, ContractorDetail, FlipAnalytics, FlipMilestones, FlipNotes } from "./flips.jsx";
-import { FlipReports } from "./flipReports.jsx";
+import { DealDashboard, RehabTracker, DealExpenses, DealContractors, ContractorDetail, DealAnalytics, DealMilestones, DealNotes } from "./deals.jsx";
+import { DealReports } from "./dealReports.jsx";
 
 // ─── Annual Tax Config ──────────────────────────────────────────────
 // Update this block once per year (typically January) when IRS publishes new rates.
@@ -335,7 +335,7 @@ const EXPENSE_CATEGORIES = [
   { name: "Other", value: 4, color: "#6b7280" },
 ];
 
-const FLIPS = [
+const DEALS = [
   {
     id: 1, name: "Oakdale Craftsman", address: "1422 Oakdale Ave, Nashville, TN 37206",
     stage: "Active Rehab", image: "OC", color: "#e95e00",
@@ -416,30 +416,30 @@ const getFlipExpGroup = (cat) => {
   return "General";
 };
 
-const FLIP_EXPENSES = [
-  { id: 1, flipId: 1, date: "2026-03-18", vendor: "Home Depot", category: "Materials & Supplies", description: "Hardwood flooring - 680 sqft", amount: 2890 },
-  { id: 2, flipId: 1, date: "2026-03-15", vendor: "ABC Plumbing", category: "Subcontractor", description: "Master bath rough-in", amount: 3200 },
-  { id: 3, flipId: 1, date: "2026-03-10", vendor: "Lowe's", category: "Fixtures & Hardware", description: "Kitchen cabinet hardware + fixtures", amount: 640 },
-  { id: 4, flipId: 1, date: "2026-03-04", vendor: "City of Nashville", category: "Permits", description: "Renovation permit", amount: 380 },
-  { id: 5, flipId: 1, date: "2026-02-28", vendor: "Elite Electric", category: "Subcontractor", description: "Panel upgrade + recessed lighting", amount: 4100 },
-  { id: 6, flipId: 1, date: "2026-02-20", vendor: "Lowe's", category: "Materials & Supplies", description: "Kitchen cabinets - shaker style", amount: 5800 },
-  { id: 7, flipId: 1, date: "2026-02-14", vendor: "Budget Dumpster", category: "Dumpster / Debris Removal", description: "Demo debris removal", amount: 420 },
-  { id: 8, flipId: 2, date: "2026-01-12", vendor: "Sherwin-Williams", category: "Materials & Supplies", description: "Interior/exterior paint + supplies", amount: 1150 },
-  { id: 9, flipId: 2, date: "2026-01-08", vendor: "Pro Flooring Co.", category: "Subcontractor", description: "LVP install - 1,100 sqft", amount: 3900 },
-  { id: 10, flipId: 2, date: "2025-12-20", vendor: "Home Depot", category: "Appliances", description: "Stainless appliance package", amount: 2400 },
-  { id: 11, flipId: 2, date: "2025-12-10", vendor: "Jim's Windows", category: "Subcontractor", description: "Replace 8 windows", amount: 5400 },
-  { id: 12, flipId: 2, date: "2025-11-18", vendor: "City of Memphis", category: "Permits", description: "Electrical & structural permits", amount: 295 },
-  { id: 13, flipId: 4, date: "2025-07-02", vendor: "Summit HVAC", category: "Subcontractor", description: "Full HVAC replacement", amount: 7200 },
-  { id: 14, flipId: 4, date: "2025-06-15", vendor: "Habitat Flooring", category: "Materials & Supplies", description: "Engineered hardwood - whole house", amount: 4300 },
-  { id: 15, flipId: 4, date: "2025-06-01", vendor: "Raleigh Tile Co.", category: "Subcontractor", description: "Master bath tile work", amount: 3100 },
+const DEAL_EXPENSES = [
+  { id: 1, dealId: 1, date: "2026-03-18", vendor: "Home Depot", category: "Materials & Supplies", description: "Hardwood flooring - 680 sqft", amount: 2890 },
+  { id: 2, dealId: 1, date: "2026-03-15", vendor: "ABC Plumbing", category: "Subcontractor", description: "Master bath rough-in", amount: 3200 },
+  { id: 3, dealId: 1, date: "2026-03-10", vendor: "Lowe's", category: "Fixtures & Hardware", description: "Kitchen cabinet hardware + fixtures", amount: 640 },
+  { id: 4, dealId: 1, date: "2026-03-04", vendor: "City of Nashville", category: "Permits", description: "Renovation permit", amount: 380 },
+  { id: 5, dealId: 1, date: "2026-02-28", vendor: "Elite Electric", category: "Subcontractor", description: "Panel upgrade + recessed lighting", amount: 4100 },
+  { id: 6, dealId: 1, date: "2026-02-20", vendor: "Lowe's", category: "Materials & Supplies", description: "Kitchen cabinets - shaker style", amount: 5800 },
+  { id: 7, dealId: 1, date: "2026-02-14", vendor: "Budget Dumpster", category: "Dumpster / Debris Removal", description: "Demo debris removal", amount: 420 },
+  { id: 8, dealId: 2, date: "2026-01-12", vendor: "Sherwin-Williams", category: "Materials & Supplies", description: "Interior/exterior paint + supplies", amount: 1150 },
+  { id: 9, dealId: 2, date: "2026-01-08", vendor: "Pro Flooring Co.", category: "Subcontractor", description: "LVP install - 1,100 sqft", amount: 3900 },
+  { id: 10, dealId: 2, date: "2025-12-20", vendor: "Home Depot", category: "Appliances", description: "Stainless appliance package", amount: 2400 },
+  { id: 11, dealId: 2, date: "2025-12-10", vendor: "Jim's Windows", category: "Subcontractor", description: "Replace 8 windows", amount: 5400 },
+  { id: 12, dealId: 2, date: "2025-11-18", vendor: "City of Memphis", category: "Permits", description: "Electrical & structural permits", amount: 295 },
+  { id: 13, dealId: 4, date: "2025-07-02", vendor: "Summit HVAC", category: "Subcontractor", description: "Full HVAC replacement", amount: 7200 },
+  { id: 14, dealId: 4, date: "2025-06-15", vendor: "Habitat Flooring", category: "Materials & Supplies", description: "Engineered hardwood - whole house", amount: 4300 },
+  { id: 15, dealId: 4, date: "2025-06-01", vendor: "Raleigh Tile Co.", category: "Subcontractor", description: "Master bath tile work", amount: 3100 },
 ];
 
 // CONTRACTORS imported from api.js below
 
 // DEFAULT_MILESTONES imported from api.js
-// FLIP_MILESTONES is now imported as a flat array from api.js
+// DEAL_MILESTONES is now imported as a flat array from api.js
 
-// Local runtime state: maps flip IDs to milestone arrays with targetDate field added for UI
+// Local runtime state: maps deal IDs to milestone arrays with targetDate field added for UI
 const _LOCAL_FLIP_MILESTONES = {};
 
 const TENANTS = [
@@ -828,21 +828,21 @@ function Badge({ status }) {
 // VIEWS
 // ---------------------------------------------
 
-function PortfolioDashboard({ onNavigate, onSelectProperty, onSelectFlip, onNavigateToTx, onNavigateToFlipExpense, onNavigateToLease }) {
+function PortfolioDashboard({ onNavigate, onSelectProperty, onSelectFlip, onNavigateToTx, onNavigateToDealExpense, onNavigateToLease }) {
   const now = new Date();
   const todayStr = now.toISOString().slice(0, 10);
 
   // ── KPIs ────────────────────────────────────────────────────────────────
   const rentalEquity = PROPERTIES.reduce((s, p) => s + (p.currentValue - (calcLoanBalance(p.loanAmount, p.loanRate, p.loanTermYears, p.loanStartDate) ?? p.loanAmount ?? 0)), 0);
-  const flipEquity = FLIPS.filter(f => f.stage !== "Sold").reduce((s, f) => s + f.purchasePrice, 0);
-  const totalEquity = rentalEquity + flipEquity;
+  const dealEquity = DEALS.filter(f => f.stage !== "Sold").reduce((s, f) => s + f.purchasePrice, 0);
+  const totalEquity = rentalEquity + dealEquity;
 
   const monthlyIncome = PROPERTIES.reduce((s, p) => { const e = getEffectiveMonthly(p, TRANSACTIONS); return s + e.monthlyIncome; }, 0);
   const monthlyExpenses = PROPERTIES.reduce((s, p) => { const e = getEffectiveMonthly(p, TRANSACTIONS); return s + e.monthlyExpenses; }, 0);
   const netCashFlow = monthlyIncome - monthlyExpenses;
 
-  const activeDeals = FLIPS.filter(f => f.stage !== "Sold").length;
-  const capitalDeployed = FLIPS.filter(f => f.stage !== "Sold").reduce((s, f) => s + f.purchasePrice + f.rehabSpent, 0);
+  const activeDeals = DEALS.filter(f => f.stage !== "Sold").length;
+  const capitalDeployed = DEALS.filter(f => f.stage !== "Sold").reduce((s, f) => s + f.purchasePrice + f.rehabSpent, 0);
 
   // ── Rental snapshot cards ────────────────────────────────────────────────
   const allTenants = TENANTS.filter(t => t.status !== "past");
@@ -860,12 +860,12 @@ function PortfolioDashboard({ onNavigate, onSelectProperty, onSelectFlip, onNavi
   const totalRentalUnits = rentalSnapshots.reduce((s, p) => s + p.total, 0);
   const rentalSummary = `${totalOccupied} of ${totalRentalUnits} units occupied · ${fmt(netCashFlow)}/mo net`;
 
-  // ── Flip snapshot cards ──────────────────────────────────────────────────
-  const flipSnapshots = FLIPS.filter(f => f.stage !== "Sold").sort((a, b) => {
+  // ── Deal snapshot cards ──────────────────────────────────────────────────
+  const dealSnapshots = DEALS.filter(f => f.stage !== "Sold").sort((a, b) => {
     const stageOrder = { "Pending": 0, "Active Rehab": 1, "Listed": 2 };
     return (stageOrder[a.stage] ?? 99) - (stageOrder[b.stage] ?? 99);
   });
-  const flipSummary = `${flipSnapshots.length} active · ${fmt(flipSnapshots.reduce((s, f) => s + f.rehabBudget, 0))} total budget`;
+  const flipSummary = `${dealSnapshots.length} active · ${fmt(dealSnapshots.reduce((s, f) => s + f.rehabBudget, 0))} total budget`;
 
   // ── Lease Alerts ─────────────────────────────────────────────────────────
   const leaseAlerts = (() => {
@@ -899,9 +899,9 @@ function PortfolioDashboard({ onNavigate, onSelectProperty, onSelectFlip, onNavi
     return alerts.sort((a, b) => order[a.severity] - order[b.severity]);
   })();
 
-  // ── Flip Stage Summary with overdue milestones ───────────────────────────
-  const flipStageData = flipSnapshots.map(f => {
-    const ms = FLIP_MILESTONES.filter(m => m.flipId === f.id);
+  // ── Deal Stage Summary with overdue milestones ───────────────────────────
+  const dealStageData = dealSnapshots.map(f => {
+    const ms = DEAL_MILESTONES.filter(m => m.dealId === f.id);
     const totalMs = ms.length;
     const doneMs = ms.filter(m => m.done).length;
     const overdueMs = ms.filter(m => !m.done && m.targetDate && m.targetDate < todayStr).length;
@@ -973,12 +973,12 @@ function PortfolioDashboard({ onNavigate, onSelectProperty, onSelectFlip, onNavi
       title: t.description, sourceName: prop?.name || "Unknown",
       amount: t.amount, txType: t.type, txId: t.id, propertyId: t.propertyId });
   });
-  [...FLIP_EXPENSES].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 10).forEach(e => {
-    const flip = FLIPS.find(f => f.id === e.flipId);
-    recentItems.push({ source: "flip", type: "flip-expense", date: e.date,
+  [...DEAL_EXPENSES].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 10).forEach(e => {
+    const deal = DEALS.find(f => f.id === e.dealId);
+    recentItems.push({ source: "deal", type: "deal-expense", date: e.date,
       icon: ArrowDown, color: "#b91c1c", bg: "#fee2e2",
-      title: e.description || `${e.vendor || "Expense"}`, sourceName: flip?.name || "Unknown",
-      amount: e.amount, expId: e.id, flipId: e.flipId });
+      title: e.description || `${e.vendor || "Expense"}`, sourceName: deal?.name || "Unknown",
+      amount: e.amount, expId: e.id, dealId: e.dealId });
   });
   const recentActivity = recentItems.sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 10);
 
@@ -1005,9 +1005,9 @@ function PortfolioDashboard({ onNavigate, onSelectProperty, onSelectFlip, onNavi
       <div style={{ display: "flex", gap: 12, marginBottom: 28 }}>
         {[
           { label: "Log Rental Transaction", icon: ArrowUpDown, color: "#10b981", bg: "#dcfce7", action: () => onNavigate("transactions") },
-          { label: "Log Deal Expense", icon: Hammer, color: "#e95e00", bg: "#ffedd5", action: () => onNavigate("flipexpenses") },
+          { label: "Log Deal Expense", icon: Hammer, color: "#e95e00", bg: "#ffedd5", action: () => onNavigate("dealexpenses") },
           { label: "Add Property", icon: Building2, color: "#e95e00", bg: "#fff7ed", action: () => onNavigate("properties") },
-          { label: "Add Deal", icon: Target, color: "#8b5cf6", bg: "#ede9fe", action: () => onNavigate("flipdeals") },
+          { label: "Add Deal", icon: Target, color: "#8b5cf6", bg: "#ede9fe", action: () => onNavigate("deals") },
         ].map((qa, i) => (
           <button key={i} onClick={qa.action} style={qaBtnS(qa.color, qa.bg)}
             onMouseEnter={e => { e.currentTarget.style.background = qa.bg; e.currentTarget.style.borderColor = qa.color + "40"; }}
@@ -1134,19 +1134,19 @@ function PortfolioDashboard({ onNavigate, onSelectProperty, onSelectFlip, onNavi
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <Hammer size={18} color="#e95e00" />
               <h3 style={{ fontSize: 16, fontWeight: 700, color: "#041830", margin: 0 }}>Active Deals</h3>
-              <span style={{ fontSize: 13, color: "#94a3b8", fontWeight: 500 }}>({flipSnapshots.length})</span>
+              <span style={{ fontSize: 13, color: "#94a3b8", fontWeight: 500 }}>({dealSnapshots.length})</span>
             </div>
-            <button onClick={() => onNavigate("flipdashboard")} style={{ background: "none", border: "none", color: "#e95e00", cursor: "pointer", fontSize: 13, fontWeight: 600, display: "flex", alignItems: "center", gap: 4 }}>
+            <button onClick={() => onNavigate("dealdashboard")} style={{ background: "none", border: "none", color: "#e95e00", cursor: "pointer", fontSize: 13, fontWeight: 600, display: "flex", alignItems: "center", gap: 4 }}>
               View all <ArrowRight size={14} />
             </button>
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            {flipStageData.map(f => (
+            {dealStageData.map(f => (
               <div key={f.id} onClick={() => onSelectFlip(f)}
                 style={{ display: "flex", alignItems: "center", gap: 12, padding: 12, borderRadius: 10, background: "#f8fafc", border: "1px solid #e2e8f0", cursor: "pointer", transition: "all 0.15s" }}
                 onMouseEnter={e => { e.currentTarget.style.background = "#f1f5f9"; e.currentTarget.style.borderColor = "#cbd5e1"; }}
                 onMouseLeave={e => { e.currentTarget.style.background = "#f8fafc"; e.currentTarget.style.borderColor = "#e2e8f0"; }}>
-                <div style={{ width: 32, height: 32, borderRadius: 10, background: FLIP_COLORS[f.color] || f.color, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 600, fontSize: 12, flexShrink: 0 }}>
+                <div style={{ width: 32, height: 32, borderRadius: 10, background: DEAL_COLORS[f.color] || f.color, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 600, fontSize: 12, flexShrink: 0 }}>
                   {f.image?.slice(0, 1) || "F"}
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
@@ -1222,7 +1222,7 @@ function PortfolioDashboard({ onNavigate, onSelectProperty, onSelectFlip, onNavi
                 <div key={`${item.type}-${idx}`}
                   onClick={() => {
                     if (item.source === "rental" && item.txId && onNavigateToTx) onNavigateToTx(item.txId);
-                    else if (item.source === "flip" && item.expId && onNavigateToFlipExpense) onNavigateToFlipExpense(item.expId);
+                    else if (item.source === "deal" && item.expId && onNavigateToDealExpense) onNavigateToDealExpense(item.expId);
                   }}
                   style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 10px", borderRadius: 10, cursor: "pointer", transition: "background 0.15s" }}
                   onMouseEnter={e => e.currentTarget.style.background = "#f8fafc"}
@@ -1234,7 +1234,7 @@ function PortfolioDashboard({ onNavigate, onSelectProperty, onSelectFlip, onNavi
                     <p style={{ fontSize: 13, fontWeight: 600, color: "#041830", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.title}</p>
                     <p style={{ fontSize: 12, color: "#94a3b8", margin: "2px 0 0 0" }}>
                       <span style={{ display: "inline-block", padding: "1px 5px", borderRadius: 3, fontSize: 10, fontWeight: 600, letterSpacing: "0.03em", marginRight: 5, background: item.source === "rental" ? "#eff6ff" : "#ffedd5", color: item.source === "rental" ? "#3b82f6" : "#d97706" }}>
-                        {item.source === "rental" ? "RENTAL" : "FLIP"}
+                        {item.source === "rental" ? "RENTAL" : "DEAL"}
                       </span>
                       {item.sourceName} · {item.date}
                     </p>
@@ -1689,7 +1689,7 @@ function Dashboard({ onNavigate, onNavigateToTx, onSelectProperty, onNavigateToT
   );
 }
 
-function Properties({ onSelect, editPropertyId, onClearEditId, convertFlipData, onClearConvertFlip }) {
+function Properties({ onSelect, editPropertyId, onClearEditId, convertDealData, onClearConvertFlip }) {
   const { showToast } = useToast();
   const [propData, setPropData] = useState(PROPERTIES);
   const [view, setView] = useState("grid");
@@ -1714,25 +1714,25 @@ function Properties({ onSelect, editPropertyId, onClearEditId, convertFlipData, 
     }
   }, [editPropertyId]);
 
-  // Auto-open Add Property modal when converting a flip to rental
+  // Auto-open Add Property modal when converting a deal to rental
   useEffect(() => {
-    if (convertFlipData) {
+    if (convertDealData) {
       setEditId(null);
       setForm({
         ...emptyP,
-        name: convertFlipData.name || "",
-        address: convertFlipData.address || "",
-        type: convertFlipData.type || "Single Family",
-        units: convertFlipData.units || "1",
-        purchasePrice: convertFlipData.purchasePrice || "",
-        currentValue: convertFlipData.currentValue || "",
-        closingCosts: convertFlipData.closingCosts || "",
-        purchaseDate: convertFlipData.purchaseDate || "",
+        name: convertDealData.name || "",
+        address: convertDealData.address || "",
+        type: convertDealData.type || "Single Family",
+        units: convertDealData.units || "1",
+        purchasePrice: convertDealData.purchasePrice || "",
+        currentValue: convertDealData.currentValue || "",
+        closingCosts: convertDealData.closingCosts || "",
+        purchaseDate: convertDealData.purchaseDate || "",
       });
       setShowModal(true);
       onClearConvertFlip && onClearConvertFlip();
     }
-  }, [convertFlipData]);
+  }, [convertDealData]);
 
   const handlePhotoUpload = e => {
     const file = e.target.files[0];
@@ -5204,7 +5204,7 @@ function Reports() {
 }
 
 // ---------------------------------------------
-// FLIP COMPONENTS
+// DEAL COMPONENTS
 // ---------------------------------------------
 
 function StageBadge({ stage }) {
@@ -5237,34 +5237,34 @@ function RehabProgress({ items }) {
   );
 }
 
-function FlipCard({ flip, onSelect }) {
-  const s = STAGE_COLORS[flip.stage];
-  const totalCost = flip.purchasePrice + flip.rehabBudget + (flip.holdingCostsPerMonth * (flip.daysOwned / 30));
-  const projectedProfit = flip.arv - totalCost - (flip.arv * ((flip.sellingCostPct || 6) / 100));
-  const mao70 = (flip.arv * 0.70) - flip.rehabBudget;
-  const rehabPct = flip.rehabBudget > 0 ? Math.round((flip.rehabSpent / flip.rehabBudget) * 100) : 0;
+function DealCard({ deal, onSelect }) {
+  const s = STAGE_COLORS[deal.stage];
+  const totalCost = deal.purchasePrice + deal.rehabBudget + (deal.holdingCostsPerMonth * (deal.daysOwned / 30));
+  const projectedProfit = deal.arv - totalCost - (deal.arv * ((deal.sellingCostPct || 6) / 100));
+  const mao70 = (deal.arv * 0.70) - deal.rehabBudget;
+  const rehabPct = deal.rehabBudget > 0 ? Math.round((deal.rehabSpent / deal.rehabBudget) * 100) : 0;
 
   return (
-    <div onClick={() => onSelect(flip)}
+    <div onClick={() => onSelect(deal)}
       style={{ background: "#fff", borderRadius: 16, padding: 20, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9", cursor: "pointer", transition: "transform 0.15s, box-shadow 0.15s" }}
       onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 8px 24px rgba(0,0,0,0.1)"; }}
       onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "0 1px 3px rgba(0,0,0,0.06)"; }}>
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 14 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <div style={{ width: 40, height: 40, borderRadius: 12, background: flip.color, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 13, fontWeight: 800 }}>{flip.image}</div>
+          <div style={{ width: 40, height: 40, borderRadius: 12, background: deal.color, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 13, fontWeight: 800 }}>{deal.image}</div>
           <div>
-            <p style={{ fontSize: 14, fontWeight: 700, color: "#041830", marginBottom: 2 }}>{flip.name}</p>
-            <p style={{ fontSize: 11, color: "#94a3b8" }}>{flip.address.split(",")[1]?.trim()}</p>
+            <p style={{ fontSize: 14, fontWeight: 700, color: "#041830", marginBottom: 2 }}>{deal.name}</p>
+            <p style={{ fontSize: 11, color: "#94a3b8" }}>{deal.address.split(",")[1]?.trim()}</p>
           </div>
         </div>
-        <StageBadge stage={flip.stage} />
+        <StageBadge stage={deal.stage} />
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 14 }}>
         {[
-          { label: "Purchase", value: fmtK(flip.purchasePrice) },
-          { label: "ARV", value: fmtK(flip.arv) },
-          { label: flip.stage === "Sold" ? "Net Profit" : "Proj. Profit", value: flip.stage === "Sold" ? fmt(flip.netProfit) : fmtK(Math.round(projectedProfit)), color: "#10b981" },
+          { label: "Purchase", value: fmtK(deal.purchasePrice) },
+          { label: "ARV", value: fmtK(deal.arv) },
+          { label: deal.stage === "Sold" ? "Net Profit" : "Proj. Profit", value: deal.stage === "Sold" ? fmt(deal.netProfit) : fmtK(Math.round(projectedProfit)), color: "#10b981" },
         ].map((m, i) => (
           <div key={i} style={{ background: "#f8fafc", borderRadius: 8, padding: "8px 10px" }}>
             <p style={{ color: "#94a3b8", fontSize: 10, fontWeight: 600, textTransform: "uppercase", marginBottom: 2 }}>{m.label}</p>
@@ -5273,7 +5273,7 @@ function FlipCard({ flip, onSelect }) {
         ))}
       </div>
 
-      {flip.stage !== "Sold" && flip.stage !== "Under Contract" && (
+      {deal.stage !== "Sold" && deal.stage !== "Under Contract" && (
         <div>
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
             <span style={{ fontSize: 11, color: "#64748b", fontWeight: 600 }}>REHAB PROGRESS</span>
@@ -5285,24 +5285,24 @@ function FlipCard({ flip, onSelect }) {
         </div>
       )}
 
-      {flip.stage === "Under Contract" && (
+      {deal.stage === "Under Contract" && (
         <p style={{ fontSize: 12, color: "#8b5cf6", fontWeight: 600 }}>
           <Clock size={12} style={{ display: "inline", marginRight: 4 }} />
-          Closing {flip.projectedCloseDate}
+          Closing {deal.projectedCloseDate}
         </p>
       )}
 
-      {flip.daysOwned > 0 && (
+      {deal.daysOwned > 0 && (
         <p style={{ fontSize: 11, color: "#94a3b8", marginTop: 8 }}>
           <Clock size={11} style={{ display: "inline", marginRight: 3 }} />
-          Day {flip.daysOwned} of hold
+          Day {deal.daysOwned} of hold
         </p>
       )}
     </div>
   );
 }
 
-function FlipPipeline({ onSelect }) {
+function DealPipeline({ onSelect }) {
   const { showToast } = useToast();
   const [activeStage, setActiveStage] = useState("all");
   const [showAddDeal, setShowAddDeal] = useState(false);
@@ -5315,7 +5315,7 @@ function FlipPipeline({ onSelect }) {
     if (!dealForm.name || !dealForm.purchasePrice) return;
     const initials = dealForm.name.split(/\s+/).map(w => w[0]).join("").toUpperCase().slice(0, 2);
     const colors = ["#e95e00", "#3b82f6", "#10b981", "#8b5cf6", "#ef4444", "#ec4899"];
-    const color = colors[FLIPS.length % colors.length];
+    const color = colors[DEALS.length % colors.length];
     const newDeal = {
       id: newId(), name: dealForm.name, address: dealForm.address || "",
       stage: dealForm.stage, image: initials, color,
@@ -5329,7 +5329,7 @@ function FlipPipeline({ onSelect }) {
       daysOwned: 0,
       rehabItems: [],
     };
-    FLIPS.push(newDeal);
+    DEALS.push(newDeal);
     // Auto-populate milestones for the new deal
     _LOCAL_FLIP_MILESTONES[newDeal.id] = DEFAULT_MILESTONES.map(label => ({ label, done: false, date: null, targetDate: null }));
     setDealForm(emptyDeal);
@@ -5338,16 +5338,16 @@ function FlipPipeline({ onSelect }) {
     showToast(`"${newDeal.name}" added to pipeline`);
   };
 
-  const activeFlips = FLIPS.filter(f => f.stage !== "Sold");
-  const totalDeployed = activeFlips.reduce((s, f) => s + f.purchasePrice + f.rehabSpent, 0);
-  const projectedProfits = FLIPS.filter(f => f.stage !== "Sold").map(f => {
+  const activeDeals = DEALS.filter(f => f.stage !== "Sold");
+  const totalDeployed = activeDeals.reduce((s, f) => s + f.purchasePrice + f.rehabSpent, 0);
+  const projectedProfits = DEALS.filter(f => f.stage !== "Sold").map(f => {
     const totalCost = f.purchasePrice + f.rehabBudget + (f.holdingCostsPerMonth * (f.daysOwned / 30));
     return f.arv - totalCost - (f.arv * ((f.sellingCostPct || 6) / 100));
   });
   const totalProjected = projectedProfits.reduce((s, v) => s + v, 0);
-  const realizedProfit = FLIPS.filter(f => f.stage === "Sold").reduce((s, f) => s + (f.netProfit || 0), 0);
+  const realizedProfit = DEALS.filter(f => f.stage === "Sold").reduce((s, f) => s + (f.netProfit || 0), 0);
 
-  const filtered = activeStage === "all" ? FLIPS : FLIPS.filter(f => f.stage === activeStage);
+  const filtered = activeStage === "all" ? DEALS : DEALS.filter(f => f.stage === activeStage);
 
   return (
     <div>
@@ -5362,7 +5362,7 @@ function FlipPipeline({ onSelect }) {
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 24 }}>
         {[
-          { icon: Hammer, label: "Active Deals", value: activeFlips.length, sub: "In pipeline", color: "#e95e00" },
+          { icon: Hammer, label: "Active Deals", value: activeDeals.length, sub: "In pipeline", color: "#e95e00" },
           { icon: DollarSign, label: "Capital Deployed", value: fmtK(totalDeployed), sub: "Purchase + rehab", color: "#3b82f6" },
           { icon: TrendingUp, label: "Projected Profit", value: fmtK(Math.round(totalProjected)), sub: "Active deals", color: "#10b981" },
           { icon: Star, label: "Realized Profit", value: fmt(realizedProfit), sub: "Closed deals YTD", color: "#8b5cf6" },
@@ -5387,7 +5387,7 @@ function FlipPipeline({ onSelect }) {
             const active = activeStage === s;
             return (
               <button key={s} onClick={() => setActiveStage(s)} style={{ padding: "7px 14px", borderRadius: 8, border: "none", background: active ? "#e95e00" : "transparent", color: active ? "#fff" : "#64748b", fontWeight: active ? 700 : 500, fontSize: 12, cursor: "pointer", whiteSpace: "nowrap", transition: "all 0.15s" }}>
-                {s === "all" ? `All (${FLIPS.length})` : `${s} (${FLIPS.filter(f => f.stage === s).length})`}
+                {s === "all" ? `All (${DEALS.length})` : `${s} (${DEALS.filter(f => f.stage === s).length})`}
               </button>
             );
           })}
@@ -5399,10 +5399,10 @@ function FlipPipeline({ onSelect }) {
         )}
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 20 }}>
-        {filtered.map(f => <FlipCard key={f.id} flip={f} onSelect={onSelect} />)}
+        {filtered.map(f => <DealCard key={f.id} deal={f} onSelect={onSelect} />)}
         {filtered.length === 0 && (
           <div style={{ gridColumn: "1 / -1" }}>
-            {FLIPS.length === 0
+            {DEALS.length === 0
               ? <EmptyState icon={Layers} title="No deals yet" subtitle="Add your first deal to start tracking your pipeline." actionLabel="Add Deal" onAction={() => setShowAddDeal(true)} />
               : <EmptyState icon={Search} title="No deals match this filter" subtitle="Try selecting a different stage or clear the filter." />
             }
@@ -5476,33 +5476,33 @@ function FlipPipeline({ onSelect }) {
   );
 }
 
-function FlipDetail({ flip, onBack, backLabel, allFlips, setAllFlips, onNavigateToExpense, onNavigateToContractor, initialTab, onConvertToRental, onFlipUpdated, onNavigateToFlip }) {
+function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigateToExpense, onNavigateToContractor, initialTab, onConvertToRental, onDealUpdated, onNavigateToDeal }) {
   const { showToast } = useToast();
   const [activeTab, setActiveTab] = useState(initialTab || "overview");
   useEffect(() => { if (initialTab) setActiveTab(initialTab); }, [initialTab]);
   const [showExpenseModal, setShowExpenseModal] = useState(false);
   const [showContractorModal, setShowContractorModal] = useState(false);
-  const [expData, setExpData] = useState(FLIP_EXPENSES.filter(e => e.flipId === flip.id));
-  const [conData, setConData] = useState(CONTRACTORS.filter(c => (c.dealIds || []).includes(flip.id)));
-  const [rehabItems, setRehabItems] = useState(flip.rehabItems || []);
-  const flipMsFromApi = FLIP_MILESTONES.filter(m => m.flipId === flip.id);
+  const [expData, setExpData] = useState(DEAL_EXPENSES.filter(e => e.dealId === deal.id));
+  const [conData, setConData] = useState(CONTRACTORS.filter(c => (c.dealIds || []).includes(deal.id)));
+  const [rehabItems, setRehabItems] = useState(deal.rehabItems || []);
+  const flipMsFromApi = DEAL_MILESTONES.filter(m => m.dealId === deal.id);
   const [milestones, setMilestones] = useState(
     flipMsFromApi.length > 0
       ? flipMsFromApi.map(m => ({ ...m }))
       : DEFAULT_MILESTONES.map(label => ({ label, done: false, date: null, targetDate: null }))
   );
-  // Sync local milestone state back to global FLIP_MILESTONES array
+  // Sync local milestone state back to global DEAL_MILESTONES array
   useEffect(() => {
-    // Remove old entries for this flip
-    const idx = FLIP_MILESTONES.findIndex(m => m.flipId === flip.id);
-    while (idx >= 0 && FLIP_MILESTONES.findIndex(m => m.flipId === flip.id) >= 0) {
-      FLIP_MILESTONES.splice(FLIP_MILESTONES.findIndex(m => m.flipId === flip.id), 1);
+    // Remove old entries for this deal
+    const idx = DEAL_MILESTONES.findIndex(m => m.dealId === deal.id);
+    while (idx >= 0 && DEAL_MILESTONES.findIndex(m => m.dealId === deal.id) >= 0) {
+      DEAL_MILESTONES.splice(DEAL_MILESTONES.findIndex(m => m.dealId === deal.id), 1);
     }
     // Push current state back
     milestones.forEach((m, i) => {
-      FLIP_MILESTONES.push({ id: m.id || newId(), flipId: flip.id, label: m.label, done: !!m.done, date: m.date || null, targetDate: m.targetDate || null, createdAt: m.createdAt || new Date().toISOString(), updatedAt: new Date().toISOString(), userId: m.userId || MOCK_USER.id });
+      DEAL_MILESTONES.push({ id: m.id || newId(), dealId: deal.id, label: m.label, done: !!m.done, date: m.date || null, targetDate: m.targetDate || null, createdAt: m.createdAt || new Date().toISOString(), updatedAt: new Date().toISOString(), userId: m.userId || MOCK_USER.id });
     });
-  }, [milestones, flip.id]);
+  }, [milestones, deal.id]);
 
   const [showMilestoneModal, setShowMilestoneModal] = useState(false);
   const [showCompletedMilestones, setShowCompletedMilestones] = useState(false);
@@ -5518,12 +5518,12 @@ function FlipDetail({ flip, onBack, backLabel, allFlips, setAllFlips, onNavigate
   const sfR = k => e => setRehabForm(f => ({ ...f, [k]: e.target.value }));
   const [catFocus, setCatFocus] = useState(false);
   const allCategories = useMemo(() => {
-    const cats = new Set(FLIPS.flatMap(f => (f.rehabItems || []).map(i => i.category)));
+    const cats = new Set(DEALS.flatMap(f => (f.rehabItems || []).map(i => i.category)));
     return [...cats].filter(Boolean).sort();
   }, []);
   const [deleteConfirm, setDeleteConfirm] = useState(null); // { type: "expense"|"contractor"|"rehab"|"milestone", item, index? }
   const [showDeleteDeal, setShowDeleteDeal] = useState(false);
-  const [stage, setStage] = useState(flip.stage);
+  const [stage, setStage] = useState(deal.stage);
   const [showCloseDeal, setShowCloseDeal] = useState(false);
   const [closeDealStep, setCloseDealStep] = useState("choose"); // "choose" | "sold" | "convert"
   const [closeForm, setCloseForm] = useState({ salePrice: "", closeDate: "", sellingCosts: "", buyerCredit: "", closingNotes: "" });
@@ -5538,13 +5538,13 @@ function FlipDetail({ flip, onBack, backLabel, allFlips, setAllFlips, onNavigate
 
   // Deal notes
   const [dealNotes, setDealNotes] = useState(() => {
-    // Seed a couple demo notes for flip 1
-    if (flip.id === 1) return [
+    // Seed a couple demo notes for deal 1
+    if (deal.id === 1) return [
       { id: newId(), date: "2026-03-28", text: "Spoke with inspector — back wall needs structural review before drywall. Getting quote from Nash Drywall." },
       { id: newId(), date: "2026-03-15", text: "ABC Plumbing delayed 1 week on master bath rough-in. Pushed flooring start to 3/21." },
       { id: newId(), date: "2026-02-10", text: "Demo went smooth. Dumpster picked up, ready for rough-in next week." },
     ];
-    if (flip.id === 2) return [
+    if (deal.id === 2) return [
       { id: newId(), date: "2026-01-20", text: "All rehab complete. Scheduling photographer for listing photos this week." },
     ];
     return [];
@@ -5565,21 +5565,21 @@ function FlipDetail({ flip, onBack, backLabel, allFlips, setAllFlips, onNavigate
   const sfD = k => e => setDealEditForm(f => ({ ...f, [k]: e.target.value }));
   const openEditDeal = () => {
     setDealEditForm({
-      name: flip.name || "", address: flip.address || "",
-      purchasePrice: String(flip.purchasePrice || ""), arv: String(flip.arv || ""),
-      rehabBudget: String(flip.rehabBudget || ""), holdingCostsPerMonth: String(flip.holdingCostsPerMonth || ""),
-      acquisitionDate: flip.acquisitionDate || flip.contractDate || "",
-      rehabStartDate: flip.rehabStartDate || "", rehabEndDate: flip.rehabEndDate || "",
-      listDate: flip.listDate || "", projectedListDate: flip.projectedListDate || "",
-      closeDate: flip.closeDate || "", projectedCloseDate: flip.projectedCloseDate || "",
-      salePrice: String(flip.salePrice || ""),
+      name: deal.name || "", address: deal.address || "",
+      purchasePrice: String(deal.purchasePrice || ""), arv: String(deal.arv || ""),
+      rehabBudget: String(deal.rehabBudget || ""), holdingCostsPerMonth: String(deal.holdingCostsPerMonth || ""),
+      acquisitionDate: deal.acquisitionDate || deal.contractDate || "",
+      rehabStartDate: deal.rehabStartDate || "", rehabEndDate: deal.rehabEndDate || "",
+      listDate: deal.listDate || "", projectedListDate: deal.projectedListDate || "",
+      closeDate: deal.closeDate || "", projectedCloseDate: deal.projectedCloseDate || "",
+      salePrice: String(deal.salePrice || ""),
     });
     setShowEditDeal(true);
   };
   const handleSaveDeal = () => {
     if (!dealEditForm.name) return;
     const updated = {
-      ...flip, name: dealEditForm.name, address: dealEditForm.address,
+      ...deal, name: dealEditForm.name, address: dealEditForm.address,
       purchasePrice: parseFloat(dealEditForm.purchasePrice) || 0,
       arv: parseFloat(dealEditForm.arv) || 0,
       rehabBudget: parseFloat(dealEditForm.rehabBudget) || 0,
@@ -5590,11 +5590,11 @@ function FlipDetail({ flip, onBack, backLabel, allFlips, setAllFlips, onNavigate
       projectedCloseDate: dealEditForm.projectedCloseDate,
       salePrice: parseFloat(dealEditForm.salePrice) || 0,
     };
-    // Update the global FLIPS array directly
-    const idx = FLIPS.findIndex(f => f.id === flip.id);
-    if (idx !== -1) Object.assign(FLIPS[idx], updated);
-    if (setAllFlips) setAllFlips(prev => prev.map(f => f.id === flip.id ? { ...f, ...updated } : f));
-    if (onFlipUpdated) onFlipUpdated();
+    // Update the global DEALS array directly
+    const idx = DEALS.findIndex(f => f.id === deal.id);
+    if (idx !== -1) Object.assign(DEALS[idx], updated);
+    if (setAllFlips) setAllFlips(prev => prev.map(f => f.id === deal.id ? { ...f, ...updated } : f));
+    if (onDealUpdated) onDealUpdated();
     showToast("Deal updated");
     setShowEditDeal(false);
   };
@@ -5623,10 +5623,10 @@ function FlipDetail({ flip, onBack, backLabel, allFlips, setAllFlips, onNavigate
     setShowContractorModal(true);
   };
 
-  // Helper: derive bid/payment totals for this flip
+  // Helper: derive bid/payment totals for this deal
   const conTotals = (c) => {
-    const flipBids = CONTRACTOR_BIDS.filter(b => b.contractorId === c.id && b.flipId === flip.id);
-    const flipPayments = CONTRACTOR_PAYMENTS.filter(p => p.contractorId === c.id && p.flipId === flip.id);
+    const flipBids = CONTRACTOR_BIDS.filter(b => b.contractorId === c.id && b.dealId === deal.id);
+    const flipPayments = CONTRACTOR_PAYMENTS.filter(p => p.contractorId === c.id && p.dealId === deal.id);
     const totalBid = flipBids.reduce((s, b) => s + (b.amount || 0), 0);
     const totalPaid = flipPayments.reduce((s, p) => s + (p.amount || 0), 0);
     const acceptedBids = flipBids.filter(b => b.status === "accepted").length;
@@ -5645,11 +5645,11 @@ function FlipDetail({ flip, onBack, backLabel, allFlips, setAllFlips, onNavigate
     // Push payment into CONTRACTOR_PAYMENTS array
     const con = conData.find(c => c.id === showPaymentModal);
     if (con) {
-      const newPayment = { id: newId(), contractorId: con.id, flipId: flip.id, amount: amt, date: paymentDate, note: paymentNote || `Payment to ${con.name}` };
+      const newPayment = { id: newId(), contractorId: con.id, dealId: deal.id, amount: amt, date: paymentDate, note: paymentNote || `Payment to ${con.name}` };
       CONTRACTOR_PAYMENTS.push(newPayment);
       setConData(prev => [...prev]); // trigger re-render
       // Also log as an expense automatically (linked to contractor)
-      setExpData(prev => [{ id: newId(), flipId: flip.id, date: paymentDate, vendor: con.name, category: con.trade === "General Contractor" ? "General Contractor" : "Subcontractor", description: paymentNote || `Payment to ${con.name}`, amount: amt, status: "paid", contractorId: showPaymentModal }, ...prev]);
+      setExpData(prev => [{ id: newId(), dealId: deal.id, date: paymentDate, vendor: con.name, category: con.trade === "General Contractor" ? "General Contractor" : "Subcontractor", description: paymentNote || `Payment to ${con.name}`, amount: amt, status: "paid", contractorId: showPaymentModal }, ...prev]);
       // Add to activity log
       setDealNotes(prev => [{ id: newId(), date: paymentDate, text: `Recorded ${fmt(amt)} payment to ${con.name}` }, ...prev]);
     }
@@ -5691,7 +5691,7 @@ function FlipDetail({ flip, onBack, backLabel, allFlips, setAllFlips, onNavigate
       setExpData(prev => prev.map(e => e.id === editingExpId ? { ...e, ...parsed } : e));
       setEditingExpId(null);
     } else {
-      setExpData(prev => [{ id: newId(), flipId: flip.id, ...parsed }, ...prev]);
+      setExpData(prev => [{ id: newId(), dealId: deal.id, ...parsed }, ...prev]);
     }
     setExpForm(emptyExp);
     setShowExpenseModal(false);
@@ -5703,7 +5703,7 @@ function FlipDetail({ flip, onBack, backLabel, allFlips, setAllFlips, onNavigate
       setConData(prev => prev.map(c => c.id === editingConId ? { ...c, name: conForm.name, trade: conForm.trade, phone: conForm.phone, email: conForm.email, license: conForm.license || c.license, insuranceExpiry: conForm.insuranceExpiry || c.insuranceExpiry, notes: conForm.notes || c.notes } : c));
       setEditingConId(null);
     } else {
-      const newCon = { id: newId(), name: conForm.name, trade: conForm.trade, phone: conForm.phone, email: conForm.email || "", license: conForm.license || null, insuranceExpiry: conForm.insuranceExpiry || null, rating: 0, notes: conForm.notes || "", dealIds: [flip.id], bids: [], payments: [], documents: [] };
+      const newCon = { id: newId(), name: conForm.name, trade: conForm.trade, phone: conForm.phone, email: conForm.email || "", license: conForm.license || null, insuranceExpiry: conForm.insuranceExpiry || null, rating: 0, notes: conForm.notes || "", dealIds: [deal.id], bids: [], payments: [], documents: [] };
       CONTRACTORS.push(newCon);
       setConData(prev => [...prev, newCon]);
     }
@@ -5715,16 +5715,16 @@ function FlipDetail({ flip, onBack, backLabel, allFlips, setAllFlips, onNavigate
     const newStage = e.target.value;
     if (newStage === "Sold") {
       // Intercept — open Close Deal modal at the "sold" step
-      const estSellingCosts = Math.round((flip.arv || 0) * ((flip.sellingCostPct || 6) / 100));
-      setCloseForm({ salePrice: String(flip.arv || ""), closeDate: today, sellingCosts: String(estSellingCosts || ""), buyerCredit: "", closingNotes: "" });
+      const estSellingCosts = Math.round((deal.arv || 0) * ((deal.sellingCostPct || 6) / 100));
+      setCloseForm({ salePrice: String(deal.arv || ""), closeDate: today, sellingCosts: String(estSellingCosts || ""), buyerCredit: "", closingNotes: "" });
       setCloseDealStep("sold");
       setShowCloseDeal(true);
       return;
     }
     setStage(newStage);
-    const idx = FLIPS.findIndex(f => f.id === flip.id);
-    if (idx !== -1) FLIPS[idx].stage = newStage;
-    if (setAllFlips) setAllFlips(prev => prev.map(f => f.id === flip.id ? { ...f, stage: newStage } : f));
+    const idx = DEALS.findIndex(f => f.id === deal.id);
+    if (idx !== -1) DEALS[idx].stage = newStage;
+    if (setAllFlips) setAllFlips(prev => prev.map(f => f.id === deal.id ? { ...f, stage: newStage } : f));
   };
 
   const cycleRehabStatus = (idx) => {
@@ -5733,7 +5733,7 @@ function FlipDetail({ flip, onBack, backLabel, allFlips, setAllFlips, onNavigate
     setRehabItems(updated);
   };
 
-  const currentFlip = { ...flip, stage };
+  const currentFlip = { ...deal, stage };
   const holdingCosts = currentFlip.daysOwned > 0 ? Math.round(currentFlip.holdingCostsPerMonth * (currentFlip.daysOwned / 30)) : 0;
   const totalHolding = currentFlip.stage === "Sold" ? currentFlip.totalHoldingCosts : holdingCosts;
   const sellingCosts = currentFlip.stage === "Sold" ? currentFlip.sellingCosts : Math.round((currentFlip.arv || 0) * ((currentFlip.sellingCostPct || 6) / 100));
@@ -5787,7 +5787,7 @@ function FlipDetail({ flip, onBack, backLabel, allFlips, setAllFlips, onNavigate
   const overdueCount = milestones.filter(m => !m.done && m.targetDate && m.targetDate < today).length;
 
   const rehabComplete = rehabItems.filter(i => i.status === "complete").length;
-  const dealDocs = DEAL_DOCUMENTS.filter(d => d.flipId === flip.id);
+  const dealDocs = DEAL_DOCUMENTS.filter(d => d.dealId === deal.id);
   const [, dealDocRerender] = useState(0);
   const tabs = [
     { id: "overview", label: "Overview", icon: LayoutDashboard },
@@ -5804,13 +5804,13 @@ function FlipDetail({ flip, onBack, backLabel, allFlips, setAllFlips, onNavigate
       <button onClick={onBack} style={{ display: "flex", alignItems: "center", gap: 6, color: "#e95e00", fontWeight: 600, fontSize: 14, background: "none", border: "none", cursor: "pointer", marginBottom: 20 }}>
         {backLabel || "Back to Deals"}
       </button>
-      <div style={{ background: `linear-gradient(135deg, ${flip.color}18, ${flip.color}30)`, borderRadius: 20, padding: 28, marginBottom: 20, border: `1px solid ${flip.color}30` }}>
+      <div style={{ background: `linear-gradient(135deg, ${deal.color}18, ${deal.color}30)`, borderRadius: 20, padding: 28, marginBottom: 20, border: `1px solid ${deal.color}30` }}>
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-            <div style={{ width: 60, height: 60, borderRadius: 18, background: flip.color, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 20, fontWeight: 800 }}>{flip.image}</div>
+            <div style={{ width: 60, height: 60, borderRadius: 18, background: deal.color, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 20, fontWeight: 800 }}>{deal.image}</div>
             <div>
-              <h1 style={{ color: "#041830", fontSize: 24, fontWeight: 800, marginBottom: 4 }}>{flip.name}</h1>
-              <p style={{ color: "#64748b", fontSize: 14, display: "flex", alignItems: "center", gap: 4 }}><MapPin size={13} /> {flip.address}</p>
+              <h1 style={{ color: "#041830", fontSize: 24, fontWeight: 800, marginBottom: 4 }}>{deal.name}</h1>
+              <p style={{ color: "#64748b", fontSize: 14, display: "flex", alignItems: "center", gap: 4 }}><MapPin size={13} /> {deal.address}</p>
               <div style={{ marginTop: 8, display: "flex", alignItems: "center", gap: 10 }}>
                 <StageBadge stage={stage} />
                 {stage === "Sold" || stage === "Converted to Rental" ? (
@@ -5826,21 +5826,21 @@ function FlipDetail({ flip, onBack, backLabel, allFlips, setAllFlips, onNavigate
           <div style={{ textAlign: "right" }}>
             <div style={{ display: "flex", gap: 6, marginBottom: 8, justifyContent: "flex-end" }}>
               <button onClick={() => {
-                const initials = flip.name.split(/\s+/).map(w => w[0]).join("").toUpperCase().slice(0, 2);
+                const initials = deal.name.split(/\s+/).map(w => w[0]).join("").toUpperCase().slice(0, 2);
                 const colors = ["#e95e00", "#3b82f6", "#10b981", "#8b5cf6", "#ef4444", "#ec4899"];
                 const cloned = {
-                  id: newId(), name: flip.name + " (Copy)", address: "", stage: "Under Contract",
-                  image: initials, color: colors[FLIPS.length % colors.length],
-                  purchasePrice: 0, arv: flip.arv, rehabBudget: flip.rehabBudget, rehabSpent: 0,
-                  holdingCostsPerMonth: flip.holdingCostsPerMonth, daysOwned: 0,
+                  id: newId(), name: deal.name + " (Copy)", address: "", stage: "Under Contract",
+                  image: initials, color: colors[DEALS.length % colors.length],
+                  purchasePrice: 0, arv: deal.arv, rehabBudget: deal.rehabBudget, rehabSpent: 0,
+                  holdingCostsPerMonth: deal.holdingCostsPerMonth, daysOwned: 0,
                   rehabItems: rehabItems.map(r => ({ category: r.category, budgeted: r.budgeted, spent: 0, status: "pending", contractors: [], photos: [] })),
                 };
-                FLIPS.push(cloned);
+                DEALS.push(cloned);
                 _LOCAL_FLIP_MILESTONES[cloned.id] = milestones.map(m => ({ label: m.label, done: false, date: null, targetDate: null }));
-                if (setAllFlips) setAllFlips([...FLIPS]);
-                if (onFlipUpdated) onFlipUpdated();
+                if (setAllFlips) setAllFlips([...DEALS]);
+                if (onDealUpdated) onDealUpdated();
                 showToast(`"${cloned.name}" created`);
-                if (onNavigateToFlip) onNavigateToFlip(cloned);
+                if (onNavigateToDeal) onNavigateToDeal(cloned);
               }} style={{ background: "rgba(255,255,255,0.7)", border: "1px solid rgba(0,0,0,0.08)", borderRadius: 8, padding: "6px 12px", fontSize: 12, fontWeight: 600, color: "#475569", cursor: "pointer", display: "flex", alignItems: "center", gap: 5 }}>
                 <Copy size={12} /> Clone Deal
               </button>
@@ -5858,10 +5858,10 @@ function FlipDetail({ flip, onBack, backLabel, allFlips, setAllFlips, onNavigate
                   {nextStage && (
                     <button onClick={() => {
                       setStage(nextStage);
-                      const idx = FLIPS.findIndex(f => f.id === flip.id);
-                      if (idx !== -1) FLIPS[idx].stage = nextStage;
-                      if (setAllFlips) setAllFlips(prev => prev.map(f => f.id === flip.id ? { ...f, stage: nextStage } : f));
-                      if (onFlipUpdated) onFlipUpdated();
+                      const idx = DEALS.findIndex(f => f.id === deal.id);
+                      if (idx !== -1) DEALS[idx].stage = nextStage;
+                      if (setAllFlips) setAllFlips(prev => prev.map(f => f.id === deal.id ? { ...f, stage: nextStage } : f));
+                      if (onDealUpdated) onDealUpdated();
                       setDealNotes(prev => [{ id: newId(), date: today, text: `Stage advanced to "${nextStage}".` }, ...prev]);
                       showToast(`Stage advanced to "${nextStage}"`);
                     }} style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 8, padding: "6px 12px", fontSize: 12, fontWeight: 600, color: "#15803d", cursor: "pointer", display: "flex", alignItems: "center", gap: 5 }}>
@@ -5870,8 +5870,8 @@ function FlipDetail({ flip, onBack, backLabel, allFlips, setAllFlips, onNavigate
                   )}
                   <button onClick={() => {
                     const rehabSpent = (rehabItems || []).reduce((s, i) => s + (i.spent || 0), 0);
-                    const estSellingCosts = Math.round((flip.arv || 0) * ((flip.sellingCostPct || 6) / 100));
-                    setCloseForm({ salePrice: String(flip.arv || ""), closeDate: today, sellingCosts: String(estSellingCosts || ""), buyerCredit: "", closingNotes: "" });
+                    const estSellingCosts = Math.round((deal.arv || 0) * ((deal.sellingCostPct || 6) / 100));
+                    setCloseForm({ salePrice: String(deal.arv || ""), closeDate: today, sellingCosts: String(estSellingCosts || ""), buyerCredit: "", closingNotes: "" });
                     setCloseDealStep("choose");
                     setShowCloseDeal(true);
                   }} style={{ background: "#e95e00", border: "none", borderRadius: 8, padding: "6px 12px", fontSize: 12, fontWeight: 600, color: "#fff", cursor: "pointer", display: "flex", alignItems: "center", gap: 5 }}>
@@ -5905,8 +5905,8 @@ function FlipDetail({ flip, onBack, backLabel, allFlips, setAllFlips, onNavigate
           <h3 style={{ color: "#041830", fontSize: 16, fontWeight: 700, marginBottom: 16 }}>Deal Profit &amp; Loss</h3>
           {[
             { label: stage === "Sold" ? "Sale Price" : "ARV (Target)", value: fmt(saleOrARV), color: "#15803d", sign: "+" },
-            { label: "Purchase Price", value: fmt(flip.purchasePrice), color: "#b91c1c", sign: "-" },
-            { label: "Rehab Cost", value: fmt(stage === "Sold" ? flip.rehabSpent : flip.rehabBudget), color: "#b91c1c", sign: "-" },
+            { label: "Purchase Price", value: fmt(deal.purchasePrice), color: "#b91c1c", sign: "-" },
+            { label: "Rehab Cost", value: fmt(stage === "Sold" ? deal.rehabSpent : deal.rehabBudget), color: "#b91c1c", sign: "-" },
             { label: "Holding Costs", value: fmt(totalHolding), color: "#b91c1c", sign: "-" },
             { label: `Selling Costs (~${currentFlip.sellingCostPct || 6}%)`, value: fmt(sellingCosts), color: "#b91c1c", sign: "-" },
           ].map((r, i) => (
@@ -5935,10 +5935,10 @@ function FlipDetail({ flip, onBack, backLabel, allFlips, setAllFlips, onNavigate
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
               {[
-                { label: "ARV", value: fmt(flip.arv) },
-                { label: "Rehab Budget", value: fmt(flip.rehabBudget) },
+                { label: "ARV", value: fmt(deal.arv) },
+                { label: "Rehab Budget", value: fmt(deal.rehabBudget) },
                 { label: "MAO (70% Rule)", value: fmt(mao70), color: "#3b82f6" },
-                { label: "Actual Purchase", value: fmt(flip.purchasePrice), color: flip.purchasePrice <= mao70 ? "#15803d" : "#b91c1c" },
+                { label: "Actual Purchase", value: fmt(deal.purchasePrice), color: deal.purchasePrice <= mao70 ? "#15803d" : "#b91c1c" },
               ].map((m, i) => (
                 <div key={i} style={{ background: "#f8fafc", borderRadius: 8, padding: "10px 12px" }}>
                   <p style={{ color: "#94a3b8", fontSize: 10, fontWeight: 600, textTransform: "uppercase", marginBottom: 2 }}>{m.label}</p>
@@ -5946,8 +5946,8 @@ function FlipDetail({ flip, onBack, backLabel, allFlips, setAllFlips, onNavigate
                 </div>
               ))}
             </div>
-            <p style={{ marginTop: 10, fontSize: 12, fontWeight: 600, color: flip.purchasePrice <= mao70 ? "#15803d" : "#b91c1c", background: flip.purchasePrice <= mao70 ? "#dcfce7" : "#fee2e2", borderRadius: 8, padding: "5px 8px" }}>
-              {flip.purchasePrice <= mao70 ? `v Deal is ${fmt(mao70 - flip.purchasePrice)} under MAO - good spread` : `(!) Purchase is ${fmt(flip.purchasePrice - mao70)} over MAO - verify assumptions`}
+            <p style={{ marginTop: 10, fontSize: 12, fontWeight: 600, color: deal.purchasePrice <= mao70 ? "#15803d" : "#b91c1c", background: deal.purchasePrice <= mao70 ? "#dcfce7" : "#fee2e2", borderRadius: 8, padding: "5px 8px" }}>
+              {deal.purchasePrice <= mao70 ? `v Deal is ${fmt(mao70 - deal.purchasePrice)} under MAO - good spread` : `(!) Purchase is ${fmt(deal.purchasePrice - mao70)} over MAO - verify assumptions`}
             </p>
           </div>
           <div style={{ background: "#fff", borderRadius: 16, padding: 20, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9", flex: 1 }}>
@@ -5956,11 +5956,11 @@ function FlipDetail({ flip, onBack, backLabel, allFlips, setAllFlips, onNavigate
               <h3 style={{ color: "#041830", fontSize: 15, fontWeight: 700 }}>Timeline</h3>
             </div>
             {[
-              { label: "Contract / Acquisition", date: flip.acquisitionDate || flip.contractDate },
-              { label: "Rehab Start", date: flip.rehabStartDate },
-              { label: "Rehab Complete", date: flip.rehabEndDate },
-              { label: "Listed", date: flip.listDate || flip.projectedListDate },
-              { label: "Close", date: flip.closeDate || flip.projectedCloseDate },
+              { label: "Contract / Acquisition", date: deal.acquisitionDate || deal.contractDate },
+              { label: "Rehab Start", date: deal.rehabStartDate },
+              { label: "Rehab Complete", date: deal.rehabEndDate },
+              { label: "Listed", date: deal.listDate || deal.projectedListDate },
+              { label: "Close", date: deal.closeDate || deal.projectedCloseDate },
             ].filter(t => t.date).map((t, i) => (
               <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
                 <div style={{ width: 8, height: 8, borderRadius: "50%", background: t.date ? "#3b82f6" : "#e2e8f0", flexShrink: 0 }} />
@@ -5970,10 +5970,10 @@ function FlipDetail({ flip, onBack, backLabel, allFlips, setAllFlips, onNavigate
                 </div>
               </div>
             ))}
-            {flip.daysOwned > 0 && (
+            {deal.daysOwned > 0 && (
               <div style={{ marginTop: 8, background: "#eff6ff", borderRadius: 8, padding: "8px 12px", fontSize: 12, color: "#1d4ed8", fontWeight: 600 }}>
                 <Clock size={12} style={{ display: "inline", marginRight: 4 }} />
-                Day {flip.daysOwned} . Est. {Math.round(flip.holdingCostsPerMonth / 30)}/day in holding costs
+                Day {deal.daysOwned} . Est. {Math.round(deal.holdingCostsPerMonth / 30)}/day in holding costs
               </div>
             )}
           </div>
@@ -6017,7 +6017,7 @@ function FlipDetail({ flip, onBack, backLabel, allFlips, setAllFlips, onNavigate
         if (rehabPct >= 100) alerts.push({ severity: "critical", text: `Rehab spending is ${Math.round(rehabPct)}% of budget — ${fmt(rehabTotalSpent - rehabTotalBudget)} over budget`, icon: AlertTriangle });
         else if (rehabPct >= 90) alerts.push({ severity: "warning", text: `Rehab spending is at ${Math.round(rehabPct)}% of budget — only ${fmt(rehabTotalBudget - rehabTotalSpent)} remaining`, icon: AlertTriangle });
         if (overdueCount > 0) alerts.push({ severity: "warning", text: `${overdueCount} milestone${overdueCount > 1 ? "s" : ""} overdue — review your timeline`, icon: Clock });
-        if (flip.daysOwned > 120 && stage !== "Sold") alerts.push({ severity: "info", text: `Day ${flip.daysOwned} of ownership — holding costs est. ${fmt(holdingCosts)} and growing`, icon: Clock });
+        if (deal.daysOwned > 120 && stage !== "Sold") alerts.push({ severity: "info", text: `Day ${deal.daysOwned} of ownership — holding costs est. ${fmt(holdingCosts)} and growing`, icon: Clock });
         const pendingExpCount = expData.filter(e => e.status === "pending").length;
         if (pendingExpCount > 0) alerts.push({ severity: "info", text: `${pendingExpCount} expense${pendingExpCount > 1 ? "s" : ""} still pending payment`, icon: CreditCard });
         if (alerts.length === 0) return null;
@@ -6272,7 +6272,7 @@ function FlipDetail({ flip, onBack, backLabel, allFlips, setAllFlips, onNavigate
                 ) : (
                   <>
                     <p style={{ fontWeight: 600, marginBottom: 4 }}>No expenses logged yet</p>
-                    <p style={{ fontSize: 13 }}>Click &ldquo;Log Expense&rdquo; to start tracking spend for this flip.</p>
+                    <p style={{ fontSize: 13 }}>Click &ldquo;Log Expense&rdquo; to start tracking spend for this deal.</p>
                   </>
                 )}
               </div>
@@ -6598,7 +6598,7 @@ function FlipDetail({ flip, onBack, backLabel, allFlips, setAllFlips, onNavigate
               {milestones.some(m => !m.targetDate && !m.done) && (
                 <button onClick={() => {
                   // Auto-fill target dates: spread remaining milestones evenly from today to projected close or +90 days
-                  const endDate = flip.projectedCloseDate || flip.closeDate;
+                  const endDate = deal.projectedCloseDate || deal.closeDate;
                   const end = endDate ? new Date(endDate) : new Date(Date.now() + 90 * 86400000);
                   const pending = milestones.map((m, i) => ({ m, i })).filter(({ m }) => !m.done && !m.targetDate);
                   if (pending.length === 0) return;
@@ -6630,7 +6630,7 @@ function FlipDetail({ flip, onBack, backLabel, allFlips, setAllFlips, onNavigate
             <div style={{ background: "#fff", borderRadius: 16, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9", textAlign: "center", padding: 48, color: "#94a3b8" }}>
               <CheckSquare size={32} style={{ margin: "0 auto 12px", display: "block" }} />
               <p style={{ fontWeight: 600, marginBottom: 4 }}>No milestones yet</p>
-              <p style={{ fontSize: 13 }}>Add milestones to track your flip's progress.</p>
+              <p style={{ fontSize: 13 }}>Add milestones to track your deal's progress.</p>
             </div>
           ) : (<>
             {/* Completed section — collapsible */}
@@ -6785,7 +6785,7 @@ function FlipDetail({ flip, onBack, backLabel, allFlips, setAllFlips, onNavigate
       {activeTab === "documents" && (
         <DocumentsPanel
           documents={dealDocs}
-          onAdd={doc => { addDealDocument({ ...doc, flipId: flip.id }); dealDocRerender(n => n + 1); }}
+          onAdd={doc => { addDealDocument({ ...doc, dealId: deal.id }); dealDocRerender(n => n + 1); }}
           onDelete={id => { deleteDealDocument(id); dealDocRerender(n => n + 1); }}
           entityLabel="deal"
         />
@@ -6921,7 +6921,7 @@ function FlipDetail({ flip, onBack, backLabel, allFlips, setAllFlips, onNavigate
           {/* Step 1: Choose path */}
           {closeDealStep === "choose" && (<>
             <p style={{ color: "#475569", fontSize: 14, marginBottom: 20 }}>
-              How would you like to close out <strong>{flip.name}</strong>?
+              How would you like to close out <strong>{deal.name}</strong>?
             </p>
             <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 8 }}>
               <button onClick={() => setCloseDealStep("sold")} style={{ display: "flex", alignItems: "center", gap: 14, padding: 18, background: "#f0fdf4", border: "2px solid #bbf7d0", borderRadius: 14, cursor: "pointer", textAlign: "left", transition: "border-color 0.15s" }} onMouseEnter={e => e.currentTarget.style.borderColor = "#15803d"} onMouseLeave={e => e.currentTarget.style.borderColor = "#bbf7d0"}>
@@ -6979,9 +6979,9 @@ function FlipDetail({ flip, onBack, backLabel, allFlips, setAllFlips, onNavigate
               const sc = parseFloat(closeForm.sellingCosts) || 0;
               const bc = parseFloat(closeForm.buyerCredit) || 0;
               const rehabSpent = (rehabItems || []).reduce((s, i) => s + (i.spent || 0), 0);
-              const holdDays = closeForm.closeDate && flip.acquisitionDate ? Math.max(0, Math.ceil((new Date(closeForm.closeDate) - new Date(flip.acquisitionDate)) / 86400000)) : (flip.daysOwned || 0);
-              const totalHolding = Math.round((flip.holdingCostsPerMonth || 0) * (holdDays / 30));
-              const netProfit = sp - flip.purchasePrice - rehabSpent - totalHolding - sc - bc;
+              const holdDays = closeForm.closeDate && deal.acquisitionDate ? Math.max(0, Math.ceil((new Date(closeForm.closeDate) - new Date(deal.acquisitionDate)) / 86400000)) : (deal.daysOwned || 0);
+              const totalHolding = Math.round((deal.holdingCostsPerMonth || 0) * (holdDays / 30));
+              const netProfit = sp - deal.purchasePrice - rehabSpent - totalHolding - sc - bc;
               return (
                 <div style={{ background: netProfit >= 0 ? "#f0fdf4" : "#fef2f2", borderRadius: 12, padding: 16, marginBottom: 20, border: `1px solid ${netProfit >= 0 ? "#bbf7d0" : "#fecaca"}` }}>
                   <p style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 8 }}>Profit Preview</p>
@@ -6992,7 +6992,7 @@ function FlipDetail({ flip, onBack, backLabel, allFlips, setAllFlips, onNavigate
                     </div>
                     <div>
                       <p style={{ fontSize: 11, color: "#64748b" }}>Total Costs</p>
-                      <p style={{ fontSize: 14, fontWeight: 700, color: "#b91c1c" }}>{fmt(flip.purchasePrice + rehabSpent + totalHolding + sc + bc)}</p>
+                      <p style={{ fontSize: 14, fontWeight: 700, color: "#b91c1c" }}>{fmt(deal.purchasePrice + rehabSpent + totalHolding + sc + bc)}</p>
                     </div>
                     <div>
                       <p style={{ fontSize: 11, color: "#64748b" }}>Net Profit</p>
@@ -7000,7 +7000,7 @@ function FlipDetail({ flip, onBack, backLabel, allFlips, setAllFlips, onNavigate
                     </div>
                   </div>
                   <div style={{ marginTop: 10, display: "flex", flexWrap: "wrap", gap: 16, fontSize: 11, color: "#64748b" }}>
-                    <span>Purchase: {fmt(flip.purchasePrice)}</span>
+                    <span>Purchase: {fmt(deal.purchasePrice)}</span>
                     <span>Rehab: {fmt(rehabSpent)}</span>
                     <span>Holding ({holdDays}d): {fmt(totalHolding)}</span>
                     <span>Selling: {fmt(sc)}</span>
@@ -7017,23 +7017,23 @@ function FlipDetail({ flip, onBack, backLabel, allFlips, setAllFlips, onNavigate
                 const sc = parseFloat(closeForm.sellingCosts) || 0;
                 const bc = parseFloat(closeForm.buyerCredit) || 0;
                 const rehabSpent = (rehabItems || []).reduce((s, i) => s + (i.spent || 0), 0);
-                const holdDays = Math.max(0, Math.ceil((new Date(closeForm.closeDate) - new Date(flip.acquisitionDate || flip.contractDate)) / 86400000));
-                const totalHolding = Math.round((flip.holdingCostsPerMonth || 0) * (holdDays / 30));
-                const netProfit = sp - flip.purchasePrice - rehabSpent - totalHolding - sc - bc;
+                const holdDays = Math.max(0, Math.ceil((new Date(closeForm.closeDate) - new Date(deal.acquisitionDate || deal.contractDate)) / 86400000));
+                const totalHolding = Math.round((deal.holdingCostsPerMonth || 0) * (holdDays / 30));
+                const netProfit = sp - deal.purchasePrice - rehabSpent - totalHolding - sc - bc;
                 const soldData = {
                   stage: "Sold", salePrice: sp, closeDate: closeForm.closeDate,
                   sellingCosts: sc, buyerCredit: bc, rehabSpent, daysOwned: holdDays,
                   totalHoldingCosts: totalHolding, netProfit,
                 };
-                const idx = FLIPS.findIndex(f => f.id === flip.id);
-                if (idx !== -1) Object.assign(FLIPS[idx], soldData);
-                if (setAllFlips) setAllFlips(prev => prev.map(f => f.id === flip.id ? { ...f, ...soldData } : f));
+                const idx = DEALS.findIndex(f => f.id === deal.id);
+                if (idx !== -1) Object.assign(DEALS[idx], soldData);
+                if (setAllFlips) setAllFlips(prev => prev.map(f => f.id === deal.id ? { ...f, ...soldData } : f));
                 setStage("Sold");
                 if (closeForm.closingNotes.trim()) {
                   setDealNotes(prev => [{ id: newId(), date: today, text: closeForm.closingNotes.trim() }, ...prev]);
                 }
                 setDealNotes(prev => [{ id: newId(), date: today, text: `Deal closed — sold for ${fmt(sp)} with net profit of ${fmt(netProfit)}.` }, ...prev]);
-                if (onFlipUpdated) onFlipUpdated();
+                if (onDealUpdated) onDealUpdated();
                 showToast(`Deal marked as sold — ${fmt(netProfit)} net profit`);
                 setShowCloseDeal(false);
               }} disabled={!closeForm.salePrice || !closeForm.closeDate} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: (!closeForm.salePrice || !closeForm.closeDate) ? "#cbd5e1" : "#15803d", color: "#fff", fontWeight: 700, cursor: (!closeForm.salePrice || !closeForm.closeDate) ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
@@ -7054,19 +7054,19 @@ function FlipDetail({ flip, onBack, backLabel, allFlips, setAllFlips, onNavigate
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
                 <div>
                   <p style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.05em" }}>Purchase Price</p>
-                  <p style={{ fontSize: 14, fontWeight: 700, color: "#041830" }}>{fmt(flip.purchasePrice)}</p>
+                  <p style={{ fontSize: 14, fontWeight: 700, color: "#041830" }}>{fmt(deal.purchasePrice)}</p>
                 </div>
                 <div>
                   <p style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.05em" }}>Current Value (ARV)</p>
-                  <p style={{ fontSize: 14, fontWeight: 700, color: "#041830" }}>{fmt(flip.arv)}</p>
+                  <p style={{ fontSize: 14, fontWeight: 700, color: "#041830" }}>{fmt(deal.arv)}</p>
                 </div>
                 <div>
                   <p style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.05em" }}>Total Rehab Spent</p>
-                  <p style={{ fontSize: 14, fontWeight: 700, color: "#041830" }}>{fmt((flip.rehabItems || []).reduce((s, i) => s + (i.spent || 0), 0))}</p>
+                  <p style={{ fontSize: 14, fontWeight: 700, color: "#041830" }}>{fmt((deal.rehabItems || []).reduce((s, i) => s + (i.spent || 0), 0))}</p>
                 </div>
                 <div>
                   <p style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.05em" }}>Acquisition Date</p>
-                  <p style={{ fontSize: 14, fontWeight: 700, color: "#041830" }}>{flip.acquisitionDate || flip.contractDate || "—"}</p>
+                  <p style={{ fontSize: 14, fontWeight: 700, color: "#041830" }}>{deal.acquisitionDate || deal.contractDate || "—"}</p>
                 </div>
               </div>
             </div>
@@ -7079,18 +7079,18 @@ function FlipDetail({ flip, onBack, backLabel, allFlips, setAllFlips, onNavigate
             <div style={{ display: "flex", gap: 10 }}>
               <button onClick={() => setShowCloseDeal(false)} style={{ flex: 1, padding: "12px", border: "1px solid #e2e8f0", borderRadius: 10, background: "#fff", color: "#475569", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
               <button onClick={() => {
-                const rehabSpent = (flip.rehabItems || []).reduce((s, i) => s + (i.spent || 0), 0);
+                const rehabSpent = (deal.rehabItems || []).reduce((s, i) => s + (i.spent || 0), 0);
                 onConvertToRental({
-                  name: flip.name, address: flip.address, type: "Single Family", units: "1",
-                  purchasePrice: String(flip.purchasePrice || ""), currentValue: String(flip.arv || ""),
-                  closingCosts: String(rehabSpent || ""), purchaseDate: flip.acquisitionDate || flip.contractDate || "",
-                  fromFlipId: flip.id, fromFlipName: flip.name,
+                  name: deal.name, address: deal.address, type: "Single Family", units: "1",
+                  purchasePrice: String(deal.purchasePrice || ""), currentValue: String(deal.arv || ""),
+                  closingCosts: String(rehabSpent || ""), purchaseDate: deal.acquisitionDate || deal.contractDate || "",
+                  fromFlipId: deal.id, fromFlipName: deal.name,
                 });
                 setStage("Converted to Rental");
-                const idx = FLIPS.findIndex(f => f.id === flip.id);
-                if (idx !== -1) FLIPS[idx].stage = "Converted to Rental";
+                const idx = DEALS.findIndex(f => f.id === deal.id);
+                if (idx !== -1) DEALS[idx].stage = "Converted to Rental";
                 setDealNotes(prev => [{ id: newId(), date: today, text: "Deal converted to rental property." }, ...prev]);
-                if (onFlipUpdated) onFlipUpdated();
+                if (onDealUpdated) onDealUpdated();
                 showToast("Converting to rental — review the property details");
                 setShowCloseDeal(false);
               }} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "#0369a1", color: "#fff", fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
@@ -7102,22 +7102,22 @@ function FlipDetail({ flip, onBack, backLabel, allFlips, setAllFlips, onNavigate
       )}
       {showDeleteDeal && (
         <Modal title="Delete Deal" onClose={() => setShowDeleteDeal(false)}>
-          <p style={{ color: "#475569", fontSize: 14, marginBottom: 8 }}>Are you sure you want to permanently delete <strong>{flip.name}</strong>?</p>
+          <p style={{ color: "#475569", fontSize: 14, marginBottom: 8 }}>Are you sure you want to permanently delete <strong>{deal.name}</strong>?</p>
           <p style={{ color: "#94a3b8", fontSize: 13, marginBottom: 18 }}>This will remove the deal, its expenses, rehab items, milestones, and notes. This action cannot be undone.</p>
           <div style={{ display: "flex", gap: 10 }}>
             <button onClick={() => setShowDeleteDeal(false)} style={{ flex: 1, padding: "12px", border: "1px solid #e2e8f0", borderRadius: 10, background: "#fff", color: "#475569", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
             <button onClick={() => {
-              const idx = FLIPS.findIndex(f => f.id === flip.id);
-              if (idx !== -1) FLIPS.splice(idx, 1);
+              const idx = DEALS.findIndex(f => f.id === deal.id);
+              if (idx !== -1) DEALS.splice(idx, 1);
               // Clean up related data
               const expIdxs = [];
-              FLIP_EXPENSES.forEach((e, i) => { if (e.flipId === flip.id) expIdxs.unshift(i); });
-              expIdxs.forEach(i => FLIP_EXPENSES.splice(i, 1));
+              DEAL_EXPENSES.forEach((e, i) => { if (e.dealId === deal.id) expIdxs.unshift(i); });
+              expIdxs.forEach(i => DEAL_EXPENSES.splice(i, 1));
               const msIdxs = [];
-              FLIP_MILESTONES.forEach((m, i) => { if (m.flipId === flip.id) msIdxs.unshift(i); });
-              msIdxs.forEach(i => FLIP_MILESTONES.splice(i, 1));
-              if (onFlipUpdated) onFlipUpdated();
-              showToast(`"${flip.name}" deleted`);
+              DEAL_MILESTONES.forEach((m, i) => { if (m.dealId === deal.id) msIdxs.unshift(i); });
+              msIdxs.forEach(i => DEAL_MILESTONES.splice(i, 1));
+              if (onDealUpdated) onDealUpdated();
+              showToast(`"${deal.name}" deleted`);
               setShowDeleteDeal(false);
               if (onBack) onBack();
             }} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "#ef4444", color: "#fff", fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
@@ -7164,7 +7164,7 @@ function FlipDetail({ flip, onBack, backLabel, allFlips, setAllFlips, onNavigate
 // ---------------------------------------------
 // RENT ROLL
 // ---------------------------------------------
-function RentRoll({ onBack, highlightTenantId, onClearHighlight, prefillTenant, onClearPrefill }) {
+function TenantManagement({ onBack, highlightTenantId, onClearHighlight, prefillTenant, onClearPrefill }) {
   const { showToast } = useToast();
   const [tenantData, setTenantData] = useState(TENANTS);
   const [showModal, setShowModal] = useState(false);
@@ -7818,7 +7818,7 @@ function MileageTracker() {
   };
 
   const IRS_RATE = TAX_CONFIG.mileageRate;
-  const purposeColors = { Flip: "#e95e00", Rental: "#3b82f6", Business: "#8b5cf6" };
+  const purposeColors = { Deal: "#e95e00", Rental: "#3b82f6", Business: "#8b5cf6" };
 
   const mNow = new Date();
   const mThisYear = mNow.getFullYear();
@@ -8000,8 +8000,8 @@ function MileageTracker() {
               <optgroup label="Properties">
                 {PROPERTIES.map(p => <option key={`p-${p.id}`} value={p.name}>{p.name}</option>)}
               </optgroup>
-              <optgroup label="Flip Deals">
-                {FLIPS.map(f => <option key={`f-${f.id}`} value={f.name}>{f.name}</option>)}
+              <optgroup label="Deals">
+                {DEALS.map(f => <option key={`f-${f.id}`} value={f.name}>{f.name}</option>)}
               </optgroup>
             </select>
           </div>
@@ -8033,16 +8033,16 @@ function MileageTracker() {
 // DEAL ANALYZER
 // ---------------------------------------------
 function DealAnalyzer() {
-  const [mode, setMode] = useState("flip");
-  const [flip, setFlip] = useState({ arv: "", purchase: "", rehab: "", holdMonths: "4", sellingPct: "6" });
+  const [mode, setMode] = useState("deal");
+  const [dealCalc, setDealCalc] = useState({ arv: "", purchase: "", rehab: "", holdMonths: "4", sellingPct: "6" });
   const [rental, setRental] = useState({ price: "", downPct: "20", rate: "7.25", termYears: "30", monthlyRent: "", taxes: "", insurance: "", maintenance: "", vacancy: "5", mgmtPct: "0" });
 
-  // Flip calcs
-  const fARV = parseFloat(flip.arv) || 0;
-  const fPurchase = parseFloat(flip.purchase) || 0;
-  const fRehab = parseFloat(flip.rehab) || 0;
-  const fHold = parseFloat(flip.holdMonths) || 0;
-  const fSellPct = parseFloat(flip.sellingPct) / 100 || 0.06;
+  // Deal calcs
+  const fARV = parseFloat(deal.arv) || 0;
+  const fPurchase = parseFloat(dealCalc.purchase) || 0;
+  const fRehab = parseFloat(dealCalc.rehab) || 0;
+  const fHold = parseFloat(dealCalc.holdMonths) || 0;
+  const fSellPct = parseFloat(dealCalc.sellingPct) / 100 || 0.06;
   const mao70 = fARV * 0.70 - fRehab;
   const mao65 = fARV * 0.65 - fRehab;
   const holdingEst = fPurchase * 0.01 * fHold;
@@ -8082,7 +8082,7 @@ function DealAnalyzer() {
         <p style={{ color: "#64748b", fontSize: 15 }}>Run the numbers before you make an offer</p>
       </div>
       <div style={{ display: "flex", background: "#f8fafc", borderRadius: 10, padding: 4, width: "fit-content", marginBottom: 28, border: "1px solid #e2e8f0" }}>
-        {[{ id: "flip", label: "Fix & Flip", icon: Hammer }, { id: "rental", label: "Buy & Hold", icon: Building2 }].map(m => {
+        {[{ id: "deal", label: "Fix & Flip", icon: Hammer }, { id: "rental", label: "Buy & Hold", icon: Building2 }].map(m => {
           const active = mode === m.id;
           return (
             <button key={m.id} onClick={() => setMode(m.id)} style={{ display: "flex", alignItems: "center", gap: 7, padding: "10px 22px", borderRadius: 8, border: "none", background: active ? "#e95e00" : "transparent", color: active ? "#fff" : "#64748b", fontWeight: active ? 700 : 500, fontSize: 14, cursor: "pointer", transition: "all 0.15s" }}>
@@ -8092,13 +8092,13 @@ function DealAnalyzer() {
         })}
       </div>
 
-      {mode === "flip" && (
+      {mode === "deal" && (
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
           <div style={{ background: "#fff", borderRadius: 16, padding: 24, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
               <h3 style={{ color: "#041830", fontSize: 16, fontWeight: 700 }}>Deal Inputs</h3>
-              {(flip.arv || flip.purchase || flip.rehab) && (
-                <button onClick={() => setFlip({ arv: "", purchase: "", rehab: "", holdMonths: "4", sellingPct: "6" })} style={{ background: "none", border: "none", color: "#94a3b8", fontSize: 12, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
+              {(deal.arv || deal.purchase || deal.rehab) && (
+                <button onClick={() => setDealCalc({ arv: "", purchase: "", rehab: "", holdMonths: "4", sellingPct: "6" })} style={{ background: "none", border: "none", color: "#94a3b8", fontSize: 12, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
                   <X size={13} /> Reset
                 </button>
               )}
@@ -8112,7 +8112,7 @@ function DealAnalyzer() {
             ].map(f => (
               <div key={f.key} style={{ marginBottom: 14 }}>
                 <label style={labelStyle}>{f.label}</label>
-                <input type="number" placeholder={f.placeholder} value={flip[f.key]} onChange={e => setFlip({ ...flip, [f.key]: e.target.value })} style={inputStyle} />
+                <input type="number" placeholder={f.placeholder} value={dealCalc[f.key]} onChange={e => setDealCalc({ ...deal, [f.key]: e.target.value })} style={inputStyle} />
               </div>
             ))}
           </div>
@@ -8436,7 +8436,7 @@ function NoteTextWithMentions({ text }) {
 // ---------------------------------------------
 // UNIFIED NOTES HUB
 // ---------------------------------------------
-function UnifiedNotes({ highlightNoteId, highlightFlipNoteId, onBack, onClearHighlight }) {
+function UnifiedNotes({ highlightNoteId, highlightDealNoteId, onBack, onClearHighlight }) {
   const [activeTab, setActiveTab] = useState("all");
   const [propFilter, setPropFilter] = useState("all");
   const [flipFilter, setFlipFilter] = useState("all");
@@ -8445,16 +8445,16 @@ function UnifiedNotes({ highlightNoteId, highlightFlipNoteId, onBack, onClearHig
   const [showAdd, setShowAdd] = useState(false);
   const [editId, setEditId] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
-  const [flashId, setFlashId] = useState(highlightNoteId || highlightFlipNoteId);
+  const [flashId, setFlashId] = useState(highlightNoteId || highlightDealNoteId);
   const [noteForm, setNoteForm] = useState({ category: "general", entityId: "", text: "", mentions: [] });
 
   // Flash highlight on mount
   useEffect(() => {
-    const hId = highlightNoteId || highlightFlipNoteId;
+    const hId = highlightNoteId || highlightDealNoteId;
     if (hId) {
       setFlashId(hId);
       if (highlightNoteId) setActiveTab("properties");
-      if (highlightFlipNoteId) setActiveTab("deals");
+      if (highlightDealNoteId) setActiveTab("deals");
       setTimeout(() => {
         const el = document.getElementById("unote-" + hId);
         if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -8462,7 +8462,7 @@ function UnifiedNotes({ highlightNoteId, highlightFlipNoteId, onBack, onClearHig
       const timer = setTimeout(() => { setFlashId(null); onClearHighlight && onClearHighlight(); }, 2500);
       return () => clearTimeout(timer);
     }
-  }, [highlightNoteId, highlightFlipNoteId]);
+  }, [highlightNoteId, highlightDealNoteId]);
 
   // Build unified list
   const allNotes = (() => {
@@ -8473,10 +8473,10 @@ function UnifiedNotes({ highlightNoteId, highlightFlipNoteId, onBack, onClearHig
         list.push({ ...n, noteType: "property", entityId: n.propertyId, entityName: prop.name, entityColor: prop.color, entityImage: prop.image, mentions: n.mentions || [] });
       }
     });
-    FLIP_NOTES.forEach(n => {
-      const flip = FLIPS.find(f => f.id === n.flipId);
-      if (flip) {
-        list.push({ ...n, noteType: "deal", entityId: n.flipId, entityName: flip.name, entityColor: flip.color, entityImage: flip.image, mentions: n.mentions || [] });
+    DEAL_NOTES.forEach(n => {
+      const deal = DEALS.find(f => f.id === n.dealId);
+      if (deal) {
+        list.push({ ...n, noteType: "deal", entityId: n.dealId, entityName: deal.name, entityColor: deal.color, entityImage: deal.image, mentions: n.mentions || [] });
       }
     });
     GENERAL_NOTES.forEach(n => {
@@ -8528,8 +8528,8 @@ function UnifiedNotes({ highlightNoteId, highlightFlipNoteId, onBack, onClearHig
       // Find and update across all arrays
       let idx = RENTAL_NOTES.findIndex(n => n.id === editId);
       if (idx !== -1) { RENTAL_NOTES[idx] = { ...RENTAL_NOTES[idx], text: noteForm.text.trim(), mentions: noteForm.mentions, updatedAt: now }; }
-      idx = FLIP_NOTES.findIndex(n => n.id === editId);
-      if (idx !== -1) { FLIP_NOTES[idx] = { ...FLIP_NOTES[idx], text: noteForm.text.trim(), mentions: noteForm.mentions, updatedAt: now }; }
+      idx = DEAL_NOTES.findIndex(n => n.id === editId);
+      if (idx !== -1) { DEAL_NOTES[idx] = { ...DEAL_NOTES[idx], text: noteForm.text.trim(), mentions: noteForm.mentions, updatedAt: now }; }
       idx = GENERAL_NOTES.findIndex(n => n.id === editId);
       if (idx !== -1) { GENERAL_NOTES[idx] = { ...GENERAL_NOTES[idx], text: noteForm.text.trim(), mentions: noteForm.mentions, updatedAt: now }; }
     } else {
@@ -8539,7 +8539,7 @@ function UnifiedNotes({ highlightNoteId, highlightFlipNoteId, onBack, onClearHig
         RENTAL_NOTES.unshift({ ...base, propertyId: parseInt(noteForm.entityId) });
       } else if (noteForm.category === "deal") {
         if (!noteForm.entityId) return;
-        FLIP_NOTES.unshift({ ...base, flipId: parseInt(noteForm.entityId) });
+        DEAL_NOTES.unshift({ ...base, dealId: parseInt(noteForm.entityId) });
       } else {
         GENERAL_NOTES.unshift(base);
       }
@@ -8555,8 +8555,8 @@ function UnifiedNotes({ highlightNoteId, highlightFlipNoteId, onBack, onClearHig
       const idx = RENTAL_NOTES.findIndex(n => n.id === note.id);
       if (idx !== -1) RENTAL_NOTES.splice(idx, 1);
     } else if (note.noteType === "deal") {
-      const idx = FLIP_NOTES.findIndex(n => n.id === note.id);
-      if (idx !== -1) FLIP_NOTES.splice(idx, 1);
+      const idx = DEAL_NOTES.findIndex(n => n.id === note.id);
+      if (idx !== -1) DEAL_NOTES.splice(idx, 1);
     } else {
       const idx = GENERAL_NOTES.findIndex(n => n.id === note.id);
       if (idx !== -1) GENERAL_NOTES.splice(idx, 1);
@@ -8574,7 +8574,7 @@ function UnifiedNotes({ highlightNoteId, highlightFlipNoteId, onBack, onClearHig
 
   const openAdd = () => {
     const cat = activeTab === "properties" ? "property" : activeTab === "deals" ? "deal" : activeTab === "general" ? "general" : "general";
-    const defaultEntity = cat === "property" ? (PROPERTIES[0] ? String(PROPERTIES[0].id) : "") : cat === "deal" ? (FLIPS[0] ? String(FLIPS[0].id) : "") : "";
+    const defaultEntity = cat === "property" ? (PROPERTIES[0] ? String(PROPERTIES[0].id) : "") : cat === "deal" ? (DEALS[0] ? String(DEALS[0].id) : "") : "";
     setEditId(null);
     setNoteForm({ category: cat, entityId: defaultEntity, text: "", mentions: [] });
     setShowAdd(true);
@@ -8632,7 +8632,7 @@ function UnifiedNotes({ highlightNoteId, highlightFlipNoteId, onBack, onClearHig
         {activeTab === "deals" && (
           <select value={flipFilter} onChange={e => setFlipFilter(e.target.value)} style={{ ...iS, width: 200, fontSize: 14, padding: "9px 14px", fontWeight: 600 }}>
             <option value="all">All Deals</option>
-            {FLIPS.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
+            {DEALS.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
           </select>
         )}
         {hasFilters && (
@@ -8723,7 +8723,7 @@ function UnifiedNotes({ highlightNoteId, highlightFlipNoteId, onBack, onClearHig
                   <p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Category *</p>
                   <div style={{ display: "flex", gap: 6 }}>
                     {[{ id: "general", label: "General", color: "#8b5cf6" }, { id: "property", label: "Property", color: "#3b82f6" }, { id: "deal", label: "Deal", color: "#e95e00" }].map(c => (
-                      <button key={c.id} onClick={() => setNoteForm(f => ({ ...f, category: c.id, entityId: c.id === "property" ? (PROPERTIES[0] ? String(PROPERTIES[0].id) : "") : c.id === "deal" ? (FLIPS[0] ? String(FLIPS[0].id) : "") : "" }))}
+                      <button key={c.id} onClick={() => setNoteForm(f => ({ ...f, category: c.id, entityId: c.id === "property" ? (PROPERTIES[0] ? String(PROPERTIES[0].id) : "") : c.id === "deal" ? (DEALS[0] ? String(DEALS[0].id) : "") : "" }))}
                         style={{ flex: 1, padding: "8px 12px", borderRadius: 8, border: noteForm.category === c.id ? "2px solid " + c.color : "1.5px solid #e2e8f0", background: noteForm.category === c.id ? c.color + "10" : "#fff", color: noteForm.category === c.id ? c.color : "#64748b", fontWeight: 600, fontSize: 13, cursor: "pointer", transition: "all 0.15s" }}>
                         {c.label}
                       </button>
@@ -8746,7 +8746,7 @@ function UnifiedNotes({ highlightNoteId, highlightFlipNoteId, onBack, onClearHig
                   <p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Deal *</p>
                   <select style={iS} value={noteForm.entityId} onChange={e => setNoteForm(f => ({ ...f, entityId: e.target.value }))} disabled={!!editId}>
                     <option value="">Select deal...</option>
-                    {FLIPS.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
+                    {DEALS.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
                   </select>
                 </div>
               )}
@@ -8835,7 +8835,7 @@ function GlobalSearch({ onNavigate }) {
     });
 
     // Deals (Flips)
-    const deals = FLIPS.filter(f => f.name.toLowerCase().includes(q) || f.address.toLowerCase().includes(q) || f.stage.toLowerCase().includes(q));
+    const deals = DEALS.filter(f => f.name.toLowerCase().includes(q) || f.address.toLowerCase().includes(q) || f.stage.toLowerCase().includes(q));
     deals.slice(0, MAX_PER).forEach(f => r.push({ type: "deal", id: f.id, title: f.name, sub: `${f.stage} · ${f.address.split(",")[1]?.trim() || f.address}`, icon: Hammer, color: f.color, image: f.image, data: f }));
 
     // Transactions
@@ -8860,19 +8860,19 @@ function GlobalSearch({ onNavigate }) {
       }
     });
 
-    // Flip Notes
-    FLIP_NOTES.forEach(n => {
+    // Deal Notes
+    DEAL_NOTES.forEach(n => {
       if (n.text.toLowerCase().includes(q)) {
-        const flip = FLIPS.find(f => f.id === n.flipId);
-        r.push({ type: "flip-note", id: n.id, title: n.text.length > 60 ? n.text.slice(0, 60) + "…" : n.text, sub: `${flip?.name || "Deal"} · ${n.date}`, icon: MessageSquare, color: "#e95e00", data: { ...n, flipId: n.flipId } });
+        const deal = DEALS.find(f => f.id === n.dealId);
+        r.push({ type: "deal-note", id: n.id, title: n.text.length > 60 ? n.text.slice(0, 60) + "…" : n.text, sub: `${deal?.name || "Deal"} · ${n.date}`, icon: MessageSquare, color: "#e95e00", data: { ...n, dealId: n.dealId } });
       }
     });
 
-    // Flip Expenses
-    FLIP_EXPENSES.filter(e => e.description.toLowerCase().includes(q) || (e.vendor && e.vendor.toLowerCase().includes(q)))
+    // Deal Expenses
+    DEAL_EXPENSES.filter(e => e.description.toLowerCase().includes(q) || (e.vendor && e.vendor.toLowerCase().includes(q)))
       .slice(0, MAX_PER).forEach(e => {
-        const flip = FLIPS.find(f => f.id === e.flipId);
-        r.push({ type: "flip-expense", id: e.id, title: e.description, sub: `${flip?.name || "Deal"} · ${e.vendor} · ${fmt(e.amount)}`, icon: Receipt, color: "#ef4444", data: e });
+        const deal = DEALS.find(f => f.id === e.dealId);
+        r.push({ type: "deal-expense", id: e.id, title: e.description, sub: `${deal?.name || "Deal"} · ${e.vendor} · ${fmt(e.amount)}`, icon: Receipt, color: "#ef4444", data: e });
       });
 
     return r.slice(0, 12); // Cap total results
@@ -8881,7 +8881,7 @@ function GlobalSearch({ onNavigate }) {
   // Group results by type for display
   const grouped = useMemo(() => {
     const map = new Map();
-    const labels = { property: "Properties", tenant: "Tenants", deal: "Deals", transaction: "Transactions", contractor: "Contractors", "rental-note": "Rental Notes", "flip-note": "Flip Notes", "flip-expense": "Flip Expenses" };
+    const labels = { property: "Properties", tenant: "Tenants", deal: "Deals", transaction: "Transactions", contractor: "Contractors", "rental-note": "Rental Notes", "deal-note": "Flip Notes", "deal-expense": "Flip Expenses" };
     results.forEach(r => {
       const label = labels[r.type] || r.type;
       if (!map.has(label)) map.set(label, []);
@@ -8952,14 +8952,14 @@ function AppShell() {
   const { user, signOut } = useAuth();
   const [activeView, setActiveView] = useState("portfolio");
   const [selectedProperty, setSelectedProperty] = useState(null);
-  const [selectedFlip, setSelectedFlip] = useState(null);
+  const [selectedDeal, setSelectedDeal] = useState(null);
   const [showSettings, setShowSettings] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(user?.plan === "trial");
   const [highlightTxId, setHighlightTxId] = useState(null);
   const [highlightExpId, setHighlightExpId] = useState(null);
   const [highlightTenantId, setHighlightTenantId] = useState(null);
   const [highlightNoteId, setHighlightNoteId] = useState(null);
-  const [highlightFlipNoteId, setHighlightFlipNoteId] = useState(null);
+  const [highlightDealNoteId, setHighlightDealNoteId] = useState(null);
   const [highlightMilestoneKey, setHighlightMilestoneKey] = useState(null);
   const [navSource, setNavSource] = useState(null);
   const [prevNavSource, setPrevNavSource] = useState(null); // preserves navSource during sub-navigation (e.g., PropertyDetail → Transactions → back)
@@ -8968,13 +8968,13 @@ function AppShell() {
   const [propDetailTab, setPropDetailTab] = useState(null);  // initial tab for PropertyDetail
   const [propDetailTenantHighlight, setPropDetailTenantHighlight] = useState(null); // tenant id to highlight in PropertyDetail
   const [selectedContractor, setSelectedContractor] = useState(null);
-  const [convertFlipData, setConvertFlipData] = useState(null); // flip data to pre-fill Add Property for flip-to-rental conversion
-  const [flipVersion, setFlipVersion] = useState(0); // bump to force re-render of flip-dependent views
-  const onFlipUpdated = useCallback(() => setFlipVersion(v => v + 1), []);
+  const [convertDealData, setConvertDealData] = useState(null); // deal data to pre-fill Add Property for flip-to-rental conversion
+  const [dealVersion, setDealVersion] = useState(0); // bump to force re-render of deal-dependent views
+  const onDealUpdated = useCallback(() => setDealVersion(v => v + 1), []);
 
   const handleSelectContractor = (contractor) => {
     setSelectedContractor(contractor);
-    setNavSource("flipcontractors");
+    setNavSource("dealcontractors");
     setActiveView("contractorDetail");
   };
 
@@ -8984,11 +8984,11 @@ function AppShell() {
     setActiveView("transactions");
   };
 
-  const navigateToFlipExpense = (expId) => {
+  const navigateToDealExpense = (expId) => {
     setHighlightExpId(expId);
-    setPrevFlipNavSource(flipNavSource);
-    setNavSource("flipDetail");
-    setActiveView("flipexpenses");
+    setPrevDealNavSource(dealNavSource);
+    setNavSource("dealDetail");
+    setActiveView("dealexpenses");
   };
 
   const portfolioNavItem = { id: "portfolio", label: "Portfolio", icon: PieChartIcon };
@@ -9003,14 +9003,14 @@ function AppShell() {
   ];
 
   const flipNavItems = [
-    { id: "flipdashboard",   label: "Dashboard",      icon: LayoutDashboard },
-    { id: "flips",           label: "Deals",           icon: Hammer          },
-    { id: "fliprehab",       label: "Rehab",           icon: Wrench          },
-    { id: "flipexpenses",    label: "Expenses",        icon: Receipt         },
-    { id: "flipcontractors", label: "Contractors",     icon: Users           },
-    { id: "flipmilestones",  label: "Milestones",      icon: Flag            },
-    { id: "flipanalytics",   label: "Analytics",       icon: BarChart3       },
-    { id: "flipreports",    label: "Reports",         icon: FileText        },
+    { id: "dealdashboard",   label: "Dashboard",      icon: LayoutDashboard },
+    { id: "deals",           label: "Deals",           icon: Hammer          },
+    { id: "dealrehab",       label: "Rehab",           icon: Wrench          },
+    { id: "dealexpenses",    label: "Expenses",        icon: Receipt         },
+    { id: "dealcontractors", label: "Contractors",     icon: Users           },
+    { id: "dealmilestones",  label: "Milestones",      icon: Flag            },
+    { id: "dealanalytics",   label: "Analytics",       icon: BarChart3       },
+    { id: "dealreports",    label: "Reports",         icon: FileText        },
   ];
 
   // Cross-cutting tools — apply to both rentals and flips
@@ -9025,14 +9025,14 @@ function AppShell() {
     setActiveView("propertyDetail");
   };
 
-  const [flipInitialTab, setFlipInitialTab] = useState(null);
-  const [flipNavSource, setFlipNavSource] = useState(null); // "flipdashboard" | "flips" | "portfolio" | null
-  const [prevFlipNavSource, setPrevFlipNavSource] = useState(null); // preserves flipNavSource during sub-navigation
-  const handleFlipSelect = (f, tab, source) => {
-    setSelectedFlip(f);
-    setFlipInitialTab(tab || null);
-    setFlipNavSource(source || null);
-    setActiveView("flipDetail");
+  const [dealInitialTab, setDealInitialTab] = useState(null);
+  const [dealNavSource, setDealNavSource] = useState(null); // "dealdashboard" | "deals" | "portfolio" | null
+  const [prevDealNavSource, setPrevDealNavSource] = useState(null); // preserves dealNavSource during sub-navigation
+  const handleDealSelect = (f, tab, source) => {
+    setSelectedDeal(f);
+    setDealInitialTab(tab || null);
+    setDealNavSource(source || null);
+    setActiveView("dealDetail");
   };
 
   return (
@@ -9047,7 +9047,7 @@ function AppShell() {
           {/* Portfolio button */}
           {portfolioNavItem && (
             <>
-              <button onClick={() => { setActiveView(portfolioNavItem.id); setSelectedProperty(null); setSelectedFlip(null); setHighlightTxId(null); setNavSource(null); }}
+              <button onClick={() => { setActiveView(portfolioNavItem.id); setSelectedProperty(null); setSelectedDeal(null); setHighlightTxId(null); setNavSource(null); }}
                 style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 10, border: "none", background: activeView === portfolioNavItem.id ? "rgba(139,92,246,0.2)" : "transparent", color: activeView === portfolioNavItem.id ? "#c4b5fd" : "#64748b", fontWeight: activeView === portfolioNavItem.id ? 700 : 500, fontSize: 14, cursor: "pointer", marginBottom: 2, textAlign: "left", transition: "all 0.15s" }}
                 onMouseEnter={e => { if (activeView !== portfolioNavItem.id) e.currentTarget.style.background = "rgba(255,255,255,0.05)"; }}
                 onMouseLeave={e => { if (activeView !== portfolioNavItem.id) e.currentTarget.style.background = "transparent"; }}>
@@ -9062,7 +9062,7 @@ function AppShell() {
           {rentalNavItems.map(item => {
             const active = activeView === item.id || (item.id === "properties" && activeView === "propertyDetail");
             return (
-              <button key={item.id} onClick={() => { setActiveView(item.id); setSelectedProperty(null); setSelectedFlip(null); setHighlightTxId(null); setNavSource(null); }}
+              <button key={item.id} onClick={() => { setActiveView(item.id); setSelectedProperty(null); setSelectedDeal(null); setHighlightTxId(null); setNavSource(null); }}
                 style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 10, border: "none", background: active ? "rgba(59,130,246,0.2)" : "transparent", color: active ? "#93c5fd" : "#64748b", fontWeight: active ? 700 : 500, fontSize: 14, cursor: "pointer", marginBottom: 2, textAlign: "left", transition: "all 0.15s" }}
                 onMouseEnter={e => { if (!active) e.currentTarget.style.background = "rgba(255,255,255,0.05)"; }}
                 onMouseLeave={e => { if (!active) e.currentTarget.style.background = "transparent"; }}>
@@ -9075,9 +9075,9 @@ function AppShell() {
           <div style={{ height: 1, background: "rgba(255,255,255,0.07)", margin: "14px 8px 12px" }} />
           <p style={{ color: "#475569", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", padding: "0 8px", marginBottom: 8 }}>Deals</p>
           {flipNavItems.map(item => {
-            const active = activeView === item.id || (item.id === "flips" && activeView === "flipDetail");
+            const active = activeView === item.id || (item.id === "deals" && activeView === "dealDetail");
             return (
-              <button key={item.id} onClick={() => { setActiveView(item.id); setSelectedFlip(null); setSelectedProperty(null); setHighlightTxId(null); setNavSource(null); }}
+              <button key={item.id} onClick={() => { setActiveView(item.id); setSelectedDeal(null); setSelectedProperty(null); setHighlightTxId(null); setNavSource(null); }}
                 style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 10, border: "none", background: active ? "rgba(233,94,0,0.18)" : "transparent", color: active ? "#fb923c" : "#64748b", fontWeight: active ? 700 : 500, fontSize: 14, cursor: "pointer", marginBottom: 2, textAlign: "left", transition: "all 0.15s" }}
                 onMouseEnter={e => { if (!active) e.currentTarget.style.background = "rgba(255,255,255,0.05)"; }}
                 onMouseLeave={e => { if (!active) e.currentTarget.style.background = "transparent"; }}>
@@ -9092,7 +9092,7 @@ function AppShell() {
           {toolNavItems.map(item => {
             const active = activeView === item.id;
             return (
-              <button key={item.id} onClick={() => { setActiveView(item.id); setSelectedFlip(null); setSelectedProperty(null); setHighlightTxId(null); setNavSource(null); }}
+              <button key={item.id} onClick={() => { setActiveView(item.id); setSelectedDeal(null); setSelectedProperty(null); setHighlightTxId(null); setNavSource(null); }}
                 style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 10, border: "none", background: active ? "rgba(139,92,246,0.18)" : "transparent", color: active ? "#c4b5fd" : "#64748b", fontWeight: active ? 700 : 500, fontSize: 14, cursor: "pointer", marginBottom: 2, textAlign: "left", transition: "all 0.15s" }}
                 onMouseEnter={e => { if (!active) e.currentTarget.style.background = "rgba(255,255,255,0.05)"; }}
                 onMouseLeave={e => { if (!active) e.currentTarget.style.background = "transparent"; }}>
@@ -9128,7 +9128,7 @@ function AppShell() {
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <span style={{ color: "#041830", fontSize: 15, fontWeight: 600 }}>
               {activeView === "propertyDetail" && selectedProperty ? selectedProperty.name :
-               activeView === "flipDetail" && selectedFlip ? selectedFlip.name :
+               activeView === "dealDetail" && selectedDeal ? selectedDeal.name :
                activeView === "portfolio" ? "Portfolio" :
                activeView === "dashboard" ? "Dashboard" :
                [...rentalNavItems, ...flipNavItems, ...toolNavItems].find(n => n.id === activeView)?.label || ""}
@@ -9142,12 +9142,12 @@ function AppShell() {
                 if (prop) { setSelectedProperty(prop); setPropDetailTab("tenants"); setPropDetailTenantHighlight(item.data.id); setActiveView("propertyDetail"); }
                 else { setHighlightTenantId(item.data.id); setActiveView("tenants"); }
               }
-              else if (item.type === "deal") { handleFlipSelect(item.data, null, "flips"); }
+              else if (item.type === "deal") { handleDealSelect(item.data, null, "deals"); }
               else if (item.type === "transaction") { setHighlightTxId(item.data.id); setActiveView("transactions"); }
               else if (item.type === "contractor") { setSelectedContractor(item.data); setActiveView("contractorDetail"); }
               else if (item.type === "rental-note") { setHighlightNoteId(item.data.id); setActiveView("notes"); }
-              else if (item.type === "flip-note") { setHighlightFlipNoteId(item.data.id); setActiveView("notes"); }
-              else if (item.type === "flip-expense") { setHighlightExpId(item.data.id); setActiveView("flipexpenses"); }
+              else if (item.type === "deal-note") { setHighlightDealNoteId(item.data.id); setActiveView("notes"); }
+              else if (item.type === "deal-expense") { setHighlightExpId(item.data.id); setActiveView("dealexpenses"); }
             }} />
             <div style={{ position: "relative", cursor: "pointer" }}>
               <Bell size={20} color="#64748b" />
@@ -9157,26 +9157,26 @@ function AppShell() {
           </div>
         </div>
         <div style={{ flex: 1, padding: 32, maxWidth: 1400, width: "100%" }}>
-          {activeView === "portfolio" && <PortfolioDashboard onNavigate={setActiveView} onSelectProperty={(p) => { setNavSource("portfolio"); handlePropertySelect(p); }} onSelectFlip={(f) => { setNavSource("portfolio"); handleFlipSelect(f, null, "portfolio"); }} onNavigateToTx={(txId) => { setHighlightTxId(txId); setNavSource("portfolio"); setActiveView("transactions"); }} onNavigateToFlipExpense={(expId) => { setHighlightExpId(expId); setNavSource("portfolio"); setActiveView("flipexpenses"); }} onNavigateToLease={(prop, tenantId) => { setSelectedProperty(prop); setPropDetailTab("tenants"); setPropDetailTenantHighlight(tenantId); setNavSource("portfolio"); setActiveView("propertyDetail"); }} />}
+          {activeView === "portfolio" && <PortfolioDashboard onNavigate={setActiveView} onSelectProperty={(p) => { setNavSource("portfolio"); handlePropertySelect(p); }} onSelectFlip={(f) => { setNavSource("portfolio"); handleDealSelect(f, null, "portfolio"); }} onNavigateToTx={(txId) => { setHighlightTxId(txId); setNavSource("portfolio"); setActiveView("transactions"); }} onNavigateToDealExpense={(expId) => { setHighlightExpId(expId); setNavSource("portfolio"); setActiveView("dealexpenses"); }} onNavigateToLease={(prop, tenantId) => { setSelectedProperty(prop); setPropDetailTab("tenants"); setPropDetailTenantHighlight(tenantId); setNavSource("portfolio"); setActiveView("propertyDetail"); }} />}
           {activeView === "dashboard" && <Dashboard onNavigate={setActiveView} onNavigateToTx={navigateToTransaction} onSelectProperty={handlePropertySelect} onNavigateToTenantAdd={(propId, unit) => { setPrefillTenant({ propertyId: propId, unit }); setActiveView("tenants"); }} onNavigateToNote={(noteId) => { setHighlightNoteId(noteId); setNavSource("dashboard"); setActiveView("notes"); }} onNavigateToLease={(prop, tenantId) => { setSelectedProperty(prop); setPropDetailTab("tenants"); setPropDetailTenantHighlight(tenantId); setNavSource("dashboard"); setActiveView("propertyDetail"); }} />}
-          {activeView === "properties" && <Properties onSelect={handlePropertySelect} editPropertyId={editPropertyId} onClearEditId={() => setEditPropertyId(null)} convertFlipData={convertFlipData} onClearConvertFlip={() => setConvertFlipData(null)} />}
+          {activeView === "properties" && <Properties onSelect={handlePropertySelect} editPropertyId={editPropertyId} onClearEditId={() => setEditPropertyId(null)} convertDealData={convertDealData} onClearConvertFlip={() => setConvertDealData(null)} />}
           {activeView === "propertyDetail" && selectedProperty && <PropertyDetail key={selectedProperty.id + "-" + (propDetailTab || "overview") + "-" + (propDetailTenantHighlight || "")} property={selectedProperty} onBack={() => { setActiveView(navSource === "dashboard" ? "dashboard" : navSource === "portfolio" ? "portfolio" : "properties"); setPropDetailTab(null); setPropDetailTenantHighlight(null); setPrevNavSource(null); setNavSource(null); }} backLabel={navSource === "dashboard" ? "Back to Dashboard" : navSource === "portfolio" ? "Back to Portfolio" : "Back to Properties"} onEditProperty={(p) => { setEditPropertyId(p.id); setActiveView("properties"); }} onGoToTransactions={() => setActiveView("transactions")} onNavigateToTransaction={(txId) => { if (txId) { setHighlightTxId(txId); } setPrevNavSource(navSource); setNavSource("propertyDetail"); setActiveView("transactions"); }} onNavigateToTenant={(tenantId) => { setHighlightTenantId(tenantId); setPrevNavSource(navSource); setNavSource("propertyDetail"); setActiveView("tenants"); }} initialTab={propDetailTab} highlightTenantId={propDetailTenantHighlight} onClearHighlightTenant={() => setPropDetailTenantHighlight(null)} />}
           {activeView === "transactions" && <Transactions highlightTxId={highlightTxId} backLabel={navSource === "propertyDetail" ? "Back to Property" : navSource === "portfolio" ? "Back to Portfolio" : "Back to Dashboard"} onBack={navSource === "dashboard" ? () => { setActiveView("dashboard"); setHighlightTxId(null); setNavSource(null); setPrevNavSource(null); } : navSource === "portfolio" ? () => { setActiveView("portfolio"); setHighlightTxId(null); setNavSource(null); setPrevNavSource(null); } : navSource === "propertyDetail" ? () => { setActiveView("propertyDetail"); setHighlightTxId(null); setNavSource(prevNavSource); setPrevNavSource(null); } : null} onClearHighlight={() => setHighlightTxId(null)} />}
           {activeView === "analytics" && <Analytics />}
-          {activeView === "notes" && <UnifiedNotes highlightNoteId={highlightNoteId} highlightFlipNoteId={highlightFlipNoteId} onBack={navSource === "dashboard" ? () => { setActiveView("dashboard"); setHighlightNoteId(null); setNavSource(null); } : navSource === "flipdashboard" ? () => { setActiveView("flipdashboard"); setHighlightFlipNoteId(null); setNavSource(null); } : null} onClearHighlight={() => { setHighlightNoteId(null); setHighlightFlipNoteId(null); }} />}
+          {activeView === "notes" && <UnifiedNotes highlightNoteId={highlightNoteId} highlightDealNoteId={highlightDealNoteId} onBack={navSource === "dashboard" ? () => { setActiveView("dashboard"); setHighlightNoteId(null); setNavSource(null); } : navSource === "dealdashboard" ? () => { setActiveView("dealdashboard"); setHighlightDealNoteId(null); setNavSource(null); } : null} onClearHighlight={() => { setHighlightNoteId(null); setHighlightDealNoteId(null); }} />}
           {activeView === "reports" && <Reports />}
-          {activeView === "flipdashboard"   && <FlipDashboard onSelect={(f, tab) => handleFlipSelect(f, tab, "flipdashboard")} onNavigateToNote={(noteId) => { setHighlightFlipNoteId(noteId); setNavSource("flipdashboard"); setActiveView("notes"); }} onNavigateToExpense={(expId) => { setHighlightExpId(expId); setNavSource("flipdashboard"); setActiveView("flipexpenses"); }} onNavigateToMilestone={(msKey) => { setHighlightMilestoneKey(msKey); setNavSource("flipdashboard"); setActiveView("flipmilestones"); }} />}
-          {activeView === "flips"           && <FlipPipeline onSelect={(f, tab) => handleFlipSelect(f, tab, "flips")} />}
-          {activeView === "flipDetail"      && selectedFlip && <ErrorBoundary key={"eb-" + selectedFlip.id}><FlipDetail key={selectedFlip.id + "-" + (flipInitialTab || "overview")} flip={selectedFlip} onBack={() => { setActiveView(flipNavSource || "flips"); setFlipNavSource(null); setPrevFlipNavSource(null); setFlipInitialTab(null); }} backLabel={flipNavSource === "flipdashboard" ? "Back to Dashboard" : flipNavSource === "portfolio" ? "Back to Portfolio" : "Back to Deals"} onNavigateToExpense={navigateToFlipExpense} onNavigateToContractor={(con) => { setSelectedContractor(con); setPrevFlipNavSource(flipNavSource); setNavSource("flipDetail"); setActiveView("contractorDetail"); }} initialTab={flipInitialTab} onConvertToRental={(flipData) => { setConvertFlipData(flipData); setActiveView("properties"); }} onFlipUpdated={onFlipUpdated} onNavigateToFlip={(f) => handleFlipSelect(f, null, flipNavSource || "flips")} /></ErrorBoundary>}
-          {activeView === "fliprehab"        && <RehabTracker />}
-          {activeView === "flipexpenses"    && <FlipExpenses highlightExpId={highlightExpId} onBack={navSource === "flipDetail" ? () => { setActiveView("flipDetail"); setHighlightExpId(null); setNavSource(null); setFlipNavSource(prevFlipNavSource); setPrevFlipNavSource(null); } : navSource === "flipdashboard" ? () => { setActiveView("flipdashboard"); setHighlightExpId(null); setNavSource(null); } : navSource === "portfolio" ? () => { setActiveView("portfolio"); setHighlightExpId(null); setNavSource(null); } : null} backLabel={navSource === "flipdashboard" ? "Back to Dashboard" : navSource === "portfolio" ? "Back to Portfolio" : "Back to Deal"} onClearHighlight={() => setHighlightExpId(null)} />}
-          {activeView === "flipcontractors" && <FlipContractors onSelectContractor={handleSelectContractor} />}
-          {activeView === "contractorDetail" && selectedContractor && <ContractorDetail contractor={selectedContractor} onBack={() => { setSelectedContractor(null); if (navSource === "flipDetail" && selectedFlip) { setActiveView("flipDetail"); setFlipInitialTab("contractors"); setNavSource(null); setFlipNavSource(prevFlipNavSource); setPrevFlipNavSource(null); } else { setActiveView("flipcontractors"); } }} />}
-          {activeView === "flipmilestones"  && <FlipMilestones highlightMilestoneKey={highlightMilestoneKey} onBack={navSource === "flipdashboard" ? () => { setActiveView("flipdashboard"); setHighlightMilestoneKey(null); setNavSource(null); } : null} onClearHighlight={() => setHighlightMilestoneKey(null)} />}
-          {activeView === "flipnotes"       && <UnifiedNotes highlightFlipNoteId={highlightFlipNoteId} onBack={navSource === "flipdashboard" ? () => { setActiveView("flipdashboard"); setHighlightFlipNoteId(null); setNavSource(null); } : null} onClearHighlight={() => setHighlightFlipNoteId(null)} />}
-          {activeView === "flipanalytics"   && <FlipAnalytics />}
-          {activeView === "flipreports"    && <FlipReports />}
-          {activeView === "tenants" && <RentRoll onBack={navSource === "propertyDetail" ? () => { setActiveView("propertyDetail"); setHighlightTenantId(null); setNavSource(prevNavSource); setPrevNavSource(null); } : null} highlightTenantId={highlightTenantId} onClearHighlight={() => setHighlightTenantId(null)} prefillTenant={prefillTenant} onClearPrefill={() => setPrefillTenant(null)} />}
+          {activeView === "dealdashboard"   && <FlipDashboard onSelect={(f, tab) => handleDealSelect(f, tab, "dealdashboard")} onNavigateToNote={(noteId) => { setHighlightDealNoteId(noteId); setNavSource("dealdashboard"); setActiveView("notes"); }} onNavigateToExpense={(expId) => { setHighlightExpId(expId); setNavSource("dealdashboard"); setActiveView("dealexpenses"); }} onNavigateToMilestone={(msKey) => { setHighlightMilestoneKey(msKey); setNavSource("dealdashboard"); setActiveView("dealmilestones"); }} />}
+          {activeView === "deals"           && <DealPipeline onSelect={(f, tab) => handleDealSelect(f, tab, "deals")} />}
+          {activeView === "dealDetail"      && selectedDeal && <ErrorBoundary key={"eb-" + selectedDeal.id}><DealDetail key={selectedDeal.id + "-" + (dealInitialTab || "overview")} deal={selectedDeal} onBack={() => { setActiveView(dealNavSource || "deals"); setDealNavSource(null); setPrevDealNavSource(null); setDealInitialTab(null); }} backLabel={dealNavSource === "dealdashboard" ? "Back to Dashboard" : dealNavSource === "portfolio" ? "Back to Portfolio" : "Back to Deals"} onNavigateToExpense={navigateToDealExpense} onNavigateToContractor={(con) => { setSelectedContractor(con); setPrevDealNavSource(dealNavSource); setNavSource("dealDetail"); setActiveView("contractorDetail"); }} initialTab={dealInitialTab} onConvertToRental={(flipData) => { setConvertDealData(flipData); setActiveView("properties"); }} onDealUpdated={onDealUpdated} onNavigateToDeal={(f) => handleDealSelect(f, null, dealNavSource || "deals")} /></ErrorBoundary>}
+          {activeView === "dealrehab"        && <RehabTracker />}
+          {activeView === "dealexpenses"    && <FlipExpenses highlightExpId={highlightExpId} onBack={navSource === "dealDetail" ? () => { setActiveView("dealDetail"); setHighlightExpId(null); setNavSource(null); setDealNavSource(prevDealNavSource); setPrevDealNavSource(null); } : navSource === "dealdashboard" ? () => { setActiveView("dealdashboard"); setHighlightExpId(null); setNavSource(null); } : navSource === "portfolio" ? () => { setActiveView("portfolio"); setHighlightExpId(null); setNavSource(null); } : null} backLabel={navSource === "dealdashboard" ? "Back to Dashboard" : navSource === "portfolio" ? "Back to Portfolio" : "Back to Deal"} onClearHighlight={() => setHighlightExpId(null)} />}
+          {activeView === "dealcontractors" && <FlipContractors onSelectContractor={handleSelectContractor} />}
+          {activeView === "contractorDetail" && selectedContractor && <ContractorDetail contractor={selectedContractor} onBack={() => { setSelectedContractor(null); if (navSource === "dealDetail" && selectedDeal) { setActiveView("dealDetail"); setDealInitialTab("contractors"); setNavSource(null); setDealNavSource(prevDealNavSource); setPrevDealNavSource(null); } else { setActiveView("dealcontractors"); } }} />}
+          {activeView === "dealmilestones"  && <FlipMilestones highlightMilestoneKey={highlightMilestoneKey} onBack={navSource === "dealdashboard" ? () => { setActiveView("dealdashboard"); setHighlightMilestoneKey(null); setNavSource(null); } : null} onClearHighlight={() => setHighlightMilestoneKey(null)} />}
+          {activeView === "dealnotes"       && <UnifiedNotes highlightDealNoteId={highlightDealNoteId} onBack={navSource === "dealdashboard" ? () => { setActiveView("dealdashboard"); setHighlightDealNoteId(null); setNavSource(null); } : null} onClearHighlight={() => setHighlightDealNoteId(null)} />}
+          {activeView === "dealanalytics"   && <FlipAnalytics />}
+          {activeView === "dealreports"    && <FlipReports />}
+          {activeView === "tenants" && <TenantManagement onBack={navSource === "propertyDetail" ? () => { setActiveView("propertyDetail"); setHighlightTenantId(null); setNavSource(prevNavSource); setPrevNavSource(null); } : null} highlightTenantId={highlightTenantId} onClearHighlight={() => setHighlightTenantId(null)} prefillTenant={prefillTenant} onClearPrefill={() => setPrefillTenant(null)} />}
           {activeView === "mileage" && <MileageTracker />}
           {activeView === "dealanalyzer" && <DealAnalyzer />}
         </div>

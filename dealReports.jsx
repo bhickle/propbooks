@@ -1,4 +1,4 @@
-// ─── FIX & FLIP REPORTS ─────────────────────────────────────────────────────
+// ─── DEAL REPORTS ─────────────────────────────────────────────────────
 // Deal profitability · Rehab budget vs actual · Contractor payments · Holding costs
 // Capital gains · Cash flow · Pipeline value
 // Matches rental Reports layout: sidebar nav, KPI strip, content area
@@ -13,7 +13,7 @@ import {
   ArrowDown, Calendar,
 } from "lucide-react";
 import { fmt, fmtK, STAGE_ORDER, STAGE_COLORS } from "./api.js";
-import { FLIPS as _FLIPS, FLIP_EXPENSES as _FE, CONTRACTORS as _CON } from "./api.js";
+import { DEALS as _DEALS, DEAL_EXPENSES as _FE, CONTRACTORS as _CON } from "./api.js";
 
 // ─── Shared styles ───────────────────────────────────────────────────────────
 const iS = { width: "100%", padding: "10px 14px", borderRadius: 10, border: "1.5px solid #e2e8f0", fontSize: 14, color: "#0f172a", background: "#fff", outline: "none" };
@@ -58,11 +58,11 @@ function calcDealMetrics(f) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-export function FlipReports() {
+export function DealReports() {
   const [activeReport, setActiveReport] = useState("profitability");
   const [dealFilter, setDealFilter] = useState("all");
 
-  const deals = dealFilter === "all" ? _FLIPS : _FLIPS.filter(f => f.id === parseInt(dealFilter));
+  const deals = dealFilter === "all" ? _DEALS : _DEALS.filter(f => f.id === parseInt(dealFilter));
   const allMetrics = deals.map(f => ({ ...f, m: calcDealMetrics(f) }));
 
   // Portfolio-level KPIs
@@ -95,7 +95,7 @@ export function FlipReports() {
         <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
           <select value={dealFilter} onChange={e => setDealFilter(e.target.value)} style={{ ...iS, width: 220 }}>
             <option value="all">All Deals</option>
-            {_FLIPS.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
+            {_DEALS.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
           </select>
         </div>
       </div>
@@ -134,7 +134,7 @@ export function FlipReports() {
           ))}
           <div style={{ borderTop: "1px solid #f1f5f9", marginTop: 12, paddingTop: 12 }}>
             <p style={{ fontSize: 11, color: "#94a3b8", fontWeight: 600, textTransform: "uppercase", padding: "0 14px", marginBottom: 6 }}>Scope</p>
-            <p style={{ fontSize: 12, color: "#475569", padding: "0 14px", fontWeight: 600 }}>{dealFilter === "all" ? `All ${_FLIPS.length} deals` : _FLIPS.find(f => f.id === parseInt(dealFilter))?.name}</p>
+            <p style={{ fontSize: 12, color: "#475569", padding: "0 14px", fontWeight: 600 }}>{dealFilter === "all" ? `All ${_DEALS.length} deals` : _DEALS.find(f => f.id === parseInt(dealFilter))?.name}</p>
             <p style={{ fontSize: 12, color: "#94a3b8", padding: "0 14px" }}>{deals.filter(d => d.stage === "Sold").length} sold · {deals.filter(d => d.stage !== "Sold").length} active</p>
           </div>
         </div>
@@ -418,11 +418,11 @@ function ContractorPaymentsReport({ dealFilter }) {
   // Helper: filter bids/payments by deal when a specific deal is selected
   const getBids = (c) => {
     const bids = c.bids || [];
-    return filterDealId ? bids.filter(b => b.flipId === filterDealId) : bids;
+    return filterDealId ? bids.filter(b => b.dealId === filterDealId) : bids;
   };
   const getPayments = (c) => {
     const pays = c.payments || [];
-    return filterDealId ? pays.filter(p => p.flipId === filterDealId) : pays;
+    return filterDealId ? pays.filter(p => p.dealId === filterDealId) : pays;
   };
 
   const sorted = [...contractors].sort((a, b) => {
@@ -637,7 +637,7 @@ function CashFlowReport({ deals }) {
   const monthlyData = MONTHS.map((month, i) => {
     const monthExpenses = _FE.filter(e => {
       const d = new Date(e.date);
-      return d.getMonth() === i && deals.some(dl => dl.id === e.flipId);
+      return d.getMonth() === i && deals.some(dl => dl.id === e.dealId);
     });
     const purchases = deals.filter(f => {
       const acqDate = f.acquisitionDate || f.contractDate;

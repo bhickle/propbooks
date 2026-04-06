@@ -27,7 +27,7 @@ export const fmtK = (n) =>
 // Constants (move to DB config table later)
 // -----------------------------------------------------------------------------
 export const PROP_COLORS  = ["#3b82f6","#10b981","#8b5cf6","#e95e00","#ef4444","#06b6d4","#ec4899"];
-export const FLIP_COLORS  = ["#e95e00","#10b981","#8b5cf6","#3b82f6","#ef4444","#06b6d4"];
+export const DEAL_COLORS  = ["#e95e00","#10b981","#8b5cf6","#3b82f6","#ef4444","#06b6d4"];
 export const STAGE_ORDER  = ["Under Contract","Active Rehab","Listed","Sold","Converted to Rental"];
 export const STAGE_COLORS = {
   "Under Contract":       { bg: "#ede9fe", text: "#6d28d9", dot: "#8b5cf6" },
@@ -100,7 +100,7 @@ const _expenseCategories = [
   { name:"Other",        value:4,  color:"#6b7280" },
 ];
 
-export const FLIPS = [
+export const DEALS = [
   {
     id:1, name:"Oakdale Craftsman", address:"1422 Oakdale Ave, Nashville, TN 37206",
     stage:"Active Rehab", image:"OC", color:"#f59e0b",
@@ -172,22 +172,22 @@ export const FLIPS = [
   },
 ];
 
-export const FLIP_EXPENSES = [
-  { id:1,  flipId:1, date:"2026-03-18", vendor:"Home Depot",        contractorId:null, category:"Materials & Supplies",     description:"Hardwood flooring - 680 sqft",        amount:2890, createdAt:"2026-03-18T11:00:00Z", updatedAt:"2026-03-18T11:00:00Z", userId:"usr_001" },
-  { id:2,  flipId:1, date:"2026-03-15", vendor:"ABC Plumbing",      contractorId:1,    category:"Subcontractor",            description:"Master bath rough-in",                amount:3200, createdAt:"2026-03-15T09:30:00Z", updatedAt:"2026-03-15T09:30:00Z", userId:"usr_001" },
-  { id:3,  flipId:1, date:"2026-03-10", vendor:"Lowe's",            contractorId:null, category:"Fixtures & Hardware",      description:"Kitchen cabinet hardware + fixtures", amount:640,  createdAt:"2026-03-10T10:00:00Z", updatedAt:"2026-03-10T10:00:00Z", userId:"usr_001" },
-  { id:4,  flipId:1, date:"2026-03-04", vendor:"City of Nashville", contractorId:null, category:"Permits",                  description:"Renovation permit",                   amount:380,  createdAt:"2026-03-04T14:00:00Z", updatedAt:"2026-03-04T14:00:00Z", userId:"usr_001" },
-  { id:5,  flipId:1, date:"2026-02-28", vendor:"Elite Electric",    contractorId:2,    category:"Subcontractor",            description:"Panel upgrade + recessed lighting",   amount:4100, createdAt:"2026-02-28T09:00:00Z", updatedAt:"2026-02-28T09:00:00Z", userId:"usr_001" },
-  { id:6,  flipId:1, date:"2026-02-20", vendor:"Lowe's",            contractorId:null, category:"Materials & Supplies",     description:"Kitchen cabinets - shaker style",     amount:5800, createdAt:"2026-02-20T10:30:00Z", updatedAt:"2026-02-20T10:30:00Z", userId:"usr_001" },
-  { id:7,  flipId:1, date:"2026-02-14", vendor:"Budget Dumpster",   contractorId:null, category:"Dumpster / Debris Removal",description:"Demo debris removal",                 amount:420,  createdAt:"2026-02-14T08:30:00Z", updatedAt:"2026-02-14T08:30:00Z", userId:"usr_001" },
-  { id:8,  flipId:2, date:"2026-01-12", vendor:"Sherwin-Williams",  contractorId:null, category:"Materials & Supplies",     description:"Interior/exterior paint + supplies",  amount:1150, createdAt:"2026-01-12T11:00:00Z", updatedAt:"2026-01-12T11:00:00Z", userId:"usr_001" },
-  { id:9,  flipId:2, date:"2026-01-08", vendor:"Pro Flooring Co.",  contractorId:4,    category:"Subcontractor",            description:"LVP install - 1,100 sqft",            amount:3900, createdAt:"2026-01-08T09:00:00Z", updatedAt:"2026-01-08T09:00:00Z", userId:"usr_001" },
-  { id:10, flipId:2, date:"2025-12-20", vendor:"Home Depot",        contractorId:null, category:"Appliances",               description:"Stainless appliance package",         amount:2400, createdAt:"2025-12-20T10:30:00Z", updatedAt:"2025-12-20T10:30:00Z", userId:"usr_001" },
-  { id:11, flipId:2, date:"2025-12-10", vendor:"Jim's Windows",     contractorId:5,    category:"Subcontractor",            description:"Replace 8 windows",                   amount:5400, createdAt:"2025-12-10T09:00:00Z", updatedAt:"2025-12-10T09:00:00Z", userId:"usr_001" },
-  { id:12, flipId:2, date:"2025-11-18", vendor:"City of Memphis",   contractorId:null, category:"Permits",                  description:"Electrical & structural permits",      amount:295,  createdAt:"2025-11-18T15:00:00Z", updatedAt:"2025-11-18T15:00:00Z", userId:"usr_001" },
-  { id:13, flipId:4, date:"2025-07-02", vendor:"Summit HVAC",       contractorId:6,    category:"Subcontractor",            description:"Full HVAC replacement",               amount:7200, createdAt:"2025-07-02T09:00:00Z", updatedAt:"2025-07-02T09:00:00Z", userId:"usr_001" },
-  { id:14, flipId:4, date:"2025-06-15", vendor:"Habitat Flooring",  contractorId:null, category:"Materials & Supplies",     description:"Engineered hardwood - whole house",   amount:4300, createdAt:"2025-06-15T10:00:00Z", updatedAt:"2025-06-15T10:00:00Z", userId:"usr_001" },
-  { id:15, flipId:4, date:"2025-06-01", vendor:"Raleigh Tile Co.",  contractorId:null, category:"Subcontractor",            description:"Master bath tile work",               amount:3100, createdAt:"2025-06-01T10:00:00Z", updatedAt:"2025-06-01T10:00:00Z", userId:"usr_001" },
+export const DEAL_EXPENSES = [
+  { id:1,  dealId:1, date:"2026-03-18", vendor:"Home Depot",        contractorId:null, category:"Materials & Supplies",     description:"Hardwood flooring - 680 sqft",        amount:2890, createdAt:"2026-03-18T11:00:00Z", updatedAt:"2026-03-18T11:00:00Z", userId:"usr_001" },
+  { id:2,  dealId:1, date:"2026-03-15", vendor:"ABC Plumbing",      contractorId:1,    category:"Subcontractor",            description:"Master bath rough-in",                amount:3200, createdAt:"2026-03-15T09:30:00Z", updatedAt:"2026-03-15T09:30:00Z", userId:"usr_001" },
+  { id:3,  dealId:1, date:"2026-03-10", vendor:"Lowe's",            contractorId:null, category:"Fixtures & Hardware",      description:"Kitchen cabinet hardware + fixtures", amount:640,  createdAt:"2026-03-10T10:00:00Z", updatedAt:"2026-03-10T10:00:00Z", userId:"usr_001" },
+  { id:4,  dealId:1, date:"2026-03-04", vendor:"City of Nashville", contractorId:null, category:"Permits",                  description:"Renovation permit",                   amount:380,  createdAt:"2026-03-04T14:00:00Z", updatedAt:"2026-03-04T14:00:00Z", userId:"usr_001" },
+  { id:5,  dealId:1, date:"2026-02-28", vendor:"Elite Electric",    contractorId:2,    category:"Subcontractor",            description:"Panel upgrade + recessed lighting",   amount:4100, createdAt:"2026-02-28T09:00:00Z", updatedAt:"2026-02-28T09:00:00Z", userId:"usr_001" },
+  { id:6,  dealId:1, date:"2026-02-20", vendor:"Lowe's",            contractorId:null, category:"Materials & Supplies",     description:"Kitchen cabinets - shaker style",     amount:5800, createdAt:"2026-02-20T10:30:00Z", updatedAt:"2026-02-20T10:30:00Z", userId:"usr_001" },
+  { id:7,  dealId:1, date:"2026-02-14", vendor:"Budget Dumpster",   contractorId:null, category:"Dumpster / Debris Removal",description:"Demo debris removal",                 amount:420,  createdAt:"2026-02-14T08:30:00Z", updatedAt:"2026-02-14T08:30:00Z", userId:"usr_001" },
+  { id:8,  dealId:2, date:"2026-01-12", vendor:"Sherwin-Williams",  contractorId:null, category:"Materials & Supplies",     description:"Interior/exterior paint + supplies",  amount:1150, createdAt:"2026-01-12T11:00:00Z", updatedAt:"2026-01-12T11:00:00Z", userId:"usr_001" },
+  { id:9,  dealId:2, date:"2026-01-08", vendor:"Pro Flooring Co.",  contractorId:4,    category:"Subcontractor",            description:"LVP install - 1,100 sqft",            amount:3900, createdAt:"2026-01-08T09:00:00Z", updatedAt:"2026-01-08T09:00:00Z", userId:"usr_001" },
+  { id:10, dealId:2, date:"2025-12-20", vendor:"Home Depot",        contractorId:null, category:"Appliances",               description:"Stainless appliance package",         amount:2400, createdAt:"2025-12-20T10:30:00Z", updatedAt:"2025-12-20T10:30:00Z", userId:"usr_001" },
+  { id:11, dealId:2, date:"2025-12-10", vendor:"Jim's Windows",     contractorId:5,    category:"Subcontractor",            description:"Replace 8 windows",                   amount:5400, createdAt:"2025-12-10T09:00:00Z", updatedAt:"2025-12-10T09:00:00Z", userId:"usr_001" },
+  { id:12, dealId:2, date:"2025-11-18", vendor:"City of Memphis",   contractorId:null, category:"Permits",                  description:"Electrical & structural permits",      amount:295,  createdAt:"2025-11-18T15:00:00Z", updatedAt:"2025-11-18T15:00:00Z", userId:"usr_001" },
+  { id:13, dealId:4, date:"2025-07-02", vendor:"Summit HVAC",       contractorId:6,    category:"Subcontractor",            description:"Full HVAC replacement",               amount:7200, createdAt:"2025-07-02T09:00:00Z", updatedAt:"2025-07-02T09:00:00Z", userId:"usr_001" },
+  { id:14, dealId:4, date:"2025-06-15", vendor:"Habitat Flooring",  contractorId:null, category:"Materials & Supplies",     description:"Engineered hardwood - whole house",   amount:4300, createdAt:"2025-06-15T10:00:00Z", updatedAt:"2025-06-15T10:00:00Z", userId:"usr_001" },
+  { id:15, dealId:4, date:"2025-06-01", vendor:"Raleigh Tile Co.",  contractorId:null, category:"Subcontractor",            description:"Master bath tile work",               amount:3100, createdAt:"2025-06-01T10:00:00Z", updatedAt:"2025-06-01T10:00:00Z", userId:"usr_001" },
 ];
 
 export const CONTRACTORS = [
@@ -200,30 +200,30 @@ export const CONTRACTORS = [
 ];
 
 export const CONTRACTOR_BIDS = [
-  { id:101, contractorId:1, flipId:1, rehabItem:"Rough-In (Plumbing)", amount:8500, status:"accepted", date:"2026-01-10", createdAt:"2026-01-10T10:00:00Z", updatedAt:"2026-01-10T10:00:00Z", userId:"usr_001" },
-  { id:102, contractorId:1, flipId:3, rehabItem:"Plumbing",             amount:6200, status:"pending",  date:"2026-03-15", createdAt:"2026-03-15T10:00:00Z", updatedAt:"2026-03-15T10:00:00Z", userId:"usr_001" },
-  { id:103, contractorId:2, flipId:1, rehabItem:"Electrical Rough-In", amount:4100, status:"accepted", date:"2026-01-08", createdAt:"2026-01-08T09:00:00Z", updatedAt:"2026-01-08T09:00:00Z", userId:"usr_001" },
-  { id:104, contractorId:3, flipId:1, rehabItem:"Drywall", amount:3800, status:"pending", date:"2026-02-20", createdAt:"2026-02-20T10:00:00Z", updatedAt:"2026-02-20T10:00:00Z", userId:"usr_001" },
-  { id:105, contractorId:4, flipId:2, rehabItem:"Flooring", amount:3900, status:"accepted", date:"2025-12-01", createdAt:"2025-12-01T09:00:00Z", updatedAt:"2025-12-01T09:00:00Z", userId:"usr_001" },
-  { id:106, contractorId:4, flipId:1, rehabItem:"Flooring",  amount:4200, status:"pending",  date:"2026-03-01", createdAt:"2026-03-01T10:00:00Z", updatedAt:"2026-03-01T10:00:00Z", userId:"usr_001" },
-  { id:107, contractorId:5, flipId:2, rehabItem:"Windows & Doors", amount:5400, status:"accepted", date:"2025-11-15", createdAt:"2025-11-15T09:00:00Z", updatedAt:"2025-11-15T09:00:00Z", userId:"usr_001" },
-  { id:108, contractorId:6, flipId:4, rehabItem:"HVAC Replacement", amount:7200, status:"accepted", date:"2025-06-10", createdAt:"2025-06-10T09:00:00Z", updatedAt:"2025-06-10T09:00:00Z", userId:"usr_001" },
+  { id:101, contractorId:1, dealId:1, rehabItem:"Rough-In (Plumbing)", amount:8500, status:"accepted", date:"2026-01-10", createdAt:"2026-01-10T10:00:00Z", updatedAt:"2026-01-10T10:00:00Z", userId:"usr_001" },
+  { id:102, contractorId:1, dealId:3, rehabItem:"Plumbing",             amount:6200, status:"pending",  date:"2026-03-15", createdAt:"2026-03-15T10:00:00Z", updatedAt:"2026-03-15T10:00:00Z", userId:"usr_001" },
+  { id:103, contractorId:2, dealId:1, rehabItem:"Electrical Rough-In", amount:4100, status:"accepted", date:"2026-01-08", createdAt:"2026-01-08T09:00:00Z", updatedAt:"2026-01-08T09:00:00Z", userId:"usr_001" },
+  { id:104, contractorId:3, dealId:1, rehabItem:"Drywall", amount:3800, status:"pending", date:"2026-02-20", createdAt:"2026-02-20T10:00:00Z", updatedAt:"2026-02-20T10:00:00Z", userId:"usr_001" },
+  { id:105, contractorId:4, dealId:2, rehabItem:"Flooring", amount:3900, status:"accepted", date:"2025-12-01", createdAt:"2025-12-01T09:00:00Z", updatedAt:"2025-12-01T09:00:00Z", userId:"usr_001" },
+  { id:106, contractorId:4, dealId:1, rehabItem:"Flooring",  amount:4200, status:"pending",  date:"2026-03-01", createdAt:"2026-03-01T10:00:00Z", updatedAt:"2026-03-01T10:00:00Z", userId:"usr_001" },
+  { id:107, contractorId:5, dealId:2, rehabItem:"Windows & Doors", amount:5400, status:"accepted", date:"2025-11-15", createdAt:"2025-11-15T09:00:00Z", updatedAt:"2025-11-15T09:00:00Z", userId:"usr_001" },
+  { id:108, contractorId:6, dealId:4, rehabItem:"HVAC Replacement", amount:7200, status:"accepted", date:"2025-06-10", createdAt:"2025-06-10T09:00:00Z", updatedAt:"2025-06-10T09:00:00Z", userId:"usr_001" },
 ];
 
 export const CONTRACTOR_PAYMENTS = [
-  { id:201, contractorId:1, flipId:1, amount:3200, date:"2026-02-15", note:"Progress payment — rough-in complete", createdAt:"2026-02-15T09:00:00Z", updatedAt:"2026-02-15T09:00:00Z", userId:"usr_001" },
-  { id:202, contractorId:2, flipId:1, amount:4100, date:"2026-02-28", note:"Final payment — work complete", createdAt:"2026-02-28T09:00:00Z", updatedAt:"2026-02-28T09:00:00Z", userId:"usr_001" },
-  { id:203, contractorId:4, flipId:2, amount:3900, date:"2026-01-20", note:"Final — flooring complete", createdAt:"2026-01-20T09:00:00Z", updatedAt:"2026-01-20T09:00:00Z", userId:"usr_001" },
-  { id:204, contractorId:5, flipId:2, amount:5400, date:"2026-01-10", note:"Paid in full", createdAt:"2026-01-10T09:00:00Z", updatedAt:"2026-01-10T09:00:00Z", userId:"usr_001" },
-  { id:205, contractorId:6, flipId:4, amount:7200, date:"2025-08-20", note:"Final — system installed", createdAt:"2025-08-20T09:00:00Z", updatedAt:"2025-08-20T09:00:00Z", userId:"usr_001" },
+  { id:201, contractorId:1, dealId:1, amount:3200, date:"2026-02-15", note:"Progress payment — rough-in complete", createdAt:"2026-02-15T09:00:00Z", updatedAt:"2026-02-15T09:00:00Z", userId:"usr_001" },
+  { id:202, contractorId:2, dealId:1, amount:4100, date:"2026-02-28", note:"Final payment — work complete", createdAt:"2026-02-28T09:00:00Z", updatedAt:"2026-02-28T09:00:00Z", userId:"usr_001" },
+  { id:203, contractorId:4, dealId:2, amount:3900, date:"2026-01-20", note:"Final — flooring complete", createdAt:"2026-01-20T09:00:00Z", updatedAt:"2026-01-20T09:00:00Z", userId:"usr_001" },
+  { id:204, contractorId:5, dealId:2, amount:5400, date:"2026-01-10", note:"Paid in full", createdAt:"2026-01-10T09:00:00Z", updatedAt:"2026-01-10T09:00:00Z", userId:"usr_001" },
+  { id:205, contractorId:6, dealId:4, amount:7200, date:"2025-08-20", note:"Final — system installed", createdAt:"2025-08-20T09:00:00Z", updatedAt:"2025-08-20T09:00:00Z", userId:"usr_001" },
 ];
 
 export const CONTRACTOR_DOCUMENTS = [
-  { id:301, contractorId:1, name:"W-9 (2026)",         type:"w9",        flipId:null, date:"2026-01-02", size:"42 KB", createdAt:"2026-01-02T10:00:00Z", updatedAt:"2026-01-02T10:00:00Z", userId:"usr_001" },
-  { id:302, contractorId:1, name:"Insurance Certificate", type:"insurance", flipId:null, date:"2026-01-05", size:"128 KB", createdAt:"2026-01-05T10:00:00Z", updatedAt:"2026-01-05T10:00:00Z", userId:"usr_001" },
-  { id:303, contractorId:1, name:"Plumbing Contract — Oakdale", type:"contract", flipId:1, date:"2026-01-10", size:"84 KB", createdAt:"2026-01-10T10:00:00Z", updatedAt:"2026-01-10T10:00:00Z", userId:"usr_001" },
-  { id:304, contractorId:2, name:"W-9 (2026)", type:"w9", flipId:null, date:"2026-01-03", size:"38 KB", createdAt:"2026-01-03T10:00:00Z", updatedAt:"2026-01-03T10:00:00Z", userId:"usr_001" },
-  { id:305, contractorId:6, name:"HVAC Warranty Certificate", type:"warranty", flipId:4, date:"2025-08-20", size:"56 KB", createdAt:"2025-08-20T09:00:00Z", updatedAt:"2025-08-20T09:00:00Z", userId:"usr_001" },
+  { id:301, contractorId:1, name:"W-9 (2026)",         type:"w9",        dealId:null, date:"2026-01-02", size:"42 KB", createdAt:"2026-01-02T10:00:00Z", updatedAt:"2026-01-02T10:00:00Z", userId:"usr_001" },
+  { id:302, contractorId:1, name:"Insurance Certificate", type:"insurance", dealId:null, date:"2026-01-05", size:"128 KB", createdAt:"2026-01-05T10:00:00Z", updatedAt:"2026-01-05T10:00:00Z", userId:"usr_001" },
+  { id:303, contractorId:1, name:"Plumbing Contract — Oakdale", type:"contract", dealId:1, date:"2026-01-10", size:"84 KB", createdAt:"2026-01-10T10:00:00Z", updatedAt:"2026-01-10T10:00:00Z", userId:"usr_001" },
+  { id:304, contractorId:2, name:"W-9 (2026)", type:"w9", dealId:null, date:"2026-01-03", size:"38 KB", createdAt:"2026-01-03T10:00:00Z", updatedAt:"2026-01-03T10:00:00Z", userId:"usr_001" },
+  { id:305, contractorId:6, name:"HVAC Warranty Certificate", type:"warranty", dealId:4, date:"2025-08-20", size:"56 KB", createdAt:"2025-08-20T09:00:00Z", updatedAt:"2025-08-20T09:00:00Z", userId:"usr_001" },
 ];
 
 // ── Property-level documents (leases, inspections, insurance, etc.) ──
@@ -237,10 +237,10 @@ export const PROPERTY_DOCUMENTS = [
 
 // ── Deal-level documents (contracts, scope docs, closing statements) ──
 export const DEAL_DOCUMENTS = [
-  { id: 501, flipId: 1, name: "Purchase Agreement — Oakdale", type: "contract", mimeType: "application/pdf", size: "1.5 MB", date: "2026-01-06", url: null, createdAt: "2026-01-06T10:00:00Z", updatedAt: "2026-01-06T10:00:00Z", userId: "usr_001" },
-  { id: 502, flipId: 1, name: "Scope of Work — Full Rehab", type: "scope", mimeType: "application/pdf", size: "680 KB", date: "2026-01-08", url: null, createdAt: "2026-01-08T10:00:00Z", updatedAt: "2026-01-08T10:00:00Z", userId: "usr_001" },
-  { id: 503, flipId: 2, name: "Closing Statement — Pine Street", type: "closing", mimeType: "application/pdf", size: "420 KB", date: "2025-10-14", url: null, createdAt: "2025-10-14T10:00:00Z", updatedAt: "2025-10-14T10:00:00Z", userId: "usr_001" },
-  { id: 504, flipId: 4, name: "Appraisal Report — Biltmore", type: "appraisal", mimeType: "application/pdf", size: "2.1 MB", date: "2025-04-05", url: null, createdAt: "2025-04-05T10:00:00Z", updatedAt: "2025-04-05T10:00:00Z", userId: "usr_001" },
+  { id: 501, dealId: 1, name: "Purchase Agreement — Oakdale", type: "contract", mimeType: "application/pdf", size: "1.5 MB", date: "2026-01-06", url: null, createdAt: "2026-01-06T10:00:00Z", updatedAt: "2026-01-06T10:00:00Z", userId: "usr_001" },
+  { id: 502, dealId: 1, name: "Scope of Work — Full Rehab", type: "scope", mimeType: "application/pdf", size: "680 KB", date: "2026-01-08", url: null, createdAt: "2026-01-08T10:00:00Z", updatedAt: "2026-01-08T10:00:00Z", userId: "usr_001" },
+  { id: 503, dealId: 2, name: "Closing Statement — Pine Street", type: "closing", mimeType: "application/pdf", size: "420 KB", date: "2025-10-14", url: null, createdAt: "2025-10-14T10:00:00Z", updatedAt: "2025-10-14T10:00:00Z", userId: "usr_001" },
+  { id: 504, dealId: 4, name: "Appraisal Report — Biltmore", type: "appraisal", mimeType: "application/pdf", size: "2.1 MB", date: "2025-04-05", url: null, createdAt: "2025-04-05T10:00:00Z", updatedAt: "2025-04-05T10:00:00Z", userId: "usr_001" },
 ];
 
 // ── Tenant-level documents (applications, IDs, lease addenda) ──
@@ -256,59 +256,59 @@ export const TRANSACTION_RECEIPTS = [
   { id: 702, transactionId: 8, name: "StateFarm_Q1_invoice.pdf", mimeType: "application/pdf", size: "380 KB", url: null, ocrData: null, createdAt: "2026-03-05T14:00:00Z", userId: "usr_001" },
 ];
 
-export const FLIP_EXPENSE_RECEIPTS = [
+export const DEAL_EXPENSE_RECEIPTS = [
   { id: 801, expenseId: 1, name: "HomeDepot_flooring_receipt.jpg", mimeType: "image/jpeg", size: "2.1 MB", url: null, ocrData: { vendor: "Home Depot", amount: 2890, date: "2026-03-18" }, createdAt: "2026-03-18T12:00:00Z", userId: "usr_001" },
   { id: 802, expenseId: 4, name: "Nashville_permit_receipt.pdf", mimeType: "application/pdf", size: "156 KB", url: null, ocrData: null, createdAt: "2026-03-04T15:00:00Z", userId: "usr_001" },
 ];
 
-export const FLIP_MILESTONES = [
-  // Flip 1 milestones (id 3001-3012)
-  { id: 3001, flipId: 1, label: "Contract Executed", done: true, date: "2026-01-06", createdAt:"2026-01-06T09:00:00Z", updatedAt:"2026-01-06T09:00:00Z", userId:"usr_001" },
-  { id: 3002, flipId: 1, label: "Inspection Complete", done: true, date: "2026-01-07", createdAt:"2026-01-07T09:00:00Z", updatedAt:"2026-01-07T09:00:00Z", userId:"usr_001" },
-  { id: 3003, flipId: 1, label: "Purchased / Closed", done: true, date: "2026-01-08", createdAt:"2026-01-08T09:00:00Z", updatedAt:"2026-01-08T09:00:00Z", userId:"usr_001" },
-  { id: 3004, flipId: 1, label: "Demo Complete", done: true, date: "2026-01-22", createdAt:"2026-01-22T09:00:00Z", updatedAt:"2026-01-22T09:00:00Z", userId:"usr_001" },
-  { id: 3005, flipId: 1, label: "Rough-In (Plumbing/Electric)", done: true, date: "2026-02-10", createdAt:"2026-02-10T09:00:00Z", updatedAt:"2026-02-10T09:00:00Z", userId:"usr_001" },
-  { id: 3006, flipId: 1, label: "Drywall", done: true, date: "2026-02-24", createdAt:"2026-02-24T09:00:00Z", updatedAt:"2026-02-24T09:00:00Z", userId:"usr_001" },
-  { id: 3007, flipId: 1, label: "Paint", done: false, date: null, createdAt:"2026-01-08T09:00:00Z", updatedAt:"2026-01-08T09:00:00Z", userId:"usr_001" },
-  { id: 3008, flipId: 1, label: "Flooring", done: false, date: null, createdAt:"2026-01-08T09:00:00Z", updatedAt:"2026-01-08T09:00:00Z", userId:"usr_001" },
-  { id: 3009, flipId: 1, label: "Kitchen & Baths", done: false, date: null, createdAt:"2026-01-08T09:00:00Z", updatedAt:"2026-01-08T09:00:00Z", userId:"usr_001" },
-  { id: 3010, flipId: 1, label: "Punch List", done: false, date: null, createdAt:"2026-01-08T09:00:00Z", updatedAt:"2026-01-08T09:00:00Z", userId:"usr_001" },
-  { id: 3011, flipId: 1, label: "Listed for Sale", done: false, date: null, createdAt:"2026-01-08T09:00:00Z", updatedAt:"2026-01-08T09:00:00Z", userId:"usr_001" },
-  { id: 3012, flipId: 1, label: "Sold / Closed", done: false, date: null, createdAt:"2026-01-08T09:00:00Z", updatedAt:"2026-01-08T09:00:00Z", userId:"usr_001" },
-  // Flip 2 milestones (id 3013-3026)
-  { id: 3013, flipId: 2, label: "Contract Executed", done: true, date: "2026-01-15", createdAt:"2026-01-15T09:00:00Z", updatedAt:"2026-01-15T09:00:00Z", userId:"usr_001" },
-  { id: 3014, flipId: 2, label: "Inspection Complete", done: true, date: "2026-01-15", createdAt:"2026-01-15T09:00:00Z", updatedAt:"2026-01-15T09:00:00Z", userId:"usr_001" },
-  { id: 3015, flipId: 2, label: "Financing Secured", done: true, date: "2026-01-15", createdAt:"2026-01-15T09:00:00Z", updatedAt:"2026-01-15T09:00:00Z", userId:"usr_001" },
-  { id: 3016, flipId: 2, label: "Purchased / Closed", done: true, date: "2026-01-15", createdAt:"2025-10-14T09:00:00Z", updatedAt:"2025-10-14T09:00:00Z", userId:"usr_001" },
-  { id: 3017, flipId: 2, label: "Demo Complete", done: true, date: "2026-01-15", createdAt:"2025-10-14T09:00:00Z", updatedAt:"2025-10-14T09:00:00Z", userId:"usr_001" },
-  { id: 3018, flipId: 2, label: "Rough-In (Plumbing/Electric)", done: true, date: "2026-01-15", createdAt:"2025-10-14T09:00:00Z", updatedAt:"2025-10-14T09:00:00Z", userId:"usr_001" },
-  { id: 3019, flipId: 2, label: "Drywall", done: true, date: "2026-01-15", createdAt:"2025-10-14T09:00:00Z", updatedAt:"2025-10-14T09:00:00Z", userId:"usr_001" },
-  { id: 3020, flipId: 2, label: "Paint", done: true, date: "2026-01-15", createdAt:"2025-10-14T09:00:00Z", updatedAt:"2025-10-14T09:00:00Z", userId:"usr_001" },
-  { id: 3021, flipId: 2, label: "Flooring", done: true, date: "2026-01-15", createdAt:"2025-10-14T09:00:00Z", updatedAt:"2025-10-14T09:00:00Z", userId:"usr_001" },
-  { id: 3022, flipId: 2, label: "Kitchen & Baths", done: true, date: "2026-01-15", createdAt:"2025-10-14T09:00:00Z", updatedAt:"2025-10-14T09:00:00Z", userId:"usr_001" },
-  { id: 3023, flipId: 2, label: "Punch List", done: true, date: "2026-01-15", createdAt:"2025-10-14T09:00:00Z", updatedAt:"2025-10-14T09:00:00Z", userId:"usr_001" },
-  { id: 3024, flipId: 2, label: "Listed for Sale", done: false, date: null, createdAt:"2025-10-14T09:00:00Z", updatedAt:"2025-10-14T09:00:00Z", userId:"usr_001" },
-  { id: 3025, flipId: 2, label: "Under Contract", done: false, date: null, createdAt:"2025-10-14T09:00:00Z", updatedAt:"2025-10-14T09:00:00Z", userId:"usr_001" },
-  { id: 3026, flipId: 2, label: "Sold / Closed", done: false, date: null, createdAt:"2025-10-14T09:00:00Z", updatedAt:"2025-10-14T09:00:00Z", userId:"usr_001" },
-  // Flip 3 milestones (id 3027-3029)
-  { id: 3027, flipId: 3, label: "Contract Executed", done: true, date: "2026-03-12", createdAt:"2026-03-12T09:00:00Z", updatedAt:"2026-03-12T09:00:00Z", userId:"usr_001" },
-  { id: 3028, flipId: 3, label: "Inspection Complete", done: true, date: "2026-03-12", createdAt:"2026-03-12T09:00:00Z", updatedAt:"2026-03-12T09:00:00Z", userId:"usr_001" },
-  { id: 3029, flipId: 3, label: "Financing Secured", done: false, date: null, createdAt:"2026-03-10T09:00:00Z", updatedAt:"2026-03-10T09:00:00Z", userId:"usr_001" },
-  // Flip 4 milestones (id 3030-3043)
-  { id: 3030, flipId: 4, label: "Contract Executed", done: true, date: "2025-08-29", createdAt:"2025-08-29T09:00:00Z", updatedAt:"2025-08-29T09:00:00Z", userId:"usr_001" },
-  { id: 3031, flipId: 4, label: "Inspection Complete", done: true, date: "2025-08-29", createdAt:"2025-08-29T09:00:00Z", updatedAt:"2025-08-29T09:00:00Z", userId:"usr_001" },
-  { id: 3032, flipId: 4, label: "Financing Secured", done: true, date: "2025-08-29", createdAt:"2025-08-29T09:00:00Z", updatedAt:"2025-08-29T09:00:00Z", userId:"usr_001" },
-  { id: 3033, flipId: 4, label: "Purchased / Closed", done: true, date: "2025-08-29", createdAt:"2025-04-12T09:00:00Z", updatedAt:"2025-04-12T09:00:00Z", userId:"usr_001" },
-  { id: 3034, flipId: 4, label: "Demo Complete", done: true, date: "2025-08-29", createdAt:"2025-04-12T09:00:00Z", updatedAt:"2025-04-12T09:00:00Z", userId:"usr_001" },
-  { id: 3035, flipId: 4, label: "Rough-In (Plumbing/Electric)", done: true, date: "2025-08-29", createdAt:"2025-04-12T09:00:00Z", updatedAt:"2025-04-12T09:00:00Z", userId:"usr_001" },
-  { id: 3036, flipId: 4, label: "Drywall", done: true, date: "2025-08-29", createdAt:"2025-04-12T09:00:00Z", updatedAt:"2025-04-12T09:00:00Z", userId:"usr_001" },
-  { id: 3037, flipId: 4, label: "Paint", done: true, date: "2025-08-29", createdAt:"2025-04-12T09:00:00Z", updatedAt:"2025-04-12T09:00:00Z", userId:"usr_001" },
-  { id: 3038, flipId: 4, label: "Flooring", done: true, date: "2025-08-29", createdAt:"2025-04-12T09:00:00Z", updatedAt:"2025-04-12T09:00:00Z", userId:"usr_001" },
-  { id: 3039, flipId: 4, label: "Kitchen & Baths", done: true, date: "2025-08-29", createdAt:"2025-04-12T09:00:00Z", updatedAt:"2025-04-12T09:00:00Z", userId:"usr_001" },
-  { id: 3040, flipId: 4, label: "Punch List", done: true, date: "2025-08-29", createdAt:"2025-04-12T09:00:00Z", updatedAt:"2025-04-12T09:00:00Z", userId:"usr_001" },
-  { id: 3041, flipId: 4, label: "Listed for Sale", done: true, date: "2025-08-29", createdAt:"2025-04-12T09:00:00Z", updatedAt:"2025-04-12T09:00:00Z", userId:"usr_001" },
-  { id: 3042, flipId: 4, label: "Under Contract", done: true, date: "2025-08-29", createdAt:"2025-04-12T09:00:00Z", updatedAt:"2025-04-12T09:00:00Z", userId:"usr_001" },
-  { id: 3043, flipId: 4, label: "Sold / Closed", done: true, date: "2025-08-29", createdAt:"2025-04-12T09:00:00Z", updatedAt:"2025-04-12T09:00:00Z", userId:"usr_001" },
+export const DEAL_MILESTONES = [
+  // Deal 1 milestones (id 3001-3012)
+  { id: 3001, dealId: 1, label: "Contract Executed", done: true, date: "2026-01-06", createdAt:"2026-01-06T09:00:00Z", updatedAt:"2026-01-06T09:00:00Z", userId:"usr_001" },
+  { id: 3002, dealId: 1, label: "Inspection Complete", done: true, date: "2026-01-07", createdAt:"2026-01-07T09:00:00Z", updatedAt:"2026-01-07T09:00:00Z", userId:"usr_001" },
+  { id: 3003, dealId: 1, label: "Purchased / Closed", done: true, date: "2026-01-08", createdAt:"2026-01-08T09:00:00Z", updatedAt:"2026-01-08T09:00:00Z", userId:"usr_001" },
+  { id: 3004, dealId: 1, label: "Demo Complete", done: true, date: "2026-01-22", createdAt:"2026-01-22T09:00:00Z", updatedAt:"2026-01-22T09:00:00Z", userId:"usr_001" },
+  { id: 3005, dealId: 1, label: "Rough-In (Plumbing/Electric)", done: true, date: "2026-02-10", createdAt:"2026-02-10T09:00:00Z", updatedAt:"2026-02-10T09:00:00Z", userId:"usr_001" },
+  { id: 3006, dealId: 1, label: "Drywall", done: true, date: "2026-02-24", createdAt:"2026-02-24T09:00:00Z", updatedAt:"2026-02-24T09:00:00Z", userId:"usr_001" },
+  { id: 3007, dealId: 1, label: "Paint", done: false, date: null, createdAt:"2026-01-08T09:00:00Z", updatedAt:"2026-01-08T09:00:00Z", userId:"usr_001" },
+  { id: 3008, dealId: 1, label: "Flooring", done: false, date: null, createdAt:"2026-01-08T09:00:00Z", updatedAt:"2026-01-08T09:00:00Z", userId:"usr_001" },
+  { id: 3009, dealId: 1, label: "Kitchen & Baths", done: false, date: null, createdAt:"2026-01-08T09:00:00Z", updatedAt:"2026-01-08T09:00:00Z", userId:"usr_001" },
+  { id: 3010, dealId: 1, label: "Punch List", done: false, date: null, createdAt:"2026-01-08T09:00:00Z", updatedAt:"2026-01-08T09:00:00Z", userId:"usr_001" },
+  { id: 3011, dealId: 1, label: "Listed for Sale", done: false, date: null, createdAt:"2026-01-08T09:00:00Z", updatedAt:"2026-01-08T09:00:00Z", userId:"usr_001" },
+  { id: 3012, dealId: 1, label: "Sold / Closed", done: false, date: null, createdAt:"2026-01-08T09:00:00Z", updatedAt:"2026-01-08T09:00:00Z", userId:"usr_001" },
+  // Deal 2 milestones (id 3013-3026)
+  { id: 3013, dealId: 2, label: "Contract Executed", done: true, date: "2026-01-15", createdAt:"2026-01-15T09:00:00Z", updatedAt:"2026-01-15T09:00:00Z", userId:"usr_001" },
+  { id: 3014, dealId: 2, label: "Inspection Complete", done: true, date: "2026-01-15", createdAt:"2026-01-15T09:00:00Z", updatedAt:"2026-01-15T09:00:00Z", userId:"usr_001" },
+  { id: 3015, dealId: 2, label: "Financing Secured", done: true, date: "2026-01-15", createdAt:"2026-01-15T09:00:00Z", updatedAt:"2026-01-15T09:00:00Z", userId:"usr_001" },
+  { id: 3016, dealId: 2, label: "Purchased / Closed", done: true, date: "2026-01-15", createdAt:"2025-10-14T09:00:00Z", updatedAt:"2025-10-14T09:00:00Z", userId:"usr_001" },
+  { id: 3017, dealId: 2, label: "Demo Complete", done: true, date: "2026-01-15", createdAt:"2025-10-14T09:00:00Z", updatedAt:"2025-10-14T09:00:00Z", userId:"usr_001" },
+  { id: 3018, dealId: 2, label: "Rough-In (Plumbing/Electric)", done: true, date: "2026-01-15", createdAt:"2025-10-14T09:00:00Z", updatedAt:"2025-10-14T09:00:00Z", userId:"usr_001" },
+  { id: 3019, dealId: 2, label: "Drywall", done: true, date: "2026-01-15", createdAt:"2025-10-14T09:00:00Z", updatedAt:"2025-10-14T09:00:00Z", userId:"usr_001" },
+  { id: 3020, dealId: 2, label: "Paint", done: true, date: "2026-01-15", createdAt:"2025-10-14T09:00:00Z", updatedAt:"2025-10-14T09:00:00Z", userId:"usr_001" },
+  { id: 3021, dealId: 2, label: "Flooring", done: true, date: "2026-01-15", createdAt:"2025-10-14T09:00:00Z", updatedAt:"2025-10-14T09:00:00Z", userId:"usr_001" },
+  { id: 3022, dealId: 2, label: "Kitchen & Baths", done: true, date: "2026-01-15", createdAt:"2025-10-14T09:00:00Z", updatedAt:"2025-10-14T09:00:00Z", userId:"usr_001" },
+  { id: 3023, dealId: 2, label: "Punch List", done: true, date: "2026-01-15", createdAt:"2025-10-14T09:00:00Z", updatedAt:"2025-10-14T09:00:00Z", userId:"usr_001" },
+  { id: 3024, dealId: 2, label: "Listed for Sale", done: false, date: null, createdAt:"2025-10-14T09:00:00Z", updatedAt:"2025-10-14T09:00:00Z", userId:"usr_001" },
+  { id: 3025, dealId: 2, label: "Under Contract", done: false, date: null, createdAt:"2025-10-14T09:00:00Z", updatedAt:"2025-10-14T09:00:00Z", userId:"usr_001" },
+  { id: 3026, dealId: 2, label: "Sold / Closed", done: false, date: null, createdAt:"2025-10-14T09:00:00Z", updatedAt:"2025-10-14T09:00:00Z", userId:"usr_001" },
+  // Deal 3 milestones (id 3027-3029)
+  { id: 3027, dealId: 3, label: "Contract Executed", done: true, date: "2026-03-12", createdAt:"2026-03-12T09:00:00Z", updatedAt:"2026-03-12T09:00:00Z", userId:"usr_001" },
+  { id: 3028, dealId: 3, label: "Inspection Complete", done: true, date: "2026-03-12", createdAt:"2026-03-12T09:00:00Z", updatedAt:"2026-03-12T09:00:00Z", userId:"usr_001" },
+  { id: 3029, dealId: 3, label: "Financing Secured", done: false, date: null, createdAt:"2026-03-10T09:00:00Z", updatedAt:"2026-03-10T09:00:00Z", userId:"usr_001" },
+  // Deal 4 milestones (id 3030-3043)
+  { id: 3030, dealId: 4, label: "Contract Executed", done: true, date: "2025-08-29", createdAt:"2025-08-29T09:00:00Z", updatedAt:"2025-08-29T09:00:00Z", userId:"usr_001" },
+  { id: 3031, dealId: 4, label: "Inspection Complete", done: true, date: "2025-08-29", createdAt:"2025-08-29T09:00:00Z", updatedAt:"2025-08-29T09:00:00Z", userId:"usr_001" },
+  { id: 3032, dealId: 4, label: "Financing Secured", done: true, date: "2025-08-29", createdAt:"2025-08-29T09:00:00Z", updatedAt:"2025-08-29T09:00:00Z", userId:"usr_001" },
+  { id: 3033, dealId: 4, label: "Purchased / Closed", done: true, date: "2025-08-29", createdAt:"2025-04-12T09:00:00Z", updatedAt:"2025-04-12T09:00:00Z", userId:"usr_001" },
+  { id: 3034, dealId: 4, label: "Demo Complete", done: true, date: "2025-08-29", createdAt:"2025-04-12T09:00:00Z", updatedAt:"2025-04-12T09:00:00Z", userId:"usr_001" },
+  { id: 3035, dealId: 4, label: "Rough-In (Plumbing/Electric)", done: true, date: "2025-08-29", createdAt:"2025-04-12T09:00:00Z", updatedAt:"2025-04-12T09:00:00Z", userId:"usr_001" },
+  { id: 3036, dealId: 4, label: "Drywall", done: true, date: "2025-08-29", createdAt:"2025-04-12T09:00:00Z", updatedAt:"2025-04-12T09:00:00Z", userId:"usr_001" },
+  { id: 3037, dealId: 4, label: "Paint", done: true, date: "2025-08-29", createdAt:"2025-04-12T09:00:00Z", updatedAt:"2025-04-12T09:00:00Z", userId:"usr_001" },
+  { id: 3038, dealId: 4, label: "Flooring", done: true, date: "2025-08-29", createdAt:"2025-04-12T09:00:00Z", updatedAt:"2025-04-12T09:00:00Z", userId:"usr_001" },
+  { id: 3039, dealId: 4, label: "Kitchen & Baths", done: true, date: "2025-08-29", createdAt:"2025-04-12T09:00:00Z", updatedAt:"2025-04-12T09:00:00Z", userId:"usr_001" },
+  { id: 3040, dealId: 4, label: "Punch List", done: true, date: "2025-08-29", createdAt:"2025-04-12T09:00:00Z", updatedAt:"2025-04-12T09:00:00Z", userId:"usr_001" },
+  { id: 3041, dealId: 4, label: "Listed for Sale", done: true, date: "2025-08-29", createdAt:"2025-04-12T09:00:00Z", updatedAt:"2025-04-12T09:00:00Z", userId:"usr_001" },
+  { id: 3042, dealId: 4, label: "Under Contract", done: true, date: "2025-08-29", createdAt:"2025-04-12T09:00:00Z", updatedAt:"2025-04-12T09:00:00Z", userId:"usr_001" },
+  { id: 3043, dealId: 4, label: "Sold / Closed", done: true, date: "2025-08-29", createdAt:"2025-04-12T09:00:00Z", updatedAt:"2025-04-12T09:00:00Z", userId:"usr_001" },
 ];
 
 const _tenants = [
@@ -388,35 +388,35 @@ export function getEquityGrowth()       { return Promise.resolve([..._equityGrow
 export function getExpenseCategories()  { return Promise.resolve([..._expenseCategories]); }
 
 // -----------------------------------------------------------------------------
-// Flips
+// Deals
 // -----------------------------------------------------------------------------
-export function getFlips()              { return Promise.resolve([...FLIPS]);         }
-export function addFlip(flip)           { FLIPS.push(flip); return Promise.resolve(flip); }
-export function updateFlip(id, updates) {
-  const i = FLIPS.findIndex(f => f.id === id);
-  if (i !== -1) Object.assign(FLIPS[i], updates);
-  return Promise.resolve(FLIPS[i]);
+export function getDeals()              { return Promise.resolve([...DEALS]);         }
+export function addDeal(deal)           { DEALS.push(deal); return Promise.resolve(deal); }
+export function updateDeal(id, updates) {
+  const i = DEALS.findIndex(f => f.id === id);
+  if (i !== -1) Object.assign(DEALS[i], updates);
+  return Promise.resolve(DEALS[i]);
 }
-export function getFlipExpenses(flipId) {
-  return Promise.resolve(FLIP_EXPENSES.filter(e => e.flipId === flipId));
+export function getDealExpenses(dealId) {
+  return Promise.resolve(DEAL_EXPENSES.filter(e => e.dealId === dealId));
 }
-export function addFlipExpense(exp)     { FLIP_EXPENSES.push(exp); return Promise.resolve(exp); }
-export function getContractors(flipId)  {
-  if (flipId) return Promise.resolve(CONTRACTORS.filter(c => c.dealIds.includes(flipId)));
+export function addDealExpense(exp)     { DEAL_EXPENSES.push(exp); return Promise.resolve(exp); }
+export function getContractors(dealId)  {
+  if (dealId) return Promise.resolve(CONTRACTORS.filter(c => c.dealIds.includes(dealId)));
   return Promise.resolve([...CONTRACTORS]);
 }
 export function addContractor(c)        { CONTRACTORS.push(c); return Promise.resolve(c); }
-export function getFlipMilestones(flipId) {
-  return Promise.resolve(FLIP_MILESTONES.filter(m => m.flipId === flipId));
+export function getDealMilestones(dealId) {
+  return Promise.resolve(DEAL_MILESTONES.filter(m => m.dealId === dealId));
 }
-export function updateFlipMilestones(flipId, milestones) {
-  // Remove old milestones for this flip
-  const oldIndices = FLIP_MILESTONES.map((m, i) => m.flipId === flipId ? i : -1).filter(i => i !== -1);
+export function updateDealMilestones(dealId, milestones) {
+  // Remove old milestones for this deal
+  const oldIndices = DEAL_MILESTONES.map((m, i) => m.dealId === dealId ? i : -1).filter(i => i !== -1);
   for (let i = oldIndices.length - 1; i >= 0; i--) {
-    FLIP_MILESTONES.splice(oldIndices[i], 1);
+    DEAL_MILESTONES.splice(oldIndices[i], 1);
   }
   // Add updated milestones
-  FLIP_MILESTONES.push(...milestones);
+  DEAL_MILESTONES.push(...milestones);
   return Promise.resolve(milestones);
 }
 
@@ -447,12 +447,12 @@ export const GENERAL_NOTES = [
   { id: 3003, date: "2026-03-10", text: "Annual goals check-in: 2 more rental acquisitions by Q3, target $8k/mo net cash flow. Currently at $5.2k.", createdAt: "2026-03-10T09:00:00Z", updatedAt: "2026-03-10T09:00:00Z", userId: "usr_001", mentions: [] },
 ];
 
-// Flip notes — flat array with flipId reference
-export const FLIP_NOTES = [
-  { id: 1001, flipId: 1, date: "2026-03-28", text: "Spoke with inspector — back wall needs structural review before drywall. Getting quote from Nash Drywall.", createdAt: "2026-03-28T10:00:00Z", updatedAt: "2026-03-28T10:00:00Z", userId: "usr_001" },
-  { id: 1002, flipId: 1, date: "2026-03-15", text: "ABC Plumbing delayed 1 week on master bath rough-in. Pushed flooring start to 3/21.", createdAt: "2026-03-15T10:00:00Z", updatedAt: "2026-03-15T10:00:00Z", userId: "usr_001" },
-  { id: 1003, flipId: 1, date: "2026-02-10", text: "Demo went smooth. Dumpster picked up, ready for rough-in next week.", createdAt: "2026-02-10T09:00:00Z", updatedAt: "2026-02-10T09:00:00Z", userId: "usr_001" },
-  { id: 1004, flipId: 2, date: "2026-01-20", text: "All rehab complete. Scheduling photographer for listing photos this week.", createdAt: "2026-01-20T10:00:00Z", updatedAt: "2026-01-20T10:00:00Z", userId: "usr_001" },
+// Deal notes — flat array with dealId reference
+export const DEAL_NOTES = [
+  { id: 1001, dealId: 1, date: "2026-03-28", text: "Spoke with inspector — back wall needs structural review before drywall. Getting quote from Nash Drywall.", createdAt: "2026-03-28T10:00:00Z", updatedAt: "2026-03-28T10:00:00Z", userId: "usr_001" },
+  { id: 1002, dealId: 1, date: "2026-03-15", text: "ABC Plumbing delayed 1 week on master bath rough-in. Pushed flooring start to 3/21.", createdAt: "2026-03-15T10:00:00Z", updatedAt: "2026-03-15T10:00:00Z", userId: "usr_001" },
+  { id: 1003, dealId: 1, date: "2026-02-10", text: "Demo went smooth. Dumpster picked up, ready for rough-in next week.", createdAt: "2026-02-10T09:00:00Z", updatedAt: "2026-02-10T09:00:00Z", userId: "usr_001" },
+  { id: 1004, dealId: 2, date: "2026-01-20", text: "All rehab complete. Scheduling photographer for listing photos this week.", createdAt: "2026-01-20T10:00:00Z", updatedAt: "2026-01-20T10:00:00Z", userId: "usr_001" },
 ];
 
 // -----------------------------------------------------------------------------
@@ -508,7 +508,7 @@ export function getPropertyDocuments(propertyId) { return PROPERTY_DOCUMENTS.fil
 export function addPropertyDocument(doc) { PROPERTY_DOCUMENTS.push(doc); return doc; }
 export function deletePropertyDocument(id) { const i = PROPERTY_DOCUMENTS.findIndex(d => d.id === id); if (i !== -1) PROPERTY_DOCUMENTS.splice(i, 1); }
 
-export function getDealDocuments(flipId) { return DEAL_DOCUMENTS.filter(d => d.flipId === flipId); }
+export function getDealDocuments(dealId) { return DEAL_DOCUMENTS.filter(d => d.dealId === dealId); }
 export function addDealDocument(doc) { DEAL_DOCUMENTS.push(doc); return doc; }
 export function deleteDealDocument(id) { const i = DEAL_DOCUMENTS.findIndex(d => d.id === id); if (i !== -1) DEAL_DOCUMENTS.splice(i, 1); }
 
@@ -520,9 +520,9 @@ export function getTransactionReceipts(transactionId) { return TRANSACTION_RECEI
 export function addTransactionReceipt(r) { TRANSACTION_RECEIPTS.push(r); return r; }
 export function deleteTransactionReceipt(id) { const i = TRANSACTION_RECEIPTS.findIndex(r => r.id === id); if (i !== -1) TRANSACTION_RECEIPTS.splice(i, 1); }
 
-export function getFlipExpenseReceipts(expenseId) { return FLIP_EXPENSE_RECEIPTS.filter(r => r.expenseId === expenseId); }
-export function addFlipExpenseReceipt(r) { FLIP_EXPENSE_RECEIPTS.push(r); return r; }
-export function deleteFlipExpenseReceipt(id) { const i = FLIP_EXPENSE_RECEIPTS.findIndex(r => r.id === id); if (i !== -1) FLIP_EXPENSE_RECEIPTS.splice(i, 1); }
+export function getDealExpenseReceipts(expenseId) { return DEAL_EXPENSE_RECEIPTS.filter(r => r.expenseId === expenseId); }
+export function addDealExpenseReceipt(r) { DEAL_EXPENSE_RECEIPTS.push(r); return r; }
+export function deleteDealExpenseReceipt(id) { const i = DEAL_EXPENSE_RECEIPTS.findIndex(r => r.id === id); if (i !== -1) DEAL_EXPENSE_RECEIPTS.splice(i, 1); }
 
 // ── Mock OCR — simulates receipt scanning ────────────────────────────────────
 // In production, replace with Google Cloud Vision / AWS Textract API call.

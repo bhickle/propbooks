@@ -240,7 +240,7 @@ function NotificationsTab() {
     rentDue:      true,
     leaseExpiry:  true,
     maintenance:  true,
-    flipUpdates:  false,
+    dealUpdates:  false,
     weeklyReport: true,
     marketing:    false,
   });
@@ -250,7 +250,7 @@ function NotificationsTab() {
     { key: "rentDue",      label: "Rent Due Reminders",     desc: "Alerts when rent payments are upcoming or overdue" },
     { key: "leaseExpiry",  label: "Lease Expiry Alerts",    desc: "Notify 60, 30, and 7 days before lease expiration" },
     { key: "maintenance",  label: "Maintenance Requests",   desc: "New maintenance requests from tenants" },
-    { key: "flipUpdates",  label: "Deal Milestone Updates", desc: "Contractor check-ins and milestone completions" },
+    { key: "dealUpdates",  label: "Deal Milestone Updates", desc: "Contractor check-ins and milestone completions" },
     { key: "weeklyReport", label: "Weekly Portfolio Report",desc: "Sunday summary of cash flow and key metrics" },
     { key: "marketing",    label: "Product Updates & Tips", desc: "New features and real estate investing tips" },
   ];

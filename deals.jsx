@@ -1,6 +1,6 @@
 // =============================================================================
-// PropBooks – Fix & Flip Modules
-// FlipDashboard | RehabTracker | FlipExpenses | FlipContractors | FlipAnalytics
+// PropBooks – Deal Modules
+// DealDashboard | RehabTracker | DealExpenses | DealContractors | DealAnalytics
 // =============================================================================
 
 import { useState, useMemo, useEffect, useRef } from "react";
@@ -19,14 +19,14 @@ import {
 } from "lucide-react";
 import {
   fmt, fmtK, newId, STAGE_ORDER, STAGE_COLORS, DEFAULT_MILESTONES,
-  FLIP_EXPENSE_RECEIPTS, addFlipExpenseReceipt, deleteFlipExpenseReceipt,
+  DEAL_EXPENSE_RECEIPTS, addDealExpenseReceipt, deleteDealExpenseReceipt,
   DEAL_DOCUMENTS, addDealDocument, deleteDealDocument,
   mockOcrScan,
 } from "./api.js";
 
 // Shared mock data refs (passed as props or imported directly)
 // Using module-level state so all modules stay in sync within a session
-import { FLIPS as _FLIPS, FLIP_EXPENSES as _FE, CONTRACTORS as _CON, FLIP_MILESTONES, FLIP_NOTES, CONTRACTOR_BIDS as _BIDS, CONTRACTOR_PAYMENTS as _PAYMENTS, CONTRACTOR_DOCUMENTS as _DOCS } from "./api.js";
+import { DEALS as _DEALS, DEAL_EXPENSES as _FE, CONTRACTORS as _CON, DEAL_MILESTONES, DEAL_NOTES, CONTRACTOR_BIDS as _BIDS, CONTRACTOR_PAYMENTS as _PAYMENTS, CONTRACTOR_DOCUMENTS as _DOCS } from "./api.js";
 
 // ---------------------------------------------------------------------------
 // Shared helpers
@@ -34,7 +34,7 @@ import { FLIPS as _FLIPS, FLIP_EXPENSES as _FE, CONTRACTORS as _CON, FLIP_MILEST
 const iS = { width: "100%", padding: "10px 12px", border: "1px solid #e2e8f0", borderRadius: 10, fontSize: 14, color: "#041830", background: "#fff", outline: "none", boxSizing: "border-box" };
 
 // ── Attachment components (mirrors RealVault.jsx versions) ──
-function FlipAttachmentZone({ onFiles, accept = "image/*,.pdf", label = "Drop file here or click to browse", compact = false }) {
+function DealAttachmentZone({ onFiles, accept = "image/*,.pdf", label = "Drop file here or click to browse", compact = false }) {
   const inputRef = useRef(null);
   const [dragOver, setDragOver] = useState(false);
   const handleDrop = e => { e.preventDefault(); setDragOver(false); if (e.dataTransfer.files.length) onFiles([...e.dataTransfer.files]); };
@@ -50,7 +50,7 @@ function FlipAttachmentZone({ onFiles, accept = "image/*,.pdf", label = "Drop fi
   );
 }
 
-function FlipAttachmentList({ items, onRemove, compact = false }) {
+function DealAttachmentList({ items, onRemove, compact = false }) {
   if (!items || items.length === 0) return null;
   const iconForType = mime => { if (!mime) return FileText; if (mime.startsWith("image/")) return FileImage; return FileText; };
   return (
@@ -79,7 +79,7 @@ function FlipAttachmentList({ items, onRemove, compact = false }) {
   );
 }
 
-function FlipOcrPrompt({ attachment, onResult, onDismiss }) {
+function DealOcrPrompt({ attachment, onResult, onDismiss }) {
   const [scanning, setScanning] = useState(false);
   const [dismissed, setDismissed] = useState(false);
   if (dismissed || attachment.ocrData) return null;
@@ -196,19 +196,19 @@ const sectionS = { background: "#fff", borderRadius: 16, padding: 24, boxShadow:
 
 // ---------------------------------------------------------------------------
 // ---------------------------------------------------------------------------
-// 1. FLIP DASHBOARD
+// 1. DEAL DASHBOARD
 // ---------------------------------------------------------------------------
-export function FlipDashboard({ onSelect, onNavigateToNote, onNavigateToExpense, onNavigateToMilestone }) {
+export function DealDashboard({ onSelect, onNavigateToNote, onNavigateToExpense, onNavigateToMilestone }) {
   const [filterStage, setFilterStage] = useState("all");
 
-  const allFlips = _FLIPS;
-  const flips = allFlips.filter(f => {
+  const allDeals = _DEALS;
+  const deals = allDeals.filter(f => {
     if (filterStage !== "all" && f.stage !== filterStage) return false;
     return true;
   });
 
-  const active = flips.filter(f => f.stage !== "Sold");
-  const sold   = flips.filter(f => f.stage === "Sold");
+  const active = deals.filter(f => f.stage !== "Sold");
+  const sold   = deals.filter(f => f.stage === "Sold");
 
   const totalDeployed   = active.reduce((s, f) => s + f.purchasePrice + f.rehabSpent, 0);
   const totalRehabBudget = active.reduce((s, f) => s + f.rehabBudget, 0);
@@ -220,7 +220,7 @@ export function FlipDashboard({ onSelect, onNavigateToNote, onNavigateToExpense,
   }, 0);
 
   const stageBreakdown = STAGE_ORDER.map(s => ({
-    stage: s, count: flips.filter(f => f.stage === s).length,
+    stage: s, count: deals.filter(f => f.stage === s).length,
     color: STAGE_COLORS[s]?.dot || "#94a3b8",
   }));
 
@@ -230,13 +230,13 @@ export function FlipDashboard({ onSelect, onNavigateToNote, onNavigateToExpense,
     const shortName = f => f.name.split(" ").slice(0, 2).join(" ");
 
     // Completed milestones → milestones tab
-    allFlips.forEach(f => {
-      const ms = FLIP_MILESTONES.filter(m => m.flipId === f.id);
+    allDeals.forEach(f => {
+      const ms = DEAL_MILESTONES.filter(m => m.dealId === f.id);
       ms.forEach(m => {
         if (m.done && m.date) {
           const isSold = m.label.toLowerCase().includes("sold") || m.label.toLowerCase().includes("closed");
           items.push({
-            flipId: f.id, flip: f, date: m.date, tab: "milestones",
+            dealId: f.id, deal: f, date: m.date, tab: "milestones",
             milestoneKey: f.id + "-" + m.label, milestoneDone: m.done,
             text: `${shortName(f)} – ${m.label}`,
             icon: isSold ? Star : m.label.toLowerCase().includes("inspect") ? Flag : CheckCircle,
@@ -247,11 +247,11 @@ export function FlipDashboard({ onSelect, onNavigateToNote, onNavigateToExpense,
     });
 
     // Recent expenses → expenses tab
-    allFlips.forEach(f => {
-      const exps = _FE.filter(e => e.flipId === f.id).slice(-3);
+    allDeals.forEach(f => {
+      const exps = _FE.filter(e => e.dealId === f.id).slice(-3);
       exps.forEach(e => {
         items.push({
-          flipId: f.id, flip: f, date: e.date, tab: "expenses", expenseId: e.id,
+          dealId: f.id, deal: f, date: e.date, tab: "expenses", expenseId: e.id,
           text: `${shortName(f)} – ${e.description || e.category}`,
           icon: Receipt, color: "#3b82f6",
         });
@@ -259,11 +259,11 @@ export function FlipDashboard({ onSelect, onNavigateToNote, onNavigateToExpense,
     });
 
     // Recent notes → notes tab
-    allFlips.forEach(f => {
-      const notes = FLIP_NOTES.filter(n => n.flipId === f.id).slice(-2);
+    allDeals.forEach(f => {
+      const notes = DEAL_NOTES.filter(n => n.dealId === f.id).slice(-2);
       notes.forEach(n => {
         items.push({
-          flipId: f.id, flip: f, date: n.date, tab: "notes", noteId: n.id,
+          dealId: f.id, deal: f, date: n.date, tab: "notes", noteId: n.id,
           text: `${shortName(f)} – ${n.text.length > 50 ? n.text.slice(0, 50) + "…" : n.text}`,
           icon: MessageSquare, color: "#8b5cf6",
         });
@@ -276,7 +276,7 @@ export function FlipDashboard({ onSelect, onNavigateToNote, onNavigateToExpense,
       ...item,
       dateLabel: new Date(item.date).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
     }));
-  }, [allFlips]);
+  }, [allDeals]);
 
   const isFiltered = filterStage !== "all";
 
@@ -297,7 +297,7 @@ export function FlipDashboard({ onSelect, onNavigateToNote, onNavigateToExpense,
           {["all", ...STAGE_ORDER].map(s => {
             const active2 = filterStage === s;
             const label = s === "all" ? "All Stages" : s;
-            const count = s === "all" ? allFlips.length : allFlips.filter(f => f.stage === s).length;
+            const count = s === "all" ? allDeals.length : allDeals.filter(f => f.stage === s).length;
             return (
               <button key={s} onClick={() => setFilterStage(s)} style={{ padding: "7px 14px", borderRadius: 8, border: "none", background: active2 ? "#e95e00" : "transparent", color: active2 ? "#fff" : "#64748b", fontWeight: active2 ? 700 : 500, fontSize: 12, cursor: "pointer", whiteSpace: "nowrap", transition: "all 0.15s" }}>
                 {label} ({count})
@@ -313,7 +313,7 @@ export function FlipDashboard({ onSelect, onNavigateToNote, onNavigateToExpense,
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 20, marginBottom: 20 }}>
-        {/* Active Flips Table */}
+        {/* Active Deals Table */}
         <div style={{ background: "#fff", borderRadius: 16, padding: 22, border: "1px solid #f1f5f9" }}>
           <p style={{ color: "#041830", fontSize: 16, fontWeight: 700, marginBottom: 16 }}>Active Deals</p>
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
@@ -376,7 +376,7 @@ export function FlipDashboard({ onSelect, onNavigateToNote, onNavigateToExpense,
               <p style={{ color: "#94a3b8", fontSize: 12 }}>No activity yet. Complete milestones, log expenses, or add notes to see updates here.</p>
             )}
             {recentActivity.map((a, i) => (
-              <div key={i} onClick={() => { if (a.tab === "notes" && a.noteId && onNavigateToNote) onNavigateToNote(a.noteId); else if (a.tab === "expenses" && a.expenseId && onNavigateToExpense) onNavigateToExpense(a.expenseId); else if (a.tab === "milestones" && a.milestoneKey && onNavigateToMilestone) onNavigateToMilestone(a.milestoneKey, a.milestoneDone); else if (onSelect) onSelect(a.flip, a.tab); }} style={{ display: "flex", gap: 10, marginBottom: 12, cursor: "pointer", padding: "6px 8px", marginLeft: -8, marginRight: -8, borderRadius: 10, transition: "background 0.15s" }} onMouseEnter={e => e.currentTarget.style.background = "#f8fafc"} onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+              <div key={i} onClick={() => { if (a.tab === "notes" && a.noteId && onNavigateToNote) onNavigateToNote(a.noteId); else if (a.tab === "expenses" && a.expenseId && onNavigateToExpense) onNavigateToExpense(a.expenseId); else if (a.tab === "milestones" && a.milestoneKey && onNavigateToMilestone) onNavigateToMilestone(a.milestoneKey, a.milestoneDone); else if (onSelect) onSelect(a.deal, a.tab); }} style={{ display: "flex", gap: 10, marginBottom: 12, cursor: "pointer", padding: "6px 8px", marginLeft: -8, marginRight: -8, borderRadius: 10, transition: "background 0.15s" }} onMouseEnter={e => e.currentTarget.style.background = "#f8fafc"} onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
                 <div style={{ width: 28, height: 28, borderRadius: 8, background: a.color + "18", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                   <a.icon size={13} color={a.color} />
                 </div>
@@ -419,24 +419,24 @@ export function FlipDashboard({ onSelect, onNavigateToNote, onNavigateToExpense,
 // 2. REHAB TRACKER
 // ---------------------------------------------------------------------------
 export function RehabTracker() {
-  const [filterFlip, setFilterFlip]     = useState("all");
+  const [filterDeal, setFilterDeal]     = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
-  const [deleteConfirm, setDeleteConfirm] = useState(null); // { flipId, idx, category }
+  const [deleteConfirm, setDeleteConfirm] = useState(null); // { dealId, idx, category }
   // assignments: { [flipId-itemIdx]: contractorId | null }
-  // seeded from mock data, mutated in place so FlipContractors stays in sync
+  // seeded from mock data, mutated in place so DealContractors stays in sync
   const [, forceUpdate] = useState(0);
   const rerender = () => forceUpdate(n => n + 1);
 
-  const flips = _FLIPS.filter(f => f.stage !== "Sold");
+  const deals = _DEALS.filter(f => f.stage !== "Sold");
 
-  const allItems = flips.flatMap(f =>
+  const allItems = deals.flatMap(f =>
     (f.rehabItems || []).map((item, idx) => ({
-      ...item, flipId: f.id, flipName: f.name, flipColor: f.color, flipImage: f.image, _idx: idx,
+      ...item, dealId: f.id, dealName: f.name, dealColor: f.color, dealImage: f.image, _idx: idx,
     }))
   );
 
   const filtered = allItems.filter(item => {
-    if (filterFlip   !== "all" && item.flipId !== parseInt(filterFlip)) return false;
+    if (filterDeal   !== "all" && item.dealId !== parseInt(filterDeal)) return false;
     if (filterStatus !== "all" && item.status !== filterStatus) return false;
     return true;
   });
@@ -453,52 +453,52 @@ export function RehabTracker() {
     "pending":     { bg: "#f1f5f9", text: "#64748b", label: "Pending"     },
   };
 
-  // Assign a contractor to a rehab item — mutates FLIPS directly so contractor
+  // Assign a contractor to a rehab item — mutates DEALS directly so contractor
   // cards pick it up without prop-drilling
-  function addContractorToItem(flipId, itemIdx, contractorId, bid = 0) {
-    const flip = _FLIPS.find(f => f.id === flipId);
-    if (flip && flip.rehabItems[itemIdx] !== undefined) {
-      const cons = flip.rehabItems[itemIdx].contractors || [];
+  function addContractorToItem(dealId, itemIdx, contractorId, bid = 0) {
+    const deal = _DEALS.find(f => f.id === dealId);
+    if (deal && deal.rehabItems[itemIdx] !== undefined) {
+      const cons = deal.rehabItems[itemIdx].contractors || [];
       if (!cons.some(c => c.id === contractorId)) {
-        flip.rehabItems[itemIdx].contractors = [...cons, { id: contractorId, bid }];
+        deal.rehabItems[itemIdx].contractors = [...cons, { id: contractorId, bid }];
         rerender();
       }
     }
   }
 
-  function removeContractorFromItem(flipId, itemIdx, contractorId) {
-    const flip = _FLIPS.find(f => f.id === flipId);
-    if (flip && flip.rehabItems[itemIdx] !== undefined) {
-      flip.rehabItems[itemIdx].contractors = (flip.rehabItems[itemIdx].contractors || []).filter(c => c.id !== contractorId);
+  function removeContractorFromItem(dealId, itemIdx, contractorId) {
+    const deal = _DEALS.find(f => f.id === dealId);
+    if (deal && deal.rehabItems[itemIdx] !== undefined) {
+      deal.rehabItems[itemIdx].contractors = (deal.rehabItems[itemIdx].contractors || []).filter(c => c.id !== contractorId);
       rerender();
     }
   }
 
-  function updateContractorBid(flipId, itemIdx, contractorId, bid) {
-    const flip = _FLIPS.find(f => f.id === flipId);
-    if (flip && flip.rehabItems[itemIdx] !== undefined) {
-      const cons = flip.rehabItems[itemIdx].contractors || [];
+  function updateContractorBid(dealId, itemIdx, contractorId, bid) {
+    const deal = _DEALS.find(f => f.id === dealId);
+    if (deal && deal.rehabItems[itemIdx] !== undefined) {
+      const cons = deal.rehabItems[itemIdx].contractors || [];
       const entry = cons.find(c => c.id === contractorId);
       if (entry) { entry.bid = bid; rerender(); }
     }
   }
 
   // Add line item modal state
-  const emptyItem = { flipId: "", category: "", budgeted: "", spent: "0", status: "pending" };
+  const emptyItem = { dealId: "", category: "", budgeted: "", spent: "0", status: "pending" };
   const [showAddItem, setShowAddItem] = useState(false);
   const [itemForm, setItemForm]       = useState(emptyItem);
   const sif = k => e => setItemForm(f => ({ ...f, [k]: e.target.value }));
   const [catFocus, setCatFocus] = useState(false);
   const allCategories = useMemo(() => {
-    const cats = new Set(_FLIPS.flatMap(f => (f.rehabItems || []).map(i => i.category)));
+    const cats = new Set(_DEALS.flatMap(f => (f.rehabItems || []).map(i => i.category)));
     return [...cats].filter(Boolean).sort();
   }, [allItems]);
 
   function saveLineItem() {
-    if (!itemForm.flipId || !itemForm.category) return;
-    const flip = _FLIPS.find(f => f.id === parseInt(itemForm.flipId));
-    if (!flip) return;
-    flip.rehabItems.push({
+    if (!itemForm.dealId || !itemForm.category) return;
+    const deal = _DEALS.find(f => f.id === parseInt(itemForm.dealId));
+    if (!deal) return;
+    deal.rehabItems.push({
       category:      itemForm.category,
       budgeted:      parseFloat(itemForm.budgeted) || 0,
       spent:         parseFloat(itemForm.spent) || 0,
@@ -511,19 +511,19 @@ export function RehabTracker() {
   }
 
   // Edit line item inline (status + budgeted)
-  const [editingItem, setEditingItem] = useState(null); // { flipId, idx }
+  const [editingItem, setEditingItem] = useState(null); // { dealId, idx }
   const [editVals, setEditVals]       = useState({});
 
-  function startEditItem(flipId, idx, item) {
-    setEditingItem({ flipId, idx });
+  function startEditItem(dealId, idx, item) {
+    setEditingItem({ dealId, idx });
     setEditVals({ budgeted: String(item.budgeted), spent: String(item.spent), status: item.status });
   }
 
   function saveEditItem() {
     if (!editingItem) return;
-    const flip = _FLIPS.find(f => f.id === editingItem.flipId);
-    if (flip && flip.rehabItems[editingItem.idx]) {
-      Object.assign(flip.rehabItems[editingItem.idx], {
+    const deal = _DEALS.find(f => f.id === editingItem.dealId);
+    if (deal && deal.rehabItems[editingItem.idx]) {
+      Object.assign(deal.rehabItems[editingItem.idx], {
         budgeted: parseFloat(editVals.budgeted) || 0,
         spent:    parseFloat(editVals.spent) || 0,
         status:   editVals.status,
@@ -533,10 +533,10 @@ export function RehabTracker() {
     rerender();
   }
 
-  function deleteLineItem(flipId, idx) {
-    const flip = _FLIPS.find(f => f.id === flipId);
-    if (flip) {
-      flip.rehabItems.splice(idx, 1);
+  function deleteLineItem(dealId, idx) {
+    const deal = _DEALS.find(f => f.id === dealId);
+    if (deal) {
+      deal.rehabItems.splice(idx, 1);
       rerender();
     }
   }
@@ -547,10 +547,10 @@ export function RehabTracker() {
         title="Rehab Tracker"
         sub="All rehab line items across active deals"
         filter={
-          <select value={filterFlip} onChange={e => setFilterFlip(e.target.value)}
+          <select value={filterDeal} onChange={e => setFilterDeal(e.target.value)}
             style={{ ...iS, width: 200, fontSize: 14, padding: "9px 14px", fontWeight: 600 }}>
             <option value="all">All Deals</option>
-            {flips.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
+            {deals.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
           </select>
         }
       />
@@ -579,28 +579,28 @@ export function RehabTracker() {
         </button>
       </div>
 
-      {/* Items by flip */}
+      {/* Items by deal */}
       {flips
-        .filter(f => filterFlip === "all" || f.id === parseInt(filterFlip))
+        .filter(f => filterDeal === "all" || f.id === parseInt(filterDeal))
         .map(f => {
-          const items = filtered.filter(i => i.flipId === f.id);
+          const items = filtered.filter(i => i.dealId === f.id);
           if (!items.length) return null;
-          const flipBudget     = items.reduce((s, i) => s + i.budgeted, 0);
-          const flipSpent      = items.reduce((s, i) => s + i.spent,    0);
-          const pct            = flipBudget > 0 ? Math.min((flipSpent / flipBudget) * 100, 100) : 0;
-          const flipContractors = _CON.filter(c => (c.dealIds || []).includes(f.id));
+          const dealBudget     = items.reduce((s, i) => s + i.budgeted, 0);
+          const dealSpent      = items.reduce((s, i) => s + i.spent,    0);
+          const pct            = dealBudget > 0 ? Math.min((dealSpent / dealBudget) * 100, 100) : 0;
+          const dealContractors = _CON.filter(c => (c.dealIds || []).includes(f.id));
           const assignedCount  = items.filter(i => (i.contractors || []).length > 0).length;
 
           return (
             <div key={f.id} style={{ background: "#fff", borderRadius: 16, padding: 24, border: "1px solid #f1f5f9", marginBottom: 16 }}>
-              {/* Flip header */}
+              {/* Deal header */}
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                   <div style={{ width: 36, height: 36, borderRadius: 9, background: f.color + "20", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, color: f.color }}>{f.image}</div>
                   <div>
                     <p style={{ color: "#041830", fontWeight: 700, fontSize: 15 }}>{f.name}</p>
                     <p style={{ color: "#94a3b8", fontSize: 12 }}>
-                      {fmt(flipSpent)} spent of {fmt(flipBudget)} · {assignedCount}/{items.length} scopes assigned
+                      {fmt(dealSpent)} spent of {fmt(dealBudget)} · {assignedCount}/{items.length} scopes assigned
                     </p>
                   </div>
                 </div>
@@ -627,8 +627,8 @@ export function RehabTracker() {
                     const ss          = statusStyle[item.status];
                     const assigned    = item.contractors || [];
                     const assignedIds = assigned.map(c => c.id);
-                    const unassigned  = flipContractors.filter(c => !assignedIds.includes(c.id));
-                    const isEditing   = editingItem?.flipId === f.id && editingItem?.idx === item._idx;
+                    const unassigned  = dealContractors.filter(c => !assignedIds.includes(c.id));
+                    const isEditing   = editingItem?.dealId === f.id && editingItem?.idx === item._idx;
 
                     return (
                       <tr key={i} style={{ borderBottom: i < items.length - 1 ? "1px solid #f8fafc" : "none", background: isEditing ? "#fff7ed" : "transparent" }}>
@@ -643,7 +643,7 @@ export function RehabTracker() {
                             {assigned.map(asgn => {
                               const con = _CON.find(c => c.id === asgn.id);
                               if (!con) return null;
-                              const conBid = _BIDS.find(b => b.contractorId === con.id && b.flipId === f.id && b.rehabItem === item.category);
+                              const conBid = _BIDS.find(b => b.contractorId === con.id && b.dealId === f.id && b.rehabItem === item.category);
                               const mm1 = item.status === "complete" && conBid?.status !== "accepted";
                               const mm2 = false;
                               return (
@@ -673,7 +673,7 @@ export function RehabTracker() {
                                 ))}
                               </select>
                             )}
-                            {flipContractors.length === 0 && assigned.length === 0 && (
+                            {dealContractors.length === 0 && assigned.length === 0 && (
                               <span style={{ fontSize: 12, color: "#cbd5e1", fontStyle: "italic" }}>No contractors</span>
                             )}
                           </div>
@@ -736,7 +736,7 @@ export function RehabTracker() {
                                 title="Edit">
                                 <Pencil size={13} />
                               </button>
-                              <button onClick={() => setDeleteConfirm({ flipId: f.id, idx: item._idx, category: item.category, budgeted: item.budgeted, spent: item.spent })}
+                              <button onClick={() => setDeleteConfirm({ dealId: f.id, idx: item._idx, category: item.category, budgeted: item.budgeted, spent: item.spent })}
                                 style={{ background: "#fee2e2", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "#ef4444", display: "flex", alignItems: "center" }}
                                 title="Delete">
                                 <Trash2 size={13} />
@@ -764,9 +764,9 @@ export function RehabTracker() {
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               <div>
                 <p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Deal *</p>
-                <select style={iS} value={itemForm.flipId} onChange={sif("flipId")}>
+                <select style={iS} value={itemForm.dealId} onChange={sif("flipId")}>
                   <option value="">Select deal...</option>
-                  {flips.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
+                  {deals.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
                 </select>
               </div>
               <div style={{ position: "relative" }}>
@@ -839,7 +839,7 @@ export function RehabTracker() {
             <p style={{ color: "#94a3b8", fontSize: 12, marginBottom: 18 }}>This action cannot be undone.</p>
             <div style={{ display: "flex", gap: 10 }}>
               <button onClick={() => setDeleteConfirm(null)} style={{ flex: 1, padding: "12px", border: "1px solid #e2e8f0", borderRadius: 10, background: "#fff", color: "#475569", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
-              <button onClick={() => { deleteLineItem(deleteConfirm.flipId, deleteConfirm.idx); setDeleteConfirm(null); }} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "#ef4444", color: "#fff", fontWeight: 700, cursor: "pointer" }}>Delete</button>
+              <button onClick={() => { deleteLineItem(deleteConfirm.dealId, deleteConfirm.idx); setDeleteConfirm(null); }} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "#ef4444", color: "#fff", fontWeight: 700, cursor: "pointer" }}>Delete</button>
             </div>
           </div>
         </div>
@@ -849,9 +849,9 @@ export function RehabTracker() {
 }
 
 // ---------------------------------------------------------------------------
-// 3. FLIP EXPENSES
+// 3. DEAL EXPENSES
 // ---------------------------------------------------------------------------
-const FLIP_EXPENSE_GROUPS = {
+const DEAL_EXPENSE_GROUPS = {
   "Acquisition":          ["Closing Costs (Buy)", "Title & Escrow", "Inspection", "Appraisal"],
   "Rehab Labor":          ["General Contractor", "Subcontractor", "Day Labor"],
   "Rehab Materials":      ["Materials & Supplies", "Appliances", "Fixtures & Hardware"],
@@ -860,11 +860,11 @@ const FLIP_EXPENSE_GROUPS = {
   "Selling Costs":        ["Agent Commission", "Photography / Marketing", "Staging", "Cleaning", "Closing Costs (Sell)"],
   "General":              ["Landscaping", "Travel", "Other"],
 };
-const EXPENSE_CATS = Object.values(FLIP_EXPENSE_GROUPS).flat();
+const EXPENSE_CATS = Object.values(DEAL_EXPENSE_GROUPS).flat();
 
-export function FlipExpenses({ highlightExpId, onBack, onClearHighlight, backLabel }) {
+export function DealExpenses({ highlightExpId, onBack, onClearHighlight, backLabel }) {
   const [expenses, setExpenses] = useState([..._FE]);
-  const [filterFlip, setFilterFlip]     = useState("all");
+  const [filterDeal, setFilterDeal]     = useState("all");
   const [filterCat, setFilterCat]       = useState("all");
   const [dateFilter, setDateFilter]     = useState("all");
   const [dateFrom, setDateFrom]         = useState("");
@@ -893,11 +893,11 @@ export function FlipExpenses({ highlightExpId, onBack, onClearHighlight, backLab
   const [search, setSearch]             = useState("");
   const [deleteConfirm, setDeleteConfirm] = useState(null);
 
-  const emptyForm = { flipId: "", date: "", vendor: "", category: "Materials & Supplies", description: "", amount: "", rehabItemIdx: "" };
+  const emptyForm = { dealId: "", date: "", vendor: "", category: "Materials & Supplies", description: "", amount: "", rehabItemIdx: "" };
   const [form, setForm]   = useState(emptyForm);
   const sf = k => e => setForm(f => ({ ...f, [k]: e.target.value }));
   const [vendorFocus, setVendorFocus] = useState(false);
-  const [flipReceipts, setFlipReceipts] = useState([]);
+  const [dealReceipts, setDealReceipts] = useState([]);
 
   // Unique vendor names for typeahead
   const allVendors = useMemo(() => {
@@ -905,15 +905,15 @@ export function FlipExpenses({ highlightExpId, onBack, onClearHighlight, backLab
     return [...names].filter(Boolean).sort();
   }, [expenses]);
 
-  // Rehab items for selected flip
-  const expFlip = _FLIPS.find(f => f.id === parseInt(form.flipId));
-  const expRehabItems = expFlip?.rehabItems || [];
+  // Rehab items for selected deal
+  const expDeal = _DEALS.find(f => f.id === parseInt(form.dealId));
+  const expRehabItems = expDeal?.rehabItems || [];
 
-  const openAdd = () => { setEditId(null); setForm(emptyForm); setFlipReceipts([]); setShowModal(true); };
+  const openAdd = () => { setEditId(null); setForm(emptyForm); setDealReceipts([]); setShowModal(true); };
   const openEdit = exp => {
     setEditId(exp.id);
-    setForm({ flipId: String(exp.flipId), date: exp.date, vendor: exp.vendor || "", category: exp.category, description: exp.description || "", amount: String(exp.amount), rehabItemIdx: exp.rehabItemIdx != null ? String(exp.rehabItemIdx) : "" });
-    setFlipReceipts(FLIP_EXPENSE_RECEIPTS.filter(r => r.expenseId === exp.id));
+    setForm({ dealId: String(exp.dealId), date: exp.date, vendor: exp.vendor || "", category: exp.category, description: exp.description || "", amount: String(exp.amount), rehabItemIdx: exp.rehabItemIdx != null ? String(exp.rehabItemIdx) : "" });
+    setDealReceipts(DEAL_EXPENSE_RECEIPTS.filter(r => r.expenseId === exp.id));
     setShowModal(true);
   };
 
@@ -939,11 +939,11 @@ export function FlipExpenses({ highlightExpId, onBack, onClearHighlight, backLab
     }
     return true;
   };
-  const clearAllFilters = () => { setFilterFlip("all"); setFilterCat("all"); setDateFilter("all"); setDateFrom(""); setDateTo(""); setSearch(""); };
-  const hasActiveFilters = filterFlip !== "all" || filterCat !== "all" || dateFilter !== "all" || search;
+  const clearAllFilters = () => { setFilterDeal("all"); setFilterCat("all"); setDateFilter("all"); setDateFrom(""); setDateTo(""); setSearch(""); };
+  const hasActiveFilters = filterDeal !== "all" || filterCat !== "all" || dateFilter !== "all" || search;
 
   const filtered = expenses.filter(e => {
-    if (filterFlip !== "all" && e.flipId !== parseInt(filterFlip)) return false;
+    if (filterDeal !== "all" && e.dealId !== parseInt(filterDeal)) return false;
     if (filterCat  !== "all" && e.category !== filterCat) return false;
     if (search && !e.description.toLowerCase().includes(search.toLowerCase()) && !e.vendor.toLowerCase().includes(search.toLowerCase())) return false;
     if (!matchesDate(e)) return false;
@@ -958,31 +958,31 @@ export function FlipExpenses({ highlightExpId, onBack, onClearHighlight, backLab
   })).filter(c => c.total > 0).sort((a, b) => b.total - a.total);
 
   const handleSave = () => {
-    if (!form.amount || !form.flipId) return;
-    const flip = _FLIPS.find(f => f.id === parseInt(form.flipId));
+    if (!form.amount || !form.dealId) return;
+    const deal = _DEALS.find(f => f.id === parseInt(form.dealId));
     const amt = parseFloat(form.amount);
     const riIdx = form.rehabItemIdx !== "" ? parseInt(form.rehabItemIdx) : null;
-    const built = { flipId: parseInt(form.flipId), flipName: flip?.name, date: form.date || new Date().toISOString().split("T")[0], vendor: form.vendor || "Unknown", category: form.category, description: form.description, amount: amt, rehabItemIdx: riIdx };
+    const built = { dealId: parseInt(form.dealId), dealName: deal?.name, date: form.date || new Date().toISOString().split("T")[0], vendor: form.vendor || "Unknown", category: form.category, description: form.description, amount: amt, rehabItemIdx: riIdx };
 
     if (editId !== null) {
       // Reverse the old rehab item link before applying new one
       const oldExp = expenses.find(e => e.id === editId);
-      if (oldExp && oldExp.rehabItemIdx != null && flip) {
-        const oldItem = flip.rehabItems[oldExp.rehabItemIdx];
+      if (oldExp && oldExp.rehabItemIdx != null && deal) {
+        const oldItem = deal.rehabItems[oldExp.rehabItemIdx];
         if (oldItem) oldItem.spent = Math.max(0, oldItem.spent - oldExp.amount);
       }
       setExpenses(prev => prev.map(e => e.id === editId ? { ...e, ...built } : e));
-      flipReceipts.filter(r => !FLIP_EXPENSE_RECEIPTS.some(er => er.id === r.id)).forEach(r => addFlipExpenseReceipt({ ...r, expenseId: editId }));
+      dealReceipts.filter(r => !DEAL_EXPENSE_RECEIPTS.some(er => er.id === r.id)).forEach(r => addDealExpenseReceipt({ ...r, expenseId: editId }));
     } else {
       const expId = newId();
       setExpenses(prev => [{ id: expId, ...built }, ...prev]);
-      flipReceipts.forEach(r => addFlipExpenseReceipt({ ...r, expenseId: expId }));
+      dealReceipts.forEach(r => addDealExpenseReceipt({ ...r, expenseId: expId }));
     }
     // Update rehab item spent
-    if (riIdx != null && flip && flip.rehabItems[riIdx]) {
-      flip.rehabItems[riIdx].spent += amt;
+    if (riIdx != null && deal && deal.rehabItems[riIdx]) {
+      deal.rehabItems[riIdx].spent += amt;
     }
-    setForm(emptyForm); setEditId(null); setFlipReceipts([]); setShowModal(false);
+    setForm(emptyForm); setEditId(null); setDealReceipts([]); setShowModal(false);
   };
 
   return (
@@ -996,9 +996,9 @@ export function FlipExpenses({ highlightExpId, onBack, onClearHighlight, backLab
         title="Expenses"
         sub="All costs across every deal"
         filter={
-          <select value={filterFlip} onChange={e => setFilterFlip(e.target.value)} style={{ ...iS, width: 200, fontSize: 14, padding: "9px 14px", fontWeight: 600 }}>
+          <select value={filterDeal} onChange={e => setFilterDeal(e.target.value)} style={{ ...iS, width: 200, fontSize: 14, padding: "9px 14px", fontWeight: 600 }}>
             <option value="all">All Deals</option>
-            {_FLIPS.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
+            {_DEALS.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
           </select>
         }
       />
@@ -1018,7 +1018,7 @@ export function FlipExpenses({ highlightExpId, onBack, onClearHighlight, backLab
         </div>
         <select value={filterCat} onChange={e => setFilterCat(e.target.value)} style={{ ...iS, width: "auto", minWidth: 160, fontSize: 13, padding: "9px 12px" }}>
           <option value="all">All Categories</option>
-          {Object.entries(FLIP_EXPENSE_GROUPS).map(([group, subs]) => (
+          {Object.entries(DEAL_EXPENSE_GROUPS).map(([group, subs]) => (
                     <optgroup key={group} label={group}>
                       {subs.map(c => <option key={c} value={c}>{c}</option>)}
                     </optgroup>
@@ -1047,7 +1047,7 @@ export function FlipExpenses({ highlightExpId, onBack, onClearHighlight, backLab
       {hasActiveFilters && (
         <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap", alignItems: "center" }}>
           <span style={{ fontSize: 12, color: "#94a3b8", fontWeight: 600 }}>Filtered:</span>
-          {filterFlip !== "all" && <span style={{ background: "#fff7ed", color: "#e95e00", borderRadius: 20, padding: "3px 10px", fontSize: 12, fontWeight: 600 }}>{_FLIPS.find(f => f.id === parseInt(filterFlip))?.name || filterFlip}</span>}
+          {filterDeal !== "all" && <span style={{ background: "#fff7ed", color: "#e95e00", borderRadius: 20, padding: "3px 10px", fontSize: 12, fontWeight: 600 }}>{_DEALS.find(f => f.id === parseInt(filterDeal))?.name || filterDeal}</span>}
           {filterCat !== "all" && <span style={{ background: "#fff7ed", color: "#7c2d12", borderRadius: 20, padding: "3px 10px", fontSize: 12, fontWeight: 600 }}>{filterCat}</span>}
           {dateFilter !== "all" && <span style={{ background: "#f0fdf4", color: "#15803d", borderRadius: 20, padding: "3px 10px", fontSize: 12, fontWeight: 600 }}>{{ thisMonth: "This Month", lastMonth: "Last Month", thisYear: "This Year", lastYear: "Last Year", custom: dateFrom && dateTo ? `${dateFrom} – ${dateTo}` : "Custom Range" }[dateFilter]}</span>}
           {search && <span style={{ background: "#f1f5f9", color: "#475569", borderRadius: 20, padding: "3px 10px", fontSize: 12, fontWeight: 600 }}>&ldquo;{search}&rdquo;</span>}
@@ -1073,15 +1073,15 @@ export function FlipExpenses({ highlightExpId, onBack, onClearHighlight, backLab
               </td></tr>
             )}
             {filtered.map((e, i) => {
-              const flip = _FLIPS.find(f => f.id === e.flipId);
+              const deal = _DEALS.find(f => f.id === e.dealId);
               return (
                 <tr key={e.id} ref={e.id === flashId ? highlightRef : undefined} style={{ borderTop: "1px solid #f1f5f9", background: e.id === flashId ? "#fff7ed" : "transparent", transition: "background 1.5s ease" }}>
                   <td style={{ padding: "12px 16px", color: "#64748b", fontSize: 13 }}>{e.date}</td>
                   <td style={{ padding: "12px 16px" }}>
-                    {flip && (
+                    {deal && (
                       <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-                        <span style={{ width: 8, height: 8, borderRadius: "50%", background: flip.color }} />
-                        <span style={{ fontSize: 13, color: "#374151", fontWeight: 500 }}>{flip.name}</span>
+                        <span style={{ width: 8, height: 8, borderRadius: "50%", background: deal.color }} />
+                        <span style={{ fontSize: 13, color: "#374151", fontWeight: 500 }}>{deal.name}</span>
                       </span>
                     )}
                   </td>
@@ -1118,7 +1118,7 @@ export function FlipExpenses({ highlightExpId, onBack, onClearHighlight, backLab
               <h2 style={{ color: "#041830", fontSize: 19, fontWeight: 700 }}>{editId ? "Edit Expense" : "Add Expense"}</h2>
               <button onClick={() => { setShowModal(false); setEditId(null); }} style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8" }}><X size={20} /></button>
             </div>
-            {flipReceipts.length === 0 && (
+            {dealReceipts.length === 0 && (
               <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 14px", background: "#f0f9ff", borderRadius: 10, border: "1px solid #bae6fd", marginBottom: 16 }}>
                 <ScanLine size={16} color="#0284c7" />
                 <p style={{ fontSize: 12, color: "#0c4a6e", margin: 0 }}>
@@ -1129,9 +1129,9 @@ export function FlipExpenses({ highlightExpId, onBack, onClearHighlight, backLab
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               <div>
                 <p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Deal *</p>
-                <select value={form.flipId} onChange={sf("flipId")} style={iS}>
+                <select value={form.dealId} onChange={sf("flipId")} style={iS}>
                   <option value="">Select deal...</option>
-                  {_FLIPS.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
+                  {_DEALS.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
                 </select>
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
@@ -1180,7 +1180,7 @@ export function FlipExpenses({ highlightExpId, onBack, onClearHighlight, backLab
                 <div>
                   <p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Category</p>
                   <select style={iS} value={form.category} onChange={sf("category")}>
-                    {Object.entries(FLIP_EXPENSE_GROUPS).map(([group, subs]) => (
+                    {Object.entries(DEAL_EXPENSE_GROUPS).map(([group, subs]) => (
                     <optgroup key={group} label={group}>
                       {subs.map(c => <option key={c} value={c}>{c}</option>)}
                     </optgroup>
@@ -1207,21 +1207,21 @@ export function FlipExpenses({ highlightExpId, onBack, onClearHighlight, backLab
                 <p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>
                   <Paperclip size={12} style={{ marginRight: 4, verticalAlign: "middle" }} />Receipt / Attachment
                 </p>
-                <FlipAttachmentZone
+                <DealAttachmentZone
                   onFiles={files => {
                     const newAtts = files.map(f => ({
                       id: newId(), name: f.name, mimeType: f.type,
                       size: f.size > 1024 * 1024 ? (f.size / (1024 * 1024)).toFixed(1) + " MB" : Math.round(f.size / 1024) + " KB",
                       url: URL.createObjectURL(f), ocrData: null, createdAt: new Date().toISOString(), userId: "usr_001",
                     }));
-                    setFlipReceipts(prev => [...prev, ...newAtts]);
+                    setDealReceipts(prev => [...prev, ...newAtts]);
                   }}
                   compact label="Attach receipt or document" />
-                {flipReceipts.length > 0 && (
+                {dealReceipts.length > 0 && (
                   <div style={{ marginTop: 6 }}>
-                    <FlipAttachmentList items={flipReceipts} onRemove={id => setFlipReceipts(prev => prev.filter(r => r.id !== id))} compact />
-                    {flipReceipts.filter(r => !r.ocrData).map(att => (
-                      <FlipOcrPrompt key={att.id} attachment={att}
+                    <DealAttachmentList items={dealReceipts} onRemove={id => setDealReceipts(prev => prev.filter(r => r.id !== id))} compact />
+                    {dealReceipts.filter(r => !r.ocrData).map(att => (
+                      <DealOcrPrompt key={att.id} attachment={att}
                         onResult={(ocrData, a) => {
                           setForm(f => ({
                             ...f,
@@ -1230,12 +1230,12 @@ export function FlipExpenses({ highlightExpId, onBack, onClearHighlight, backLab
                             date: f.date || ocrData.date || "",
                             description: f.description || `Receipt — ${ocrData.vendor || "scanned"}`,
                           }));
-                          setFlipReceipts(prev => prev.map(r => r.id === a.id ? { ...r, ocrData } : r));
+                          setDealReceipts(prev => prev.map(r => r.id === a.id ? { ...r, ocrData } : r));
                         }} />
                     ))}
                   </div>
                 )}
-                {flipReceipts.some(r => r.ocrData) && (
+                {dealReceipts.some(r => r.ocrData) && (
                   <p style={{ fontSize: 11, color: "#15803d", marginTop: 4, fontStyle: "italic" }}>
                     <CheckCircle size={11} style={{ verticalAlign: "middle", marginRight: 3 }} />
                     Fields auto-filled from receipt — please verify
@@ -1245,7 +1245,7 @@ export function FlipExpenses({ highlightExpId, onBack, onClearHighlight, backLab
             </div>
             <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
               <button onClick={handleSave} style={{ flex: 1, padding: "11px", borderRadius: 10, border: "none", background: "#e95e00", color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer" }}>{editId ? "Save Changes" : "Save Expense"}</button>
-              <button onClick={() => { setShowModal(false); setEditId(null); setFlipReceipts([]); }} style={{ padding: "11px 18px", borderRadius: 10, border: "1.5px solid #e2e8f0", background: "#fff", fontWeight: 600, fontSize: 14, cursor: "pointer", color: "#64748b" }}>Cancel</button>
+              <button onClick={() => { setShowModal(false); setEditId(null); setDealReceipts([]); }} style={{ padding: "11px 18px", borderRadius: 10, border: "1.5px solid #e2e8f0", background: "#fff", fontWeight: 600, fontSize: 14, cursor: "pointer", color: "#64748b" }}>Cancel</button>
             </div>
           </div>
         </div>
@@ -1280,9 +1280,9 @@ const STATUS_STYLES = {
   pending:  { bg: "#f1f5f9", text: "#64748b", label: "Pending"  },
 };
 
-export function FlipContractors({ onSelectContractor }) {
+export function DealContractors({ onSelectContractor }) {
   const [, rerender] = useState(0);
-  const [filterFlip, setFilterFlip] = useState("all");
+  const [filterDeal, setFilterDeal] = useState("all");
   const [filterTrade, setFilterTrade] = useState("all");
   const [showModal, setShowModal] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
@@ -1300,7 +1300,7 @@ export function FlipContractors({ onSelectContractor }) {
   const allTrades = useMemo(() => [...new Set(_CON.map(c => c.trade).filter(Boolean))].sort(), []);
 
   const filtered = _CON.filter(c => {
-    if (filterFlip !== "all" && !(c.dealIds || []).includes(parseInt(filterFlip))) return false;
+    if (filterDeal !== "all" && !(c.dealIds || []).includes(parseInt(filterDeal))) return false;
     if (filterTrade !== "all" && c.trade !== filterTrade) return false;
     return true;
   });
@@ -1321,7 +1321,7 @@ export function FlipContractors({ onSelectContractor }) {
   const handleDelete = (con) => {
     const ci = _CON.findIndex(x => x.id === con.id);
     if (ci !== -1) _CON.splice(ci, 1);
-    _FLIPS.forEach(f => (f.rehabItems || []).forEach(item => {
+    _DEALS.forEach(f => (f.rehabItems || []).forEach(item => {
       if (item.contractors) item.contractors = item.contractors.filter(a => a.id !== con.id);
     }));
     rerender(n => n + 1);
@@ -1332,14 +1332,14 @@ export function FlipContractors({ onSelectContractor }) {
     <div>
       <PageHeader title="Contractors" sub="Manage your contractor relationships across all deals"
         filter={
-          <select value={filterFlip} onChange={e => setFilterFlip(e.target.value)} style={{ ...iS, width: 200, fontSize: 14, padding: "9px 14px", fontWeight: 600 }}>
+          <select value={filterDeal} onChange={e => setFilterDeal(e.target.value)} style={{ ...iS, width: 200, fontSize: 14, padding: "9px 14px", fontWeight: 600 }}>
             <option value="all">All Deals</option>
-            {_FLIPS.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
+            {_DEALS.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
           </select>
         } />
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 24 }}>
-        <StatCard icon={Users} label="Contractors" value={filtered.length} sub={filterFlip !== "all" ? `of ${_CON.length} total` : `${_CON.filter(c => (c.dealIds || []).length > 0).length} with active deals`} color="#e95e00" tip="Number of contractors matching the current filters." />
+        <StatCard icon={Users} label="Contractors" value={filtered.length} sub={filterDeal !== "all" ? `of ${_CON.length} total` : `${_CON.filter(c => (c.dealIds || []).length > 0).length} with active deals`} color="#e95e00" tip="Number of contractors matching the current filters." />
         <StatCard icon={DollarSign} label="Accepted Bids" value={fmt(totalBids)} sub={`${filtered.length} contractor${filtered.length !== 1 ? "s" : ""}`} color="#e95e00" tip="Sum of all accepted bid amounts for contractors in the current view." />
         <StatCard icon={CheckCircle} label="Total Paid" value={fmt(totalPaid)} sub="Disbursed to date" color="#10b981" tip="Total payments disbursed to contractors in the current view." />
         <StatCard icon={AlertCircle} label="Outstanding" value={fmt(outstanding)} sub="Remaining balance" color={outstanding > 0 ? "#e95e00" : "#94a3b8"} tip="Accepted Bids − Total Paid. Amount still owed to contractors in the current view." />
@@ -1356,7 +1356,7 @@ export function FlipContractors({ onSelectContractor }) {
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 14 }}>
         {filtered.map(c => {
-          const deals = (c.dealIds || []).map(id => _FLIPS.find(f => f.id === id)).filter(Boolean);
+          const deals = (c.dealIds || []).map(id => _DEALS.find(f => f.id === id)).filter(Boolean);
           const totalConBids = _BIDS.filter(b => b.contractorId === c.id && b.status === "accepted").reduce((s, b) => s + b.amount, 0);
           const totalConPaid = _PAYMENTS.filter(p => p.contractorId === c.id).reduce((s, p) => s + p.amount, 0);
           const pct = totalConBids > 0 ? Math.min((totalConPaid / totalConBids) * 100, 100) : 0;
@@ -1498,17 +1498,17 @@ export function ContractorDetail({ contractor, onBack }) {
   const [editMode, setEditMode] = useState(false);
   const [editForm, setEditForm] = useState({ name: contractor.name, trade: contractor.trade, phone: contractor.phone || "", email: contractor.email || "", license: contractor.license || "", insuranceExpiry: contractor.insuranceExpiry || "", notes: contractor.notes || "" });
   const [showBidModal, setShowBidModal] = useState(false);
-  const [bidForm, setBidForm] = useState({ flipId: "", rehabItem: "", amount: "" });
+  const [bidForm, setBidForm] = useState({ dealId: "", rehabItem: "", amount: "" });
   const [editingBidId, setEditingBidId] = useState(null);
   const [showDocModal, setShowDocModal] = useState(false);
-  const [docForm, setDocForm] = useState({ name: "", type: "contract", flipId: "" });
+  const [docForm, setDocForm] = useState({ name: "", type: "contract", dealId: "" });
   const [editingDocId, setEditingDocId] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [ratingHover, setRatingHover] = useState(0);
   const [rehabFocus, setRehabFocus] = useState(false);
 
   const con = _CON.find(c => c.id === contractor.id) || contractor;
-  const deals = (con.dealIds || []).map(id => _FLIPS.find(f => f.id === id)).filter(Boolean);
+  const deals = (con.dealIds || []).map(id => _DEALS.find(f => f.id === id)).filter(Boolean);
   const bids = _BIDS.filter(b => b.contractorId === con.id);
   const payments = _PAYMENTS.filter(p => p.contractorId === con.id);
   const documents = _DOCS.filter(d => d.contractorId === con.id);
@@ -1527,34 +1527,34 @@ export function ContractorDetail({ contractor, onBack }) {
 
   const openEditBid = (b) => {
     setEditingBidId(b.id);
-    setBidForm({ flipId: String(b.flipId), rehabItem: b.rehabItem, amount: String(b.amount) });
+    setBidForm({ dealId: String(b.dealId), rehabItem: b.rehabItem, amount: String(b.amount) });
     setShowBidModal(true);
   };
 
   const saveBid = () => {
-    const fId = parseInt(bidForm.flipId);
+    const fId = parseInt(bidForm.dealId);
     const rehabName = bidForm.rehabItem.trim();
     if (!fId || !rehabName || !bidForm.amount) return;
-    const flip = _FLIPS.find(f => f.id === fId);
+    const deal = _DEALS.find(f => f.id === fId);
     if (editingBidId) {
       const bid = _BIDS.find(b => b.id === editingBidId);
       if (bid) {
-        bid.flipId = fId;
+        bid.dealId = fId;
         bid.rehabItem = rehabName;
         bid.amount = parseFloat(bidForm.amount) || 0;
       }
       setEditingBidId(null);
     } else {
-      const newBid = { id: newId(), contractorId: con.id, flipId: fId, rehabItem: rehabName, amount: parseFloat(bidForm.amount) || 0, status: "pending", date: new Date().toISOString().slice(0, 10) };
+      const newBid = { id: newId(), contractorId: con.id, dealId: fId, rehabItem: rehabName, amount: parseFloat(bidForm.amount) || 0, status: "pending", date: new Date().toISOString().slice(0, 10) };
       _BIDS.push(newBid);
       if (!con.dealIds.includes(fId)) con.dealIds.push(fId);
       // Auto-create rehab item on the deal if it doesn't exist
-      if (flip) {
-        let item = (flip.rehabItems || []).find(i => i.category === rehabName);
+      if (deal) {
+        let item = (deal.rehabItems || []).find(i => i.category === rehabName);
         if (!item) {
           item = { category: rehabName, budgeted: 0, spent: 0, status: "pending", contractors: [] };
-          if (!flip.rehabItems) flip.rehabItems = [];
-          flip.rehabItems.push(item);
+          if (!deal.rehabItems) deal.rehabItems = [];
+          deal.rehabItems.push(item);
         }
         const cons = item.contractors || [];
         if (!cons.some(c => c.id === con.id)) {
@@ -1563,7 +1563,7 @@ export function ContractorDetail({ contractor, onBack }) {
       }
     }
     rerender(n => n + 1);
-    setBidForm({ flipId: "", rehabItem: "", amount: "" });
+    setBidForm({ dealId: "", rehabItem: "", amount: "" });
     setShowBidModal(false);
   };
 
@@ -1581,7 +1581,7 @@ export function ContractorDetail({ contractor, onBack }) {
 
   const openEditDoc = (d) => {
     setEditingDocId(d.id);
-    setDocForm({ name: d.name, type: d.type, flipId: d.flipId ? String(d.flipId) : "" });
+    setDocForm({ name: d.name, type: d.type, dealId: d.dealId ? String(d.dealId) : "" });
     setShowDocModal(true);
   };
 
@@ -1592,15 +1592,15 @@ export function ContractorDetail({ contractor, onBack }) {
       if (doc) {
         doc.name = docForm.name;
         doc.type = docForm.type;
-        doc.flipId = docForm.flipId ? parseInt(docForm.flipId) : null;
+        doc.dealId = docForm.dealId ? parseInt(docForm.dealId) : null;
       }
       setEditingDocId(null);
     } else {
-      const newDoc = { id: newId(), contractorId: con.id, name: docForm.name, type: docForm.type, flipId: docForm.flipId ? parseInt(docForm.flipId) : null, date: new Date().toISOString().slice(0, 10), size: "— KB" };
+      const newDoc = { id: newId(), contractorId: con.id, name: docForm.name, type: docForm.type, dealId: docForm.dealId ? parseInt(docForm.dealId) : null, date: new Date().toISOString().slice(0, 10), size: "— KB" };
       _DOCS.push(newDoc);
     }
     rerender(n => n + 1);
-    setDocForm({ name: "", type: "contract", flipId: "" });
+    setDocForm({ name: "", type: "contract", dealId: "" });
     setShowDocModal(false);
   };
 
@@ -1618,12 +1618,12 @@ export function ContractorDetail({ contractor, onBack }) {
     { id: "history", label: "Deal History", icon: Clock, count: deals.length },
   ];
 
-  const selectedFlipForBid = _FLIPS.find(f => f.id === parseInt(bidForm.flipId));
-  const bidRehabOptions = selectedFlipForBid ? (selectedFlipForBid.rehabItems || []).map(i => i.category) : [];
+  const selectedDealForBid = _DEALS.find(f => f.id === parseInt(bidForm.dealId));
+  const bidRehabOptions = selectedDealForBid ? (selectedDealForBid.rehabItems || []).map(i => i.category) : [];
   // All rehab categories across all deals for typeahead suggestions
   const allRehabCategories = useMemo(() => {
     const cats = new Set();
-    _FLIPS.forEach(f => (f.rehabItems || []).forEach(i => cats.add(i.category)));
+    _DEALS.forEach(f => (f.rehabItems || []).forEach(i => cats.add(i.category)));
     return [...cats].sort();
   }, []);
 
@@ -1736,7 +1736,7 @@ export function ContractorDetail({ contractor, onBack }) {
           <div style={{ background: "#fff", borderRadius: 16, border: "1px solid #f1f5f9", overflow: "hidden" }}>
             {bids.length === 0 && <div style={{ padding: 40, textAlign: "center", color: "#94a3b8", fontSize: 14 }}>No bids yet. Add a bid to get started.</div>}
             {bids.map((b, i) => {
-              const fl = _FLIPS.find(f => f.id === b.flipId);
+              const fl = _DEALS.find(f => f.id === b.dealId);
               return (
                 <div key={b.id} style={{ display: "flex", alignItems: "center", padding: "14px 20px", borderBottom: i < bids.length - 1 ? "1px solid #f1f5f9" : "none", gap: 12 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, flex: 1, minWidth: 0 }}>
@@ -1769,7 +1769,7 @@ export function ContractorDetail({ contractor, onBack }) {
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
             {documents.length === 0 && <div style={{ gridColumn: "1/-1", padding: 40, textAlign: "center", color: "#94a3b8", fontSize: 14 }}>No documents yet.</div>}
             {documents.map(d => {
-              const fl = d.flipId ? _FLIPS.find(f => f.id === d.flipId) : null;
+              const fl = d.dealId ? _DEALS.find(f => f.id === d.dealId) : null;
               const typeColor = DOC_COLORS[d.type] || "#64748b";
               return (
                 <div key={d.id} style={{ background: "#fff", borderRadius: 12, padding: 16, border: "1px solid #f1f5f9" }}>
@@ -1804,9 +1804,9 @@ export function ContractorDetail({ contractor, onBack }) {
           {deals.length === 0 && <div style={{ padding: 40, textAlign: "center", color: "#94a3b8", fontSize: 14, background: "#fff", borderRadius: 16, border: "1px solid #f1f5f9" }}>No deals assigned yet.</div>}
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             {deals.map(fl => {
-              const dealBids = bids.filter(b => b.flipId === fl.id);
-              const dealPayments = payments.filter(p => p.flipId === fl.id);
-              const dealDocs = documents.filter(d => d.flipId === fl.id);
+              const dealBids = bids.filter(b => b.dealId === fl.id);
+              const dealPayments = payments.filter(p => p.dealId === fl.id);
+              const dealDocs = documents.filter(d => d.dealId === fl.id);
               const dealBidTotal = dealBids.reduce((s, b) => s + b.amount, 0);
               const dealPaidTotal = dealPayments.reduce((s, p) => s + p.amount, 0);
               const stageStyle = STAGE_COLORS[fl.stage] || { bg: "#f1f5f9", text: "#64748b" };
@@ -1847,23 +1847,23 @@ export function ContractorDetail({ contractor, onBack }) {
           <div style={{ background: "#fff", borderRadius: 20, padding: 32, width: 480, boxShadow: "0 20px 60px rgba(0,0,0,0.18)" }}>
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 20 }}>
               <h2 style={{ color: "#041830", fontSize: 19, fontWeight: 700 }}>{editingBidId ? "Edit Bid" : "Add Bid"}</h2>
-              <button onClick={() => { setShowBidModal(false); setEditingBidId(null); setBidForm({ flipId: "", rehabItem: "", amount: "" }); }} style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8" }}><X size={20} /></button>
+              <button onClick={() => { setShowBidModal(false); setEditingBidId(null); setBidForm({ dealId: "", rehabItem: "", amount: "" }); }} style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8" }}><X size={20} /></button>
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               <div>
                 <p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Deal *</p>
-                <select style={iS} value={bidForm.flipId} onChange={e => setBidForm(f => ({ ...f, flipId: e.target.value, rehabItem: "" }))}>
+                <select style={iS} value={bidForm.dealId} onChange={e => setBidForm(f => ({ ...f, dealId: e.target.value, rehabItem: "" }))}>
                   <option value="">Select deal...</option>
-                  {_FLIPS.filter(f => f.stage !== "Sold").map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
+                  {_DEALS.filter(f => f.stage !== "Sold").map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
                 </select>
               </div>
               <div style={{ position: "relative" }}>
                 <p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Rehab Item *</p>
-                <input style={iS} placeholder={bidForm.flipId ? "Start typing to search or add new..." : "Select a deal first"} disabled={!bidForm.flipId}
+                <input style={iS} placeholder={bidForm.dealId ? "Start typing to search or add new..." : "Select a deal first"} disabled={!bidForm.dealId}
                   value={bidForm.rehabItem} onChange={e => { setBidForm(f => ({ ...f, rehabItem: e.target.value })); setRehabFocus(true); }}
                   onFocus={() => setRehabFocus(true)} onBlur={() => setTimeout(() => setRehabFocus(false), 150)} />
-                {!rehabFocus && !bidForm.rehabItem && bidForm.flipId && <p style={{ fontSize: 11, color: "#94a3b8", marginTop: 4, fontStyle: "italic" }}>Type to search rehab items or add new</p>}
-                {rehabFocus && bidForm.flipId && (() => {
+                {!rehabFocus && !bidForm.rehabItem && bidForm.dealId && <p style={{ fontSize: 11, color: "#94a3b8", marginTop: 4, fontStyle: "italic" }}>Type to search rehab items or add new</p>}
+                {rehabFocus && bidForm.dealId && (() => {
                   const q = bidForm.rehabItem.toLowerCase();
                   // Show items from this deal first, then other known categories
                   const dealMatches = q ? bidRehabOptions.filter(c => c.toLowerCase().includes(q)) : bidRehabOptions.slice(0, 6);
@@ -1904,8 +1904,8 @@ export function ContractorDetail({ contractor, onBack }) {
               </div>
             </div>
             <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
-              <button onClick={saveBid} disabled={!bidForm.flipId || !bidForm.rehabItem || !bidForm.amount} style={{ flex: 1, padding: "11px", borderRadius: 10, border: "none", background: !bidForm.flipId || !bidForm.rehabItem || !bidForm.amount ? "#e2e8f0" : "#e95e00", color: "#fff", fontWeight: 700, fontSize: 14, cursor: !bidForm.flipId || !bidForm.rehabItem || !bidForm.amount ? "not-allowed" : "pointer" }}>{editingBidId ? "Save Changes" : "Add Bid"}</button>
-              <button onClick={() => { setShowBidModal(false); setEditingBidId(null); setBidForm({ flipId: "", rehabItem: "", amount: "" }); }} style={{ padding: "11px 18px", borderRadius: 10, border: "1.5px solid #e2e8f0", background: "#fff", fontWeight: 600, fontSize: 14, cursor: "pointer", color: "#64748b" }}>Cancel</button>
+              <button onClick={saveBid} disabled={!bidForm.dealId || !bidForm.rehabItem || !bidForm.amount} style={{ flex: 1, padding: "11px", borderRadius: 10, border: "none", background: !bidForm.dealId || !bidForm.rehabItem || !bidForm.amount ? "#e2e8f0" : "#e95e00", color: "#fff", fontWeight: 700, fontSize: 14, cursor: !bidForm.dealId || !bidForm.rehabItem || !bidForm.amount ? "not-allowed" : "pointer" }}>{editingBidId ? "Save Changes" : "Add Bid"}</button>
+              <button onClick={() => { setShowBidModal(false); setEditingBidId(null); setBidForm({ dealId: "", rehabItem: "", amount: "" }); }} style={{ padding: "11px 18px", borderRadius: 10, border: "1.5px solid #e2e8f0", background: "#fff", fontWeight: 600, fontSize: 14, cursor: "pointer", color: "#64748b" }}>Cancel</button>
             </div>
           </div>
         </div>
@@ -1917,7 +1917,7 @@ export function ContractorDetail({ contractor, onBack }) {
           <div style={{ background: "#fff", borderRadius: 20, padding: 32, width: 480, boxShadow: "0 20px 60px rgba(0,0,0,0.18)" }}>
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 20 }}>
               <h2 style={{ color: "#041830", fontSize: 19, fontWeight: 700 }}>{editingDocId ? "Edit Document" : "Add Document"}</h2>
-              <button onClick={() => { setShowDocModal(false); setEditingDocId(null); setDocForm({ name: "", type: "contract", flipId: "" }); }} style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8" }}><X size={20} /></button>
+              <button onClick={() => { setShowDocModal(false); setEditingDocId(null); setDocForm({ name: "", type: "contract", dealId: "" }); }} style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8" }}><X size={20} /></button>
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               <div><p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Document Name *</p><input style={iS} placeholder="e.g. Plumbing Contract" value={docForm.name} onChange={e => setDocForm(f => ({ ...f, name: e.target.value }))} /></div>
@@ -1930,16 +1930,16 @@ export function ContractorDetail({ contractor, onBack }) {
                 </div>
                 <div>
                   <p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Associated Deal <span style={{ color: "#94a3b8", fontWeight: 400 }}>(optional)</span></p>
-                  <select style={iS} value={docForm.flipId} onChange={e => setDocForm(f => ({ ...f, flipId: e.target.value }))}>
+                  <select style={iS} value={docForm.dealId} onChange={e => setDocForm(f => ({ ...f, dealId: e.target.value }))}>
                     <option value="">General (no deal)</option>
-                    {_FLIPS.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
+                    {_DEALS.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
                   </select>
                 </div>
               </div>
             </div>
             <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
               <button onClick={saveDoc} disabled={!docForm.name.trim()} style={{ flex: 1, padding: "11px", borderRadius: 10, border: "none", background: !docForm.name.trim() ? "#e2e8f0" : "#e95e00", color: "#fff", fontWeight: 700, fontSize: 14, cursor: !docForm.name.trim() ? "not-allowed" : "pointer" }}>{editingDocId ? "Save Changes" : "Add Document"}</button>
-              <button onClick={() => { setShowDocModal(false); setEditingDocId(null); setDocForm({ name: "", type: "contract", flipId: "" }); }} style={{ padding: "11px 18px", borderRadius: 10, border: "1.5px solid #e2e8f0", background: "#fff", fontWeight: 600, fontSize: 14, cursor: "pointer", color: "#64748b" }}>Cancel</button>
+              <button onClick={() => { setShowDocModal(false); setEditingDocId(null); setDocForm({ name: "", type: "contract", dealId: "" }); }} style={{ padding: "11px 18px", borderRadius: 10, border: "1.5px solid #e2e8f0", background: "#fff", fontWeight: 600, fontSize: 14, cursor: "pointer", color: "#64748b" }}>Cancel</button>
             </div>
           </div>
         </div>
@@ -1963,16 +1963,16 @@ export function ContractorDetail({ contractor, onBack }) {
 }
 
 // ---------------------------------------------------------------------------
-// 5. FLIP ANALYTICS
+// 5. DEAL ANALYTICS
 // ---------------------------------------------------------------------------
-export function FlipAnalytics() {
+export function DealAnalytics() {
   const [filterDeal, setFilterDeal] = useState("all");
 
-  const allFlips = _FLIPS;
-  const flips = allFlips;
-  const sold  = flips.filter(f => f.stage === "Sold");
+  const allDeals = _DEALS;
+  const deals = allDeals;
+  const sold  = deals.filter(f => f.stage === "Sold");
 
-  const roiData = flips.map(f => {
+  const roiData = deals.map(f => {
     const cost = f.purchasePrice + (f.stage === "Sold" ? f.rehabSpent : f.rehabBudget);
     const sale = f.stage === "Sold" ? f.salePrice : f.arv;
     const profit = sale - cost - (f.stage === "Sold" ? f.sellingCosts + f.totalHoldingCosts : (sale * ((f.sellingCostPct || 6) / 100)) + (f.holdingCostsPerMonth * (f.daysOwned || 0) / 30));
@@ -1980,26 +1980,26 @@ export function FlipAnalytics() {
     return { name: f.image, fullName: f.name, roi: parseFloat(roi), profit: Math.round(profit), stage: f.stage, color: f.color };
   });
 
-  const budgetVsActual = flips.filter(f => f.rehabSpent > 0).map(f => ({
+  const budgetVsActual = deals.filter(f => f.rehabSpent > 0).map(f => ({
     name: f.image, budget: f.rehabBudget, actual: f.rehabSpent,
     variance: f.rehabBudget - f.rehabSpent,
   }));
 
-  const timelineData = flips.filter(f => f.daysOwned > 0).map(f => ({
+  const timelineData = deals.filter(f => f.daysOwned > 0).map(f => ({
     name: f.image, days: f.daysOwned, stage: f.stage, color: f.color,
   }));
 
-  const flipIds = new Set(flips.map(f => f.id));
-  const catSpend = _FE.filter(e => flipIds.has(e.flipId)).reduce((acc, e) => {
+  const dealIdSet = new Set(deals.map(f => f.id));
+  const catSpend = _FE.filter(e => dealIdSet.has(e.dealId)).reduce((acc, e) => {
     acc[e.category] = (acc[e.category] || 0) + e.amount;
     return acc;
   }, {});
   const catChartData = Object.entries(catSpend).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value);
   const COLORS = ["#e95e00", "#3b82f6", "#10b981", "#8b5cf6", "#ef4444", "#06b6d4"];
 
-  // Monthly expense trend – group all flip expenses by month
+  // Monthly expense trend – group all deal expenses by month
   const monthlyTrend = useMemo(() => {
-    const filtered = _FE.filter(e => flipIds.has(e.flipId));
+    const filtered = _FE.filter(e => dealIdSet.has(e.dealId));
     const byMonth = {};
     filtered.forEach(e => {
       const m = e.date?.substring(0, 7); // "2026-03"
@@ -2013,7 +2013,7 @@ export function FlipAnalytics() {
   }, [flips]);
 
   // Profit breakdown per deal – stacked components
-  const profitBreakdown = flips.map(f => {
+  const profitBreakdown = deals.map(f => {
     const purchase = f.purchasePrice;
     const rehab = f.stage === "Sold" ? f.rehabSpent : f.rehabBudget;
     const holding = f.stage === "Sold" ? f.totalHoldingCosts : (f.holdingCostsPerMonth * ((f.daysOwned || 0) / 30));
@@ -2030,10 +2030,10 @@ export function FlipAnalytics() {
   const totalProfit = sold.reduce((s, f) => s + (f.netProfit || 0), 0);
 
   // Single-deal mode
-  const singleDeal = filterDeal !== "all" ? allFlips.find(f => f.id === parseInt(filterDeal)) : null;
+  const singleDeal = filterDeal !== "all" ? allDeals.find(f => f.id === parseInt(filterDeal)) : null;
 
   // Single-deal computed data
-  const dealExpenses = singleDeal ? _FE.filter(e => e.flipId === singleDeal.id).sort((a, b) => a.date.localeCompare(b.date)) : [];
+  const dealExpenses = singleDeal ? _FE.filter(e => e.dealId === singleDeal.id).sort((a, b) => a.date.localeCompare(b.date)) : [];
   const dealCatSpend = singleDeal ? dealExpenses.reduce((acc, e) => { acc[e.category] = (acc[e.category] || 0) + e.amount; return acc; }, {}) : {};
   const dealCatChart = Object.entries(dealCatSpend).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value);
 
@@ -2080,7 +2080,7 @@ export function FlipAnalytics() {
         <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
           <select value={filterDeal} onChange={e => setFilterDeal(e.target.value)} style={{ ...iS, width: 220, fontSize: 14, padding: "9px 14px", fontWeight: 600 }}>
             <option value="all">All Deals</option>
-            {allFlips.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
+            {allDeals.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
           </select>
         </div>
       </div>
@@ -2294,7 +2294,7 @@ export function FlipAnalytics() {
           { label: "Avg ROI", value: `${avgROI}%`, color: "#10b981", sub: "All deals", tip: "Average Return on Investment across all deals. ROI = (Sale/ARV \u2212 Total Cost) \u00f7 Total Cost \u00d7 100. Active deals use projected ARV and estimated costs." },
           { label: "Avg Hold Time", value: `${avgDays} days`, color: "#3b82f6", sub: "Active deals", tip: "Average number of days properties have been owned. Shorter hold times mean less carrying cost and faster capital recycling." },
           { label: "Total Realized", value: fmt(totalProfit), color: "#8b5cf6", sub: "Closed deals", tip: "Sum of net profit from all sold deals. Net Profit = Sale Price \u2212 Purchase Price \u2212 Rehab Spent \u2212 Holding Costs \u2212 Selling Costs." },
-          { label: "Deals Analyzed", value: flips.length, color: "#e95e00", sub: `${sold.length} closed`, tip: "Total number of deals in your pipeline. Includes active, listed, under contract, and sold properties." },
+          { label: "Deals Analyzed", value: deals.length, color: "#e95e00", sub: `${sold.length} closed`, tip: "Total number of deals in your pipeline. Includes active, listed, under contract, and sold properties." },
         ].map((m, i) => (
           <div key={i} style={cardS}>
             <p style={{ color: "#94a3b8", fontSize: 12, fontWeight: 600, textTransform: "uppercase", marginBottom: 6, display: "flex", alignItems: "center" }}>{m.label}<InfoTip text={m.tip} /></p>
@@ -2483,19 +2483,19 @@ export function FlipAnalytics() {
           </thead>
           <tbody>
             {roiData.map((d, i) => {
-              const flip = flips[i];
+              const deal = deals[i];
               return (
-                <tr key={flip.id} style={{ borderTop: "1px solid #f1f5f9" }}>
+                <tr key={deal.id} style={{ borderTop: "1px solid #f1f5f9" }}>
                   <td style={{ padding: "12px 16px" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <div style={{ width: 28, height: 28, borderRadius: 7, background: flip.color + "20", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 700, color: flip.color }}>{flip.image}</div>
-                      <span style={{ color: "#041830", fontSize: 13, fontWeight: 600 }}>{flip.name}</span>
+                      <div style={{ width: 28, height: 28, borderRadius: 7, background: deal.color + "20", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 700, color: deal.color }}>{deal.image}</div>
+                      <span style={{ color: "#041830", fontSize: 13, fontWeight: 600 }}>{deal.name}</span>
                     </div>
                   </td>
-                  <td style={{ padding: "12px 16px" }}><StageDot stage={flip.stage} /></td>
-                  <td style={{ padding: "12px 16px", color: "#041830", fontSize: 13 }}>{fmt(flip.purchasePrice)}</td>
-                  <td style={{ padding: "12px 16px", color: "#041830", fontSize: 13 }}>{fmt(flip.rehabBudget)}</td>
-                  <td style={{ padding: "12px 16px", color: "#041830", fontSize: 13 }}>{fmt(flip.stage === "Sold" ? flip.salePrice : flip.arv)}</td>
+                  <td style={{ padding: "12px 16px" }}><StageDot stage={deal.stage} /></td>
+                  <td style={{ padding: "12px 16px", color: "#041830", fontSize: 13 }}>{fmt(deal.purchasePrice)}</td>
+                  <td style={{ padding: "12px 16px", color: "#041830", fontSize: 13 }}>{fmt(deal.rehabBudget)}</td>
+                  <td style={{ padding: "12px 16px", color: "#041830", fontSize: 13 }}>{fmt(deal.stage === "Sold" ? deal.salePrice : deal.arv)}</td>
                   <td style={{ padding: "12px 16px" }}>
                     <span style={{ color: d.profit > 0 ? "#10b981" : "#ef4444", fontWeight: 700, fontSize: 13 }}>{fmt(d.profit)}</span>
                   </td>
@@ -2516,15 +2516,15 @@ export function FlipAnalytics() {
 // ---------------------------------------------------------------------------
 // 6. MILESTONES (cross-deal view)
 // ---------------------------------------------------------------------------
-export function FlipMilestones({ highlightMilestoneKey, onBack, onClearHighlight }) {
-  const [filterFlip, setFilterFlip] = useState("all");
+export function DealMilestones({ highlightMilestoneKey, onBack, onClearHighlight }) {
+  const [filterDeal, setFilterDeal] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
   const [renderKey, rerender] = useState(0);
   const [showAdd, setShowAdd] = useState(false);
-  const [msForm, setMsForm] = useState({ flipId: "", label: "", targetDate: "" });
-  const [editItem, setEditItem] = useState(null); // { flipId, idx }
+  const [msForm, setMsForm] = useState({ dealId: "", label: "", targetDate: "" });
+  const [editItem, setEditItem] = useState(null); // { dealId, idx }
   const [editForm, setEditForm] = useState({ label: "", targetDate: "" });
-  const [deleteConfirm, setDeleteConfirm] = useState(null); // { flipId, idx, label }
+  const [deleteConfirm, setDeleteConfirm] = useState(null); // { dealId, idx, label }
   const [labelFocus, setLabelFocus] = useState(false);
   const [flashKey, setFlashKey] = useState(highlightMilestoneKey);
 
@@ -2532,10 +2532,10 @@ export function FlipMilestones({ highlightMilestoneKey, onBack, onClearHighlight
     if (highlightMilestoneKey) {
       setFlashKey(highlightMilestoneKey);
       // If the highlighted milestone is completed, set filter to show completed items
-      const [hFlipId, ...hLabelParts] = highlightMilestoneKey.split("-");
+      const [hDealId, ...hLabelParts] = highlightMilestoneKey.split("-");
       const hLabel = hLabelParts.join("-");
-      const flipMs = FLIP_MILESTONES.filter(m => m.flipId === parseInt(hFlipId));
-      const targetMs = flipMs.find(m => m.label === hLabel);
+      const dealMs = DEAL_MILESTONES.filter(m => m.dealId === parseInt(hDealId));
+      const targetMs = dealMs.find(m => m.label === hLabel);
       if (targetMs?.done && filterStatus === "upcoming") setFilterStatus("all");
       setTimeout(() => {
         const el = document.getElementById("ms-" + highlightMilestoneKey);
@@ -2547,24 +2547,24 @@ export function FlipMilestones({ highlightMilestoneKey, onBack, onClearHighlight
   }, [highlightMilestoneKey]);
   const allMilestoneLabels = useMemo(() => {
     const labels = new Set(DEFAULT_MILESTONES);
-    FLIP_MILESTONES.forEach(m => { if (m.label) labels.add(m.label); });
+    DEAL_MILESTONES.forEach(m => { if (m.label) labels.add(m.label); });
     return [...labels].sort();
   }, [renderKey]);
 
   // Build flat list of all milestones across deals
   const allMilestones = useMemo(() => {
     const list = [];
-    _FLIPS.forEach(f => {
-      const ms = FLIP_MILESTONES.filter(m => m.flipId === f.id) || DEFAULT_MILESTONES.map(label => ({ label, done: false, date: null, targetDate: null }));
+    _DEALS.forEach(f => {
+      const ms = DEAL_MILESTONES.filter(m => m.dealId === f.id) || DEFAULT_MILESTONES.map(label => ({ label, done: false, date: null, targetDate: null }));
       ms.forEach((m, idx) => {
-        list.push({ ...m, flipId: f.id, flipName: f.name, flipColor: f.color, flipImage: f.image, flipStage: f.stage, _idx: idx });
+        list.push({ ...m, dealId: f.id, dealName: f.name, dealColor: f.color, dealImage: f.image, dealStage: f.stage, _idx: idx });
       });
     });
     return list;
   }, [renderKey]);
 
   const filtered = allMilestones.filter(m => {
-    if (filterFlip !== "all" && m.flipId !== parseInt(filterFlip)) return false;
+    if (filterDeal !== "all" && m.dealId !== parseInt(filterDeal)) return false;
     if (filterStatus === "done" && !m.done) return false;
     if (filterStatus === "upcoming" && m.done) return false;
     if (filterStatus === "overdue" && (m.done || !m.targetDate || m.targetDate >= new Date().toISOString().split("T")[0])) return false;
@@ -2576,21 +2576,21 @@ export function FlipMilestones({ highlightMilestoneKey, onBack, onClearHighlight
   const today = new Date().toISOString().split("T")[0];
   const totalOverdue = filtered.filter(m => !m.done && m.targetDate && m.targetDate < today).length;
 
-  const clearFilters = () => { setFilterFlip("all"); setFilterStatus("all"); };
-  const hasFilters = filterFlip !== "all" || filterStatus !== "all";
+  const clearFilters = () => { setFilterDeal("all"); setFilterStatus("all"); };
+  const hasFilters = filterDeal !== "all" || filterStatus !== "all";
 
   // Inline completion date picker state
-  const [completingItem, setCompletingItem] = useState(null); // { flipId, idx }
+  const [completingItem, setCompletingItem] = useState(null); // { dealId, idx }
   const [completionDate, setCompletionDate] = useState(new Date().toISOString().split("T")[0]);
 
-  const startComplete = (flipId, idx) => {
-    setCompletingItem({ flipId, idx });
+  const startComplete = (dealId, idx) => {
+    setCompletingItem({ dealId, idx });
     setCompletionDate(new Date().toISOString().split("T")[0]);
   };
 
   const confirmComplete = () => {
     if (!completingItem) return;
-    const ms = FLIP_MILESTONES.filter(m => m.flipId === completingItem.flipId);
+    const ms = DEAL_MILESTONES.filter(m => m.dealId === completingItem.dealId);
     if (ms && ms[completingItem.idx]) {
       ms[completingItem.idx].done = true;
       ms[completingItem.idx].date = completionDate;
@@ -2599,8 +2599,8 @@ export function FlipMilestones({ highlightMilestoneKey, onBack, onClearHighlight
     rerender(n => n + 1);
   };
 
-  const uncomplete = (flipId, idx) => {
-    const ms = FLIP_MILESTONES.filter(m => m.flipId === flipId);
+  const uncomplete = (dealId, idx) => {
+    const ms = DEAL_MILESTONES.filter(m => m.dealId === dealId);
     if (ms && ms[idx]) {
       ms[idx].done = false;
       ms[idx].date = null;
@@ -2609,22 +2609,22 @@ export function FlipMilestones({ highlightMilestoneKey, onBack, onClearHighlight
   };
 
   const saveMilestone = () => {
-    const fId = parseInt(msForm.flipId);
+    const fId = parseInt(msForm.dealId);
     if (!fId || !msForm.label.trim()) return;
-    FLIP_MILESTONES.push({ id: Date.now() + Math.random(), flipId: fId, label: msForm.label.trim(), done: false, date: null, targetDate: msForm.targetDate || null });
-    setMsForm({ flipId: "", label: "", targetDate: "" });
+    DEAL_MILESTONES.push({ id: Date.now() + Math.random(), dealId: fId, label: msForm.label.trim(), done: false, date: null, targetDate: msForm.targetDate || null });
+    setMsForm({ dealId: "", label: "", targetDate: "" });
     setShowAdd(false);
     rerender(n => n + 1);
   };
 
-  const startEdit = (flipId, idx, m) => {
-    setEditItem({ flipId, idx });
+  const startEdit = (dealId, idx, m) => {
+    setEditItem({ dealId, idx });
     setEditForm({ label: m.label, targetDate: m.targetDate || "", completedDate: m.date || "" });
   };
 
   const saveEdit = () => {
     if (!editItem) return;
-    const ms = FLIP_MILESTONES.filter(m => m.flipId === editItem.flipId);
+    const ms = DEAL_MILESTONES.filter(m => m.dealId === editItem.dealId);
     if (ms && ms[editItem.idx]) {
       ms[editItem.idx].label = editForm.label.trim() || ms[editItem.idx].label;
       ms[editItem.idx].targetDate = editForm.targetDate || null;
@@ -2642,8 +2642,8 @@ export function FlipMilestones({ highlightMilestoneKey, onBack, onClearHighlight
 
   const deleteMilestone = () => {
     if (!deleteConfirm) return;
-    const msIdx = FLIP_MILESTONES.findIndex(m => m.flipId === deleteConfirm.flipId && FLIP_MILESTONES.filter(x => x.flipId === deleteConfirm.flipId)[deleteConfirm.idx]?.id === m.id);
-    if (msIdx !== -1) { FLIP_MILESTONES.splice(msIdx, 1); }
+    const msIdx = DEAL_MILESTONES.findIndex(m => m.dealId === deleteConfirm.dealId && DEAL_MILESTONES.filter(x => x.dealId === deleteConfirm.dealId)[deleteConfirm.idx]?.id === m.id);
+    if (msIdx !== -1) { DEAL_MILESTONES.splice(msIdx, 1); }
     setDeleteConfirm(null);
     rerender(n => n + 1);
   };
@@ -2651,8 +2651,8 @@ export function FlipMilestones({ highlightMilestoneKey, onBack, onClearHighlight
   // Group by deal for display
   const groupedByDeal = {};
   filtered.forEach(m => {
-    if (!groupedByDeal[m.flipId]) groupedByDeal[m.flipId] = { flip: { id: m.flipId, name: m.flipName, color: m.flipColor, image: m.flipImage, stage: m.flipStage }, items: [] };
-    groupedByDeal[m.flipId].items.push(m);
+    if (!groupedByDeal[m.dealId]) groupedByDeal[m.dealId] = { deal: { id: m.dealId, name: m.dealName, color: m.dealColor, image: m.dealImage, stage: m.dealStage }, items: [] };
+    groupedByDeal[m.dealId].items.push(m);
   });
 
   return (
@@ -2666,9 +2666,9 @@ export function FlipMilestones({ highlightMilestoneKey, onBack, onClearHighlight
         title="Milestones"
         sub="Track progress across all your deals"
         filter={
-          <select value={filterFlip} onChange={e => setFilterFlip(e.target.value)} style={{ ...iS, width: 200, fontSize: 14, padding: "9px 14px", fontWeight: 600 }}>
+          <select value={filterDeal} onChange={e => setFilterDeal(e.target.value)} style={{ ...iS, width: 200, fontSize: 14, padding: "9px 14px", fontWeight: 600 }}>
             <option value="all">All Deals</option>
-            {_FLIPS.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
+            {_DEALS.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
           </select>
         }
       />
@@ -2702,17 +2702,17 @@ export function FlipMilestones({ highlightMilestoneKey, onBack, onClearHighlight
           <p style={{ fontWeight: 600, marginBottom: 4 }}>No milestones match your filters</p>
           {hasFilters && <button onClick={clearFilters} style={{ background: "none", border: "none", color: "#e95e00", fontSize: 13, cursor: "pointer", textDecoration: "underline", padding: 0 }}>Clear filters</button>}
         </div>
-      ) : Object.values(groupedByDeal).map(({ flip, items }) => {
+      ) : Object.values(groupedByDeal).map(({ deal, items }) => {
         const done = items.filter(m => m.done).length;
         const pct = items.length > 0 ? Math.round((done / items.length) * 100) : 0;
         return (
-          <div key={flip.id} style={{ ...sectionS }}>
+          <div key={deal.id} style={{ ...sectionS }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <div style={{ width: 32, height: 32, borderRadius: 8, background: flip.color + "20", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, color: flip.color }}>{flip.image}</div>
+                <div style={{ width: 32, height: 32, borderRadius: 8, background: deal.color + "20", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, color: deal.color }}>{deal.image}</div>
                 <div>
-                  <p style={{ fontSize: 14, fontWeight: 700, color: "#041830" }}>{flip.name}</p>
-                  <p style={{ fontSize: 12, color: "#94a3b8" }}>{flip.stage}</p>
+                  <p style={{ fontSize: 14, fontWeight: 700, color: "#041830" }}>{deal.name}</p>
+                  <p style={{ fontSize: 12, color: "#94a3b8" }}>{deal.stage}</p>
                 </div>
               </div>
               <div style={{ textAlign: "right" }}>
@@ -2728,8 +2728,8 @@ export function FlipMilestones({ highlightMilestoneKey, onBack, onClearHighlight
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
               {items.map((m, i) => {
                 const overdue = !m.done && m.targetDate && m.targetDate < today;
-                const isEditing = editItem?.flipId === flip.id && editItem?.idx === m._idx;
-                const isCompleting = completingItem?.flipId === flip.id && completingItem?.idx === m._idx;
+                const isEditing = editItem?.dealId === deal.id && editItem?.idx === m._idx;
+                const isCompleting = completingItem?.dealId === deal.id && completingItem?.idx === m._idx;
                 return isEditing ? (
                   <div key={i} style={{ padding: "10px 12px", borderRadius: 8, background: "#fff7ed", border: "1px solid #fdba74" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
@@ -2758,8 +2758,8 @@ export function FlipMilestones({ highlightMilestoneKey, onBack, onClearHighlight
                     <button onClick={() => setCompletingItem(null)} style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8", padding: 0 }}><X size={14} /></button>
                   </div>
                 ) : (
-                  <div key={i} id={"ms-" + flip.id + "-" + m.label} className="ms-row" onMouseEnter={e => { if (flashKey !== (flip.id + "-" + m.label)) e.currentTarget.style.background = "#f8fafc"; }} onMouseLeave={e => { if (flashKey !== (flip.id + "-" + m.label)) e.currentTarget.style.background = m.done ? "#f0fdf4" : overdue ? "#fef2f2" : "#f8fafc"; }} style={{ display: "flex", alignItems: "center", gap: 12, padding: "8px 10px", borderRadius: 8, background: flashKey === (flip.id + "-" + m.label) ? "#fff7ed" : m.done ? "#f0fdf4" : overdue ? "#fef2f2" : "#f8fafc", border: `1px solid ${flashKey === (flip.id + "-" + m.label) ? "#e95e00" : m.done ? "#bbf7d0" : overdue ? "#fecaca" : "#f1f5f9"}`, boxShadow: flashKey === (flip.id + "-" + m.label) ? "0 0 0 2px #e95e00" : "none", position: "relative", transition: "all 0.4s ease" }}>
-                    <button onClick={() => m.done ? uncomplete(flip.id, m._idx) : startComplete(flip.id, m._idx)} style={{ background: "none", border: "none", cursor: "pointer", padding: 0, display: "flex", flexShrink: 0 }}>
+                  <div key={i} id={"ms-" + deal.id + "-" + m.label} className="ms-row" onMouseEnter={e => { if (flashKey !== (deal.id + "-" + m.label)) e.currentTarget.style.background = "#f8fafc"; }} onMouseLeave={e => { if (flashKey !== (deal.id + "-" + m.label)) e.currentTarget.style.background = m.done ? "#f0fdf4" : overdue ? "#fef2f2" : "#f8fafc"; }} style={{ display: "flex", alignItems: "center", gap: 12, padding: "8px 10px", borderRadius: 8, background: flashKey === (deal.id + "-" + m.label) ? "#fff7ed" : m.done ? "#f0fdf4" : overdue ? "#fef2f2" : "#f8fafc", border: `1px solid ${flashKey === (deal.id + "-" + m.label) ? "#e95e00" : m.done ? "#bbf7d0" : overdue ? "#fecaca" : "#f1f5f9"}`, boxShadow: flashKey === (deal.id + "-" + m.label) ? "0 0 0 2px #e95e00" : "none", position: "relative", transition: "all 0.4s ease" }}>
+                    <button onClick={() => m.done ? uncomplete(deal.id, m._idx) : startComplete(deal.id, m._idx)} style={{ background: "none", border: "none", cursor: "pointer", padding: 0, display: "flex", flexShrink: 0 }}>
                       {m.done ? <CheckCircle size={18} color="#10b981" /> : <Circle size={18} color={overdue ? "#ef4444" : "#cbd5e1"} />}
                     </button>
                     <span style={{ flex: 1, fontSize: 13, fontWeight: 500, color: m.done ? "#6b7280" : "#041830", textDecoration: m.done ? "line-through" : "none" }}>{m.label}</span>
@@ -2774,8 +2774,8 @@ export function FlipMilestones({ highlightMilestoneKey, onBack, onClearHighlight
                       </span>
                     )}
                     <div style={{ display: "flex", gap: 4, flexShrink: 0, marginLeft: 4 }}>
-                      <button onClick={() => startEdit(flip.id, m._idx, m)} style={{ background: "#f1f5f9", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "#475569", display: "flex", alignItems: "center" }} title="Edit"><Pencil size={13} /></button>
-                      <button onClick={() => setDeleteConfirm({ flipId: flip.id, idx: m._idx, label: m.label })} style={{ background: "#fee2e2", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "#ef4444", display: "flex", alignItems: "center" }} title="Delete"><Trash2 size={13} /></button>
+                      <button onClick={() => startEdit(deal.id, m._idx, m)} style={{ background: "#f1f5f9", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "#475569", display: "flex", alignItems: "center" }} title="Edit"><Pencil size={13} /></button>
+                      <button onClick={() => setDeleteConfirm({ dealId: deal.id, idx: m._idx, label: m.label })} style={{ background: "#fee2e2", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "#ef4444", display: "flex", alignItems: "center" }} title="Delete"><Trash2 size={13} /></button>
                     </div>
                   </div>
                 );
@@ -2796,9 +2796,9 @@ export function FlipMilestones({ highlightMilestoneKey, onBack, onClearHighlight
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               <div>
                 <p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Deal *</p>
-                <select value={msForm.flipId} onChange={e => setMsForm(f => ({ ...f, flipId: e.target.value }))} style={iS}>
+                <select value={msForm.dealId} onChange={e => setMsForm(f => ({ ...f, dealId: e.target.value }))} style={iS}>
                   <option value="">Select deal...</option>
-                  {_FLIPS.filter(f => f.stage !== "Sold").map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
+                  {_DEALS.filter(f => f.stage !== "Sold").map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
                 </select>
               </div>
               <div style={{ position: "relative" }}>
@@ -2839,7 +2839,7 @@ export function FlipMilestones({ highlightMilestoneKey, onBack, onClearHighlight
               </div>
             </div>
             <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
-              <button onClick={saveMilestone} disabled={!msForm.flipId || !msForm.label.trim()} style={{ flex: 1, padding: "11px", borderRadius: 10, border: "none", background: !msForm.flipId || !msForm.label.trim() ? "#e2e8f0" : "#e95e00", color: "#fff", fontWeight: 700, fontSize: 14, cursor: !msForm.flipId || !msForm.label.trim() ? "not-allowed" : "pointer" }}>Add Milestone</button>
+              <button onClick={saveMilestone} disabled={!msForm.dealId || !msForm.label.trim()} style={{ flex: 1, padding: "11px", borderRadius: 10, border: "none", background: !msForm.dealId || !msForm.label.trim() ? "#e2e8f0" : "#e95e00", color: "#fff", fontWeight: 700, fontSize: 14, cursor: !msForm.dealId || !msForm.label.trim() ? "not-allowed" : "pointer" }}>Add Milestone</button>
               <button onClick={() => setShowAdd(false)} style={{ padding: "11px 18px", borderRadius: 10, border: "1.5px solid #e2e8f0", background: "#fff", fontWeight: 600, fontSize: 14, cursor: "pointer", color: "#64748b" }}>Cancel</button>
             </div>
           </div>
@@ -2870,12 +2870,12 @@ export function FlipMilestones({ highlightMilestoneKey, onBack, onClearHighlight
 // ---------------------------------------------------------------------------
 // 7. NOTES (cross-deal activity log)
 // ---------------------------------------------------------------------------
-export function FlipNotes({ highlightNoteId, onBack, onClearHighlight }) {
-  const [filterFlip, setFilterFlip] = useState("all");
+export function DealNotes({ highlightNoteId, onBack, onClearHighlight }) {
+  const [filterDeal, setFilterDeal] = useState("all");
   const [search, setSearch] = useState("");
   const [renderKey, rerender] = useState(0);
   const [showAdd, setShowAdd] = useState(false);
-  const [noteForm, setNoteForm] = useState({ flipId: "", text: "" });
+  const [noteForm, setNoteForm] = useState({ dealId: "", text: "" });
   const [editId, setEditId] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [flashId, setFlashId] = useState(highlightNoteId);
@@ -2884,7 +2884,7 @@ export function FlipNotes({ highlightNoteId, onBack, onClearHighlight }) {
     if (highlightNoteId) {
       setFlashId(highlightNoteId);
       setTimeout(() => {
-        const el = document.getElementById("flipnote-" + highlightNoteId);
+        const el = document.getElementById("dealnote-" + highlightNoteId);
         if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
       }, 100);
       const timer = setTimeout(() => { setFlashId(null); onClearHighlight && onClearHighlight(); }, 2500);
@@ -2895,49 +2895,49 @@ export function FlipNotes({ highlightNoteId, onBack, onClearHighlight }) {
   // Build flat list of all notes across deals (no memo — must recalculate after mutations)
   const allNotes = (() => {
     const list = [];
-    FLIP_NOTES.forEach(n => {
-      const flip = _FLIPS.find(f => f.id === n.flipId);
-      if (flip) {
-        list.push({ ...n, flipId: n.flipId, flipName: flip.name, flipColor: flip.color, flipImage: flip.image });
+    DEAL_NOTES.forEach(n => {
+      const deal = _DEALS.find(f => f.id === n.dealId);
+      if (deal) {
+        list.push({ ...n, dealId: n.dealId, dealName: deal.name, dealColor: deal.color, dealImage: deal.image });
       }
     });
     return list.sort((a, b) => b.date.localeCompare(a.date));
   })();
 
   const filtered = allNotes.filter(n => {
-    if (filterFlip !== "all" && n.flipId !== parseInt(filterFlip)) return false;
+    if (filterDeal !== "all" && n.dealId !== parseInt(filterDeal)) return false;
     if (search && !n.text.toLowerCase().includes(search.toLowerCase())) return false;
     return true;
   });
 
-  const clearFilters = () => { setFilterFlip("all"); setSearch(""); };
-  const hasFilters = filterFlip !== "all" || search;
+  const clearFilters = () => { setFilterDeal("all"); setSearch(""); };
+  const hasFilters = filterDeal !== "all" || search;
 
   const handleSave = () => {
-    if (!noteForm.text.trim() || !noteForm.flipId) return;
-    const fId = parseInt(noteForm.flipId);
+    if (!noteForm.text.trim() || !noteForm.dealId) return;
+    const fId = parseInt(noteForm.dealId);
     if (editId !== null) {
-      const idx = FLIP_NOTES.findIndex(n => n.id === editId);
-      if (idx !== -1) FLIP_NOTES[idx] = { ...FLIP_NOTES[idx], text: noteForm.text.trim() };
+      const idx = DEAL_NOTES.findIndex(n => n.id === editId);
+      if (idx !== -1) DEAL_NOTES[idx] = { ...DEAL_NOTES[idx], text: noteForm.text.trim() };
     } else {
-      FLIP_NOTES.unshift({ id: newId(), flipId: fId, date: new Date().toISOString().split("T")[0], text: noteForm.text.trim() });
+      DEAL_NOTES.unshift({ id: newId(), dealId: fId, date: new Date().toISOString().split("T")[0], text: noteForm.text.trim() });
     }
-    setNoteForm({ flipId: "", text: "" });
+    setNoteForm({ dealId: "", text: "" });
     setEditId(null);
     setShowAdd(false);
     rerender(n => n + 1);
   };
 
   const handleDelete = (note) => {
-    const idx = FLIP_NOTES.findIndex(n => n.id === note.id);
-    if (idx !== -1) FLIP_NOTES.splice(idx, 1);
+    const idx = DEAL_NOTES.findIndex(n => n.id === note.id);
+    if (idx !== -1) DEAL_NOTES.splice(idx, 1);
     setDeleteConfirm(null);
     rerender(n => n + 1);
   };
 
   const openEdit = (note) => {
     setEditId(note.id);
-    setNoteForm({ flipId: String(note.flipId), text: note.text });
+    setNoteForm({ dealId: String(note.dealId), text: note.text });
     setShowAdd(true);
   };
 
@@ -2958,11 +2958,11 @@ export function FlipNotes({ highlightNoteId, onBack, onClearHighlight }) {
       )}
       <PageHeader
         title="Deal Notes"
-        sub={`${allNotes.length} note${allNotes.length !== 1 ? "s" : ""} across ${new Set(allNotes.map(n => n.flipId)).size} deal${new Set(allNotes.map(n => n.flipId)).size === 1 ? "" : "s"}`}
+        sub={`${allNotes.length} note${allNotes.length !== 1 ? "s" : ""} across ${new Set(allNotes.map(n => n.dealId)).size} deal${new Set(allNotes.map(n => n.dealId)).size === 1 ? "" : "s"}`}
         filter={
-          <select value={filterFlip} onChange={e => setFilterFlip(e.target.value)} style={{ ...iS, width: 200, fontSize: 14, padding: "9px 14px", fontWeight: 600 }}>
+          <select value={filterDeal} onChange={e => setFilterDeal(e.target.value)} style={{ ...iS, width: 200, fontSize: 14, padding: "9px 14px", fontWeight: 600 }}>
             <option value="all">All Deals</option>
-            {_FLIPS.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
+            {_DEALS.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
           </select>
         }
       />
@@ -2977,7 +2977,7 @@ export function FlipNotes({ highlightNoteId, onBack, onClearHighlight }) {
         {hasFilters && (
           <button onClick={clearFilters} style={{ background: "none", border: "none", color: "#94a3b8", fontSize: 12, cursor: "pointer", textDecoration: "underline", padding: 0 }}>Clear filters</button>
         )}
-        <button onClick={() => { setEditId(null); setNoteForm({ flipId: _FLIPS[0] ? String(_FLIPS[0].id) : "", text: "" }); setShowAdd(true); }} style={{ marginLeft: "auto", background: "#e95e00", color: "#fff", border: "none", borderRadius: 10, padding: "9px 16px", fontWeight: 600, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
+        <button onClick={() => { setEditId(null); setNoteForm({ dealId: _DEALS[0] ? String(_DEALS[0].id) : "", text: "" }); setShowAdd(true); }} style={{ marginLeft: "auto", background: "#e95e00", color: "#fff", border: "none", borderRadius: 10, padding: "9px 16px", fontWeight: 600, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
           <Plus size={14} /> Add Note
         </button>
       </div>
@@ -3003,11 +3003,11 @@ export function FlipNotes({ highlightNoteId, onBack, onClearHighlight }) {
           <p style={{ fontSize: 12, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 10 }}>{label}</p>
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {notes.map(n => (
-              <div key={n.id} id={"flipnote-" + n.id} onMouseEnter={e => { if (flashId !== n.id) e.currentTarget.style.background = "#f8fafc"; }} onMouseLeave={e => { if (flashId !== n.id) e.currentTarget.style.background = "#fff"; }} style={{ ...sectionS, marginBottom: 0, padding: 18, transition: "all 0.4s ease", ...(flashId === n.id ? { background: "#ede9fe", boxShadow: "0 0 0 2px #8b5cf6", border: "1px solid #8b5cf6" } : {}) }}>
+              <div key={n.id} id={"dealnote-" + n.id} onMouseEnter={e => { if (flashId !== n.id) e.currentTarget.style.background = "#f8fafc"; }} onMouseLeave={e => { if (flashId !== n.id) e.currentTarget.style.background = "#fff"; }} style={{ ...sectionS, marginBottom: 0, padding: 18, transition: "all 0.4s ease", ...(flashId === n.id ? { background: "#ede9fe", boxShadow: "0 0 0 2px #8b5cf6", border: "1px solid #8b5cf6" } : {}) }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <div style={{ width: 26, height: 26, borderRadius: 7, background: n.flipColor + "20", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, fontWeight: 700, color: n.flipColor }}>{n.flipImage}</div>
-                    <span style={{ fontSize: 13, fontWeight: 600, color: "#041830" }}>{n.flipName}</span>
+                    <div style={{ width: 26, height: 26, borderRadius: 7, background: n.dealColor + "20", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, fontWeight: 700, color: n.dealColor }}>{n.dealImage}</div>
+                    <span style={{ fontSize: 13, fontWeight: 600, color: "#041830" }}>{n.dealName}</span>
                   </div>
                   <div style={{ display: "flex", gap: 4 }}>
                     <button onClick={() => openEdit(n)} style={{ background: "#f1f5f9", border: "none", borderRadius: 7, padding: "4px 7px", cursor: "pointer", color: "#475569", display: "flex", alignItems: "center" }} title="Edit"><Pencil size={12} /></button>
@@ -3032,9 +3032,9 @@ export function FlipNotes({ highlightNoteId, onBack, onClearHighlight }) {
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               <div>
                 <p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Deal *</p>
-                <select style={iS} value={noteForm.flipId} onChange={e => setNoteForm(f => ({ ...f, flipId: e.target.value }))} disabled={!!editId}>
+                <select style={iS} value={noteForm.dealId} onChange={e => setNoteForm(f => ({ ...f, dealId: e.target.value }))} disabled={!!editId}>
                   <option value="">Select deal...</option>
-                  {_FLIPS.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
+                  {_DEALS.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
                 </select>
               </div>
               <div>
@@ -3043,7 +3043,7 @@ export function FlipNotes({ highlightNoteId, onBack, onClearHighlight }) {
               </div>
             </div>
             <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
-              <button onClick={handleSave} style={{ flex: 1, padding: "11px", borderRadius: 10, border: "none", background: "#e95e00", color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer", opacity: (!noteForm.text.trim() || !noteForm.flipId) ? 0.5 : 1 }}>{editId ? "Save Changes" : "Add Note"}</button>
+              <button onClick={handleSave} style={{ flex: 1, padding: "11px", borderRadius: 10, border: "none", background: "#e95e00", color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer", opacity: (!noteForm.text.trim() || !noteForm.dealId) ? 0.5 : 1 }}>{editId ? "Save Changes" : "Add Note"}</button>
               <button onClick={() => { setShowAdd(false); setEditId(null); }} style={{ padding: "11px 18px", borderRadius: 10, border: "1.5px solid #e2e8f0", background: "#fff", fontWeight: 600, fontSize: 14, cursor: "pointer", color: "#64748b" }}>Cancel</button>
             </div>
           </div>
