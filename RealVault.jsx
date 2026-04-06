@@ -516,48 +516,52 @@ function AttachmentList({ items, onRemove, compact = false }) {
   );
 }
 
-// ── ReceiptScanButton — triggers file pick and OCR scan, then calls onResult ──
-function ReceiptScanButton({ onResult, onFileAttached, accent = "#f59e0b" }) {
-  const inputRef = useRef(null);
+// ── OcrPrompt — shown after a receipt is attached, offers to auto-fill form ──
+function OcrPrompt({ attachment, onResult, onDismiss }) {
   const [scanning, setScanning] = useState(false);
+  const [dismissed, setDismissed] = useState(false);
 
-  const handleFile = async (file) => {
-    // Create attachment record
-    const attachment = {
-      id: newId(),
-      name: file.name,
-      mimeType: file.type,
-      size: file.size > 1024 * 1024 ? (file.size / (1024 * 1024)).toFixed(1) + " MB" : Math.round(file.size / 1024) + " KB",
-      url: URL.createObjectURL(file),
-      ocrData: null,
-      createdAt: new Date().toISOString(),
-      userId: "usr_001",
-    };
-    if (onFileAttached) onFileAttached(attachment);
+  if (dismissed || attachment.ocrData) return null;
 
-    // Run OCR
+  const isImage = attachment.mimeType?.startsWith("image/");
+  const isPdf = attachment.mimeType?.includes("pdf");
+  if (!isImage && !isPdf) return null; // only offer OCR for images/PDFs
+
+  const runOcr = async () => {
     setScanning(true);
     try {
-      const ocrData = await mockOcrScan(file);
-      attachment.ocrData = ocrData;
+      const ocrData = await mockOcrScan({ name: attachment.name, type: attachment.mimeType });
       if (onResult) onResult(ocrData, attachment);
     } catch (err) {
-      console.error("OCR scan failed:", err);
+      console.error("OCR failed:", err);
     } finally {
       setScanning(false);
     }
   };
 
+  if (scanning) {
+    return (
+      <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", background: "#fffbeb", borderRadius: 10, border: "1px solid #fde68a", marginTop: 6 }}>
+        <Loader size={14} color="#f59e0b" style={{ animation: "spin 1s linear infinite" }} />
+        <span style={{ fontSize: 12, color: "#92400e", fontWeight: 600 }}>Reading receipt...</span>
+        <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
+      </div>
+    );
+  }
+
   return (
-    <>
-      <input ref={inputRef} type="file" accept="image/*,.pdf" onChange={e => { if (e.target.files[0]) handleFile(e.target.files[0]); e.target.value = ""; }} style={{ display: "none" }} />
-      <button onClick={() => inputRef.current?.click()} disabled={scanning}
-        style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 14px", borderRadius: 10, border: `1px solid ${accent}40`, background: `${accent}10`, color: accent, fontSize: 12, fontWeight: 600, cursor: scanning ? "wait" : "pointer", opacity: scanning ? 0.7 : 1 }}>
-        {scanning ? <Loader size={14} style={{ animation: "spin 1s linear infinite" }} /> : <ScanLine size={14} />}
-        {scanning ? "Scanning..." : "Scan Receipt"}
+    <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", background: "#f0f9ff", borderRadius: 10, border: "1px solid #bae6fd", marginTop: 6 }}>
+      <ScanLine size={15} color="#0284c7" />
+      <span style={{ fontSize: 12, color: "#0c4a6e", flex: 1 }}>Auto-fill from this receipt?</span>
+      <button onClick={runOcr}
+        style={{ display: "flex", alignItems: "center", gap: 5, padding: "5px 12px", borderRadius: 8, border: "none", background: "#0284c7", color: "#fff", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>
+        <Star size={12} /> Auto-fill
       </button>
-      {scanning && <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>}
-    </>
+      <button onClick={() => { setDismissed(true); if (onDismiss) onDismiss(); }}
+        style={{ background: "none", border: "none", cursor: "pointer", padding: 2, color: "#94a3b8", display: "flex" }}>
+        <X size={14} />
+      </button>
+    </div>
   );
 }
 
@@ -2552,47 +2556,41 @@ function PropertyDetail({ property, onBack, backLabel, onEditProperty, onGoToTra
 
                   {/* Receipt / Attachment */}
                   <div style={{ gridColumn: "1 / -1" }}>
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
-                      <label style={{ color: "#475569", fontSize: 13, fontWeight: 600 }}>
-                        <Paperclip size={13} style={{ marginRight: 4, verticalAlign: "middle" }} />Receipt / Attachment
-                      </label>
-                      {!isIncome && (
-                        <ReceiptScanButton
-                          accent={accentColor}
-                          onFileAttached={att => setTxReceipts(prev => [...prev, att])}
-                          onResult={(ocrData, att) => {
-                            // Auto-populate form fields from OCR
-                            setTxForm(f => ({
-                              ...f,
-                              payee: f.payee || ocrData.vendor || "",
-                              amount: f.amount || String(ocrData.amount || ""),
-                              date: f.date || ocrData.date || "",
-                              description: f.description || `Receipt — ${ocrData.vendor || "scanned"}`,
-                            }));
-                            setTxReceipts(prev => prev.map(r => r.id === att.id ? { ...r, ocrData } : r));
-                          }}
-                        />
-                      )}
-                    </div>
+                    <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>
+                      <Paperclip size={13} style={{ marginRight: 4, verticalAlign: "middle" }} />Receipt / Attachment
+                    </label>
+                    <AttachmentZone
+                      onFiles={files => {
+                        const newAtts = files.map(f => ({
+                          id: newId(), name: f.name, mimeType: f.type,
+                          size: f.size > 1024 * 1024 ? (f.size / (1024 * 1024)).toFixed(1) + " MB" : Math.round(f.size / 1024) + " KB",
+                          url: URL.createObjectURL(f), ocrData: null, createdAt: new Date().toISOString(), userId: "usr_001",
+                        }));
+                        setTxReceipts(prev => [...prev, ...newAtts]);
+                      }}
+                      compact label="Attach receipt or document" />
                     {txReceipts.length > 0 && (
-                      <AttachmentList items={txReceipts} onRemove={id => setTxReceipts(prev => prev.filter(r => r.id !== id))} compact />
-                    )}
-                    {txReceipts.length === 0 && (
-                      <AttachmentZone
-                        onFiles={files => {
-                          const newAtts = files.map(f => ({
-                            id: newId(), name: f.name, mimeType: f.type,
-                            size: f.size > 1024 * 1024 ? (f.size / (1024 * 1024)).toFixed(1) + " MB" : Math.round(f.size / 1024) + " KB",
-                            url: URL.createObjectURL(f), ocrData: null, createdAt: new Date().toISOString(), userId: "usr_001",
-                          }));
-                          setTxReceipts(prev => [...prev, ...newAtts]);
-                        }}
-                        compact label="Drop receipt or click to attach" />
+                      <div style={{ marginTop: 6 }}>
+                        <AttachmentList items={txReceipts} onRemove={id => setTxReceipts(prev => prev.filter(r => r.id !== id))} compact />
+                        {!isIncome && txReceipts.filter(r => !r.ocrData).map(att => (
+                          <OcrPrompt key={att.id} attachment={att}
+                            onResult={(ocrData, a) => {
+                              setTxForm(f => ({
+                                ...f,
+                                payee: f.payee || ocrData.vendor || "",
+                                amount: f.amount || String(ocrData.amount || ""),
+                                date: f.date || ocrData.date || "",
+                                description: f.description || `Receipt — ${ocrData.vendor || "scanned"}`,
+                              }));
+                              setTxReceipts(prev => prev.map(r => r.id === a.id ? { ...r, ocrData } : r));
+                            }} />
+                        ))}
+                      </div>
                     )}
                     {txReceipts.some(r => r.ocrData) && (
                       <p style={{ fontSize: 11, color: "#15803d", marginTop: 4, fontStyle: "italic" }}>
                         <CheckCircle size={11} style={{ verticalAlign: "middle", marginRight: 3 }} />
-                        Fields auto-populated from receipt — please verify
+                        Fields auto-filled from receipt — please verify
                       </p>
                     )}
                   </div>
@@ -3204,46 +3202,41 @@ function Transactions({ highlightTxId, onBack, onClearHighlight, backLabel }) {
 
               {/* Receipt / Attachment */}
               <div style={{ gridColumn: "1 / -1" }}>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
-                  <label style={{ color: "#475569", fontSize: 13, fontWeight: 600 }}>
-                    <Paperclip size={13} style={{ marginRight: 4, verticalAlign: "middle" }} />Receipt / Attachment
-                  </label>
-                  {!isIncome && (
-                    <ReceiptScanButton
-                      accent={saveColor}
-                      onFileAttached={att => setMainReceipts(prev => [...prev, att])}
-                      onResult={(ocrData, att) => {
-                        setForm(f => ({
-                          ...f,
-                          payee: f.payee || ocrData.vendor || "",
-                          amount: f.amount || String(ocrData.amount || ""),
-                          date: f.date || ocrData.date || "",
-                          description: f.description || `Receipt — ${ocrData.vendor || "scanned"}`,
-                        }));
-                        setMainReceipts(prev => prev.map(r => r.id === att.id ? { ...r, ocrData } : r));
-                      }}
-                    />
-                  )}
-                </div>
+                <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>
+                  <Paperclip size={13} style={{ marginRight: 4, verticalAlign: "middle" }} />Receipt / Attachment
+                </label>
+                <AttachmentZone
+                  onFiles={files => {
+                    const newAtts = files.map(f => ({
+                      id: newId(), name: f.name, mimeType: f.type,
+                      size: f.size > 1024 * 1024 ? (f.size / (1024 * 1024)).toFixed(1) + " MB" : Math.round(f.size / 1024) + " KB",
+                      url: URL.createObjectURL(f), ocrData: null, createdAt: new Date().toISOString(), userId: "usr_001",
+                    }));
+                    setMainReceipts(prev => [...prev, ...newAtts]);
+                  }}
+                  compact label="Attach receipt or document" />
                 {mainReceipts.length > 0 && (
-                  <AttachmentList items={mainReceipts} onRemove={id => setMainReceipts(prev => prev.filter(r => r.id !== id))} compact />
-                )}
-                {mainReceipts.length === 0 && (
-                  <AttachmentZone
-                    onFiles={files => {
-                      const newAtts = files.map(f => ({
-                        id: newId(), name: f.name, mimeType: f.type,
-                        size: f.size > 1024 * 1024 ? (f.size / (1024 * 1024)).toFixed(1) + " MB" : Math.round(f.size / 1024) + " KB",
-                        url: URL.createObjectURL(f), ocrData: null, createdAt: new Date().toISOString(), userId: "usr_001",
-                      }));
-                      setMainReceipts(prev => [...prev, ...newAtts]);
-                    }}
-                    compact label="Drop receipt or click to attach" />
+                  <div style={{ marginTop: 6 }}>
+                    <AttachmentList items={mainReceipts} onRemove={id => setMainReceipts(prev => prev.filter(r => r.id !== id))} compact />
+                    {!isIncome && mainReceipts.filter(r => !r.ocrData).map(att => (
+                      <OcrPrompt key={att.id} attachment={att}
+                        onResult={(ocrData, a) => {
+                          setForm(f => ({
+                            ...f,
+                            payee: f.payee || ocrData.vendor || "",
+                            amount: f.amount || String(ocrData.amount || ""),
+                            date: f.date || ocrData.date || "",
+                            description: f.description || `Receipt — ${ocrData.vendor || "scanned"}`,
+                          }));
+                          setMainReceipts(prev => prev.map(r => r.id === a.id ? { ...r, ocrData } : r));
+                        }} />
+                    ))}
+                  </div>
                 )}
                 {mainReceipts.some(r => r.ocrData) && (
                   <p style={{ fontSize: 11, color: "#15803d", marginTop: 4, fontStyle: "italic" }}>
                     <CheckCircle size={11} style={{ verticalAlign: "middle", marginRight: 3 }} />
-                    Fields auto-populated from receipt — please verify
+                    Fields auto-filled from receipt — please verify
                   </p>
                 )}
               </div>

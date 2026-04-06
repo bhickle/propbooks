@@ -79,29 +79,39 @@ function FlipAttachmentList({ items, onRemove, compact = false }) {
   );
 }
 
-function FlipReceiptScanButton({ onResult, onFileAttached, accent = "#f59e0b" }) {
-  const inputRef = useRef(null);
+function FlipOcrPrompt({ attachment, onResult, onDismiss }) {
   const [scanning, setScanning] = useState(false);
-  const handleFile = async (file) => {
-    const attachment = {
-      id: newId(), name: file.name, mimeType: file.type,
-      size: file.size > 1024 * 1024 ? (file.size / (1024 * 1024)).toFixed(1) + " MB" : Math.round(file.size / 1024) + " KB",
-      url: URL.createObjectURL(file), ocrData: null, createdAt: new Date().toISOString(), userId: "usr_001",
-    };
-    if (onFileAttached) onFileAttached(attachment);
+  const [dismissed, setDismissed] = useState(false);
+  if (dismissed || attachment.ocrData) return null;
+  const isImage = attachment.mimeType?.startsWith("image/");
+  const isPdf = attachment.mimeType?.includes("pdf");
+  if (!isImage && !isPdf) return null;
+  const runOcr = async () => {
     setScanning(true);
-    try { const ocrData = await mockOcrScan(file); attachment.ocrData = ocrData; if (onResult) onResult(ocrData, attachment); } catch (err) { console.error("OCR failed:", err); } finally { setScanning(false); }
+    try { const ocrData = await mockOcrScan({ name: attachment.name, type: attachment.mimeType }); if (onResult) onResult(ocrData, attachment); } catch (err) { console.error("OCR failed:", err); } finally { setScanning(false); }
   };
+  if (scanning) {
+    return (
+      <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", background: "#fffbeb", borderRadius: 10, border: "1px solid #fde68a", marginTop: 6 }}>
+        <Loader size={14} color="#f59e0b" style={{ animation: "spin 1s linear infinite" }} />
+        <span style={{ fontSize: 12, color: "#92400e", fontWeight: 600 }}>Reading receipt...</span>
+        <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
+      </div>
+    );
+  }
   return (
-    <>
-      <input ref={inputRef} type="file" accept="image/*,.pdf" onChange={e => { if (e.target.files[0]) handleFile(e.target.files[0]); e.target.value = ""; }} style={{ display: "none" }} />
-      <button onClick={() => inputRef.current?.click()} disabled={scanning}
-        style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 14px", borderRadius: 10, border: `1px solid ${accent}40`, background: `${accent}10`, color: accent, fontSize: 12, fontWeight: 600, cursor: scanning ? "wait" : "pointer", opacity: scanning ? 0.7 : 1 }}>
-        {scanning ? <Loader size={14} style={{ animation: "spin 1s linear infinite" }} /> : <ScanLine size={14} />}
-        {scanning ? "Scanning..." : "Scan Receipt"}
+    <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", background: "#f0f9ff", borderRadius: 10, border: "1px solid #bae6fd", marginTop: 6 }}>
+      <ScanLine size={15} color="#0284c7" />
+      <span style={{ fontSize: 12, color: "#0c4a6e", flex: 1 }}>Auto-fill from this receipt?</span>
+      <button onClick={runOcr}
+        style={{ display: "flex", alignItems: "center", gap: 5, padding: "5px 12px", borderRadius: 8, border: "none", background: "#0284c7", color: "#fff", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>
+        <Star size={12} /> Auto-fill
       </button>
-      {scanning && <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>}
-    </>
+      <button onClick={() => { setDismissed(true); if (onDismiss) onDismiss(); }}
+        style={{ background: "none", border: "none", cursor: "pointer", padding: 2, color: "#94a3b8", display: "flex" }}>
+        <X size={14} />
+      </button>
+    </div>
   );
 }
 
@@ -1186,44 +1196,41 @@ export function FlipExpenses({ highlightExpId, onBack, onClearHighlight, backLab
 
               {/* Receipt / Attachment */}
               <div>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 5 }}>
-                  <p style={{ fontSize: 12, fontWeight: 600, color: "#374151" }}>
-                    <Paperclip size={12} style={{ marginRight: 4, verticalAlign: "middle" }} />Receipt / Attachment
-                  </p>
-                  <FlipReceiptScanButton
-                    accent="#f59e0b"
-                    onFileAttached={att => setFlipReceipts(prev => [...prev, att])}
-                    onResult={(ocrData, att) => {
-                      setForm(f => ({
-                        ...f,
-                        vendor: f.vendor || ocrData.vendor || "",
-                        amount: f.amount || String(ocrData.amount || ""),
-                        date: f.date || ocrData.date || "",
-                        description: f.description || `Receipt — ${ocrData.vendor || "scanned"}`,
-                      }));
-                      setFlipReceipts(prev => prev.map(r => r.id === att.id ? { ...r, ocrData } : r));
-                    }}
-                  />
-                </div>
+                <p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>
+                  <Paperclip size={12} style={{ marginRight: 4, verticalAlign: "middle" }} />Receipt / Attachment
+                </p>
+                <FlipAttachmentZone
+                  onFiles={files => {
+                    const newAtts = files.map(f => ({
+                      id: newId(), name: f.name, mimeType: f.type,
+                      size: f.size > 1024 * 1024 ? (f.size / (1024 * 1024)).toFixed(1) + " MB" : Math.round(f.size / 1024) + " KB",
+                      url: URL.createObjectURL(f), ocrData: null, createdAt: new Date().toISOString(), userId: "usr_001",
+                    }));
+                    setFlipReceipts(prev => [...prev, ...newAtts]);
+                  }}
+                  compact label="Attach receipt or document" />
                 {flipReceipts.length > 0 && (
-                  <FlipAttachmentList items={flipReceipts} onRemove={id => setFlipReceipts(prev => prev.filter(r => r.id !== id))} compact />
-                )}
-                {flipReceipts.length === 0 && (
-                  <FlipAttachmentZone
-                    onFiles={files => {
-                      const newAtts = files.map(f => ({
-                        id: newId(), name: f.name, mimeType: f.type,
-                        size: f.size > 1024 * 1024 ? (f.size / (1024 * 1024)).toFixed(1) + " MB" : Math.round(f.size / 1024) + " KB",
-                        url: URL.createObjectURL(f), ocrData: null, createdAt: new Date().toISOString(), userId: "usr_001",
-                      }));
-                      setFlipReceipts(prev => [...prev, ...newAtts]);
-                    }}
-                    compact label="Drop receipt or click to attach" />
+                  <div style={{ marginTop: 6 }}>
+                    <FlipAttachmentList items={flipReceipts} onRemove={id => setFlipReceipts(prev => prev.filter(r => r.id !== id))} compact />
+                    {flipReceipts.filter(r => !r.ocrData).map(att => (
+                      <FlipOcrPrompt key={att.id} attachment={att}
+                        onResult={(ocrData, a) => {
+                          setForm(f => ({
+                            ...f,
+                            vendor: f.vendor || ocrData.vendor || "",
+                            amount: f.amount || String(ocrData.amount || ""),
+                            date: f.date || ocrData.date || "",
+                            description: f.description || `Receipt — ${ocrData.vendor || "scanned"}`,
+                          }));
+                          setFlipReceipts(prev => prev.map(r => r.id === a.id ? { ...r, ocrData } : r));
+                        }} />
+                    ))}
+                  </div>
                 )}
                 {flipReceipts.some(r => r.ocrData) && (
                   <p style={{ fontSize: 11, color: "#15803d", marginTop: 4, fontStyle: "italic" }}>
                     <CheckCircle size={11} style={{ verticalAlign: "middle", marginRight: 3 }} />
-                    Fields auto-populated from receipt — please verify
+                    Fields auto-filled from receipt — please verify
                   </p>
                 )}
               </div>
