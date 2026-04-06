@@ -1813,6 +1813,82 @@ function PropertyDetail({ property, onBack, backLabel, onEditProperty, onGoToTra
 
   const txCategories = [...new Set(propTransactions.map(t => t.category))].sort();
   const filteredTxTotal = filteredTx.reduce((s, t) => s + (t.type === "income" ? t.amount : -Math.abs(t.amount)), 0);
+  const totalIncome = filteredTx.filter(t => t.type === "income").reduce((s, t) => s + t.amount, 0);
+  const totalExpenses = filteredTx.filter(t => t.type === "expense").reduce((s, t) => s + Math.abs(t.amount), 0);
+
+  // ── Inline transaction CRUD ───────────────────────────────────────────
+  const [txShowModal, setTxShowModal] = useState(false);  // "income" | "expense" | false
+  const [txEditId, setTxEditId] = useState(null);
+  const [txDeleteConfirm, setTxDeleteConfirm] = useState(null);
+  const [txPayeeFocus, setTxPayeeFocus] = useState(false);
+  const [txRenderKey, txForceRender] = useState(0);
+
+  const INCOME_GROUPS = {
+    "Rent":           ["Rent Income", "Parking / Storage", "Laundry Income"],
+    "Fees":           ["Late Fees", "Pet Fees", "Application Fees"],
+    "Other Income":   ["Damage Deposit Applied", "Other Income"],
+  };
+  const EXPENSE_GROUPS = {
+    "Mortgage & Financing": ["Mortgage Payment", "Loan Interest", "Refinance Costs"],
+    "Taxes":                ["Property Tax", "Tax Penalties"],
+    "Insurance":            ["Property Insurance", "Liability Insurance", "Flood Insurance"],
+    "Repairs & Maintenance":["Plumbing", "Electrical", "HVAC", "Appliance Repair", "Roof Repair", "General Maintenance"],
+    "Capital Improvement":  ["Kitchen Remodel", "Bathroom Remodel", "Flooring", "New Roof", "Other Capital"],
+    "HOA / Condo Fees":     ["HOA Dues", "Special Assessment"],
+    "Property Management":  ["Management Fee", "Leasing Fee"],
+    "Utilities":            ["Electric", "Gas", "Water / Sewer", "Trash", "Internet / Cable"],
+    "Grounds":              ["Landscaping", "Snow Removal", "Pest Control"],
+    "Professional Services":["Legal Fees", "Accounting / CPA", "Inspection Fees"],
+    "Marketing":            ["Advertising", "Listing Fees", "Signage"],
+    "General":              ["Cleaning", "Supplies & Materials", "Travel & Mileage", "Other Expenses"],
+  };
+  const txGroupsForType = t => t === "income" ? INCOME_GROUPS : EXPENSE_GROUPS;
+  const txParentOf = (cat, type) => {
+    const groups = txGroupsForType(type);
+    for (const [parent, subs] of Object.entries(groups)) { if (subs.includes(cat)) return parent; }
+    const alt = type === "income" ? EXPENSE_GROUPS : INCOME_GROUPS;
+    for (const [parent, subs] of Object.entries(alt)) { if (subs.includes(cat)) return parent; }
+    return "";
+  };
+
+  const txEmptyIncome  = { date: "", propertyId: property.id, type: "income",  category: "Rent Income",      description: "", amount: "", payee: "" };
+  const txEmptyExpense = { date: "", propertyId: property.id, type: "expense", category: "Mortgage Payment", description: "", amount: "", payee: "" };
+  const [txForm, setTxForm] = useState(txEmptyIncome);
+  const txSf = k => e => setTxForm(f => ({ ...f, [k]: e.target.value }));
+
+  const txCloseModal = () => { setTxShowModal(false); setTxPayeeFocus(false); };
+  const txOpenAddIncome  = () => { setTxEditId(null); setTxForm(txEmptyIncome);  setTxPayeeFocus(false); setTxShowModal("income");  };
+  const txOpenAddExpense = () => { setTxEditId(null); setTxForm(txEmptyExpense); setTxPayeeFocus(false); setTxShowModal("expense"); };
+  const txOpenEdit = t => {
+    setTxEditId(t.id);
+    setTxForm({ date: t.date, propertyId: t.propertyId, type: t.type, category: t.category, description: t.description, amount: String(Math.abs(t.amount)), payee: t.payee || "" });
+    setTxPayeeFocus(false);
+    setTxShowModal(t.type);
+  };
+
+  const allPayees = [...new Set(TRANSACTIONS.filter(t => t.type === "expense").map(t => t.payee).filter(Boolean))].sort();
+  const allPayers = [...new Set(TRANSACTIONS.filter(t => t.type === "income").map(t => t.payee).filter(Boolean))].sort();
+
+  const txHandleSave = () => {
+    if (!txForm.description || !txForm.amount) return;
+    const amt = parseFloat(txForm.amount) || 0;
+    const built = { date: txForm.date || new Date().toISOString().split("T")[0], propertyId: property.id, category: txForm.category || "Other", description: txForm.description, amount: txForm.type === "income" ? Math.abs(amt) : -Math.abs(amt), type: txForm.type, payee: (txForm.payee || "").trim() };
+    if (txEditId !== null) {
+      const idx = TRANSACTIONS.findIndex(t => t.id === txEditId);
+      if (idx !== -1) Object.assign(TRANSACTIONS[idx], built);
+    } else {
+      TRANSACTIONS.unshift({ id: newId(), ...built });
+    }
+    txCloseModal();
+    txForceRender(n => n + 1);
+  };
+
+  const txHandleDelete = (t) => {
+    const idx = TRANSACTIONS.findIndex(tx => tx.id === t.id);
+    if (idx !== -1) TRANSACTIONS.splice(idx, 1);
+    setTxDeleteConfirm(null);
+    txForceRender(n => n + 1);
+  };
 
   const propNotes = RENTAL_NOTES.filter(n => n.propertyId === property.id);
 
@@ -1950,6 +2026,46 @@ function PropertyDetail({ property, onBack, backLabel, onEditProperty, onGoToTra
       {/* ═══ TRANSACTIONS TAB ═══ */}
       {activeTab === "transactions" && (
         <div>
+          {/* Summary stat cards */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, marginBottom: 20 }}>
+            <div style={{ background: "#fff", borderRadius: 14, padding: 20, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 4 }}>
+                <p style={{ color: "#94a3b8", fontSize: 12, fontWeight: 600, textTransform: "uppercase" }}>Total Income</p>
+                <InfoTip text="Sum of all income transactions for this property (filtered if filters are active)." />
+              </div>
+              <p style={{ color: "#15803d", fontSize: 24, fontWeight: 800 }}>+{fmt(totalIncome)}</p>
+            </div>
+            <div style={{ background: "#fff", borderRadius: 14, padding: 20, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 4 }}>
+                <p style={{ color: "#94a3b8", fontSize: 12, fontWeight: 600, textTransform: "uppercase" }}>Total Expenses</p>
+                <InfoTip text="Sum of all expense transactions for this property (filtered if filters are active)." />
+              </div>
+              <p style={{ color: "#b91c1c", fontSize: 24, fontWeight: 800 }}>-{fmt(totalExpenses)}</p>
+            </div>
+            <div style={{ background: "#fff", borderRadius: 14, padding: 20, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 4 }}>
+                <p style={{ color: "#94a3b8", fontSize: 12, fontWeight: 600, textTransform: "uppercase" }}>Net</p>
+                <InfoTip text="Total Income minus Total Expenses. Positive = profitable." />
+              </div>
+              <p style={{ color: filteredTxTotal >= 0 ? "#15803d" : "#b91c1c", fontSize: 24, fontWeight: 800 }}>{filteredTxTotal >= 0 ? "+" : ""}{fmt(Math.abs(filteredTxTotal))}</p>
+            </div>
+          </div>
+
+          {/* Header row with counts + add buttons */}
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+            <p style={{ color: "#64748b", fontSize: 13 }}>
+              {txHasFilters ? `${filteredTx.length} of ${propTransactions.length} transactions` : `${propTransactions.length} transactions`}
+            </p>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button onClick={txOpenAddExpense} style={{ background: "#fef2f2", color: "#b91c1c", border: "1px solid #fecaca", borderRadius: 10, padding: "9px 16px", fontWeight: 600, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
+                <Plus size={14} /> Add Expense
+              </button>
+              <button onClick={txOpenAddIncome} style={{ background: "#15803d", color: "#fff", border: "none", borderRadius: 10, padding: "9px 16px", fontWeight: 600, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
+                <Plus size={14} /> Add Income
+              </button>
+            </div>
+          </div>
+
           {/* Filter bar */}
           <div style={{ display: "flex", gap: 10, marginBottom: txHasFilters ? 10 : 20, flexWrap: "wrap", alignItems: "center" }}>
             <div style={{ position: "relative", flex: 1, minWidth: 180 }}>
@@ -1992,48 +2108,152 @@ function PropertyDetail({ property, onBack, backLabel, onEditProperty, onGoToTra
             </div>
           )}
 
-          {/* Header with counts */}
-          <div style={{ marginBottom: 14 }}>
-            <p style={{ color: "#64748b", fontSize: 13 }}>
-              {txHasFilters ? `${filteredTx.length} of ${propTransactions.length} transactions` : `${propTransactions.length} transactions`}
-              {txHasFilters && <span style={{ color: filteredTxTotal >= 0 ? "#15803d" : "#b91c1c", fontWeight: 600, marginLeft: 8 }}>Net: {filteredTxTotal >= 0 ? "+" : ""}{fmt(Math.abs(filteredTxTotal))}</span>}
-            </p>
-          </div>
-
-          <div style={{ background: "#fff", borderRadius: 16, padding: 24, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" }}>
+          {/* Transactions table */}
+          <div style={{ background: "#fff", borderRadius: 16, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9", overflow: "hidden" }}>
             {filteredTx.length === 0 ? (
-              <p style={{ color: "#94a3b8", fontSize: 14, textAlign: "center", padding: 24 }}>
-                {txHasFilters ? <span>No transactions match your filters. <button onClick={clearTxFilters} style={{ background: "none", border: "none", color: "#3b82f6", cursor: "pointer", textDecoration: "underline", fontSize: 14 }}>Clear filters</button></span> : "No transactions found."}
+              <p style={{ color: "#94a3b8", fontSize: 14, textAlign: "center", padding: 48 }}>
+                {txHasFilters ? <span>No transactions match your filters. <button onClick={clearTxFilters} style={{ background: "none", border: "none", color: "#3b82f6", cursor: "pointer", textDecoration: "underline", fontSize: 14 }}>Clear filters</button></span> : <span>No transactions yet. <button onClick={txOpenAddIncome} style={{ background: "none", border: "none", color: "#15803d", cursor: "pointer", textDecoration: "underline", fontSize: 14 }}>Add your first transaction</button></span>}
               </p>
             ) : (
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead>
-                  <tr>
-                    {["Date", "Category", "Description", "Amount"].map(h => (
-                      <th key={h} style={{ padding: "10px 16px", textAlign: "left", color: "#94a3b8", fontSize: 12, fontWeight: 600, textTransform: "uppercase", borderBottom: "1px solid #f1f5f9" }}>{h}</th>
+                  <tr style={{ background: "#f8fafc" }}>
+                    {["Date", "Category", txShowModal === "income" ? "Received From" : "Paid To", "Description", "Amount", "Type", ""].map(h => (
+                      <th key={h} style={{ padding: "12px 16px", textAlign: "left", color: "#94a3b8", fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredTx.map(t => (
-                    <tr key={t.id} onClick={() => onNavigateToTransaction && onNavigateToTransaction(t.id)}
-                      style={{ borderBottom: "1px solid #f8fafc", cursor: "pointer", transition: "background 0.15s" }}
+                  {filteredTx.map((t, i) => (
+                    <tr key={t.id}
+                      style={{ borderTop: "1px solid #f1f5f9", background: i % 2 === 0 ? "#fff" : "#fafafa", transition: "background 0.15s" }}
                       onMouseEnter={e => e.currentTarget.style.background = "#f0f9ff"}
-                      onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                      onMouseLeave={e => e.currentTarget.style.background = i % 2 === 0 ? "#fff" : "#fafafa"}>
                       <td style={{ padding: "12px 16px", fontSize: 13, color: "#64748b" }}>{t.date}</td>
                       <td style={{ padding: "12px 16px" }}>
+                        {(() => { const group = txParentOf(t.category, t.type); return group && group !== t.category ? <p style={{ fontSize: 10, color: "#94a3b8", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.03em", marginBottom: 2 }}>{group}</p> : null; })()}
                         <span style={{ background: "#f1f5f9", borderRadius: 6, padding: "3px 8px", fontSize: 12, fontWeight: 600, color: "#475569" }}>{t.category}</span>
                       </td>
+                      <td style={{ padding: "12px 16px", fontSize: 13, color: "#475569" }}>{t.payee || <span style={{ color: "#cbd5e1", fontStyle: "italic" }}>—</span>}</td>
                       <td style={{ padding: "12px 16px", fontSize: 13, color: "#0f172a" }}>{t.description}</td>
                       <td style={{ padding: "12px 16px", fontSize: 14, fontWeight: 700, color: t.type === "income" ? "#15803d" : "#b91c1c" }}>
-                        {t.type === "income" ? "+" : ""}{fmt(Math.abs(t.amount))}
+                        {t.type === "income" ? "+" : "-"}{fmt(Math.abs(t.amount))}
+                      </td>
+                      <td style={{ padding: "12px 16px" }}>
+                        <span style={{ background: t.type === "income" ? "#dcfce7" : "#fee2e2", color: t.type === "income" ? "#15803d" : "#b91c1c", borderRadius: 20, padding: "3px 10px", fontSize: 12, fontWeight: 600, textTransform: "capitalize" }}>{t.type}</span>
+                      </td>
+                      <td style={{ padding: "12px 16px" }}>
+                        <div style={{ display: "flex", gap: 4 }}>
+                          <button onClick={() => txOpenEdit(t)} style={{ background: "#f1f5f9", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "#475569", display: "flex", alignItems: "center" }} title="Edit"><Pencil size={13} /></button>
+                          <button onClick={() => setTxDeleteConfirm(t)} style={{ background: "#fee2e2", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "#ef4444", display: "flex", alignItems: "center" }} title="Delete"><Trash2 size={13} /></button>
+                        </div>
                       </td>
                     </tr>
                   ))}
                 </tbody>
+                <tfoot>
+                  <tr style={{ borderTop: "2px solid #e2e8f0", background: "#f8fafc" }}>
+                    <td colSpan={4} style={{ padding: "12px 16px", fontSize: 13, fontWeight: 700, color: "#0f172a" }}>
+                      {filteredTx.length} transaction{filteredTx.length !== 1 ? "s" : ""}
+                    </td>
+                    <td style={{ padding: "12px 16px", fontSize: 14, fontWeight: 800, color: filteredTxTotal >= 0 ? "#15803d" : "#b91c1c" }}>
+                      {filteredTxTotal >= 0 ? "+" : ""}{fmt(Math.abs(filteredTxTotal))}
+                    </td>
+                    <td colSpan={2} />
+                  </tr>
+                </tfoot>
               </table>
             )}
           </div>
+
+          {/* ── Add / Edit Transaction Modal ── */}
+          {(txShowModal === "income" || txShowModal === "expense") && (() => {
+            const isIncome = txShowModal === "income";
+            const accentColor = isIncome ? "#15803d" : "#b91c1c";
+            const accentBg    = isIncome ? "#f0fdf4"  : "#fef2f2";
+            const accentBorder= isIncome ? "#bbf7d0"  : "#fecaca";
+            const payeeLabel  = isIncome ? "Received From" : "Paid To";
+            const payeeList   = isIncome ? allPayers : allPayees;
+            const payeeMatches = txPayeeFocus ? payeeList.filter(p => !txForm.payee || p.toLowerCase().includes(txForm.payee.toLowerCase())).slice(0, 6) : [];
+
+            return (
+              <Modal title={txEditId ? `Edit ${isIncome ? "Income" : "Expense"}` : `Log ${isIncome ? "Income" : "Expense"}`} onClose={txCloseModal} width={480}>
+                <div style={{ background: accentBg, borderRadius: 10, padding: "8px 14px", marginBottom: 20, border: `1px solid ${accentBorder}`, display: "inline-block" }}>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: accentColor }}>{isIncome ? "Income" : "Expense"}</span>
+                </div>
+
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+                  <div>
+                    <label style={{ fontSize: 12, fontWeight: 600, color: "#64748b", display: "block", marginBottom: 4 }}>Date</label>
+                    <input type="date" value={txForm.date} onChange={txSf("date")} style={iS} />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: 12, fontWeight: 600, color: "#64748b", display: "block", marginBottom: 4 }}>Amount ($) *</label>
+                    <input type="number" value={txForm.amount} onChange={txSf("amount")} placeholder="0.00" style={iS} />
+                  </div>
+                </div>
+
+                {/* Payee with typeahead */}
+                <div style={{ position: "relative", marginTop: 14 }}>
+                  <label style={{ fontSize: 12, fontWeight: 600, color: "#64748b", display: "block", marginBottom: 4 }}>{payeeLabel}</label>
+                  <input type="text" value={txForm.payee} onChange={txSf("payee")}
+                    onFocus={() => setTxPayeeFocus(true)} onBlur={() => setTimeout(() => setTxPayeeFocus(false), 150)}
+                    placeholder={isIncome ? "Who paid?" : "Who was paid?"} style={iS} />
+                  {txPayeeFocus && payeeMatches.length > 0 && (
+                    <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: "#fff", border: "1px solid #e2e8f0", borderRadius: 10, boxShadow: "0 8px 24px rgba(0,0,0,0.12)", zIndex: 20, maxHeight: 180, overflowY: "auto", marginTop: 4 }}>
+                      {payeeMatches.map(p => (
+                        <div key={p} onMouseDown={() => setTxForm(f => ({ ...f, payee: p }))}
+                          style={{ padding: "8px 14px", fontSize: 13, cursor: "pointer", color: "#0f172a" }}
+                          onMouseEnter={e => e.currentTarget.style.background = "#f8fafc"}
+                          onMouseLeave={e => e.currentTarget.style.background = "#fff"}>
+                          {p}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div style={{ marginTop: 14 }}>
+                  <label style={{ fontSize: 12, fontWeight: 600, color: "#64748b", display: "block", marginBottom: 4 }}>Description *</label>
+                  <input type="text" value={txForm.description} onChange={txSf("description")} placeholder="What was this for?" style={iS} />
+                </div>
+
+                <div style={{ marginTop: 14 }}>
+                  <label style={{ fontSize: 12, fontWeight: 600, color: "#64748b", display: "block", marginBottom: 4 }}>Category</label>
+                  <select value={txForm.category} onChange={txSf("category")} style={iS}>
+                    {Object.entries(txGroupsForType(txForm.type)).map(([group, subs]) => (
+                      <optgroup key={group} label={group}>
+                        {subs.map(s => <option key={s} value={s}>{s}</option>)}
+                      </optgroup>
+                    ))}
+                  </select>
+                </div>
+
+                <div style={{ display: "flex", gap: 10, marginTop: 24, justifyContent: "flex-end" }}>
+                  <button onClick={txCloseModal} style={{ padding: "10px 20px", borderRadius: 10, border: "1px solid #e2e8f0", background: "#fff", fontSize: 14, fontWeight: 600, cursor: "pointer", color: "#64748b" }}>Cancel</button>
+                  <button onClick={txHandleSave} style={{ padding: "10px 24px", borderRadius: 10, border: "none", background: accentColor, color: "#fff", fontSize: 14, fontWeight: 600, cursor: "pointer" }}>{txEditId ? "Save Changes" : `Log ${isIncome ? "Income" : "Expense"}`}</button>
+                </div>
+              </Modal>
+            );
+          })()}
+
+          {/* ── Delete Confirmation Modal ── */}
+          {txDeleteConfirm && (
+            <Modal title="Delete Transaction" onClose={() => setTxDeleteConfirm(null)} width={420}>
+              <div style={{ textAlign: "center", padding: "12px 0 20px" }}>
+                <div style={{ width: 48, height: 48, borderRadius: "50%", background: "#fee2e2", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
+                  <Trash2 size={22} color="#ef4444" />
+                </div>
+                <p style={{ fontSize: 14, color: "#0f172a", fontWeight: 600, marginBottom: 4 }}>{txDeleteConfirm.description}</p>
+                <p style={{ fontSize: 13, color: "#64748b" }}>{txDeleteConfirm.date} · <span style={{ color: txDeleteConfirm.type === "income" ? "#15803d" : "#b91c1c", fontWeight: 600 }}>{txDeleteConfirm.type === "income" ? "+" : "-"}{fmt(Math.abs(txDeleteConfirm.amount))}</span></p>
+                <p style={{ fontSize: 13, color: "#ef4444", marginTop: 12 }}>This action cannot be undone.</p>
+              </div>
+              <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+                <button onClick={() => setTxDeleteConfirm(null)} style={{ padding: "10px 20px", borderRadius: 10, border: "1px solid #e2e8f0", background: "#fff", fontSize: 14, fontWeight: 600, cursor: "pointer", color: "#64748b" }}>Cancel</button>
+                <button onClick={() => txHandleDelete(txDeleteConfirm)} style={{ padding: "10px 24px", borderRadius: 10, border: "none", background: "#ef4444", color: "#fff", fontSize: 14, fontWeight: 600, cursor: "pointer" }}>Delete</button>
+              </div>
+            </Modal>
+          )}
         </div>
       )}
 
