@@ -14,7 +14,7 @@ import {
   Users, Route, Calculator, FileCheck, UserCheck, Truck, Layers, Car,
   CheckSquare, Square, PlusCircle, Receipt, UploadCloud, Trash2, Pencil, Info, List,
   CreditCard, MessageSquare, Copy, Camera, Image, AlertTriangle, ArrowRight, ArrowLeft, ExternalLink,
-  Paperclip, ScanLine, FileImage, FilePlus, Loader
+  Paperclip, ScanLine, FileImage, FilePlus, Loader, Phone, Mail, Shield
 } from "lucide-react";
 import {
   newId, fmt, fmtK,
@@ -29,6 +29,9 @@ import {
   PROPERTY_DOCUMENTS, addPropertyDocument, deletePropertyDocument,
   DEAL_DOCUMENTS, addDealDocument, deleteDealDocument,
   TENANT_DOCUMENTS, addTenantDocument, deleteTenantDocument,
+  TENANT_PAYMENTS, addTenantPayment,
+  TENANT_NOTES, getTenantNotes, addTenantNote, deleteTenantNote,
+  MAINTENANCE_REQUESTS, addMaintenanceRequest, updateMaintenanceRequest,
   TRANSACTION_RECEIPTS, addTransactionReceipt, deleteTransactionReceipt,
   DEAL_EXPENSE_RECEIPTS, addDealExpenseReceipt, deleteDealExpenseReceipt,
   mockOcrScan,
@@ -7165,7 +7168,7 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
 // ---------------------------------------------
 // RENT ROLL
 // ---------------------------------------------
-function TenantManagement({ onBack, highlightTenantId, onClearHighlight, prefillTenant, onClearPrefill }) {
+function TenantManagement({ onBack, highlightTenantId, onClearHighlight, prefillTenant, onClearPrefill, onSelectTenant }) {
   const { showToast } = useToast();
   const [tenantData, setTenantData] = useState(TENANTS);
   const [showModal, setShowModal] = useState(false);
@@ -7475,7 +7478,7 @@ function TenantManagement({ onBack, highlightTenantId, onClearHighlight, prefill
                     {t.status === "vacant" ? (
                       <span style={{ color: "#ef4444", fontSize: 13, fontWeight: 600, fontStyle: "italic" }}>Vacant</span>
                     ) : (
-                      <div>
+                      <div onClick={() => onSelectTenant && onSelectTenant(t)} style={{ cursor: onSelectTenant ? "pointer" : "default" }}>
                         <p style={{ fontSize: 13, fontWeight: 600, color: "#041830" }}>{t.name}</p>
                         <p style={{ fontSize: 11, color: "#94a3b8" }}>{t.email}</p>
                       </div>
@@ -7775,6 +7778,641 @@ function TenantManagement({ onBack, highlightTenantId, onClearHighlight, prefill
               <button onClick={() => setDeleteConfirm(null)} style={{ flex: 1, padding: "12px", border: "1px solid #e2e8f0", borderRadius: 10, background: "#fff", color: "#475569", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
               <button onClick={handleDeleteTenant} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "#ef4444", color: "#fff", fontWeight: 700, cursor: "pointer" }}>{deleteConfirm.status === "past" ? "Delete Record" : "Remove Tenant"}</button>
             </div>
+          </div>
+        </Modal>
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------
+// TENANT DETAIL
+// ---------------------------------------------
+function TenantDetail({ tenant, onBack, backLabel, onTenantUpdated, onSelectTenant }) {
+  const { showToast } = useToast();
+  const property = PROPERTIES.find(p => p.id === tenant.propertyId);
+  const [activeTab, setActiveTab] = useState("overview");
+  const [payments, setPayments] = useState(TENANT_PAYMENTS.filter(p => p.tenantId === tenant.id));
+  const [documents, setDocuments] = useState(TENANT_DOCUMENTS.filter(d => d.tenantId === tenant.id));
+  const [notes, setNotes] = useState(TENANT_NOTES.filter(n => n.tenantId === tenant.id));
+  const [requests, setRequests] = useState(MAINTENANCE_REQUESTS.filter(r => r.tenantId === tenant.id));
+
+  // Edit modal
+  const [showEdit, setShowEdit] = useState(false);
+  const [editForm, setEditForm] = useState({});
+  const sef = k => e => setEditForm(f => ({ ...f, [k]: e.target.value }));
+
+  // Close lease modal
+  const [showClose, setShowClose] = useState(false);
+  const [closeForm, setCloseForm] = useState({ moveOutDate: new Date().toISOString().split("T")[0], moveOutReason: "Lease ended" });
+
+  // Add payment modal
+  const [showAddPayment, setShowAddPayment] = useState(false);
+  const [payForm, setPayForm] = useState({ date: new Date().toISOString().split("T")[0], amount: String(tenant.rent || ""), method: "ACH", status: "paid", note: "" });
+  const spf = k => e => setPayForm(f => ({ ...f, [k]: e.target.value }));
+
+  // Add note modal
+  const [showAddNote, setShowAddNote] = useState(false);
+  const [noteText, setNoteText] = useState("");
+
+  // Add maintenance modal
+  const [showAddMaint, setShowAddMaint] = useState(false);
+  const [maintForm, setMaintForm] = useState({ title: "", description: "", priority: "medium" });
+  const smf = k => e => setMaintForm(f => ({ ...f, [k]: e.target.value }));
+
+  const openEdit = () => {
+    setEditForm({
+      name: tenant.name || "", phone: tenant.phone || "", email: tenant.email || "",
+      rent: String(tenant.rent || ""), securityDeposit: String(tenant.securityDeposit || ""),
+      leaseStart: tenant.leaseStart || "", leaseEnd: tenant.leaseEnd || "",
+      unit: tenant.unit || "", status: tenant.status,
+    });
+    setShowEdit(true);
+  };
+
+  const handleSaveEdit = () => {
+    const updates = {
+      name: editForm.name, phone: editForm.phone || null, email: editForm.email || null,
+      rent: parseFloat(editForm.rent) || 0, securityDeposit: parseFloat(editForm.securityDeposit) || null,
+      leaseStart: editForm.leaseStart || null, leaseEnd: editForm.leaseEnd || null,
+      unit: editForm.unit, status: editForm.status,
+    };
+    onTenantUpdated && onTenantUpdated(tenant.id, updates);
+    setShowEdit(false);
+    showToast("Tenant updated");
+  };
+
+  const handleCloseLease = () => {
+    onTenantUpdated && onTenantUpdated(tenant.id, { status: "past", moveOutDate: closeForm.moveOutDate || new Date().toISOString().split("T")[0], moveOutReason: closeForm.moveOutReason });
+    setShowClose(false);
+    showToast("Lease closed");
+    onBack && onBack();
+  };
+
+  const handleAddPayment = () => {
+    const p = { id: newId(), tenantId: tenant.id, date: payForm.date, amount: parseFloat(payForm.amount) || 0, method: payForm.method, status: payForm.status, note: payForm.note || null };
+    TENANT_PAYMENTS.push(p);
+    setPayments(prev => [p, ...prev]);
+    setShowAddPayment(false);
+    setPayForm({ date: new Date().toISOString().split("T")[0], amount: String(tenant.rent || ""), method: "ACH", status: "paid", note: "" });
+    showToast("Payment recorded");
+  };
+
+  const handleAddNote = () => {
+    if (!noteText.trim()) return;
+    const n = { id: newId(), tenantId: tenant.id, date: new Date().toISOString().split("T")[0], text: noteText.trim(), createdAt: new Date().toISOString(), userId: MOCK_USER.id };
+    TENANT_NOTES.push(n);
+    setNotes(prev => [n, ...prev]);
+    setNoteText("");
+    setShowAddNote(false);
+    showToast("Note added");
+  };
+
+  const handleDeleteNote = (id) => {
+    const idx = TENANT_NOTES.findIndex(n => n.id === id);
+    if (idx !== -1) TENANT_NOTES.splice(idx, 1);
+    setNotes(prev => prev.filter(n => n.id !== id));
+    showToast("Note deleted");
+  };
+
+  const handleAddMaint = () => {
+    if (!maintForm.title.trim()) return;
+    const r = { id: newId(), tenantId: tenant.id, propertyId: tenant.propertyId, title: maintForm.title, description: maintForm.description, priority: maintForm.priority, status: "open", createdAt: new Date().toISOString(), scheduledDate: null, resolvedDate: null, cost: null, vendor: null };
+    MAINTENANCE_REQUESTS.push(r);
+    setRequests(prev => [r, ...prev]);
+    setMaintForm({ title: "", description: "", priority: "medium" });
+    setShowAddMaint(false);
+    showToast("Maintenance request created");
+  };
+
+  const handleResolveMaint = (id) => {
+    const idx = MAINTENANCE_REQUESTS.findIndex(r => r.id === id);
+    if (idx !== -1) Object.assign(MAINTENANCE_REQUESTS[idx], { status: "resolved", resolvedDate: new Date().toISOString().split("T")[0] });
+    setRequests(prev => prev.map(r => r.id === id ? { ...r, status: "resolved", resolvedDate: new Date().toISOString().split("T")[0] } : r));
+    showToast("Marked as resolved");
+  };
+
+  const getDaysLeft = (leaseEnd) => {
+    if (!leaseEnd) return null;
+    const d = Math.ceil((new Date(leaseEnd) - new Date()) / 86400000);
+    return d > 0 ? d : 0;
+  };
+  const daysLeft = getDaysLeft(tenant.leaseEnd);
+  const isActive = tenant.status === "active-lease" || tenant.status === "month-to-month";
+  const leaseStatusStyle = { "active-lease": { bg: "#dcfce7", text: "#15803d", label: "Active Lease" }, "month-to-month": { bg: "#fff7ed", text: "#9a3412", label: "Month-to-Month" }, "vacant": { bg: "#fee2e2", text: "#b91c1c", label: "Vacant" }, "past": { bg: "#f1f5f9", text: "#64748b", label: "Past Tenant" } };
+  const s = leaseStatusStyle[tenant.status] || leaseStatusStyle["vacant"];
+
+  const totalPaid = payments.reduce((sum, p) => sum + p.amount, 0);
+  const onTimeCount = payments.filter(p => p.status === "paid").length;
+  const lateCount = payments.filter(p => p.status === "late").length;
+  const paymentRate = payments.length > 0 ? Math.round((onTimeCount / payments.length) * 100) : 100;
+
+  const openRequests = requests.filter(r => r.status === "open" || r.status === "scheduled").length;
+  const resolvedRequests = requests.filter(r => r.status === "resolved").length;
+
+  const tabs = [
+    { id: "overview", label: "Overview", icon: Home },
+    { id: "payments", label: "Payments", icon: DollarSign },
+    { id: "documents", label: "Documents", icon: FileText },
+    { id: "maintenance", label: "Maintenance", icon: Wrench },
+    { id: "notes", label: "Notes", icon: MessageSquare },
+  ];
+
+  return (
+    <div>
+      {onBack && (
+        <button onClick={onBack} style={{ display: "flex", alignItems: "center", gap: 6, color: "#3b82f6", fontWeight: 600, fontSize: 14, background: "none", border: "none", cursor: "pointer", marginBottom: 14 }}>
+          <ChevronRight size={14} style={{ transform: "rotate(180deg)" }} /> {backLabel || "Back to Tenants"}
+        </button>
+      )}
+
+      {/* Header */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24 }}>
+        <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
+          <div style={{ width: 56, height: 56, borderRadius: 16, background: property?.color || "#3b82f6", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 20, fontWeight: 800 }}>
+            {tenant.name?.charAt(0) || "?"}
+          </div>
+          <div>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
+              <h1 style={{ color: "#041830", fontSize: 26, fontWeight: 700 }}>{tenant.name}</h1>
+              <span style={{ background: s.bg, color: s.text, borderRadius: 20, padding: "3px 12px", fontSize: 11, fontWeight: 700 }}>{s.label}</span>
+            </div>
+            <p style={{ color: "#64748b", fontSize: 15 }}>
+              {property?.name || "Unknown Property"} &middot; {tenant.unit}
+              {tenant.rent ? ` · ${fmt(tenant.rent)}/mo` : ""}
+            </p>
+          </div>
+        </div>
+        <div style={{ display: "flex", gap: 8 }}>
+          {isActive && (
+            <button onClick={() => { setCloseForm({ moveOutDate: new Date().toISOString().split("T")[0], moveOutReason: "Lease ended" }); setShowClose(true); }} style={{ background: "#ffedd5", border: "none", borderRadius: 10, padding: "9px 16px", cursor: "pointer", display: "flex", alignItems: "center", gap: 6, color: "#9a3412", fontSize: 13, fontWeight: 600 }}>
+              <LogOut size={14} /> Close Lease
+            </button>
+          )}
+          <button onClick={openEdit} style={{ background: "#f1f5f9", border: "none", borderRadius: 10, padding: "9px 16px", cursor: "pointer", display: "flex", alignItems: "center", gap: 6, color: "#475569", fontSize: 13, fontWeight: 600 }}>
+            <Pencil size={14} /> Edit
+          </button>
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <div style={{ display: "flex", gap: 4, background: "#f8fafc", borderRadius: 10, padding: 4, width: "fit-content", marginBottom: 24, border: "1px solid #e2e8f0" }}>
+        {tabs.map(t => {
+          const active = activeTab === t.id;
+          return (
+            <button key={t.id} onClick={() => setActiveTab(t.id)} style={{ display: "flex", alignItems: "center", gap: 7, padding: "9px 18px", borderRadius: 8, border: "none", background: active ? "#e95e00" : "transparent", color: active ? "#fff" : "#64748b", fontWeight: active ? 700 : 500, fontSize: 13, cursor: "pointer", transition: "all 0.15s" }}>
+              <t.icon size={14} /> {t.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* ── OVERVIEW TAB ── */}
+      {activeTab === "overview" && (
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
+          {/* Contact Info */}
+          <div style={{ background: "#fff", borderRadius: 16, padding: 24, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" }}>
+            <h3 style={{ fontSize: 16, fontWeight: 700, color: "#041830", marginBottom: 16 }}>Contact Information</h3>
+            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+              {tenant.phone && (
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <div style={{ background: "#eff6ff", borderRadius: 8, padding: 8 }}><Phone size={14} color="#3b82f6" /></div>
+                  <div>
+                    <p style={{ fontSize: 11, color: "#94a3b8", fontWeight: 600, textTransform: "uppercase" }}>Phone</p>
+                    <p style={{ fontSize: 14, color: "#041830", fontWeight: 600 }}>{tenant.phone}</p>
+                  </div>
+                </div>
+              )}
+              {tenant.email && (
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <div style={{ background: "#f0fdf4", borderRadius: 8, padding: 8 }}><Mail size={14} color="#10b981" /></div>
+                  <div>
+                    <p style={{ fontSize: 11, color: "#94a3b8", fontWeight: 600, textTransform: "uppercase" }}>Email</p>
+                    <p style={{ fontSize: 14, color: "#041830", fontWeight: 600 }}>{tenant.email}</p>
+                  </div>
+                </div>
+              )}
+              {tenant.securityDeposit && (
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <div style={{ background: "#faf5ff", borderRadius: 8, padding: 8 }}><Shield size={14} color="#8b5cf6" /></div>
+                  <div>
+                    <p style={{ fontSize: 11, color: "#94a3b8", fontWeight: 600, textTransform: "uppercase" }}>Security Deposit</p>
+                    <p style={{ fontSize: 14, color: "#041830", fontWeight: 600 }}>{fmt(tenant.securityDeposit)}</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Lease Info */}
+          <div style={{ background: "#fff", borderRadius: 16, padding: 24, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" }}>
+            <h3 style={{ fontSize: 16, fontWeight: 700, color: "#041830", marginBottom: 16 }}>Lease Details</h3>
+            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+              <div style={{ display: "flex", justifyContent: "space-between" }}>
+                <span style={{ color: "#64748b", fontSize: 13 }}>Lease Period</span>
+                <span style={{ color: "#041830", fontSize: 13, fontWeight: 600 }}>{tenant.leaseStart || "-"} to {tenant.leaseEnd || "-"}</span>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between" }}>
+                <span style={{ color: "#64748b", fontSize: 13 }}>Monthly Rent</span>
+                <span style={{ color: "#041830", fontSize: 13, fontWeight: 700 }}>{fmt(tenant.rent)}</span>
+              </div>
+              {daysLeft !== null && (
+                <div style={{ display: "flex", justifyContent: "space-between" }}>
+                  <span style={{ color: "#64748b", fontSize: 13 }}>Days Until Expiry</span>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: daysLeft <= 90 ? "#9a3412" : "#15803d" }}>
+                    {daysLeft <= 90 ? `(!) ${daysLeft} days` : `${daysLeft} days`}
+                  </span>
+                </div>
+              )}
+              <div style={{ display: "flex", justifyContent: "space-between" }}>
+                <span style={{ color: "#64748b", fontSize: 13 }}>Last Payment</span>
+                <span style={{ color: "#041830", fontSize: 13, fontWeight: 600 }}>{tenant.lastPayment || "-"}</span>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between" }}>
+                <span style={{ color: "#64748b", fontSize: 13 }}>Property</span>
+                <span style={{ color: "#041830", fontSize: 13, fontWeight: 600 }}>{property?.name || "-"}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* KPI Cards */}
+          <div style={{ gridColumn: "1 / -1", display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16 }}>
+            {[
+              { label: "Total Paid", value: fmt(totalPaid), color: "#10b981", icon: DollarSign, tip: "Sum of all recorded payments for this tenant" },
+              { label: "On-Time Rate", value: `${paymentRate}%`, color: paymentRate >= 90 ? "#10b981" : "#e95e00", icon: CheckCircle, tip: `${onTimeCount} on-time, ${lateCount} late out of ${payments.length} payments` },
+              { label: "Open Requests", value: openRequests, color: openRequests > 0 ? "#e95e00" : "#10b981", icon: Wrench, tip: "Active or scheduled maintenance requests" },
+              { label: "Documents", value: documents.length, color: "#3b82f6", icon: FileText, tip: "Total tenant documents on file" },
+            ].map((m, i) => (
+              <div key={i} style={{ background: "#fff", borderRadius: 16, padding: 20, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                  <div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 4 }}>
+                      <p style={{ color: "#94a3b8", fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.04em" }}>{m.label}</p>
+                      <InfoTip text={m.tip} />
+                    </div>
+                    <p style={{ color: m.color, fontSize: 24, fontWeight: 800 }}>{m.value}</p>
+                  </div>
+                  <div style={{ background: m.color + "18", borderRadius: 10, padding: 10 }}><m.icon size={20} color={m.color} /></div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Recent Activity */}
+          <div style={{ gridColumn: "1 / -1", background: "#fff", borderRadius: 16, padding: 24, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" }}>
+            <h3 style={{ fontSize: 16, fontWeight: 700, color: "#041830", marginBottom: 16 }}>Recent Activity</h3>
+            {[...payments.slice(0, 3).map(p => ({ type: "payment", date: p.date, text: `Payment: ${fmt(p.amount)} via ${p.method}`, color: "#10b981", icon: DollarSign })),
+              ...requests.filter(r => r.status !== "resolved").map(r => ({ type: "maintenance", date: r.createdAt.split("T")[0], text: `Maintenance: ${r.title}`, color: "#e95e00", icon: Wrench })),
+              ...notes.slice(0, 2).map(n => ({ type: "note", date: n.date, text: `Note: ${n.text.substring(0, 80)}${n.text.length > 80 ? "..." : ""}`, color: "#3b82f6", icon: MessageSquare })),
+            ].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 6).map((item, i) => (
+              <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 0", borderTop: i > 0 ? "1px solid #f1f5f9" : "none" }}>
+                <div style={{ background: item.color + "18", borderRadius: 8, padding: 8 }}><item.icon size={14} color={item.color} /></div>
+                <p style={{ fontSize: 13, color: "#041830", flex: 1 }}>{item.text}</p>
+                <p style={{ fontSize: 12, color: "#94a3b8" }}>{item.date}</p>
+              </div>
+            ))}
+            {payments.length === 0 && requests.length === 0 && notes.length === 0 && (
+              <p style={{ color: "#94a3b8", fontSize: 13, textAlign: "center", padding: 20 }}>No activity recorded yet.</p>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ── PAYMENTS TAB ── */}
+      {activeTab === "payments" && (
+        <div>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+            <div>
+              <h3 style={{ fontSize: 16, fontWeight: 700, color: "#041830" }}>Payment History</h3>
+              <p style={{ fontSize: 13, color: "#94a3b8" }}>{payments.length} payments recorded &middot; {fmt(totalPaid)} total</p>
+            </div>
+            <button onClick={() => setShowAddPayment(true)} style={{ background: "#10b981", color: "#fff", border: "none", borderRadius: 10, padding: "9px 16px", fontWeight: 600, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
+              <Plus size={14} /> Record Payment
+            </button>
+          </div>
+          <div style={{ background: "#fff", borderRadius: 16, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9", overflow: "hidden" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+              <thead>
+                <tr style={{ background: "#f8fafc" }}>
+                  {["Date", "Amount", "Method", "Status", "Note"].map(h => (
+                    <th key={h} style={{ padding: "14px 16px", textAlign: "left", color: "#94a3b8", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {payments.sort((a, b) => b.date.localeCompare(a.date)).map((p, i) => (
+                  <tr key={p.id} style={{ borderTop: "1px solid #f1f5f9", background: i % 2 === 0 ? "#fff" : "#fafafa" }}>
+                    <td style={{ padding: "14px 16px", fontSize: 13, color: "#041830", fontWeight: 600 }}>{p.date}</td>
+                    <td style={{ padding: "14px 16px", fontSize: 14, fontWeight: 700, color: "#10b981" }}>{fmt(p.amount)}</td>
+                    <td style={{ padding: "14px 16px", fontSize: 13, color: "#64748b" }}>{p.method}</td>
+                    <td style={{ padding: "14px 16px" }}>
+                      <span style={{ background: p.status === "paid" ? "#dcfce7" : p.status === "late" ? "#fff7ed" : "#fee2e2", color: p.status === "paid" ? "#15803d" : p.status === "late" ? "#9a3412" : "#b91c1c", borderRadius: 20, padding: "3px 10px", fontSize: 11, fontWeight: 700 }}>
+                        {p.status === "paid" ? "Paid" : p.status === "late" ? "Late" : "Missed"}
+                      </span>
+                    </td>
+                    <td style={{ padding: "14px 16px", fontSize: 12, color: "#94a3b8" }}>{p.note || "-"}</td>
+                  </tr>
+                ))}
+                {payments.length === 0 && (
+                  <tr><td colSpan={5} style={{ padding: "48px 20px", textAlign: "center", color: "#94a3b8", fontSize: 14 }}>No payments recorded yet.</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* ── DOCUMENTS TAB ── */}
+      {activeTab === "documents" && (
+        <div>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+            <div>
+              <h3 style={{ fontSize: 16, fontWeight: 700, color: "#041830" }}>Documents</h3>
+              <p style={{ fontSize: 13, color: "#94a3b8" }}>Lease agreements, applications, addenda, and tenant files</p>
+            </div>
+            <label style={{ background: "#3b82f6", color: "#fff", border: "none", borderRadius: 10, padding: "9px 16px", fontWeight: 600, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
+              <UploadCloud size={14} /> Upload
+              <input type="file" style={{ display: "none" }} onChange={e => {
+                const file = e.target.files[0];
+                if (!file) return;
+                const doc = { id: newId(), tenantId: tenant.id, name: file.name, type: "other", mimeType: file.type, size: (file.size / 1024).toFixed(0) + " KB", date: new Date().toISOString().split("T")[0], url: null, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), userId: MOCK_USER.id };
+                TENANT_DOCUMENTS.push(doc);
+                setDocuments(prev => [...prev, doc]);
+                showToast("Document uploaded");
+                e.target.value = "";
+              }} />
+            </label>
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {documents.map(d => (
+              <div key={d.id} style={{ display: "flex", alignItems: "center", gap: 14, padding: "16px 20px", background: "#fff", borderRadius: 12, border: "1px solid #f1f5f9", boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
+                <div style={{ background: "#eff6ff", borderRadius: 10, padding: 10 }}><FileText size={18} color="#3b82f6" /></div>
+                <div style={{ flex: 1 }}>
+                  <p style={{ fontSize: 14, fontWeight: 600, color: "#041830" }}>{d.name}</p>
+                  <p style={{ fontSize: 12, color: "#94a3b8" }}>{d.type} &middot; {d.size} &middot; {d.date}</p>
+                </div>
+                <button onClick={() => { const idx = TENANT_DOCUMENTS.findIndex(td => td.id === d.id); if (idx !== -1) TENANT_DOCUMENTS.splice(idx, 1); setDocuments(prev => prev.filter(td => td.id !== d.id)); showToast("Document removed"); }} style={{ background: "#fee2e2", border: "none", borderRadius: 8, padding: "5px 8px", cursor: "pointer", color: "#ef4444" }}>
+                  <Trash2 size={13} />
+                </button>
+              </div>
+            ))}
+            {documents.length === 0 && (
+              <div style={{ padding: "48px 20px", textAlign: "center", color: "#94a3b8", fontSize: 14, background: "#fff", borderRadius: 12, border: "1px solid #f1f5f9" }}>
+                No documents on file. Upload lease agreements, applications, or addenda.
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ── MAINTENANCE TAB ── */}
+      {activeTab === "maintenance" && (
+        <div>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+            <div>
+              <h3 style={{ fontSize: 16, fontWeight: 700, color: "#041830" }}>Maintenance Requests</h3>
+              <p style={{ fontSize: 13, color: "#94a3b8" }}>{openRequests} open &middot; {resolvedRequests} resolved</p>
+            </div>
+            <button onClick={() => setShowAddMaint(true)} style={{ background: "#e95e00", color: "#fff", border: "none", borderRadius: 10, padding: "9px 16px", fontWeight: 600, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
+              <Plus size={14} /> New Request
+            </button>
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {requests.sort((a, b) => b.createdAt.localeCompare(a.createdAt)).map(r => {
+              const prioStyle = { high: { bg: "#fee2e2", text: "#b91c1c" }, medium: { bg: "#fff7ed", text: "#9a3412" }, low: { bg: "#f1f5f9", text: "#64748b" } };
+              const statusStyle = { open: { bg: "#fee2e2", text: "#b91c1c" }, scheduled: { bg: "#dbeafe", text: "#1d4ed8" }, resolved: { bg: "#dcfce7", text: "#15803d" } };
+              const ps = prioStyle[r.priority] || prioStyle.medium;
+              const ss = statusStyle[r.status] || statusStyle.open;
+              return (
+                <div key={r.id} style={{ background: "#fff", borderRadius: 12, padding: 20, border: "1px solid #f1f5f9", boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
+                    <div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+                        <p style={{ fontSize: 15, fontWeight: 700, color: "#041830" }}>{r.title}</p>
+                        <span style={{ background: ps.bg, color: ps.text, borderRadius: 20, padding: "2px 8px", fontSize: 10, fontWeight: 700, textTransform: "uppercase" }}>{r.priority}</span>
+                        <span style={{ background: ss.bg, color: ss.text, borderRadius: 20, padding: "2px 8px", fontSize: 10, fontWeight: 700, textTransform: "uppercase" }}>{r.status}</span>
+                      </div>
+                      <p style={{ fontSize: 13, color: "#64748b" }}>{r.description}</p>
+                    </div>
+                    {r.status !== "resolved" && (
+                      <button onClick={() => handleResolveMaint(r.id)} style={{ background: "#dcfce7", border: "none", borderRadius: 8, padding: "6px 12px", cursor: "pointer", color: "#15803d", fontSize: 12, fontWeight: 600, whiteSpace: "nowrap" }}>
+                        <CheckCircle size={12} style={{ marginRight: 4, verticalAlign: "middle" }} /> Resolve
+                      </button>
+                    )}
+                  </div>
+                  <div style={{ display: "flex", gap: 16, fontSize: 12, color: "#94a3b8" }}>
+                    <span>Created: {r.createdAt.split("T")[0]}</span>
+                    {r.scheduledDate && <span>Scheduled: {r.scheduledDate}</span>}
+                    {r.resolvedDate && <span>Resolved: {r.resolvedDate}</span>}
+                    {r.vendor && <span>Vendor: {r.vendor}</span>}
+                    {r.cost && <span>Cost: {fmt(r.cost)}</span>}
+                  </div>
+                </div>
+              );
+            })}
+            {requests.length === 0 && (
+              <div style={{ padding: "48px 20px", textAlign: "center", color: "#94a3b8", fontSize: 14, background: "#fff", borderRadius: 12, border: "1px solid #f1f5f9" }}>
+                No maintenance requests for this tenant.
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ── NOTES TAB ── */}
+      {activeTab === "notes" && (
+        <div>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+            <div>
+              <h3 style={{ fontSize: 16, fontWeight: 700, color: "#041830" }}>Notes</h3>
+              <p style={{ fontSize: 13, color: "#94a3b8" }}>Private notes about this tenant</p>
+            </div>
+            <button onClick={() => setShowAddNote(true)} style={{ background: "#6366f1", color: "#fff", border: "none", borderRadius: 10, padding: "9px 16px", fontWeight: 600, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
+              <Plus size={14} /> Add Note
+            </button>
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {notes.sort((a, b) => b.date.localeCompare(a.date)).map(n => (
+              <div key={n.id} style={{ display: "flex", gap: 14, padding: "16px 20px", background: "#fff", borderRadius: 12, border: "1px solid #f1f5f9", boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
+                <div style={{ background: "#eef2ff", borderRadius: 10, padding: 10, height: "fit-content" }}><MessageSquare size={16} color="#6366f1" /></div>
+                <div style={{ flex: 1 }}>
+                  <p style={{ fontSize: 14, color: "#041830", lineHeight: 1.5 }}>{n.text}</p>
+                  <p style={{ fontSize: 12, color: "#94a3b8", marginTop: 6 }}>{n.date}</p>
+                </div>
+                <button onClick={() => handleDeleteNote(n.id)} style={{ background: "#fee2e2", border: "none", borderRadius: 8, padding: "5px 8px", cursor: "pointer", color: "#ef4444", height: "fit-content" }}>
+                  <Trash2 size={13} />
+                </button>
+              </div>
+            ))}
+            {notes.length === 0 && (
+              <div style={{ padding: "48px 20px", textAlign: "center", color: "#94a3b8", fontSize: 14, background: "#fff", borderRadius: 12, border: "1px solid #f1f5f9" }}>
+                No notes yet. Add private notes about this tenant.
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ── MODALS ── */}
+
+      {/* Edit Tenant Modal */}
+      {showEdit && (
+        <Modal title="Edit Tenant" onClose={() => setShowEdit(false)}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+            <div style={{ gridColumn: "1 / -1" }}>
+              <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Name</label>
+              <input value={editForm.name} onChange={sef("name")} style={iS} />
+            </div>
+            <div>
+              <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Unit</label>
+              <input value={editForm.unit} onChange={sef("unit")} style={iS} />
+            </div>
+            <div>
+              <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Status</label>
+              <select value={editForm.status} onChange={sef("status")} style={iS}>
+                <option value="active-lease">Active Lease</option>
+                <option value="month-to-month">Month-to-Month</option>
+                <option value="vacant">Vacant</option>
+              </select>
+            </div>
+            <div>
+              <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Monthly Rent</label>
+              <input type="number" value={editForm.rent} onChange={sef("rent")} style={iS} />
+            </div>
+            <div>
+              <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Security Deposit</label>
+              <input type="number" value={editForm.securityDeposit} onChange={sef("securityDeposit")} style={iS} />
+            </div>
+            <div>
+              <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Phone</label>
+              <input value={editForm.phone} onChange={sef("phone")} style={iS} />
+            </div>
+            <div>
+              <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Email</label>
+              <input value={editForm.email} onChange={sef("email")} style={iS} />
+            </div>
+            <div>
+              <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Lease Start</label>
+              <input type="date" value={editForm.leaseStart} onChange={sef("leaseStart")} style={iS} />
+            </div>
+            <div>
+              <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Lease End</label>
+              <input type="date" value={editForm.leaseEnd} onChange={sef("leaseEnd")} style={iS} />
+            </div>
+          </div>
+          <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
+            <button onClick={() => setShowEdit(false)} style={{ flex: 1, padding: "12px", border: "1px solid #e2e8f0", borderRadius: 10, background: "#fff", color: "#475569", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
+            <button onClick={handleSaveEdit} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "#3b82f6", color: "#fff", fontWeight: 700, cursor: "pointer" }}>Save Changes</button>
+          </div>
+        </Modal>
+      )}
+
+      {/* Close Lease Modal */}
+      {showClose && (
+        <Modal title="Close Lease" onClose={() => setShowClose(false)} width={480}>
+          <div style={{ padding: "4px 0" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "14px 16px", background: "#fff7ed", borderRadius: 12, border: "1px solid #fdba74", marginBottom: 20 }}>
+              <AlertTriangle size={20} color="#9a3412" />
+              <div>
+                <p style={{ fontSize: 14, fontWeight: 600, color: "#9a3412" }}>This will end the lease for <strong>{tenant.name}</strong></p>
+                <p style={{ fontSize: 12, color: "#9a3412", marginTop: 2 }}>{property?.name} &middot; {tenant.unit} &middot; {fmt(tenant.rent)}/mo</p>
+              </div>
+            </div>
+            <div style={{ display: "grid", gap: 14, marginBottom: 20 }}>
+              <div>
+                <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Move-Out Date</label>
+                <input type="date" value={closeForm.moveOutDate} onChange={e => setCloseForm(f => ({ ...f, moveOutDate: e.target.value }))} style={iS} />
+              </div>
+              <div>
+                <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Reason</label>
+                <select value={closeForm.moveOutReason} onChange={e => setCloseForm(f => ({ ...f, moveOutReason: e.target.value }))} style={iS}>
+                  <option>Lease ended</option><option>Lease not renewed</option><option>Relocated for work</option><option>Purchased own home</option><option>Lease ended, rent increase</option><option>Eviction</option><option>Mutual agreement</option><option>Other</option>
+                </select>
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: 10 }}>
+              <button onClick={() => setShowClose(false)} style={{ flex: 1, padding: "12px", border: "1px solid #e2e8f0", borderRadius: 10, background: "#fff", color: "#475569", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
+              <button onClick={handleCloseLease} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "#e95e00", color: "#fff", fontWeight: 700, cursor: "pointer" }}>Close Lease</button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* Add Payment Modal */}
+      {showAddPayment && (
+        <Modal title="Record Payment" onClose={() => setShowAddPayment(false)} width={480}>
+          <div style={{ display: "grid", gap: 14 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+              <div>
+                <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Date</label>
+                <input type="date" value={payForm.date} onChange={spf("date")} style={iS} />
+              </div>
+              <div>
+                <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Amount</label>
+                <input type="number" value={payForm.amount} onChange={spf("amount")} style={iS} />
+              </div>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+              <div>
+                <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Method</label>
+                <select value={payForm.method} onChange={spf("method")} style={iS}>
+                  <option>ACH</option><option>Check</option><option>Zelle</option><option>Venmo</option><option>Wire</option><option>Cash</option><option>Other</option>
+                </select>
+              </div>
+              <div>
+                <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Status</label>
+                <select value={payForm.status} onChange={spf("status")} style={iS}>
+                  <option value="paid">Paid</option><option value="late">Late</option><option value="missed">Missed</option>
+                </select>
+              </div>
+            </div>
+            <div>
+              <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Note <span style={{ color: "#94a3b8", fontWeight: 400 }}>(optional)</span></label>
+              <input value={payForm.note} onChange={spf("note")} placeholder="e.g., Paid 3 days late" style={iS} />
+            </div>
+          </div>
+          <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
+            <button onClick={() => setShowAddPayment(false)} style={{ flex: 1, padding: "12px", border: "1px solid #e2e8f0", borderRadius: 10, background: "#fff", color: "#475569", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
+            <button onClick={handleAddPayment} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "#10b981", color: "#fff", fontWeight: 700, cursor: "pointer" }}>Record Payment</button>
+          </div>
+        </Modal>
+      )}
+
+      {/* Add Note Modal */}
+      {showAddNote && (
+        <Modal title="Add Note" onClose={() => setShowAddNote(false)} width={520}>
+          <div>
+            <textarea value={noteText} onChange={e => setNoteText(e.target.value)} placeholder="Write a private note about this tenant..." rows={4} style={{ ...iS, resize: "vertical" }} />
+          </div>
+          <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
+            <button onClick={() => setShowAddNote(false)} style={{ flex: 1, padding: "12px", border: "1px solid #e2e8f0", borderRadius: 10, background: "#fff", color: "#475569", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
+            <button onClick={handleAddNote} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "#6366f1", color: "#fff", fontWeight: 700, cursor: "pointer" }}>Add Note</button>
+          </div>
+        </Modal>
+      )}
+
+      {/* Add Maintenance Modal */}
+      {showAddMaint && (
+        <Modal title="New Maintenance Request" onClose={() => setShowAddMaint(false)} width={520}>
+          <div style={{ display: "grid", gap: 14 }}>
+            <div>
+              <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Title</label>
+              <input value={maintForm.title} onChange={smf("title")} placeholder="e.g., Leaky faucet in bathroom" style={iS} />
+            </div>
+            <div>
+              <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Description</label>
+              <textarea value={maintForm.description} onChange={smf("description")} placeholder="Details about the issue..." rows={3} style={{ ...iS, resize: "vertical" }} />
+            </div>
+            <div>
+              <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Priority</label>
+              <select value={maintForm.priority} onChange={smf("priority")} style={iS}>
+                <option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option>
+              </select>
+            </div>
+          </div>
+          <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
+            <button onClick={() => setShowAddMaint(false)} style={{ flex: 1, padding: "12px", border: "1px solid #e2e8f0", borderRadius: 10, background: "#fff", color: "#475569", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
+            <button onClick={handleAddMaint} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "#e95e00", color: "#fff", fontWeight: 700, cursor: "pointer" }}>Create Request</button>
           </div>
         </Modal>
       )}
@@ -8979,6 +9617,7 @@ function AppShell() {
   const [propDetailTab, setPropDetailTab] = useState(null);  // initial tab for PropertyDetail
   const [propDetailTenantHighlight, setPropDetailTenantHighlight] = useState(null); // tenant id to highlight in PropertyDetail
   const [selectedContractor, setSelectedContractor] = useState(null);
+  const [selectedTenant, setSelectedTenant] = useState(null);
   const [convertDealData, setConvertDealData] = useState(null); // deal data to pre-fill Add Property for flip-to-rental conversion
   const [dealVersion, setDealVersion] = useState(0); // bump to force re-render of deal-dependent views
   const onDealUpdated = useCallback(() => setDealVersion(v => v + 1), []);
@@ -8987,6 +9626,22 @@ function AppShell() {
     setSelectedContractor(contractor);
     setNavSource("dealcontractors");
     setActiveView("contractorDetail");
+  };
+
+  const handleTenantSelect = (tenant, source) => {
+    setSelectedTenant(tenant);
+    setNavSource(source || "tenants");
+    setActiveView("tenantDetail");
+  };
+
+  const handleTenantUpdated = (tenantId, updates) => {
+    // Update the tenant in the mock data
+    const idx = TENANTS.findIndex(t => t.id === tenantId);
+    if (idx !== -1) Object.assign(TENANTS[idx], updates);
+    // Update selectedTenant if it's the same one
+    if (selectedTenant && selectedTenant.id === tenantId) {
+      setSelectedTenant(prev => ({ ...prev, ...updates }));
+    }
   };
 
   const navigateToTransaction = (txId) => {
@@ -9140,6 +9795,7 @@ function AppShell() {
             <span style={{ color: "#041830", fontSize: 15, fontWeight: 600 }}>
               {activeView === "propertyDetail" && selectedProperty ? selectedProperty.name :
                activeView === "dealDetail" && selectedDeal ? selectedDeal.name :
+               activeView === "tenantDetail" && selectedTenant ? selectedTenant.name :
                activeView === "portfolio" ? "Portfolio" :
                activeView === "dashboard" ? "Dashboard" :
                [...rentalNavItems, ...dealNavItems, ...toolNavItems].find(n => n.id === activeView)?.label || ""}
@@ -9148,11 +9804,7 @@ function AppShell() {
           <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
             <GlobalSearch onNavigate={(item) => {
               if (item.type === "property") { handlePropertySelect(item.data); }
-              else if (item.type === "tenant") {
-                const prop = PROPERTIES.find(p => p.id === item.data.propertyId);
-                if (prop) { setSelectedProperty(prop); setPropDetailTab("tenants"); setPropDetailTenantHighlight(item.data.id); setActiveView("propertyDetail"); }
-                else { setHighlightTenantId(item.data.id); setActiveView("tenants"); }
-              }
+              else if (item.type === "tenant") { handleTenantSelect(item.data, "tenants"); }
               else if (item.type === "deal") { handleDealSelect(item.data, null, "deals"); }
               else if (item.type === "transaction") { setHighlightTxId(item.data.id); setActiveView("transactions"); }
               else if (item.type === "contractor") { setSelectedContractor(item.data); setActiveView("contractorDetail"); }
@@ -9187,7 +9839,8 @@ function AppShell() {
           {activeView === "dealnotes"       && <UnifiedNotes highlightDealNoteId={highlightDealNoteId} onBack={navSource === "dealdashboard" ? () => { setActiveView("dealdashboard"); setHighlightDealNoteId(null); setNavSource(null); } : null} onClearHighlight={() => setHighlightDealNoteId(null)} />}
           {activeView === "dealanalytics"   && <DealAnalytics />}
           {activeView === "dealreports"    && <DealReports />}
-          {activeView === "tenants" && <TenantManagement onBack={navSource === "propertyDetail" ? () => { setActiveView("propertyDetail"); setHighlightTenantId(null); setNavSource(prevNavSource); setPrevNavSource(null); } : null} highlightTenantId={highlightTenantId} onClearHighlight={() => setHighlightTenantId(null)} prefillTenant={prefillTenant} onClearPrefill={() => setPrefillTenant(null)} />}
+          {activeView === "tenants" && <TenantManagement onBack={navSource === "propertyDetail" ? () => { setActiveView("propertyDetail"); setHighlightTenantId(null); setNavSource(prevNavSource); setPrevNavSource(null); } : null} highlightTenantId={highlightTenantId} onClearHighlight={() => setHighlightTenantId(null)} prefillTenant={prefillTenant} onClearPrefill={() => setPrefillTenant(null)} onSelectTenant={(t) => handleTenantSelect(t, "tenants")} />}
+          {activeView === "tenantDetail" && selectedTenant && <TenantDetail tenant={selectedTenant} onBack={() => { setSelectedTenant(null); setActiveView(navSource || "tenants"); setNavSource(null); }} backLabel={navSource === "propertyDetail" ? "Back to Property" : "Back to Tenants"} onTenantUpdated={handleTenantUpdated} />}
           {activeView === "mileage" && <MileageTracker />}
           {activeView === "dealanalyzer" && <DealAnalyzer />}
         </div>
