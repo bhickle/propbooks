@@ -292,16 +292,17 @@ function calcCashOnCash(p, transactions) {
 }
 
 const TRANSACTIONS = [
-  { id: 1,  date: "2026-03-20", propertyId: 1, category: "Rent Income", description: "March rent - Unit A",       amount:  1900, type: "income",  payee: "Jordan Williams" },
-  { id: 2,  date: "2026-03-20", propertyId: 1, category: "Rent Income", description: "March rent - Unit B",       amount:  1900, type: "income",  payee: "Priya Patel" },
+  { id: 1,  date: "2026-03-20", propertyId: 1, tenantId: 1, category: "Rent Income", description: "March rent - Unit A",       amount:  1900, type: "income",  payee: "Jordan Williams" },
+  { id: 2,  date: "2026-03-20", propertyId: 1, tenantId: 2, category: "Rent Income", description: "March rent - Unit B",       amount:  1900, type: "income",  payee: "Priya Patel" },
   { id: 3,  date: "2026-03-18", propertyId: 4, category: "Maintenance", description: "HVAC repair - Unit 2",      amount:  -420, type: "expense", payee: "AirPro HVAC Services" },
-  { id: 4,  date: "2026-03-15", propertyId: 2, category: "Rent Income", description: "March rent",               amount:  2950, type: "income",  payee: "Marcus Thompson" },
+  { id: 4,  date: "2026-03-15", propertyId: 2, tenantId: 3, category: "Rent Income", description: "March rent",               amount:  2950, type: "income",  payee: "Marcus Thompson" },
   { id: 5,  date: "2026-03-12", propertyId: 3, category: "HOA Fees",    description: "Monthly HOA",              amount:  -285, type: "expense", payee: "Midtown HOA" },
-  { id: 6,  date: "2026-03-10", propertyId: 5, category: "Rent Income", description: "March commercial rent",    amount:  8500, type: "income",  payee: "Acme Retail LLC" },
-  { id: 7,  date: "2026-03-08", propertyId: 4, category: "Rent Income", description: "March rent - Units 1,2,3", amount:  5700, type: "income",  payee: "Various Tenants" },
+  { id: 6,  date: "2026-03-10", propertyId: 5, tenantId: 8, category: "Rent Income", description: "March commercial rent",    amount:  8500, type: "income",  payee: "Acme Retail LLC" },
+  { id: 7,  date: "2026-03-08", propertyId: 4, tenantId: 5, category: "Rent Income", description: "March rent - Unit 1",      amount:  1950, type: "income",  payee: "Ryan & Keisha Thompson" },
+  { id: 16, date: "2026-03-08", propertyId: 4, tenantId: 7, category: "Rent Income", description: "March rent - Unit 3",      amount:  1875, type: "income",  payee: "Carlos Mendez" },
   { id: 8,  date: "2026-03-05", propertyId: 1, category: "Insurance",   description: "Q1 property insurance",   amount: -1200, type: "expense", payee: "State Farm" },
   { id: 9,  date: "2026-03-03", propertyId: 2, category: "Property Tax",description: "Semi-annual tax payment",  amount: -2100, type: "expense", payee: "Denver County Assessor" },
-  { id: 10, date: "2026-03-01", propertyId: 3, category: "Rent Income", description: "March rent",               amount:  2100, type: "income",  payee: "Keisha Brown" },
+  { id: 10, date: "2026-03-01", propertyId: 3, tenantId: 4, category: "Rent Income", description: "March rent",               amount:  2100, type: "income",  payee: "Keisha Brown" },
   { id: 11, date: "2026-02-28", propertyId: 5, category: "Maintenance", description: "Parking lot reseal",       amount: -3500, type: "expense", payee: "Pacific Paving Co." },
   { id: 12, date: "2026-02-20", propertyId: 4, category: "Mortgage",    description: "February mortgage",        amount: -2840, type: "expense", payee: "US Bank" },
   { id: 13, date: "2026-02-15", propertyId: 1, category: "Mortgage",    description: "February mortgage",        amount: -1620, type: "expense", payee: "Chase Mortgage" },
