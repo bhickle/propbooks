@@ -1647,7 +1647,7 @@ function Dashboard({ onNavigate, onNavigateToTx, onSelectProperty, onNavigateToT
   );
 }
 
-function Properties({ onSelect, editPropertyId, onClearEditId }) {
+function Properties({ onSelect, editPropertyId, onClearEditId, convertFlipData, onClearConvertFlip }) {
   const [propData, setPropData] = useState(PROPERTIES);
   const [view, setView] = useState("grid");
   const [search, setSearch] = useState("");
@@ -1670,6 +1670,26 @@ function Properties({ onSelect, editPropertyId, onClearEditId }) {
       onClearEditId && onClearEditId();
     }
   }, [editPropertyId]);
+
+  // Auto-open Add Property modal when converting a flip to rental
+  useEffect(() => {
+    if (convertFlipData) {
+      setEditId(null);
+      setForm({
+        ...emptyP,
+        name: convertFlipData.name || "",
+        address: convertFlipData.address || "",
+        type: convertFlipData.type || "Single Family",
+        units: convertFlipData.units || "1",
+        purchasePrice: convertFlipData.purchasePrice || "",
+        currentValue: convertFlipData.currentValue || "",
+        closingCosts: convertFlipData.closingCosts || "",
+        purchaseDate: convertFlipData.purchaseDate || "",
+      });
+      setShowModal(true);
+      onClearConvertFlip && onClearConvertFlip();
+    }
+  }, [convertFlipData]);
 
   const handlePhotoUpload = e => {
     const file = e.target.files[0];
@@ -5401,7 +5421,7 @@ function FlipPipeline({ onSelect }) {
   );
 }
 
-function FlipDetail({ flip, onBack, backLabel, allFlips, setAllFlips, onNavigateToExpense, onNavigateToContractor, initialTab }) {
+function FlipDetail({ flip, onBack, backLabel, allFlips, setAllFlips, onNavigateToExpense, onNavigateToContractor, initialTab, onConvertToRental }) {
   const [activeTab, setActiveTab] = useState(initialTab || "overview");
   useEffect(() => { if (initialTab) setActiveTab(initialTab); }, [initialTab]);
   const [showExpenseModal, setShowExpenseModal] = useState(false);
@@ -5447,6 +5467,7 @@ function FlipDetail({ flip, onBack, backLabel, allFlips, setAllFlips, onNavigate
   }, []);
   const [deleteConfirm, setDeleteConfirm] = useState(null); // { type: "expense"|"contractor"|"rehab"|"milestone", item, index? }
   const [stage, setStage] = useState(flip.stage);
+  const [showConvertConfirm, setShowConvertConfirm] = useState(false);
 
   // Expense tab filters
   const [expSearch, setExpSearch] = useState("");
@@ -5748,6 +5769,11 @@ function FlipDetail({ flip, onBack, backLabel, allFlips, setAllFlips, onNavigate
               <button onClick={openEditDeal} style={{ background: "rgba(255,255,255,0.7)", border: "1px solid rgba(0,0,0,0.08)", borderRadius: 8, padding: "6px 12px", fontSize: 12, fontWeight: 600, color: "#475569", cursor: "pointer", display: "flex", alignItems: "center", gap: 5 }}>
                 <Pencil size={12} /> Edit Deal
               </button>
+              {stage !== "Converted to Rental" && stage !== "Sold" && onConvertToRental && (
+                <button onClick={() => setShowConvertConfirm(true)} style={{ background: "#e95e00", border: "none", borderRadius: 8, padding: "6px 12px", fontSize: 12, fontWeight: 600, color: "#fff", cursor: "pointer", display: "flex", alignItems: "center", gap: 5 }}>
+                  <Home size={12} /> Convert to Rental
+                </button>
+              )}
             </div>
             <p style={{ color: "#64748b", fontSize: 13 }}>{stage === "Sold" ? "Sale Price" : "ARV"}</p>
             <p style={{ color: "#041830", fontSize: 32, fontWeight: 800 }}>{fmt(saleOrARV)}</p>
@@ -6782,6 +6808,67 @@ function FlipDetail({ flip, onBack, backLabel, allFlips, setAllFlips, onNavigate
           <div style={{ display: "flex", gap: 10, marginTop: 8 }}>
             <button onClick={() => setShowEditDeal(false)} style={{ flex: 1, padding: "12px", border: "1px solid #e2e8f0", borderRadius: 10, background: "#fff", color: "#475569", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
             <button onClick={handleSaveDeal} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "#e95e00", color: "#fff", fontWeight: 700, cursor: "pointer" }}>Save Changes</button>
+          </div>
+        </Modal>
+      )}
+      {showConvertConfirm && (
+        <Modal title="Convert to Rental Property" onClose={() => setShowConvertConfirm(false)}>
+          <p style={{ color: "#475569", fontSize: 14, marginBottom: 16 }}>
+            Convert this flip deal into a rental property in your portfolio. The deal will be marked as "Converted to Rental" and a new property will be created with the details below.
+          </p>
+          <div style={{ background: "#f8fafc", borderRadius: 12, padding: 16, marginBottom: 16, border: "1px solid #e2e8f0" }}>
+            <p style={{ fontSize: 15, fontWeight: 700, color: "#041830", marginBottom: 8 }}>{flip.name}</p>
+            <p style={{ fontSize: 13, color: "#64748b", marginBottom: 12 }}>{flip.address}</p>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+              <div>
+                <p style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.05em" }}>Purchase Price</p>
+                <p style={{ fontSize: 14, fontWeight: 700, color: "#041830" }}>{fmt(flip.purchasePrice)}</p>
+              </div>
+              <div>
+                <p style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.05em" }}>Current Value (ARV)</p>
+                <p style={{ fontSize: 14, fontWeight: 700, color: "#041830" }}>{fmt(flip.arv)}</p>
+              </div>
+              <div>
+                <p style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.05em" }}>Total Rehab Spent</p>
+                <p style={{ fontSize: 14, fontWeight: 700, color: "#041830" }}>{fmt((flip.rehabItems || []).reduce((s, i) => s + (i.spent || 0), 0))}</p>
+              </div>
+              <div>
+                <p style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.05em" }}>Acquisition Date</p>
+                <p style={{ fontSize: 14, fontWeight: 700, color: "#041830" }}>{flip.acquisitionDate || flip.contractDate || "—"}</p>
+              </div>
+            </div>
+          </div>
+          <div style={{ background: "#fff7ed", borderRadius: 10, padding: 12, marginBottom: 20, border: "1px solid #fdba74" }}>
+            <p style={{ fontSize: 13, color: "#9a3412", fontWeight: 600 }}>What happens next:</p>
+            <p style={{ fontSize: 12, color: "#9a3412", marginTop: 4 }}>
+              You'll be taken to the Add Property form pre-filled with this deal's info. You can review and adjust the details (rent amount, loan info, etc.) before saving.
+            </p>
+          </div>
+          <div style={{ display: "flex", gap: 10 }}>
+            <button onClick={() => setShowConvertConfirm(false)} style={{ flex: 1, padding: "12px", border: "1px solid #e2e8f0", borderRadius: 10, background: "#fff", color: "#475569", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
+            <button onClick={() => {
+              const rehabSpent = (flip.rehabItems || []).reduce((s, i) => s + (i.spent || 0), 0);
+              onConvertToRental({
+                name: flip.name,
+                address: flip.address,
+                type: "Single Family",
+                units: "1",
+                purchasePrice: String(flip.purchasePrice || ""),
+                currentValue: String(flip.arv || ""),
+                closingCosts: String(rehabSpent || ""),
+                purchaseDate: flip.acquisitionDate || flip.contractDate || "",
+                fromFlipId: flip.id,
+                fromFlipName: flip.name,
+              });
+              // Mark this flip as Converted to Rental
+              setStage("Converted to Rental");
+              const idx = FLIPS.findIndex(f => f.id === flip.id);
+              if (idx !== -1) FLIPS[idx].stage = "Converted to Rental";
+              setDealNotes(prev => [{ id: newId(), date: today, text: "Deal converted to rental property." }, ...prev]);
+              setShowConvertConfirm(false);
+            }} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "#e95e00", color: "#fff", fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+              <Home size={14} /> Convert to Rental
+            </button>
           </div>
         </Modal>
       )}
@@ -8336,6 +8423,7 @@ function AppShell() {
   const [propDetailTab, setPropDetailTab] = useState(null);  // initial tab for PropertyDetail
   const [propDetailTenantHighlight, setPropDetailTenantHighlight] = useState(null); // tenant id to highlight in PropertyDetail
   const [selectedContractor, setSelectedContractor] = useState(null);
+  const [convertFlipData, setConvertFlipData] = useState(null); // flip data to pre-fill Add Property for flip-to-rental conversion
 
   const handleSelectContractor = (contractor) => {
     setSelectedContractor(contractor);
@@ -8525,7 +8613,7 @@ function AppShell() {
         <div style={{ flex: 1, padding: 32, maxWidth: 1400, width: "100%" }}>
           {activeView === "portfolio" && <PortfolioDashboard onNavigate={setActiveView} onSelectProperty={(p) => { setNavSource("portfolio"); handlePropertySelect(p); }} onSelectFlip={(f) => { setNavSource("portfolio"); handleFlipSelect(f, null, "portfolio"); }} onNavigateToTx={(txId) => { setHighlightTxId(txId); setNavSource("portfolio"); setActiveView("transactions"); }} onNavigateToFlipExpense={(expId) => { setHighlightExpId(expId); setNavSource("portfolio"); setActiveView("flipexpenses"); }} onNavigateToLease={(prop, tenantId) => { setSelectedProperty(prop); setPropDetailTab("tenants"); setPropDetailTenantHighlight(tenantId); setNavSource("portfolio"); setActiveView("propertyDetail"); }} />}
           {activeView === "dashboard" && <Dashboard onNavigate={setActiveView} onNavigateToTx={navigateToTransaction} onSelectProperty={handlePropertySelect} onNavigateToTenantAdd={(propId, unit) => { setPrefillTenant({ propertyId: propId, unit }); setActiveView("tenants"); }} onNavigateToNote={(noteId) => { setHighlightNoteId(noteId); setNavSource("dashboard"); setActiveView("notes"); }} onNavigateToLease={(prop, tenantId) => { setSelectedProperty(prop); setPropDetailTab("tenants"); setPropDetailTenantHighlight(tenantId); setNavSource("dashboard"); setActiveView("propertyDetail"); }} />}
-          {activeView === "properties" && <Properties onSelect={handlePropertySelect} editPropertyId={editPropertyId} onClearEditId={() => setEditPropertyId(null)} />}
+          {activeView === "properties" && <Properties onSelect={handlePropertySelect} editPropertyId={editPropertyId} onClearEditId={() => setEditPropertyId(null)} convertFlipData={convertFlipData} onClearConvertFlip={() => setConvertFlipData(null)} />}
           {activeView === "propertyDetail" && selectedProperty && <PropertyDetail key={selectedProperty.id + "-" + (propDetailTab || "overview") + "-" + (propDetailTenantHighlight || "")} property={selectedProperty} onBack={() => { setActiveView(navSource === "dashboard" ? "dashboard" : navSource === "portfolio" ? "portfolio" : "properties"); setPropDetailTab(null); setPropDetailTenantHighlight(null); setPrevNavSource(null); setNavSource(null); }} backLabel={navSource === "dashboard" ? "Back to Dashboard" : navSource === "portfolio" ? "Back to Portfolio" : "Back to Properties"} onEditProperty={(p) => { setEditPropertyId(p.id); setActiveView("properties"); }} onGoToTransactions={() => setActiveView("transactions")} onNavigateToTransaction={(txId) => { if (txId) { setHighlightTxId(txId); } setPrevNavSource(navSource); setNavSource("propertyDetail"); setActiveView("transactions"); }} onNavigateToTenant={(tenantId) => { setHighlightTenantId(tenantId); setPrevNavSource(navSource); setNavSource("propertyDetail"); setActiveView("tenants"); }} initialTab={propDetailTab} highlightTenantId={propDetailTenantHighlight} onClearHighlightTenant={() => setPropDetailTenantHighlight(null)} />}
           {activeView === "transactions" && <Transactions highlightTxId={highlightTxId} backLabel={navSource === "propertyDetail" ? "Back to Property" : navSource === "portfolio" ? "Back to Portfolio" : "Back to Dashboard"} onBack={navSource === "dashboard" ? () => { setActiveView("dashboard"); setHighlightTxId(null); setNavSource(null); setPrevNavSource(null); } : navSource === "portfolio" ? () => { setActiveView("portfolio"); setHighlightTxId(null); setNavSource(null); setPrevNavSource(null); } : navSource === "propertyDetail" ? () => { setActiveView("propertyDetail"); setHighlightTxId(null); setNavSource(prevNavSource); setPrevNavSource(null); } : null} onClearHighlight={() => setHighlightTxId(null)} />}
           {activeView === "analytics" && <Analytics />}
@@ -8533,7 +8621,7 @@ function AppShell() {
           {activeView === "reports" && <Reports />}
           {activeView === "flipdashboard"   && <FlipDashboard onSelect={(f, tab) => handleFlipSelect(f, tab, "flipdashboard")} onNavigateToNote={(noteId) => { setHighlightFlipNoteId(noteId); setNavSource("flipdashboard"); setActiveView("flipnotes"); }} onNavigateToExpense={(expId) => { setHighlightExpId(expId); setNavSource("flipdashboard"); setActiveView("flipexpenses"); }} onNavigateToMilestone={(msKey) => { setHighlightMilestoneKey(msKey); setNavSource("flipdashboard"); setActiveView("flipmilestones"); }} />}
           {activeView === "flips"           && <FlipPipeline onSelect={(f, tab) => handleFlipSelect(f, tab, "flips")} />}
-          {activeView === "flipDetail"      && selectedFlip && <ErrorBoundary key={"eb-" + selectedFlip.id}><FlipDetail key={selectedFlip.id + "-" + (flipInitialTab || "overview")} flip={selectedFlip} onBack={() => { setActiveView(flipNavSource || "flips"); setFlipNavSource(null); setPrevFlipNavSource(null); setFlipInitialTab(null); }} backLabel={flipNavSource === "flipdashboard" ? "Back to Dashboard" : flipNavSource === "portfolio" ? "Back to Portfolio" : "Back to Deals"} onNavigateToExpense={navigateToFlipExpense} onNavigateToContractor={(con) => { setSelectedContractor(con); setPrevFlipNavSource(flipNavSource); setNavSource("flipDetail"); setActiveView("contractorDetail"); }} initialTab={flipInitialTab} /></ErrorBoundary>}
+          {activeView === "flipDetail"      && selectedFlip && <ErrorBoundary key={"eb-" + selectedFlip.id}><FlipDetail key={selectedFlip.id + "-" + (flipInitialTab || "overview")} flip={selectedFlip} onBack={() => { setActiveView(flipNavSource || "flips"); setFlipNavSource(null); setPrevFlipNavSource(null); setFlipInitialTab(null); }} backLabel={flipNavSource === "flipdashboard" ? "Back to Dashboard" : flipNavSource === "portfolio" ? "Back to Portfolio" : "Back to Deals"} onNavigateToExpense={navigateToFlipExpense} onNavigateToContractor={(con) => { setSelectedContractor(con); setPrevFlipNavSource(flipNavSource); setNavSource("flipDetail"); setActiveView("contractorDetail"); }} initialTab={flipInitialTab} onConvertToRental={(flipData) => { setConvertFlipData(flipData); setActiveView("properties"); }} /></ErrorBoundary>}
           {activeView === "fliprehab"        && <RehabTracker />}
           {activeView === "flipexpenses"    && <FlipExpenses highlightExpId={highlightExpId} onBack={navSource === "flipDetail" ? () => { setActiveView("flipDetail"); setHighlightExpId(null); setNavSource(null); setFlipNavSource(prevFlipNavSource); setPrevFlipNavSource(null); } : navSource === "flipdashboard" ? () => { setActiveView("flipdashboard"); setHighlightExpId(null); setNavSource(null); } : navSource === "portfolio" ? () => { setActiveView("portfolio"); setHighlightExpId(null); setNavSource(null); } : null} backLabel={navSource === "flipdashboard" ? "Back to Dashboard" : navSource === "portfolio" ? "Back to Portfolio" : "Back to Deal"} onClearHighlight={() => setHighlightExpId(null)} />}
           {activeView === "flipcontractors" && <FlipContractors onSelectContractor={handleSelectContractor} />}

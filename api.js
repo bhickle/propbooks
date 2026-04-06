@@ -28,12 +28,13 @@ export const fmtK = (n) =>
 // -----------------------------------------------------------------------------
 export const PROP_COLORS  = ["#3b82f6","#10b981","#8b5cf6","#e95e00","#ef4444","#06b6d4","#ec4899"];
 export const FLIP_COLORS  = ["#e95e00","#10b981","#8b5cf6","#3b82f6","#ef4444","#06b6d4"];
-export const STAGE_ORDER  = ["Under Contract","Active Rehab","Listed","Sold"];
+export const STAGE_ORDER  = ["Under Contract","Active Rehab","Listed","Sold","Converted to Rental"];
 export const STAGE_COLORS = {
-  "Under Contract": { bg: "#ede9fe", text: "#6d28d9", dot: "#8b5cf6" },
-  "Active Rehab":   { bg: "#fff7ed", text: "#9a3412", dot: "#e95e00" },
-  "Listed":         { bg: "#dbeafe", text: "#1d4ed8", dot: "#3b82f6" },
-  "Sold":           { bg: "#dcfce7", text: "#15803d", dot: "#10b981" },
+  "Under Contract":       { bg: "#ede9fe", text: "#6d28d9", dot: "#8b5cf6" },
+  "Active Rehab":         { bg: "#fff7ed", text: "#9a3412", dot: "#e95e00" },
+  "Listed":               { bg: "#dbeafe", text: "#1d4ed8", dot: "#3b82f6" },
+  "Sold":                 { bg: "#dcfce7", text: "#15803d", dot: "#10b981" },
+  "Converted to Rental":  { bg: "#f0f9ff", text: "#0369a1", dot: "#0ea5e9" },
 };
 export const DEFAULT_MILESTONES = [
   "Contract Executed","Inspection Complete","Financing Secured",
