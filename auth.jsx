@@ -10,6 +10,7 @@
 import { useState, createContext, useContext } from "react";
 import { Eye, EyeOff, ArrowRight, CheckCircle, Building2, TrendingUp, PieChart, Hammer, Car } from "lucide-react";
 import propbooksLogoDark from "./logos/PropBooks Horizontal Logo (3).png";
+import propbooksLogoLight from "./logos/PropBooks Horizontal Logo (2).png";
 
 // -----------------------------------------------------------------------------
 // Auth Context
@@ -325,7 +326,7 @@ export function AuthScreen() {
 
       {/* Right panel - branded visual */}
       <div style={{
-        flex: 1, background: "linear-gradient(135deg, #041830 0%, #0a2a4a 50%, #0e3460 100%)",
+        flex: 1, background: "linear-gradient(180deg, #041830 0%, #041830 20%, #0a2a4a 60%, #0e3460 100%)",
         display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
         padding: 48, position: "relative", overflow: "hidden",
       }}>
@@ -339,7 +340,7 @@ export function AuthScreen() {
 
         <div style={{ position: "relative", zIndex: 1, textAlign: "center", maxWidth: 440 }}>
           {/* Logo */}
-          <img src={propbooksLogoDark} alt="PropBooks" style={{ height: 56, objectFit: "contain", marginBottom: 40, mixBlendMode: "screen" }} />
+          <img src={propbooksLogoDark} alt="PropBooks" style={{ height: 56, objectFit: "contain", marginBottom: 40 }} />
 
           <h2 style={{ color: "#fff", fontSize: 30, fontWeight: 800, marginBottom: 14, lineHeight: 1.25 }}>
             Whether you hold it or flip it,<br />we've got you covered.
