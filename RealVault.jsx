@@ -29,8 +29,6 @@ import {
   PROPERTY_DOCUMENTS, addPropertyDocument, deletePropertyDocument,
   DEAL_DOCUMENTS, addDealDocument, deleteDealDocument,
   TENANT_DOCUMENTS, addTenantDocument, deleteTenantDocument,
-  TENANT_PAYMENTS, addTenantPayment,
-  TENANT_NOTES, getTenantNotes, addTenantNote, deleteTenantNote,
   MAINTENANCE_REQUESTS, addMaintenanceRequest, updateMaintenanceRequest,
   TRANSACTION_RECEIPTS, addTransactionReceipt, deleteTransactionReceipt,
   DEAL_EXPENSE_RECEIPTS, addDealExpenseReceipt, deleteDealExpenseReceipt,
@@ -7792,9 +7790,13 @@ function TenantDetail({ tenant, onBack, backLabel, onTenantUpdated, onSelectTena
   const { showToast } = useToast();
   const property = PROPERTIES.find(p => p.id === tenant.propertyId);
   const [activeTab, setActiveTab] = useState("overview");
-  const [payments, setPayments] = useState(TENANT_PAYMENTS.filter(p => p.tenantId === tenant.id));
+  // Payments: read from existing transactions (rent income tied to this tenant)
+  const [txVersion, setTxVersion] = useState(0);
+  const payments = useMemo(() => TRANSACTIONS.filter(t => t.tenantId === tenant.id && t.type === "income" && t.category === "Rent Income").sort((a, b) => b.date.localeCompare(a.date)), [tenant.id, txVersion]);
   const [documents, setDocuments] = useState(TENANT_DOCUMENTS.filter(d => d.tenantId === tenant.id));
-  const [notes, setNotes] = useState(TENANT_NOTES.filter(n => n.tenantId === tenant.id));
+  // Notes: read from RENTAL_NOTES filtered by tenantId
+  const [noteVersion, setNoteVersion] = useState(0);
+  const notes = useMemo(() => RENTAL_NOTES.filter(n => n.tenantId === tenant.id).sort((a, b) => b.date.localeCompare(a.date)), [tenant.id, noteVersion]);
   const [requests, setRequests] = useState(MAINTENANCE_REQUESTS.filter(r => r.tenantId === tenant.id));
 
   // Edit modal
@@ -7806,9 +7808,9 @@ function TenantDetail({ tenant, onBack, backLabel, onTenantUpdated, onSelectTena
   const [showClose, setShowClose] = useState(false);
   const [closeForm, setCloseForm] = useState({ moveOutDate: new Date().toISOString().split("T")[0], moveOutReason: "Lease ended" });
 
-  // Add payment modal
+  // Record payment modal (creates a real transaction)
   const [showAddPayment, setShowAddPayment] = useState(false);
-  const [payForm, setPayForm] = useState({ date: new Date().toISOString().split("T")[0], amount: String(tenant.rent || ""), method: "ACH", status: "paid", note: "" });
+  const [payForm, setPayForm] = useState({ date: new Date().toISOString().split("T")[0], amount: String(tenant.rent || ""), description: "" });
   const spf = k => e => setPayForm(f => ({ ...f, [k]: e.target.value }));
 
   // Add note modal
@@ -7850,28 +7852,30 @@ function TenantDetail({ tenant, onBack, backLabel, onTenantUpdated, onSelectTena
   };
 
   const handleAddPayment = () => {
-    const p = { id: newId(), tenantId: tenant.id, date: payForm.date, amount: parseFloat(payForm.amount) || 0, method: payForm.method, status: payForm.status, note: payForm.note || null };
-    TENANT_PAYMENTS.push(p);
-    setPayments(prev => [p, ...prev]);
+    const amt = parseFloat(payForm.amount) || 0;
+    const desc = payForm.description || `Rent payment - ${tenant.name}`;
+    const txn = { id: newId(), date: payForm.date, propertyId: tenant.propertyId, tenantId: tenant.id, category: "Rent Income", description: desc, amount: amt, type: "income", createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), userId: MOCK_USER.id };
+    TRANSACTIONS.unshift(txn);
+    setTxVersion(v => v + 1);
     setShowAddPayment(false);
-    setPayForm({ date: new Date().toISOString().split("T")[0], amount: String(tenant.rent || ""), method: "ACH", status: "paid", note: "" });
-    showToast("Payment recorded");
+    setPayForm({ date: new Date().toISOString().split("T")[0], amount: String(tenant.rent || ""), description: "" });
+    showToast("Payment recorded as transaction");
   };
 
   const handleAddNote = () => {
     if (!noteText.trim()) return;
-    const n = { id: newId(), tenantId: tenant.id, date: new Date().toISOString().split("T")[0], text: noteText.trim(), createdAt: new Date().toISOString(), userId: MOCK_USER.id };
-    TENANT_NOTES.push(n);
-    setNotes(prev => [n, ...prev]);
+    const n = { id: newId(), propertyId: tenant.propertyId, tenantId: tenant.id, date: new Date().toISOString().split("T")[0], text: noteText.trim(), createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), userId: MOCK_USER.id };
+    RENTAL_NOTES.push(n);
+    setNoteVersion(v => v + 1);
     setNoteText("");
     setShowAddNote(false);
     showToast("Note added");
   };
 
   const handleDeleteNote = (id) => {
-    const idx = TENANT_NOTES.findIndex(n => n.id === id);
-    if (idx !== -1) TENANT_NOTES.splice(idx, 1);
-    setNotes(prev => prev.filter(n => n.id !== id));
+    const idx = RENTAL_NOTES.findIndex(n => n.id === id);
+    if (idx !== -1) RENTAL_NOTES.splice(idx, 1);
+    setNoteVersion(v => v + 1);
     showToast("Note deleted");
   };
 
@@ -7903,9 +7907,7 @@ function TenantDetail({ tenant, onBack, backLabel, onTenantUpdated, onSelectTena
   const s = leaseStatusStyle[tenant.status] || leaseStatusStyle["vacant"];
 
   const totalPaid = payments.reduce((sum, p) => sum + p.amount, 0);
-  const onTimeCount = payments.filter(p => p.status === "paid").length;
-  const lateCount = payments.filter(p => p.status === "late").length;
-  const paymentRate = payments.length > 0 ? Math.round((onTimeCount / payments.length) * 100) : 100;
+  const paymentCount = payments.length;
 
   const openRequests = requests.filter(r => r.status === "open" || r.status === "scheduled").length;
   const resolvedRequests = requests.filter(r => r.status === "resolved").length;
@@ -8038,8 +8040,8 @@ function TenantDetail({ tenant, onBack, backLabel, onTenantUpdated, onSelectTena
           {/* KPI Cards */}
           <div style={{ gridColumn: "1 / -1", display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16 }}>
             {[
-              { label: "Total Paid", value: fmt(totalPaid), color: "#10b981", icon: DollarSign, tip: "Sum of all recorded payments for this tenant" },
-              { label: "On-Time Rate", value: `${paymentRate}%`, color: paymentRate >= 90 ? "#10b981" : "#e95e00", icon: CheckCircle, tip: `${onTimeCount} on-time, ${lateCount} late out of ${payments.length} payments` },
+              { label: "Total Paid", value: fmt(totalPaid), color: "#10b981", icon: DollarSign, tip: "Sum of all rent transactions recorded for this tenant" },
+              { label: "Payments", value: paymentCount, color: "#3b82f6", icon: CheckCircle, tip: `${paymentCount} rent payment${paymentCount !== 1 ? "s" : ""} recorded as transactions` },
               { label: "Open Requests", value: openRequests, color: openRequests > 0 ? "#e95e00" : "#10b981", icon: Wrench, tip: "Active or scheduled maintenance requests" },
               { label: "Documents", value: documents.length, color: "#3b82f6", icon: FileText, tip: "Total tenant documents on file" },
             ].map((m, i) => (
@@ -8061,7 +8063,7 @@ function TenantDetail({ tenant, onBack, backLabel, onTenantUpdated, onSelectTena
           {/* Recent Activity */}
           <div style={{ gridColumn: "1 / -1", background: "#fff", borderRadius: 16, padding: 24, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" }}>
             <h3 style={{ fontSize: 16, fontWeight: 700, color: "#041830", marginBottom: 16 }}>Recent Activity</h3>
-            {[...payments.slice(0, 3).map(p => ({ type: "payment", date: p.date, text: `Payment: ${fmt(p.amount)} via ${p.method}`, color: "#10b981", icon: DollarSign })),
+            {[...payments.slice(0, 3).map(p => ({ type: "payment", date: p.date, text: `Payment: ${fmt(p.amount)} — ${p.description}`, color: "#10b981", icon: DollarSign })),
               ...requests.filter(r => r.status !== "resolved").map(r => ({ type: "maintenance", date: r.createdAt.split("T")[0], text: `Maintenance: ${r.title}`, color: "#e95e00", icon: Wrench })),
               ...notes.slice(0, 2).map(n => ({ type: "note", date: n.date, text: `Note: ${n.text.substring(0, 80)}${n.text.length > 80 ? "..." : ""}`, color: "#3b82f6", icon: MessageSquare })),
             ].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 6).map((item, i) => (
@@ -8094,27 +8096,24 @@ function TenantDetail({ tenant, onBack, backLabel, onTenantUpdated, onSelectTena
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead>
                 <tr style={{ background: "#f8fafc" }}>
-                  {["Date", "Amount", "Method", "Status", "Note"].map(h => (
+                  {["Date", "Amount", "Description", "Category"].map(h => (
                     <th key={h} style={{ padding: "14px 16px", textAlign: "left", color: "#94a3b8", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {payments.sort((a, b) => b.date.localeCompare(a.date)).map((p, i) => (
+                {payments.map((p, i) => (
                   <tr key={p.id} style={{ borderTop: "1px solid #f1f5f9", background: i % 2 === 0 ? "#fff" : "#fafafa" }}>
                     <td style={{ padding: "14px 16px", fontSize: 13, color: "#041830", fontWeight: 600 }}>{p.date}</td>
                     <td style={{ padding: "14px 16px", fontSize: 14, fontWeight: 700, color: "#10b981" }}>{fmt(p.amount)}</td>
-                    <td style={{ padding: "14px 16px", fontSize: 13, color: "#64748b" }}>{p.method}</td>
+                    <td style={{ padding: "14px 16px", fontSize: 13, color: "#64748b" }}>{p.description}</td>
                     <td style={{ padding: "14px 16px" }}>
-                      <span style={{ background: p.status === "paid" ? "#dcfce7" : p.status === "late" ? "#fff7ed" : "#fee2e2", color: p.status === "paid" ? "#15803d" : p.status === "late" ? "#9a3412" : "#b91c1c", borderRadius: 20, padding: "3px 10px", fontSize: 11, fontWeight: 700 }}>
-                        {p.status === "paid" ? "Paid" : p.status === "late" ? "Late" : "Missed"}
-                      </span>
+                      <span style={{ background: "#dcfce7", color: "#15803d", borderRadius: 20, padding: "3px 10px", fontSize: 11, fontWeight: 700 }}>{p.category}</span>
                     </td>
-                    <td style={{ padding: "14px 16px", fontSize: 12, color: "#94a3b8" }}>{p.note || "-"}</td>
                   </tr>
                 ))}
                 {payments.length === 0 && (
-                  <tr><td colSpan={5} style={{ padding: "48px 20px", textAlign: "center", color: "#94a3b8", fontSize: 14 }}>No payments recorded yet.</td></tr>
+                  <tr><td colSpan={4} style={{ padding: "48px 20px", textAlign: "center", color: "#94a3b8", fontSize: 14 }}>No rent payments recorded yet. Use "Record Payment" to log rent as a transaction.</td></tr>
                 )}
               </tbody>
             </table>
@@ -8232,7 +8231,7 @@ function TenantDetail({ tenant, onBack, backLabel, onTenantUpdated, onSelectTena
             </button>
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {notes.sort((a, b) => b.date.localeCompare(a.date)).map(n => (
+            {notes.map(n => (
               <div key={n.id} style={{ display: "flex", gap: 14, padding: "16px 20px", background: "#fff", borderRadius: 12, border: "1px solid #f1f5f9", boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
                 <div style={{ background: "#eef2ff", borderRadius: 10, padding: 10, height: "fit-content" }}><MessageSquare size={16} color="#6366f1" /></div>
                 <div style={{ flex: 1 }}>
@@ -8246,7 +8245,7 @@ function TenantDetail({ tenant, onBack, backLabel, onTenantUpdated, onSelectTena
             ))}
             {notes.length === 0 && (
               <div style={{ padding: "48px 20px", textAlign: "center", color: "#94a3b8", fontSize: 14, background: "#fff", borderRadius: 12, border: "1px solid #f1f5f9" }}>
-                No notes yet. Add private notes about this tenant.
+                No notes for this tenant. Notes added here also appear in the unified Notes hub.
               </div>
             )}
           </div>
@@ -8340,7 +8339,8 @@ function TenantDetail({ tenant, onBack, backLabel, onTenantUpdated, onSelectTena
 
       {/* Add Payment Modal */}
       {showAddPayment && (
-        <Modal title="Record Payment" onClose={() => setShowAddPayment(false)} width={480}>
+        <Modal title="Record Rent Payment" onClose={() => setShowAddPayment(false)} width={480}>
+          <p style={{ fontSize: 13, color: "#64748b", marginBottom: 16 }}>This creates a rent income transaction on {property?.name || "the property"}.</p>
           <div style={{ display: "grid", gap: 14 }}>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
               <div>
@@ -8352,23 +8352,9 @@ function TenantDetail({ tenant, onBack, backLabel, onTenantUpdated, onSelectTena
                 <input type="number" value={payForm.amount} onChange={spf("amount")} style={iS} />
               </div>
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-              <div>
-                <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Method</label>
-                <select value={payForm.method} onChange={spf("method")} style={iS}>
-                  <option>ACH</option><option>Check</option><option>Zelle</option><option>Venmo</option><option>Wire</option><option>Cash</option><option>Other</option>
-                </select>
-              </div>
-              <div>
-                <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Status</label>
-                <select value={payForm.status} onChange={spf("status")} style={iS}>
-                  <option value="paid">Paid</option><option value="late">Late</option><option value="missed">Missed</option>
-                </select>
-              </div>
-            </div>
             <div>
-              <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Note <span style={{ color: "#94a3b8", fontWeight: 400 }}>(optional)</span></label>
-              <input value={payForm.note} onChange={spf("note")} placeholder="e.g., Paid 3 days late" style={iS} />
+              <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Description <span style={{ color: "#94a3b8", fontWeight: 400 }}>(optional)</span></label>
+              <input value={payForm.description} onChange={spf("description")} placeholder={`Rent payment - ${tenant.name}`} style={iS} />
             </div>
           </div>
           <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
@@ -9085,13 +9071,13 @@ function UnifiedNotes({ highlightNoteId, highlightDealNoteId, onBack, onClearHig
   const [editId, setEditId] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [flashId, setFlashId] = useState(highlightNoteId || highlightDealNoteId);
-  const [noteForm, setNoteForm] = useState({ category: "general", entityId: "", text: "", mentions: [] });
+  const [noteForm, setNoteForm] = useState({ category: "general", entityId: "", tenantId: "", text: "", mentions: [] });
 
   // Auto-open add modal when navigating from quick action
   useEffect(() => {
     if (autoOpenAdd) {
       setEditId(null);
-      setNoteForm({ category: "general", entityId: "", text: "", mentions: [] });
+      setNoteForm({ category: "general", entityId: "", tenantId: "", text: "", mentions: [] });
       setShowAdd(true);
     }
   }, [autoOpenAdd]);
@@ -9118,7 +9104,8 @@ function UnifiedNotes({ highlightNoteId, highlightDealNoteId, onBack, onClearHig
     RENTAL_NOTES.forEach(n => {
       const prop = PROPERTIES.find(p => p.id === n.propertyId);
       if (prop) {
-        list.push({ ...n, noteType: "property", entityId: n.propertyId, entityName: prop.name, entityColor: prop.color, entityImage: prop.image, mentions: n.mentions || [] });
+        const ten = n.tenantId ? TENANTS.find(t => t.id === n.tenantId) : null;
+        list.push({ ...n, noteType: "property", entityId: n.propertyId, entityName: prop.name, entityColor: prop.color, entityImage: prop.image, tenantName: ten?.name || null, mentions: n.mentions || [] });
       }
     });
     DEAL_NOTES.forEach(n => {
@@ -9184,7 +9171,7 @@ function UnifiedNotes({ highlightNoteId, highlightDealNoteId, onBack, onClearHig
       const base = { id: newId(), date: today, text: noteForm.text.trim(), createdAt: now, updatedAt: now, userId: "usr_001", mentions: noteForm.mentions };
       if (noteForm.category === "property") {
         if (!noteForm.entityId) return;
-        RENTAL_NOTES.unshift({ ...base, propertyId: parseInt(noteForm.entityId) });
+        RENTAL_NOTES.unshift({ ...base, propertyId: parseInt(noteForm.entityId), tenantId: noteForm.tenantId ? parseInt(noteForm.tenantId) : null });
       } else if (noteForm.category === "deal") {
         if (!noteForm.entityId) return;
         DEAL_NOTES.unshift({ ...base, dealId: parseInt(noteForm.entityId) });
@@ -9192,7 +9179,7 @@ function UnifiedNotes({ highlightNoteId, highlightDealNoteId, onBack, onClearHig
         GENERAL_NOTES.unshift(base);
       }
     }
-    setNoteForm({ category: "general", entityId: "", text: "", mentions: [] });
+    setNoteForm({ category: "general", entityId: "", tenantId: "", text: "", mentions: [] });
     setEditId(null);
     setShowAdd(false);
     rerender(n => n + 1);
@@ -9216,7 +9203,7 @@ function UnifiedNotes({ highlightNoteId, highlightDealNoteId, onBack, onClearHig
   const openEdit = (note) => {
     setEditId(note.id);
     const cat = note.noteType === "property" ? "property" : note.noteType === "deal" ? "deal" : "general";
-    setNoteForm({ category: cat, entityId: note.entityId ? String(note.entityId) : "", text: note.text, mentions: note.mentions || [] });
+    setNoteForm({ category: cat, entityId: note.entityId ? String(note.entityId) : "", tenantId: note.tenantId ? String(note.tenantId) : "", text: note.text, mentions: note.mentions || [] });
     setShowAdd(true);
   };
 
@@ -9224,7 +9211,7 @@ function UnifiedNotes({ highlightNoteId, highlightDealNoteId, onBack, onClearHig
     const cat = activeTab === "properties" ? "property" : activeTab === "deals" ? "deal" : activeTab === "general" ? "general" : "general";
     const defaultEntity = cat === "property" ? (PROPERTIES[0] ? String(PROPERTIES[0].id) : "") : cat === "deal" ? (DEALS[0] ? String(DEALS[0].id) : "") : "";
     setEditId(null);
-    setNoteForm({ category: cat, entityId: defaultEntity, text: "", mentions: [] });
+    setNoteForm({ category: cat, entityId: defaultEntity, tenantId: "", text: "", mentions: [] });
     setShowAdd(true);
   };
 
@@ -9325,6 +9312,9 @@ function UnifiedNotes({ highlightNoteId, highlightDealNoteId, onBack, onClearHig
                         </div>
                       )}
                       <span style={{ fontSize: 13, fontWeight: 600, color: "#041830" }}>{n.entityName}</span>
+                      {n.tenantName && (
+                        <span style={{ fontSize: 10, fontWeight: 600, background: "#dbeafe", color: "#1d4ed8", padding: "2px 7px", borderRadius: 5 }}>{n.tenantName}</span>
+                      )}
                       {activeTab === "all" && (
                         <span style={{ fontSize: 10, fontWeight: 700, background: badge.bg, color: badge.color, padding: "2px 7px", borderRadius: 5 }}>{badge.label}</span>
                       )}
@@ -9381,12 +9371,21 @@ function UnifiedNotes({ highlightNoteId, highlightDealNoteId, onBack, onClearHig
               )}
               {/* Entity selector (property/deal) */}
               {noteForm.category === "property" && (
-                <div>
-                  <p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Property *</p>
-                  <select style={iS} value={noteForm.entityId} onChange={e => setNoteForm(f => ({ ...f, entityId: e.target.value }))} disabled={!!editId}>
-                    <option value="">Select property...</option>
-                    {PROPERTIES.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                  </select>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                  <div>
+                    <p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Property *</p>
+                    <select style={iS} value={noteForm.entityId} onChange={e => setNoteForm(f => ({ ...f, entityId: e.target.value, tenantId: "" }))} disabled={!!editId}>
+                      <option value="">Select property...</option>
+                      {PROPERTIES.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Tenant <span style={{ color: "#94a3b8", fontWeight: 400 }}>(optional)</span></p>
+                    <select style={iS} value={noteForm.tenantId} onChange={e => setNoteForm(f => ({ ...f, tenantId: e.target.value }))} disabled={!noteForm.entityId}>
+                      <option value="">No tenant</option>
+                      {noteForm.entityId && TENANTS.filter(t => t.propertyId === parseInt(noteForm.entityId) && t.status !== "past" && t.status !== "vacant").map(t => <option key={t.id} value={t.id}>{t.name} — {t.unit}</option>)}
+                    </select>
+                  </div>
                 </div>
               )}
               {noteForm.category === "deal" && (

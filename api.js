@@ -55,16 +55,17 @@ const _properties = [
 ];
 
 const _transactions = [
-  { id:1,  date:"2026-03-20", propertyId:1, category:"Rent Income",  description:"March rent - Unit A",           amount:1900,  type:"income",   createdAt:"2026-03-20T10:00:00Z", updatedAt:"2026-03-20T10:00:00Z", userId:"usr_001" },
-  { id:2,  date:"2026-03-20", propertyId:1, category:"Rent Income",  description:"March rent - Unit B",           amount:1900,  type:"income",   createdAt:"2026-03-20T10:00:00Z", updatedAt:"2026-03-20T10:00:00Z", userId:"usr_001" },
+  { id:1,  date:"2026-03-20", propertyId:1, tenantId:1, category:"Rent Income",  description:"March rent - Unit A",           amount:1900,  type:"income",   createdAt:"2026-03-20T10:00:00Z", updatedAt:"2026-03-20T10:00:00Z", userId:"usr_001" },
+  { id:2,  date:"2026-03-20", propertyId:1, tenantId:2, category:"Rent Income",  description:"March rent - Unit B",           amount:1900,  type:"income",   createdAt:"2026-03-20T10:00:00Z", updatedAt:"2026-03-20T10:00:00Z", userId:"usr_001" },
   { id:3,  date:"2026-03-18", propertyId:4, category:"Maintenance",  description:"HVAC repair - Unit 2",          amount:-420,  type:"expense",  createdAt:"2026-03-18T09:30:00Z", updatedAt:"2026-03-18T09:30:00Z", userId:"usr_001" },
-  { id:4,  date:"2026-03-15", propertyId:2, category:"Rent Income",  description:"March rent",                    amount:2950,  type:"income",   createdAt:"2026-03-15T10:00:00Z", updatedAt:"2026-03-15T10:00:00Z", userId:"usr_001" },
+  { id:4,  date:"2026-03-15", propertyId:2, tenantId:3, category:"Rent Income",  description:"March rent",                    amount:2950,  type:"income",   createdAt:"2026-03-15T10:00:00Z", updatedAt:"2026-03-15T10:00:00Z", userId:"usr_001" },
   { id:5,  date:"2026-03-12", propertyId:3, category:"HOA Fees",     description:"Monthly HOA",                   amount:-285,  type:"expense",  createdAt:"2026-03-12T09:00:00Z", updatedAt:"2026-03-12T09:00:00Z", userId:"usr_001" },
-  { id:6,  date:"2026-03-10", propertyId:5, category:"Rent Income",  description:"March commercial rent",         amount:8500,  type:"income",   createdAt:"2026-03-10T10:00:00Z", updatedAt:"2026-03-10T10:00:00Z", userId:"usr_001" },
-  { id:7,  date:"2026-03-08", propertyId:4, category:"Rent Income",  description:"March rent - Units 1,2,3",      amount:5700,  type:"income",   createdAt:"2026-03-08T10:00:00Z", updatedAt:"2026-03-08T10:00:00Z", userId:"usr_001" },
+  { id:6,  date:"2026-03-10", propertyId:5, tenantId:8, category:"Rent Income",  description:"March commercial rent",         amount:8500,  type:"income",   createdAt:"2026-03-10T10:00:00Z", updatedAt:"2026-03-10T10:00:00Z", userId:"usr_001" },
+  { id:7,  date:"2026-03-08", propertyId:4, tenantId:5, category:"Rent Income",  description:"March rent - Unit 1",           amount:1950,  type:"income",   createdAt:"2026-03-08T10:00:00Z", updatedAt:"2026-03-08T10:00:00Z", userId:"usr_001" },
+  { id:16, date:"2026-03-08", propertyId:4, tenantId:7, category:"Rent Income",  description:"March rent - Unit 3",           amount:1875,  type:"income",   createdAt:"2026-03-08T10:00:00Z", updatedAt:"2026-03-08T10:00:00Z", userId:"usr_001" },
   { id:8,  date:"2026-03-05", propertyId:1, category:"Insurance",    description:"Q1 property insurance",         amount:-1200, type:"expense",  createdAt:"2026-03-05T11:00:00Z", updatedAt:"2026-03-05T11:00:00Z", userId:"usr_001" },
   { id:9,  date:"2026-03-03", propertyId:2, category:"Property Tax", description:"Semi-annual tax payment",       amount:-2100, type:"expense",  createdAt:"2026-03-03T14:00:00Z", updatedAt:"2026-03-03T14:00:00Z", userId:"usr_001" },
-  { id:10, date:"2026-03-01", propertyId:3, category:"Rent Income",  description:"March rent",                    amount:2100,  type:"income",   createdAt:"2026-03-01T10:00:00Z", updatedAt:"2026-03-01T10:00:00Z", userId:"usr_001" },
+  { id:10, date:"2026-03-01", propertyId:3, tenantId:4, category:"Rent Income",  description:"March rent",                    amount:2100,  type:"income",   createdAt:"2026-03-01T10:00:00Z", updatedAt:"2026-03-01T10:00:00Z", userId:"usr_001" },
   { id:11, date:"2026-02-28", propertyId:5, category:"Maintenance",  description:"Parking lot reseal",            amount:-3500, type:"expense",  createdAt:"2026-02-28T08:30:00Z", updatedAt:"2026-02-28T08:30:00Z", userId:"usr_001" },
   { id:12, date:"2026-02-20", propertyId:4, category:"Mortgage",     description:"February mortgage",             amount:-2840, type:"expense",  createdAt:"2026-02-20T09:00:00Z", updatedAt:"2026-02-20T09:00:00Z", userId:"usr_001" },
   { id:13, date:"2026-02-15", propertyId:1, category:"Mortgage",     description:"February mortgage",             amount:-1620, type:"expense",  createdAt:"2026-02-15T09:00:00Z", updatedAt:"2026-02-15T09:00:00Z", userId:"usr_001" },
@@ -250,44 +251,6 @@ export const TENANT_DOCUMENTS = [
   { id: 603, tenantId: 8, name: "Commercial Lease Addendum", type: "addendum", mimeType: "application/pdf", size: "520 KB", date: "2025-01-01", url: null, createdAt: "2025-01-01T10:00:00Z", updatedAt: "2025-01-01T10:00:00Z", userId: "usr_001" },
 ];
 
-// ── Tenant payment history ──
-export const TENANT_PAYMENTS = [
-  // Marcus & Priya Williams (id:1) — steady payer
-  { id: 3001, tenantId: 1, date: "2026-03-01", amount: 1900, method: "ACH", status: "paid", note: null },
-  { id: 3002, tenantId: 1, date: "2026-02-01", amount: 1900, method: "ACH", status: "paid", note: null },
-  { id: 3003, tenantId: 1, date: "2026-01-01", amount: 1900, method: "ACH", status: "paid", note: null },
-  { id: 3004, tenantId: 1, date: "2025-12-01", amount: 1900, method: "ACH", status: "paid", note: null },
-  { id: 3005, tenantId: 1, date: "2025-11-01", amount: 1900, method: "ACH", status: "paid", note: null },
-  { id: 3006, tenantId: 1, date: "2025-10-01", amount: 1900, method: "ACH", status: "paid", note: null },
-  // Jordan Lee (id:2) — one late payment
-  { id: 3010, tenantId: 2, date: "2026-03-01", amount: 1900, method: "Check", status: "paid", note: null },
-  { id: 3011, tenantId: 2, date: "2026-02-05", amount: 1900, method: "Check", status: "late", note: "Paid 5 days late" },
-  { id: 3012, tenantId: 2, date: "2026-01-01", amount: 1900, method: "Check", status: "paid", note: null },
-  { id: 3013, tenantId: 2, date: "2025-12-01", amount: 1900, method: "Check", status: "paid", note: null },
-  { id: 3014, tenantId: 2, date: "2025-11-01", amount: 1900, method: "Check", status: "paid", note: null },
-  // Stephanie & Dan Kowalski (id:3)
-  { id: 3020, tenantId: 3, date: "2026-03-15", amount: 2950, method: "ACH", status: "paid", note: null },
-  { id: 3021, tenantId: 3, date: "2026-02-15", amount: 2950, method: "ACH", status: "paid", note: null },
-  { id: 3022, tenantId: 3, date: "2026-01-15", amount: 2950, method: "ACH", status: "paid", note: null },
-  { id: 3023, tenantId: 3, date: "2025-12-15", amount: 2950, method: "ACH", status: "paid", note: null },
-  // Alexis Fontaine (id:4)
-  { id: 3030, tenantId: 4, date: "2026-03-01", amount: 2100, method: "Zelle", status: "paid", note: null },
-  { id: 3031, tenantId: 4, date: "2026-02-01", amount: 2100, method: "Zelle", status: "paid", note: null },
-  { id: 3032, tenantId: 4, date: "2026-01-01", amount: 2100, method: "Zelle", status: "paid", note: null },
-  // Ryan & Keisha Thompson (id:5)
-  { id: 3040, tenantId: 5, date: "2026-03-08", amount: 1950, method: "ACH", status: "paid", note: null },
-  { id: 3041, tenantId: 5, date: "2026-02-01", amount: 1950, method: "ACH", status: "paid", note: null },
-  { id: 3042, tenantId: 5, date: "2026-01-01", amount: 1950, method: "ACH", status: "paid", note: null },
-  // Carlos Mendez (id:7)
-  { id: 3050, tenantId: 7, date: "2026-03-08", amount: 1875, method: "Venmo", status: "paid", note: null },
-  { id: 3051, tenantId: 7, date: "2026-02-01", amount: 1875, method: "Venmo", status: "paid", note: null },
-  // Pacific Rim Restaurant Group (id:8)
-  { id: 3060, tenantId: 8, date: "2026-03-10", amount: 8500, method: "Wire", status: "paid", note: null },
-  { id: 3061, tenantId: 8, date: "2026-02-10", amount: 8500, method: "Wire", status: "paid", note: null },
-  { id: 3062, tenantId: 8, date: "2026-01-10", amount: 8500, method: "Wire", status: "paid", note: null },
-  { id: 3063, tenantId: 8, date: "2025-12-10", amount: 8500, method: "Wire", status: "paid", note: null },
-];
-
 // ── Maintenance requests ──
 export const MAINTENANCE_REQUESTS = [
   { id: 4001, tenantId: 2, propertyId: 1, title: "Kitchen drain running slow", description: "Slow drain in kitchen sink, getting worse over last week", priority: "medium", status: "scheduled", createdAt: "2026-03-30T10:00:00Z", scheduledDate: "2026-04-02", resolvedDate: null, cost: null, vendor: "Mike's Plumbing" },
@@ -296,15 +259,6 @@ export const MAINTENANCE_REQUESTS = [
   { id: 4004, tenantId: 5, propertyId: 4, title: "Leaky faucet in master bath", description: "Hot water faucet drips constantly", priority: "low", status: "resolved", createdAt: "2026-02-20T09:00:00Z", scheduledDate: "2026-02-25", resolvedDate: "2026-02-25", cost: 150, vendor: "Mike's Plumbing" },
   { id: 4005, tenantId: 1, propertyId: 1, title: "Smoke detector beeping", description: "Smoke detector in hallway beeping intermittently", priority: "medium", status: "resolved", createdAt: "2026-02-15T07:00:00Z", scheduledDate: "2026-02-16", resolvedDate: "2026-02-16", cost: 35, vendor: null },
   { id: 4006, tenantId: 8, propertyId: 5, title: "Commercial hood vent inspection", description: "Annual hood vent cleaning and inspection due per lease", priority: "medium", status: "open", createdAt: "2026-04-01T10:00:00Z", scheduledDate: null, resolvedDate: null, cost: null, vendor: null },
-];
-
-// ── Tenant notes ──
-export const TENANT_NOTES = [
-  { id: 5001, tenantId: 1, date: "2026-03-15", text: "Williams renewed for another 12 months at $1,900. Happy tenants, always pay on time.", createdAt: "2026-03-15T10:00:00Z", userId: "usr_001" },
-  { id: 5002, tenantId: 2, date: "2026-02-10", text: "Jordan mentioned might not renew when lease is up. Exploring options.", createdAt: "2026-02-10T14:00:00Z", userId: "usr_001" },
-  { id: 5003, tenantId: 3, date: "2026-01-20", text: "Kowalskis asked about getting a dog. Sent pet addendum for review.", createdAt: "2026-01-20T09:00:00Z", userId: "usr_001" },
-  { id: 5004, tenantId: 5, date: "2026-03-01", text: "Thompsons have been great tenants. Will offer renewal at $2,000 — $50 increase.", createdAt: "2026-03-01T10:00:00Z", userId: "usr_001" },
-  { id: 5005, tenantId: 8, date: "2026-02-20", text: "Pacific Rim wants to discuss lease extension through 2030. Meeting scheduled for March.", createdAt: "2026-02-20T11:00:00Z", userId: "usr_001" },
 ];
 
 // ── Receipt / attachment records on transactions and expenses ──
@@ -479,14 +433,20 @@ export function updateDealMilestones(dealId, milestones) {
 
 // Rental notes — flat array with propertyId reference
 export const RENTAL_NOTES = [
-  { id: 2001, propertyId: 1, date: "2026-03-30", text: "Tenant in Unit B reported slow drain in kitchen. Scheduled plumber for April 2nd.", createdAt: "2026-03-30T10:00:00Z", updatedAt: "2026-03-30T10:00:00Z", userId: "usr_001" },
-  { id: 2002, propertyId: 1, date: "2026-03-12", text: "Annual property inspection complete. Minor drywall crack in Unit A hallway — cosmetic only, will patch at next turnover.", createdAt: "2026-03-12T09:00:00Z", updatedAt: "2026-03-12T09:00:00Z", userId: "usr_001" },
-  { id: 2003, propertyId: 1, date: "2026-02-20", text: "Renewed insurance policy with Liberty Mutual. Premium increased 4% — still competitive.", createdAt: "2026-02-20T10:00:00Z", updatedAt: "2026-02-20T10:00:00Z", userId: "usr_001" },
-  { id: 2004, propertyId: 2, date: "2026-03-25", text: "Tenant asked about installing a Ring doorbell. Approved as long as they restore on move-out.", createdAt: "2026-03-25T10:00:00Z", updatedAt: "2026-03-25T10:00:00Z", userId: "usr_001" },
-  { id: 2005, propertyId: 2, date: "2026-02-01", text: "Lease renewal signed through Feb 2027. Rent bumped from $2,800 to $2,950.", createdAt: "2026-02-01T09:00:00Z", updatedAt: "2026-02-01T09:00:00Z", userId: "usr_001" },
-  { id: 2006, propertyId: 3, date: "2026-03-18", text: "HOA approved new landscaping plan for common areas. Assessment may increase $15/mo starting Q3.", createdAt: "2026-03-18T10:00:00Z", updatedAt: "2026-03-18T10:00:00Z", userId: "usr_001" },
-  { id: 2007, propertyId: 4, date: "2026-03-22", text: "Unit 3 still vacant. Dropped listing price to $1,800/mo and refreshed photos. Two showings this week.", createdAt: "2026-03-22T10:00:00Z", updatedAt: "2026-03-22T10:00:00Z", userId: "usr_001" },
-  { id: 2008, propertyId: 4, date: "2026-03-05", text: "Replaced garbage disposal in Unit 1. Parts + labor = $285, logged as maintenance expense.", createdAt: "2026-03-05T14:00:00Z", updatedAt: "2026-03-05T14:00:00Z", userId: "usr_001" },
+  { id: 2001, propertyId: 1, tenantId: 2, date: "2026-03-30", text: "Tenant in Unit B reported slow drain in kitchen. Scheduled plumber for April 2nd.", createdAt: "2026-03-30T10:00:00Z", updatedAt: "2026-03-30T10:00:00Z", userId: "usr_001" },
+  { id: 2002, propertyId: 1, tenantId: null, date: "2026-03-12", text: "Annual property inspection complete. Minor drywall crack in Unit A hallway — cosmetic only, will patch at next turnover.", createdAt: "2026-03-12T09:00:00Z", updatedAt: "2026-03-12T09:00:00Z", userId: "usr_001" },
+  { id: 2003, propertyId: 1, tenantId: null, date: "2026-02-20", text: "Renewed insurance policy with Liberty Mutual. Premium increased 4% — still competitive.", createdAt: "2026-02-20T10:00:00Z", updatedAt: "2026-02-20T10:00:00Z", userId: "usr_001" },
+  { id: 2004, propertyId: 2, tenantId: 3, date: "2026-03-25", text: "Tenant asked about installing a Ring doorbell. Approved as long as they restore on move-out.", createdAt: "2026-03-25T10:00:00Z", updatedAt: "2026-03-25T10:00:00Z", userId: "usr_001" },
+  { id: 2005, propertyId: 2, tenantId: 3, date: "2026-02-01", text: "Lease renewal signed through Feb 2027. Rent bumped from $2,800 to $2,950.", createdAt: "2026-02-01T09:00:00Z", updatedAt: "2026-02-01T09:00:00Z", userId: "usr_001" },
+  { id: 2006, propertyId: 3, tenantId: null, date: "2026-03-18", text: "HOA approved new landscaping plan for common areas. Assessment may increase $15/mo starting Q3.", createdAt: "2026-03-18T10:00:00Z", updatedAt: "2026-03-18T10:00:00Z", userId: "usr_001" },
+  { id: 2007, propertyId: 4, tenantId: null, date: "2026-03-22", text: "Unit 3 still vacant. Dropped listing price to $1,800/mo and refreshed photos. Two showings this week.", createdAt: "2026-03-22T10:00:00Z", updatedAt: "2026-03-22T10:00:00Z", userId: "usr_001" },
+  { id: 2008, propertyId: 4, tenantId: 5, date: "2026-03-05", text: "Replaced garbage disposal in Unit 1. Parts + labor = $285, logged as maintenance expense.", createdAt: "2026-03-05T14:00:00Z", updatedAt: "2026-03-05T14:00:00Z", userId: "usr_001" },
+  // Tenant-specific notes (migrated from tenant notes)
+  { id: 2009, propertyId: 1, tenantId: 1, date: "2026-03-15", text: "Williams renewed for another 12 months at $1,900. Happy tenants, always pay on time.", createdAt: "2026-03-15T10:00:00Z", updatedAt: "2026-03-15T10:00:00Z", userId: "usr_001" },
+  { id: 2010, propertyId: 1, tenantId: 2, date: "2026-02-10", text: "Jordan mentioned might not renew when lease is up. Exploring options.", createdAt: "2026-02-10T14:00:00Z", updatedAt: "2026-02-10T14:00:00Z", userId: "usr_001" },
+  { id: 2011, propertyId: 2, tenantId: 3, date: "2026-01-20", text: "Kowalskis asked about getting a dog. Sent pet addendum for review.", createdAt: "2026-01-20T09:00:00Z", updatedAt: "2026-01-20T09:00:00Z", userId: "usr_001" },
+  { id: 2012, propertyId: 4, tenantId: 5, date: "2026-03-01", text: "Thompsons have been great tenants. Will offer renewal at $2,000 — $50 increase.", createdAt: "2026-03-01T10:00:00Z", updatedAt: "2026-03-01T10:00:00Z", userId: "usr_001" },
+  { id: 2013, propertyId: 5, tenantId: 8, date: "2026-02-20", text: "Pacific Rim wants to discuss lease extension through 2030. Meeting scheduled for March.", createdAt: "2026-02-20T11:00:00Z", updatedAt: "2026-02-20T11:00:00Z", userId: "usr_001" },
 ];
 
 // Team members (for @mention support)
@@ -572,13 +532,6 @@ export function deleteDealDocument(id) { const i = DEAL_DOCUMENTS.findIndex(d =>
 export function getTenantDocuments(tenantId) { return TENANT_DOCUMENTS.filter(d => d.tenantId === tenantId); }
 export function addTenantDocument(doc) { TENANT_DOCUMENTS.push(doc); return doc; }
 export function deleteTenantDocument(id) { const i = TENANT_DOCUMENTS.findIndex(d => d.id === id); if (i !== -1) TENANT_DOCUMENTS.splice(i, 1); }
-
-export function getTenantPayments(tenantId) { return TENANT_PAYMENTS.filter(p => p.tenantId === tenantId); }
-export function addTenantPayment(p) { TENANT_PAYMENTS.push(p); return p; }
-
-export function getTenantNotes(tenantId) { return TENANT_NOTES.filter(n => n.tenantId === tenantId); }
-export function addTenantNote(n) { TENANT_NOTES.push(n); return n; }
-export function deleteTenantNote(id) { const i = TENANT_NOTES.findIndex(n => n.id === id); if (i !== -1) TENANT_NOTES.splice(i, 1); }
 
 export function getMaintenanceRequests(tenantId) { return MAINTENANCE_REQUESTS.filter(r => r.tenantId === tenantId); }
 export function addMaintenanceRequest(r) { MAINTENANCE_REQUESTS.push(r); return r; }
