@@ -5476,7 +5476,7 @@ function FlipPipeline({ onSelect }) {
   );
 }
 
-function FlipDetail({ flip, onBack, backLabel, allFlips, setAllFlips, onNavigateToExpense, onNavigateToContractor, initialTab, onConvertToRental, onFlipUpdated }) {
+function FlipDetail({ flip, onBack, backLabel, allFlips, setAllFlips, onNavigateToExpense, onNavigateToContractor, initialTab, onConvertToRental, onFlipUpdated, onNavigateToFlip }) {
   const { showToast } = useToast();
   const [activeTab, setActiveTab] = useState(initialTab || "overview");
   useEffect(() => { if (initialTab) setActiveTab(initialTab); }, [initialTab]);
@@ -5522,6 +5522,7 @@ function FlipDetail({ flip, onBack, backLabel, allFlips, setAllFlips, onNavigate
     return [...cats].filter(Boolean).sort();
   }, []);
   const [deleteConfirm, setDeleteConfirm] = useState(null); // { type: "expense"|"contractor"|"rehab"|"milestone", item, index? }
+  const [showDeleteDeal, setShowDeleteDeal] = useState(false);
   const [stage, setStage] = useState(flip.stage);
   const [showCloseDeal, setShowCloseDeal] = useState(false);
   const [closeDealStep, setCloseDealStep] = useState("choose"); // "choose" | "sold" | "convert"
@@ -5838,13 +5839,16 @@ function FlipDetail({ flip, onBack, backLabel, allFlips, setAllFlips, onNavigate
                 _LOCAL_FLIP_MILESTONES[cloned.id] = milestones.map(m => ({ label: m.label, done: false, date: null, targetDate: null }));
                 if (setAllFlips) setAllFlips([...FLIPS]);
                 if (onFlipUpdated) onFlipUpdated();
-                setDealNotes(prev => [{ id: newId(), date: today, text: `Deal cloned as "${cloned.name}"` }, ...prev]);
-                showToast(`"${cloned.name}" created — find it in your pipeline`);
+                showToast(`"${cloned.name}" created`);
+                if (onNavigateToFlip) onNavigateToFlip(cloned);
               }} style={{ background: "rgba(255,255,255,0.7)", border: "1px solid rgba(0,0,0,0.08)", borderRadius: 8, padding: "6px 12px", fontSize: 12, fontWeight: 600, color: "#475569", cursor: "pointer", display: "flex", alignItems: "center", gap: 5 }}>
                 <Copy size={12} /> Clone Deal
               </button>
               <button onClick={openEditDeal} style={{ background: "rgba(255,255,255,0.7)", border: "1px solid rgba(0,0,0,0.08)", borderRadius: 8, padding: "6px 12px", fontSize: 12, fontWeight: 600, color: "#475569", cursor: "pointer", display: "flex", alignItems: "center", gap: 5 }}>
                 <Pencil size={12} /> Edit Deal
+              </button>
+              <button onClick={() => setShowDeleteDeal(true)} style={{ background: "rgba(255,255,255,0.7)", border: "1px solid rgba(0,0,0,0.08)", borderRadius: 8, padding: "6px 12px", fontSize: 12, fontWeight: 600, color: "#ef4444", cursor: "pointer", display: "flex", alignItems: "center", gap: 5 }}>
+                <Trash2 size={12} /> Delete
               </button>
               {stage !== "Converted to Rental" && stage !== "Sold" && (() => {
                 const workflowStages = ["Under Contract", "Active Rehab", "Listed"];
@@ -7094,6 +7098,32 @@ function FlipDetail({ flip, onBack, backLabel, allFlips, setAllFlips, onNavigate
               </button>
             </div>
           </>)}
+        </Modal>
+      )}
+      {showDeleteDeal && (
+        <Modal title="Delete Deal" onClose={() => setShowDeleteDeal(false)}>
+          <p style={{ color: "#475569", fontSize: 14, marginBottom: 8 }}>Are you sure you want to permanently delete <strong>{flip.name}</strong>?</p>
+          <p style={{ color: "#94a3b8", fontSize: 13, marginBottom: 18 }}>This will remove the deal, its expenses, rehab items, milestones, and notes. This action cannot be undone.</p>
+          <div style={{ display: "flex", gap: 10 }}>
+            <button onClick={() => setShowDeleteDeal(false)} style={{ flex: 1, padding: "12px", border: "1px solid #e2e8f0", borderRadius: 10, background: "#fff", color: "#475569", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
+            <button onClick={() => {
+              const idx = FLIPS.findIndex(f => f.id === flip.id);
+              if (idx !== -1) FLIPS.splice(idx, 1);
+              // Clean up related data
+              const expIdxs = [];
+              FLIP_EXPENSES.forEach((e, i) => { if (e.flipId === flip.id) expIdxs.unshift(i); });
+              expIdxs.forEach(i => FLIP_EXPENSES.splice(i, 1));
+              const msIdxs = [];
+              FLIP_MILESTONES.forEach((m, i) => { if (m.flipId === flip.id) msIdxs.unshift(i); });
+              msIdxs.forEach(i => FLIP_MILESTONES.splice(i, 1));
+              if (onFlipUpdated) onFlipUpdated();
+              showToast(`"${flip.name}" deleted`);
+              setShowDeleteDeal(false);
+              if (onBack) onBack();
+            }} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "#ef4444", color: "#fff", fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+              <Trash2 size={14} /> Delete Deal
+            </button>
+          </div>
         </Modal>
       )}
       {deleteConfirm && (
@@ -8727,8 +8757,8 @@ function AppShell() {
     <div style={{ display: "flex", minHeight: "100vh", background: "#f8fafc", fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>
       <div style={{ width: 240, background: "#041830", display: "flex", flexDirection: "column", position: "fixed", top: 0, bottom: 0, left: 0, zIndex: 100 }}>
         <div style={{ padding: "24px 20px", borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <img src={propbooksLogo} alt="PropBooks" style={{ height: 36, objectFit: "contain" }} />
+          <div style={{ display: "flex", alignItems: "center" }}>
+            <img src={propbooksLogo} alt="PropBooks" style={{ height: 40, objectFit: "contain" }} />
           </div>
         </div>
         <nav style={{ flex: 1, padding: "16px 12px", overflowY: "auto" }}>
@@ -8855,7 +8885,7 @@ function AppShell() {
           {activeView === "reports" && <Reports />}
           {activeView === "flipdashboard"   && <FlipDashboard onSelect={(f, tab) => handleFlipSelect(f, tab, "flipdashboard")} onNavigateToNote={(noteId) => { setHighlightFlipNoteId(noteId); setNavSource("flipdashboard"); setActiveView("flipnotes"); }} onNavigateToExpense={(expId) => { setHighlightExpId(expId); setNavSource("flipdashboard"); setActiveView("flipexpenses"); }} onNavigateToMilestone={(msKey) => { setHighlightMilestoneKey(msKey); setNavSource("flipdashboard"); setActiveView("flipmilestones"); }} />}
           {activeView === "flips"           && <FlipPipeline onSelect={(f, tab) => handleFlipSelect(f, tab, "flips")} />}
-          {activeView === "flipDetail"      && selectedFlip && <ErrorBoundary key={"eb-" + selectedFlip.id}><FlipDetail key={selectedFlip.id + "-" + (flipInitialTab || "overview")} flip={selectedFlip} onBack={() => { setActiveView(flipNavSource || "flips"); setFlipNavSource(null); setPrevFlipNavSource(null); setFlipInitialTab(null); }} backLabel={flipNavSource === "flipdashboard" ? "Back to Dashboard" : flipNavSource === "portfolio" ? "Back to Portfolio" : "Back to Deals"} onNavigateToExpense={navigateToFlipExpense} onNavigateToContractor={(con) => { setSelectedContractor(con); setPrevFlipNavSource(flipNavSource); setNavSource("flipDetail"); setActiveView("contractorDetail"); }} initialTab={flipInitialTab} onConvertToRental={(flipData) => { setConvertFlipData(flipData); setActiveView("properties"); }} onFlipUpdated={onFlipUpdated} /></ErrorBoundary>}
+          {activeView === "flipDetail"      && selectedFlip && <ErrorBoundary key={"eb-" + selectedFlip.id}><FlipDetail key={selectedFlip.id + "-" + (flipInitialTab || "overview")} flip={selectedFlip} onBack={() => { setActiveView(flipNavSource || "flips"); setFlipNavSource(null); setPrevFlipNavSource(null); setFlipInitialTab(null); }} backLabel={flipNavSource === "flipdashboard" ? "Back to Dashboard" : flipNavSource === "portfolio" ? "Back to Portfolio" : "Back to Deals"} onNavigateToExpense={navigateToFlipExpense} onNavigateToContractor={(con) => { setSelectedContractor(con); setPrevFlipNavSource(flipNavSource); setNavSource("flipDetail"); setActiveView("contractorDetail"); }} initialTab={flipInitialTab} onConvertToRental={(flipData) => { setConvertFlipData(flipData); setActiveView("properties"); }} onFlipUpdated={onFlipUpdated} onNavigateToFlip={(f) => handleFlipSelect(f, null, flipNavSource || "flips")} /></ErrorBoundary>}
           {activeView === "fliprehab"        && <RehabTracker />}
           {activeView === "flipexpenses"    && <FlipExpenses highlightExpId={highlightExpId} onBack={navSource === "flipDetail" ? () => { setActiveView("flipDetail"); setHighlightExpId(null); setNavSource(null); setFlipNavSource(prevFlipNavSource); setPrevFlipNavSource(null); } : navSource === "flipdashboard" ? () => { setActiveView("flipdashboard"); setHighlightExpId(null); setNavSource(null); } : navSource === "portfolio" ? () => { setActiveView("portfolio"); setHighlightExpId(null); setNavSource(null); } : null} backLabel={navSource === "flipdashboard" ? "Back to Dashboard" : navSource === "portfolio" ? "Back to Portfolio" : "Back to Deal"} onClearHighlight={() => setHighlightExpId(null)} />}
           {activeView === "flipcontractors" && <FlipContractors onSelectContractor={handleSelectContractor} />}
