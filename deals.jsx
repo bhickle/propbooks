@@ -580,7 +580,7 @@ export function RehabTracker() {
       </div>
 
       {/* Items by deal */}
-      {flips
+      {deals
         .filter(f => filterDeal === "all" || f.id === parseInt(filterDeal))
         .map(f => {
           const items = filtered.filter(i => i.dealId === f.id);
@@ -764,7 +764,7 @@ export function RehabTracker() {
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               <div>
                 <p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Deal *</p>
-                <select style={iS} value={itemForm.dealId} onChange={sif("flipId")}>
+                <select style={iS} value={itemForm.dealId} onChange={sif("dealId")}>
                   <option value="">Select deal...</option>
                   {deals.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
                 </select>
@@ -1129,7 +1129,7 @@ export function DealExpenses({ highlightExpId, onBack, onClearHighlight, backLab
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               <div>
                 <p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Deal *</p>
-                <select value={form.dealId} onChange={sf("flipId")} style={iS}>
+                <select value={form.dealId} onChange={sf("dealId")} style={iS}>
                   <option value="">Select deal...</option>
                   {_DEALS.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
                 </select>
@@ -2010,7 +2010,7 @@ export function DealAnalytics() {
       const label = new Date(parseInt(y), parseInt(m) - 1).toLocaleDateString("en-US", { month: "short", year: "2-digit" });
       return { month: label, total };
     });
-  }, [flips]);
+  }, [deals]);
 
   // Profit breakdown per deal – stacked components
   const profitBreakdown = deals.map(f => {
