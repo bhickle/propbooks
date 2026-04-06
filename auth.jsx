@@ -321,7 +321,7 @@ export function AuthScreen() {
       }}>
         {/* Logo on form side */}
         <div style={{ marginBottom: 32 }}>
-          <img src={propbooksLogoLight} alt="PropBooks" style={{ height: 32, objectFit: "contain" }} />
+          <img src={propbooksLogoLight} alt="PropBooks" style={{ height: 38, objectFit: "contain" }} />
         </div>
 
         {mode === "signin"
