@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback } from "react";
+// Build trigger: 2026-04-06
 import propbooksLogo from "./logos/PropBooks Horizontal Logo (3).png";
 import {
   AreaChart, Area, BarChart, Bar, LineChart, Line,
