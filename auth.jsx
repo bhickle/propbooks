@@ -317,40 +317,56 @@ export function AuthScreen() {
         width: "100%", maxWidth: 480, padding: "48px 48px",
         display: "flex", flexDirection: "column", justifyContent: "center",
         background: "#fff", boxShadow: "2px 0 20px rgba(0,0,0,0.06)",
-        minHeight: "100vh",
+        minHeight: "100vh", position: "relative",
       }}>
+        {/* Logo on form side */}
+        <div style={{ marginBottom: 32 }}>
+          <img src={propbooksLogoLight} alt="PropBooks" style={{ height: 32, objectFit: "contain" }} />
+        </div>
+
         {mode === "signin"
           ? <SignIn onSwitch={() => setMode("signup")} />
           : <SignUp onSwitch={() => setMode("signin")} />}
+
+        {/* Trust signal */}
+        <div style={{ marginTop: 32, paddingTop: 20, borderTop: "1px solid #f1f5f9" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div style={{ display: "flex", gap: 3 }}>
+              {[1,2,3,4,5].map(i => <span key={i} style={{ color: "#e95e00", fontSize: 14 }}>&#9733;</span>)}
+            </div>
+            <span style={{ color: "#94a3b8", fontSize: 12 }}>Trusted by real estate investors nationwide</span>
+          </div>
+        </div>
       </div>
 
       {/* Right panel - branded visual */}
       <div style={{
-        flex: 1, background: "linear-gradient(180deg, #041830 0%, #041830 20%, #0a2a4a 60%, #0e3460 100%)",
+        flex: 1, background: "linear-gradient(160deg, #041830 0%, #071f3a 40%, #0c2d50 100%)",
         display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
         padding: 48, position: "relative", overflow: "hidden",
       }}>
-        {/* Decorative orange glow circles */}
-        <div style={{ position: "absolute", top: -120, right: -120, width: 400, height: 400, borderRadius: "50%", background: "radial-gradient(circle, rgba(233,94,0,0.15) 0%, transparent 70%)" }} />
-        <div style={{ position: "absolute", bottom: -80, left: -80, width: 300, height: 300, borderRadius: "50%", background: "radial-gradient(circle, rgba(233,94,0,0.1) 0%, transparent 70%)" }} />
-        <div style={{ position: "absolute", top: "35%", right: "8%", width: 200, height: 200, borderRadius: "50%", background: "radial-gradient(circle, rgba(233,94,0,0.08) 0%, transparent 70%)" }} />
+        {/* Decorative elements */}
+        <div style={{ position: "absolute", top: -100, right: -100, width: 500, height: 500, borderRadius: "50%", background: "radial-gradient(circle, rgba(233,94,0,0.12) 0%, transparent 60%)" }} />
+        <div style={{ position: "absolute", bottom: -60, left: -60, width: 350, height: 350, borderRadius: "50%", background: "radial-gradient(circle, rgba(233,94,0,0.08) 0%, transparent 60%)" }} />
 
-        {/* Subtle grid pattern overlay */}
-        <div style={{ position: "absolute", inset: 0, opacity: 0.03, backgroundImage: "linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)", backgroundSize: "40px 40px" }} />
+        {/* Geometric accent lines */}
+        <div style={{ position: "absolute", top: 80, left: 40, width: 120, height: 1, background: "linear-gradient(90deg, rgba(233,94,0,0.3), transparent)", transform: "rotate(-20deg)" }} />
+        <div style={{ position: "absolute", bottom: 120, right: 60, width: 80, height: 1, background: "linear-gradient(90deg, transparent, rgba(233,94,0,0.25))", transform: "rotate(15deg)" }} />
+        <div style={{ position: "absolute", top: "45%", right: 30, width: 60, height: 1, background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.08))" }} />
 
-        <div style={{ position: "relative", zIndex: 1, textAlign: "center", maxWidth: 440 }}>
+        <div style={{ position: "relative", zIndex: 1, textAlign: "center", maxWidth: 460 }}>
           {/* Logo */}
-          <img src={propbooksLogoDark} alt="PropBooks" style={{ height: 56, objectFit: "contain", marginBottom: 40, mixBlendMode: "screen" }} />
+          <img src={propbooksLogoDark} alt="PropBooks" style={{ height: 48, objectFit: "contain", marginBottom: 36, mixBlendMode: "screen" }} />
 
-          <h2 style={{ color: "#fff", fontSize: 30, fontWeight: 800, marginBottom: 14, lineHeight: 1.25 }}>
+          <h2 style={{ color: "#fff", fontSize: 32, fontWeight: 800, marginBottom: 16, lineHeight: 1.2, letterSpacing: "-0.02em" }}>
             Whether you hold it or flip it,<br />we've got you covered.
           </h2>
-          <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 15, lineHeight: 1.7, marginBottom: 40 }}>
+          <p style={{ color: "rgba(255,255,255,0.65)", fontSize: 15, lineHeight: 1.7, marginBottom: 44 }}>
             The only platform that treats your rentals and flips as equals — cash flow tracking, rehab budgets, tenant management, and deal analysis, all under one roof.
           </p>
 
-          {/* Feature cards */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, textAlign: "left" }}>
+          {/* Feature cards - glass style */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, textAlign: "left" }}>
             {[
               { icon: PieChart, label: "Rental Cash Flow", sub: "Income, expenses & equity across every door" },
               { icon: Hammer, label: "Flip Pipeline", sub: "Rehab budgets, milestones & contractor tracking" },
@@ -358,22 +374,28 @@ export function AuthScreen() {
               { icon: TrendingUp, label: "Deal Analyzer", sub: "Run the numbers before you buy" },
             ].map((f, i) => (
               <div key={i} style={{
-                display: "flex", alignItems: "flex-start", gap: 12, padding: "14px 16px",
-                background: "rgba(255,255,255,0.06)", borderRadius: 12, border: "1px solid rgba(255,255,255,0.08)",
-              }}>
-                <div style={{ width: 32, height: 32, borderRadius: 8, background: "rgba(233,94,0,0.2)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1 }}>
-                  <f.icon size={16} color="#fb923c" />
+                display: "flex", alignItems: "flex-start", gap: 12, padding: "16px 18px",
+                background: "rgba(255,255,255,0.07)", borderRadius: 14,
+                border: "1px solid rgba(255,255,255,0.1)",
+                backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)",
+                transition: "background 0.2s, border-color 0.2s",
+              }}
+              onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,255,255,0.12)"; e.currentTarget.style.borderColor = "rgba(233,94,0,0.3)"; }}
+              onMouseLeave={e => { e.currentTarget.style.background = "rgba(255,255,255,0.07)"; e.currentTarget.style.borderColor = "rgba(255,255,255,0.1)"; }}
+              >
+                <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg, rgba(233,94,0,0.25), rgba(233,94,0,0.1))", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                  <f.icon size={18} color="#fb923c" />
                 </div>
                 <div>
-                  <p style={{ color: "#fff", fontSize: 13, fontWeight: 700, margin: "0 0 2px 0" }}>{f.label}</p>
-                  <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 12, margin: 0 }}>{f.sub}</p>
+                  <p style={{ color: "#fff", fontSize: 14, fontWeight: 700, margin: "0 0 3px 0" }}>{f.label}</p>
+                  <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 12, margin: 0, lineHeight: 1.4 }}>{f.sub}</p>
                 </div>
               </div>
             ))}
           </div>
 
           {/* Trust line */}
-          <p style={{ color: "rgba(255,255,255,0.25)", fontSize: 12, marginTop: 36, fontWeight: 500 }}>
+          <p style={{ color: "rgba(255,255,255,0.3)", fontSize: 12, marginTop: 36, fontWeight: 500, letterSpacing: "0.03em" }}>
             Built for serious real estate investors
           </p>
         </div>
