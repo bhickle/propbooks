@@ -1008,6 +1008,7 @@ function PortfolioDashboard({ onNavigate, onSelectProperty, onSelectFlip, onNavi
           { label: "Log Deal Expense", icon: Hammer, color: "#e95e00", bg: "#ffedd5", action: () => onNavigate("dealexpenses") },
           { label: "Add Property", icon: Building2, color: "#e95e00", bg: "#fff7ed", action: () => onNavigate("properties") },
           { label: "Add Deal", icon: Target, color: "#8b5cf6", bg: "#ede9fe", action: () => onNavigate("deals") },
+          { label: "Add Note", icon: MessageSquare, color: "#6366f1", bg: "#eef2ff", action: () => onNavigate("notes-add") },
         ].map((qa, i) => (
           <button key={i} onClick={qa.action} style={qaBtnS(qa.color, qa.bg)}
             onMouseEnter={e => { e.currentTarget.style.background = qa.bg; e.currentTarget.style.borderColor = qa.color + "40"; }}
@@ -8436,7 +8437,7 @@ function NoteTextWithMentions({ text }) {
 // ---------------------------------------------
 // UNIFIED NOTES HUB
 // ---------------------------------------------
-function UnifiedNotes({ highlightNoteId, highlightDealNoteId, onBack, onClearHighlight }) {
+function UnifiedNotes({ highlightNoteId, highlightDealNoteId, onBack, onClearHighlight, autoOpenAdd }) {
   const [activeTab, setActiveTab] = useState("all");
   const [propFilter, setPropFilter] = useState("all");
   const [flipFilter, setFlipFilter] = useState("all");
@@ -8447,6 +8448,15 @@ function UnifiedNotes({ highlightNoteId, highlightDealNoteId, onBack, onClearHig
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [flashId, setFlashId] = useState(highlightNoteId || highlightDealNoteId);
   const [noteForm, setNoteForm] = useState({ category: "general", entityId: "", text: "", mentions: [] });
+
+  // Auto-open add modal when navigating from quick action
+  useEffect(() => {
+    if (autoOpenAdd) {
+      setEditId(null);
+      setNoteForm({ category: "general", entityId: "", text: "", mentions: [] });
+      setShowAdd(true);
+    }
+  }, [autoOpenAdd]);
 
   // Flash highlight on mount
   useEffect(() => {
@@ -8960,6 +8970,7 @@ function AppShell() {
   const [highlightTenantId, setHighlightTenantId] = useState(null);
   const [highlightNoteId, setHighlightNoteId] = useState(null);
   const [highlightDealNoteId, setHighlightDealNoteId] = useState(null);
+  const [notesAutoAdd, setNotesAutoAdd] = useState(false);
   const [highlightMilestoneKey, setHighlightMilestoneKey] = useState(null);
   const [navSource, setNavSource] = useState(null);
   const [prevNavSource, setPrevNavSource] = useState(null); // preserves navSource during sub-navigation (e.g., PropertyDetail → Transactions → back)
@@ -9157,13 +9168,13 @@ function AppShell() {
           </div>
         </div>
         <div style={{ flex: 1, padding: 32, maxWidth: 1400, width: "100%" }}>
-          {activeView === "portfolio" && <PortfolioDashboard onNavigate={setActiveView} onSelectProperty={(p) => { setNavSource("portfolio"); handlePropertySelect(p); }} onSelectFlip={(f) => { setNavSource("portfolio"); handleDealSelect(f, null, "portfolio"); }} onNavigateToTx={(txId) => { setHighlightTxId(txId); setNavSource("portfolio"); setActiveView("transactions"); }} onNavigateToDealExpense={(expId) => { setHighlightExpId(expId); setNavSource("portfolio"); setActiveView("dealexpenses"); }} onNavigateToLease={(prop, tenantId) => { setSelectedProperty(prop); setPropDetailTab("tenants"); setPropDetailTenantHighlight(tenantId); setNavSource("portfolio"); setActiveView("propertyDetail"); }} />}
+          {activeView === "portfolio" && <PortfolioDashboard onNavigate={(view) => { if (view === "notes-add") { setNotesAutoAdd(true); setActiveView("notes"); } else { setActiveView(view); } }} onSelectProperty={(p) => { setNavSource("portfolio"); handlePropertySelect(p); }} onSelectFlip={(f) => { setNavSource("portfolio"); handleDealSelect(f, null, "portfolio"); }} onNavigateToTx={(txId) => { setHighlightTxId(txId); setNavSource("portfolio"); setActiveView("transactions"); }} onNavigateToDealExpense={(expId) => { setHighlightExpId(expId); setNavSource("portfolio"); setActiveView("dealexpenses"); }} onNavigateToLease={(prop, tenantId) => { setSelectedProperty(prop); setPropDetailTab("tenants"); setPropDetailTenantHighlight(tenantId); setNavSource("portfolio"); setActiveView("propertyDetail"); }} />}
           {activeView === "dashboard" && <Dashboard onNavigate={setActiveView} onNavigateToTx={navigateToTransaction} onSelectProperty={handlePropertySelect} onNavigateToTenantAdd={(propId, unit) => { setPrefillTenant({ propertyId: propId, unit }); setActiveView("tenants"); }} onNavigateToNote={(noteId) => { setHighlightNoteId(noteId); setNavSource("dashboard"); setActiveView("notes"); }} onNavigateToLease={(prop, tenantId) => { setSelectedProperty(prop); setPropDetailTab("tenants"); setPropDetailTenantHighlight(tenantId); setNavSource("dashboard"); setActiveView("propertyDetail"); }} />}
           {activeView === "properties" && <Properties onSelect={handlePropertySelect} editPropertyId={editPropertyId} onClearEditId={() => setEditPropertyId(null)} convertDealData={convertDealData} onClearConvertFlip={() => setConvertDealData(null)} />}
           {activeView === "propertyDetail" && selectedProperty && <PropertyDetail key={selectedProperty.id + "-" + (propDetailTab || "overview") + "-" + (propDetailTenantHighlight || "")} property={selectedProperty} onBack={() => { setActiveView(navSource === "dashboard" ? "dashboard" : navSource === "portfolio" ? "portfolio" : "properties"); setPropDetailTab(null); setPropDetailTenantHighlight(null); setPrevNavSource(null); setNavSource(null); }} backLabel={navSource === "dashboard" ? "Back to Dashboard" : navSource === "portfolio" ? "Back to Portfolio" : "Back to Properties"} onEditProperty={(p) => { setEditPropertyId(p.id); setActiveView("properties"); }} onGoToTransactions={() => setActiveView("transactions")} onNavigateToTransaction={(txId) => { if (txId) { setHighlightTxId(txId); } setPrevNavSource(navSource); setNavSource("propertyDetail"); setActiveView("transactions"); }} onNavigateToTenant={(tenantId) => { setHighlightTenantId(tenantId); setPrevNavSource(navSource); setNavSource("propertyDetail"); setActiveView("tenants"); }} initialTab={propDetailTab} highlightTenantId={propDetailTenantHighlight} onClearHighlightTenant={() => setPropDetailTenantHighlight(null)} />}
           {activeView === "transactions" && <Transactions highlightTxId={highlightTxId} backLabel={navSource === "propertyDetail" ? "Back to Property" : navSource === "portfolio" ? "Back to Portfolio" : "Back to Dashboard"} onBack={navSource === "dashboard" ? () => { setActiveView("dashboard"); setHighlightTxId(null); setNavSource(null); setPrevNavSource(null); } : navSource === "portfolio" ? () => { setActiveView("portfolio"); setHighlightTxId(null); setNavSource(null); setPrevNavSource(null); } : navSource === "propertyDetail" ? () => { setActiveView("propertyDetail"); setHighlightTxId(null); setNavSource(prevNavSource); setPrevNavSource(null); } : null} onClearHighlight={() => setHighlightTxId(null)} />}
           {activeView === "analytics" && <Analytics />}
-          {activeView === "notes" && <UnifiedNotes highlightNoteId={highlightNoteId} highlightDealNoteId={highlightDealNoteId} onBack={navSource === "dashboard" ? () => { setActiveView("dashboard"); setHighlightNoteId(null); setNavSource(null); } : navSource === "dealdashboard" ? () => { setActiveView("dealdashboard"); setHighlightDealNoteId(null); setNavSource(null); } : null} onClearHighlight={() => { setHighlightNoteId(null); setHighlightDealNoteId(null); }} />}
+          {activeView === "notes" && <UnifiedNotes highlightNoteId={highlightNoteId} highlightDealNoteId={highlightDealNoteId} autoOpenAdd={notesAutoAdd} onBack={navSource === "dashboard" ? () => { setActiveView("dashboard"); setHighlightNoteId(null); setNavSource(null); setNotesAutoAdd(false); } : navSource === "dealdashboard" ? () => { setActiveView("dealdashboard"); setHighlightDealNoteId(null); setNavSource(null); setNotesAutoAdd(false); } : null} onClearHighlight={() => { setHighlightNoteId(null); setHighlightDealNoteId(null); setNotesAutoAdd(false); }} />}
           {activeView === "reports" && <Reports />}
           {activeView === "dealdashboard"   && <FlipDashboard onSelect={(f, tab) => handleDealSelect(f, tab, "dealdashboard")} onNavigateToNote={(noteId) => { setHighlightDealNoteId(noteId); setNavSource("dealdashboard"); setActiveView("notes"); }} onNavigateToExpense={(expId) => { setHighlightExpId(expId); setNavSource("dealdashboard"); setActiveView("dealexpenses"); }} onNavigateToMilestone={(msKey) => { setHighlightMilestoneKey(msKey); setNavSource("dealdashboard"); setActiveView("dealmilestones"); }} />}
           {activeView === "deals"           && <DealPipeline onSelect={(f, tab) => handleDealSelect(f, tab, "deals")} />}
