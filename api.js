@@ -432,6 +432,21 @@ export const RENTAL_NOTES = [
   { id: 2008, propertyId: 4, date: "2026-03-05", text: "Replaced garbage disposal in Unit 1. Parts + labor = $285, logged as maintenance expense.", createdAt: "2026-03-05T14:00:00Z", updatedAt: "2026-03-05T14:00:00Z", userId: "usr_001" },
 ];
 
+// Team members (for @mention support)
+export const TEAM_MEMBERS = [
+  { id: "usr_001", name: "Brandon H.", email: "brandon@gmail.com", initials: "BH", color: "#3b82f6" },
+  { id: "usr_002", name: "Jessica Torres", email: "jessica.t@propbooks.io", initials: "JT", color: "#8b5cf6" },
+  { id: "usr_003", name: "Marcus Chen", email: "marcus.c@propbooks.io", initials: "MC", color: "#059669" },
+  { id: "usr_004", name: "Danielle Brooks", email: "danielle.b@propbooks.io", initials: "DB", color: "#e95e00" },
+];
+
+// General notes — not tied to any property or deal
+export const GENERAL_NOTES = [
+  { id: 3001, date: "2026-04-01", text: "Met with CPA to discuss depreciation strategy across the portfolio. Need to pull cost-seg studies for 445 Maple and 320 Cedar before filing deadline.", createdAt: "2026-04-01T14:00:00Z", updatedAt: "2026-04-01T14:00:00Z", userId: "usr_001", mentions: [] },
+  { id: 3002, date: "2026-03-20", text: "Reviewed insurance coverage with @Jessica Torres — she's getting quotes from three carriers for a blanket policy across all rentals.", createdAt: "2026-03-20T11:00:00Z", updatedAt: "2026-03-20T11:00:00Z", userId: "usr_001", mentions: ["usr_002"] },
+  { id: 3003, date: "2026-03-10", text: "Annual goals check-in: 2 more rental acquisitions by Q3, target $8k/mo net cash flow. Currently at $5.2k.", createdAt: "2026-03-10T09:00:00Z", updatedAt: "2026-03-10T09:00:00Z", userId: "usr_001", mentions: [] },
+];
+
 // Flip notes — flat array with flipId reference
 export const FLIP_NOTES = [
   { id: 1001, flipId: 1, date: "2026-03-28", text: "Spoke with inspector — back wall needs structural review before drywall. Getting quote from Nash Drywall.", createdAt: "2026-03-28T10:00:00Z", updatedAt: "2026-03-28T10:00:00Z", userId: "usr_001" },

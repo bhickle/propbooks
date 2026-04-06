@@ -25,7 +25,7 @@ import {
   getFlipExpenses, addFlipExpense, getContractors, addContractor, CONTRACTORS,
   CONTRACTOR_BIDS, CONTRACTOR_PAYMENTS, CONTRACTOR_DOCUMENTS,
   getFlipMilestones, updateFlipMilestones, FLIP_MILESTONES,
-  getTenants, getMileageTrips, addMileageTrip, RENTAL_NOTES, FLIP_NOTES, MOCK_USER,
+  getTenants, getMileageTrips, addMileageTrip, RENTAL_NOTES, FLIP_NOTES, GENERAL_NOTES, TEAM_MEMBERS, MOCK_USER,
   PROPERTY_DOCUMENTS, addPropertyDocument, deletePropertyDocument,
   DEAL_DOCUMENTS, addDealDocument, deleteDealDocument,
   TENANT_DOCUMENTS, addTenantDocument, deleteTenantDocument,
@@ -8302,77 +8302,281 @@ function DealAnalyzer() {
 }
 
 // ---------------------------------------------
-// RENTAL NOTES
+// @MENTION TEXTAREA COMPONENT
 // ---------------------------------------------
-function RentalNotes({ preFilterPropId, onBack, highlightNoteId, onClearHighlight }) {
-  const [propFilter, setPropFilter] = useState(preFilterPropId ? String(preFilterPropId) : "all");
+function MentionTextarea({ value, onChange, placeholder, mentions, onMentionsChange }) {
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [mentionQuery, setMentionQuery] = useState("");
+  const [mentionStartIdx, setMentionStartIdx] = useState(null);
+  const [dropdownIdx, setDropdownIdx] = useState(0);
+  const textareaRef = useRef(null);
+
+  const filteredMembers = TEAM_MEMBERS.filter(m =>
+    mentionQuery === "" || m.name.toLowerCase().includes(mentionQuery.toLowerCase())
+  );
+
+  const handleKeyDown = (e) => {
+    if (!showDropdown) return;
+    if (e.key === "ArrowDown") { e.preventDefault(); setDropdownIdx(i => Math.min(i + 1, filteredMembers.length - 1)); }
+    else if (e.key === "ArrowUp") { e.preventDefault(); setDropdownIdx(i => Math.max(i - 1, 0)); }
+    else if (e.key === "Enter" && filteredMembers.length > 0) {
+      e.preventDefault();
+      insertMention(filteredMembers[dropdownIdx]);
+    }
+    else if (e.key === "Escape") { setShowDropdown(false); setMentionStartIdx(null); }
+  };
+
+  const insertMention = (member) => {
+    const before = value.substring(0, mentionStartIdx);
+    const after = value.substring(textareaRef.current?.selectionStart || mentionStartIdx);
+    const newText = before + "@" + member.name + " " + after;
+    onChange(newText);
+    const newMentions = [...(mentions || [])];
+    if (!newMentions.includes(member.id)) newMentions.push(member.id);
+    onMentionsChange(newMentions);
+    setShowDropdown(false);
+    setMentionStartIdx(null);
+    setTimeout(() => {
+      const pos = before.length + member.name.length + 2;
+      textareaRef.current?.setSelectionRange(pos, pos);
+      textareaRef.current?.focus();
+    }, 0);
+  };
+
+  const handleInput = (e) => {
+    const val = e.target.value;
+    const pos = e.target.selectionStart;
+    onChange(val);
+
+    // Detect @ trigger
+    const textBefore = val.substring(0, pos);
+    const atIdx = textBefore.lastIndexOf("@");
+    if (atIdx !== -1) {
+      const charBefore = atIdx > 0 ? textBefore[atIdx - 1] : " ";
+      if (charBefore === " " || charBefore === "\n" || atIdx === 0) {
+        const query = textBefore.substring(atIdx + 1);
+        if (!query.includes(" ") || query.length < 20) {
+          setMentionQuery(query);
+          setMentionStartIdx(atIdx);
+          setShowDropdown(true);
+          setDropdownIdx(0);
+          return;
+        }
+      }
+    }
+    setShowDropdown(false);
+    setMentionStartIdx(null);
+  };
+
+  return (
+    <div style={{ position: "relative" }}>
+      <textarea
+        ref={textareaRef}
+        style={{ ...iS, minHeight: 120, resize: "vertical", fontFamily: "inherit" }}
+        placeholder={placeholder || "Write a note... Type @ to mention a team member"}
+        value={value}
+        onChange={handleInput}
+        onKeyDown={handleKeyDown}
+      />
+      {showDropdown && filteredMembers.length > 0 && (
+        <div style={{ position: "absolute", bottom: "100%", left: 0, width: 280, background: "#fff", borderRadius: 12, boxShadow: "0 8px 30px rgba(0,0,0,0.15)", border: "1px solid #e2e8f0", maxHeight: 200, overflowY: "auto", zIndex: 100, marginBottom: 4 }}>
+          <p style={{ fontSize: 10, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.06em", padding: "8px 12px 4px" }}>Team Members</p>
+          {filteredMembers.map((m, i) => (
+            <div key={m.id}
+              onMouseDown={(e) => { e.preventDefault(); insertMention(m); }}
+              style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 12px", cursor: "pointer", background: i === dropdownIdx ? "#f1f5f9" : "transparent", transition: "background 0.1s" }}
+              onMouseEnter={() => setDropdownIdx(i)}>
+              <div style={{ width: 28, height: 28, borderRadius: 8, background: m.color + "18", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 700, color: m.color }}>{m.initials}</div>
+              <div>
+                <p style={{ fontSize: 13, fontWeight: 600, color: "#041830" }}>{m.name}</p>
+                <p style={{ fontSize: 11, color: "#94a3b8" }}>{m.email}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+      {/* Show mention chips */}
+      {mentions && mentions.length > 0 && (
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 6 }}>
+          {mentions.map(mId => {
+            const member = TEAM_MEMBERS.find(m => m.id === mId);
+            if (!member) return null;
+            return (
+              <span key={mId} style={{ display: "inline-flex", alignItems: "center", gap: 4, background: member.color + "15", color: member.color, fontSize: 12, fontWeight: 600, padding: "3px 8px", borderRadius: 6, border: "1px solid " + member.color + "30" }}>
+                @{member.name}
+                <button onClick={() => onMentionsChange(mentions.filter(id => id !== mId))} style={{ background: "none", border: "none", cursor: "pointer", color: member.color, padding: 0, display: "flex", alignItems: "center", marginLeft: 2 }}><X size={10} /></button>
+              </span>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Render note text with highlighted @mentions
+function NoteTextWithMentions({ text }) {
+  const parts = text.split(/(@[\w\s]+?)(?=\s|$|,|\.)/g);
+  return (
+    <p style={{ fontSize: 13, color: "#475569", lineHeight: 1.6 }}>
+      {parts.map((part, i) => {
+        if (part.startsWith("@")) {
+          const name = part.substring(1).trim();
+          const member = TEAM_MEMBERS.find(m => m.name.toLowerCase() === name.toLowerCase());
+          if (member) {
+            return <span key={i} style={{ background: member.color + "15", color: member.color, fontWeight: 600, padding: "1px 4px", borderRadius: 4 }}>{part}</span>;
+          }
+        }
+        return <span key={i}>{part}</span>;
+      })}
+    </p>
+  );
+}
+
+// ---------------------------------------------
+// UNIFIED NOTES HUB
+// ---------------------------------------------
+function UnifiedNotes({ highlightNoteId, highlightFlipNoteId, onBack, onClearHighlight }) {
+  const [activeTab, setActiveTab] = useState("all");
+  const [propFilter, setPropFilter] = useState("all");
+  const [flipFilter, setFlipFilter] = useState("all");
   const [search, setSearch] = useState("");
   const [renderKey, rerender] = useState(0);
   const [showAdd, setShowAdd] = useState(false);
-  const [noteForm, setNoteForm] = useState({ propId: "", text: "" });
   const [editId, setEditId] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
-  const [flashId, setFlashId] = useState(highlightNoteId);
+  const [flashId, setFlashId] = useState(highlightNoteId || highlightFlipNoteId);
+  const [noteForm, setNoteForm] = useState({ category: "general", entityId: "", text: "", mentions: [] });
 
+  // Flash highlight on mount
   useEffect(() => {
-    if (highlightNoteId) {
-      setFlashId(highlightNoteId);
+    const hId = highlightNoteId || highlightFlipNoteId;
+    if (hId) {
+      setFlashId(hId);
+      if (highlightNoteId) setActiveTab("properties");
+      if (highlightFlipNoteId) setActiveTab("deals");
       setTimeout(() => {
-        const el = document.getElementById("note-" + highlightNoteId);
+        const el = document.getElementById("unote-" + hId);
         if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
       }, 100);
       const timer = setTimeout(() => { setFlashId(null); onClearHighlight && onClearHighlight(); }, 2500);
       return () => clearTimeout(timer);
     }
-  }, [highlightNoteId]);
+  }, [highlightNoteId, highlightFlipNoteId]);
 
-  // Build flat list of all notes across properties (no memo — must recalculate after mutations)
+  // Build unified list
   const allNotes = (() => {
     const list = [];
     RENTAL_NOTES.forEach(n => {
       const prop = PROPERTIES.find(p => p.id === n.propertyId);
       if (prop) {
-        list.push({ ...n, propId: n.propertyId, propName: prop.name, propColor: prop.color, propImage: prop.image });
+        list.push({ ...n, noteType: "property", entityId: n.propertyId, entityName: prop.name, entityColor: prop.color, entityImage: prop.image, mentions: n.mentions || [] });
       }
+    });
+    FLIP_NOTES.forEach(n => {
+      const flip = FLIPS.find(f => f.id === n.flipId);
+      if (flip) {
+        list.push({ ...n, noteType: "deal", entityId: n.flipId, entityName: flip.name, entityColor: flip.color, entityImage: flip.image, mentions: n.mentions || [] });
+      }
+    });
+    GENERAL_NOTES.forEach(n => {
+      list.push({ ...n, noteType: "general", entityId: null, entityName: "General", entityColor: "#8b5cf6", entityImage: null, mentions: n.mentions || [] });
     });
     return list.sort((a, b) => b.date.localeCompare(a.date));
   })();
 
+  // Filter
   const filtered = allNotes.filter(n => {
-    if (propFilter !== "all" && n.propId !== parseInt(propFilter)) return false;
+    if (activeTab === "properties" && n.noteType !== "property") return false;
+    if (activeTab === "deals" && n.noteType !== "deal") return false;
+    if (activeTab === "general" && n.noteType !== "general") return false;
+    if (activeTab === "properties" && propFilter !== "all" && n.entityId !== parseInt(propFilter)) return false;
+    if (activeTab === "deals" && flipFilter !== "all" && n.entityId !== parseInt(flipFilter)) return false;
     if (search && !n.text.toLowerCase().includes(search.toLowerCase())) return false;
     return true;
   });
 
-  const clearFilters = () => { setPropFilter(preFilterPropId ? String(preFilterPropId) : "all"); setSearch(""); };
-  const hasFilters = (preFilterPropId ? propFilter !== String(preFilterPropId) : propFilter !== "all") || search;
+  const clearFilters = () => { setPropFilter("all"); setFlipFilter("all"); setSearch(""); };
+  const hasFilters = propFilter !== "all" || flipFilter !== "all" || search;
 
+  // Tab counts
+  const propCount = allNotes.filter(n => n.noteType === "property").length;
+  const dealCount = allNotes.filter(n => n.noteType === "deal").length;
+  const genCount = allNotes.filter(n => n.noteType === "general").length;
+
+  const tabs = [
+    { id: "all", label: "All", count: allNotes.length },
+    { id: "properties", label: "Properties", count: propCount },
+    { id: "deals", label: "Deals", count: dealCount },
+    { id: "general", label: "General", count: genCount },
+  ];
+
+  // Type badge color
+  const typeBadge = (type) => {
+    if (type === "property") return { bg: "#dbeafe", color: "#2563eb", label: "Property" };
+    if (type === "deal") return { bg: "#ffedd5", color: "#c2410c", label: "Deal" };
+    return { bg: "#ede9fe", color: "#7c3aed", label: "General" };
+  };
+
+  // Save
   const handleSave = () => {
-    if (!noteForm.text.trim() || !noteForm.propId) return;
-    const pId = parseInt(noteForm.propId);
-    if (!_RN[pId]) _RN[pId] = [];
+    if (!noteForm.text.trim()) return;
+    const now = new Date().toISOString();
+    const today = now.split("T")[0];
+
     if (editId !== null) {
-      const idx = _RN[pId].findIndex(n => n.id === editId);
-      if (idx !== -1) _RN[pId][idx] = { ..._RN[pId][idx], text: noteForm.text.trim() };
+      // Find and update across all arrays
+      let idx = RENTAL_NOTES.findIndex(n => n.id === editId);
+      if (idx !== -1) { RENTAL_NOTES[idx] = { ...RENTAL_NOTES[idx], text: noteForm.text.trim(), mentions: noteForm.mentions, updatedAt: now }; }
+      idx = FLIP_NOTES.findIndex(n => n.id === editId);
+      if (idx !== -1) { FLIP_NOTES[idx] = { ...FLIP_NOTES[idx], text: noteForm.text.trim(), mentions: noteForm.mentions, updatedAt: now }; }
+      idx = GENERAL_NOTES.findIndex(n => n.id === editId);
+      if (idx !== -1) { GENERAL_NOTES[idx] = { ...GENERAL_NOTES[idx], text: noteForm.text.trim(), mentions: noteForm.mentions, updatedAt: now }; }
     } else {
-      _RN[pId].unshift({ id: newId(), date: new Date().toISOString().split("T")[0], text: noteForm.text.trim() });
+      const base = { id: newId(), date: today, text: noteForm.text.trim(), createdAt: now, updatedAt: now, userId: "usr_001", mentions: noteForm.mentions };
+      if (noteForm.category === "property") {
+        if (!noteForm.entityId) return;
+        RENTAL_NOTES.unshift({ ...base, propertyId: parseInt(noteForm.entityId) });
+      } else if (noteForm.category === "deal") {
+        if (!noteForm.entityId) return;
+        FLIP_NOTES.unshift({ ...base, flipId: parseInt(noteForm.entityId) });
+      } else {
+        GENERAL_NOTES.unshift(base);
+      }
     }
-    setNoteForm({ propId: "", text: "" });
+    setNoteForm({ category: "general", entityId: "", text: "", mentions: [] });
     setEditId(null);
     setShowAdd(false);
     rerender(n => n + 1);
   };
 
   const handleDelete = (note) => {
-    if (!_RN[note.propId]) return;
-    _RN[note.propId] = _RN[note.propId].filter(n => n.id !== note.id);
+    if (note.noteType === "property") {
+      const idx = RENTAL_NOTES.findIndex(n => n.id === note.id);
+      if (idx !== -1) RENTAL_NOTES.splice(idx, 1);
+    } else if (note.noteType === "deal") {
+      const idx = FLIP_NOTES.findIndex(n => n.id === note.id);
+      if (idx !== -1) FLIP_NOTES.splice(idx, 1);
+    } else {
+      const idx = GENERAL_NOTES.findIndex(n => n.id === note.id);
+      if (idx !== -1) GENERAL_NOTES.splice(idx, 1);
+    }
     setDeleteConfirm(null);
     rerender(n => n + 1);
   };
 
   const openEdit = (note) => {
     setEditId(note.id);
-    setNoteForm({ propId: String(note.propId), text: note.text });
+    const cat = note.noteType === "property" ? "property" : note.noteType === "deal" ? "deal" : "general";
+    setNoteForm({ category: cat, entityId: note.entityId ? String(note.entityId) : "", text: note.text, mentions: note.mentions || [] });
+    setShowAdd(true);
+  };
+
+  const openAdd = () => {
+    const cat = activeTab === "properties" ? "property" : activeTab === "deals" ? "deal" : activeTab === "general" ? "general" : "general";
+    const defaultEntity = cat === "property" ? (PROPERTIES[0] ? String(PROPERTIES[0].id) : "") : cat === "deal" ? (FLIPS[0] ? String(FLIPS[0].id) : "") : "";
+    setEditId(null);
+    setNoteForm({ category: cat, entityId: defaultEntity, text: "", mentions: [] });
     setShowAdd(true);
   };
 
@@ -8388,20 +8592,28 @@ function RentalNotes({ preFilterPropId, onBack, highlightNoteId, onClearHighligh
     <div>
       {onBack && (
         <button onClick={onBack} style={{ display: "flex", alignItems: "center", gap: 6, color: "#3b82f6", fontWeight: 600, fontSize: 14, background: "none", border: "none", cursor: "pointer", marginBottom: 14 }}>
-          <ArrowLeft size={15} /> {preFilterPropId ? "Back to Property" : "Back to Dashboard"}
+          <ArrowLeft size={15} /> Back to Dashboard
         </button>
       )}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 }}>
         <div>
-          <h1 style={{ color: "#041830", fontSize: 26, fontWeight: 700, marginBottom: 4 }}>Property Notes</h1>
-          <p style={{ color: "#64748b", fontSize: 15 }}>{allNotes.length} note{allNotes.length !== 1 ? "s" : ""} across {new Set(allNotes.map(n => n.propId)).size} propert{new Set(allNotes.map(n => n.propId)).size === 1 ? "y" : "ies"}</p>
+          <h1 style={{ color: "#041830", fontSize: 26, fontWeight: 700, marginBottom: 4 }}>Notes</h1>
+          <p style={{ color: "#64748b", fontSize: 15 }}>{allNotes.length} note{allNotes.length !== 1 ? "s" : ""} across properties, deals, and general</p>
         </div>
-        {!preFilterPropId && (
-          <select value={propFilter} onChange={e => setPropFilter(e.target.value)} style={{ ...iS, width: 200, fontSize: 14, padding: "9px 14px", fontWeight: 600 }}>
-            <option value="all">All Properties</option>
-            {PROPERTIES.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-          </select>
-        )}
+        <button onClick={openAdd} style={{ background: "#3b82f6", color: "#fff", border: "none", borderRadius: 10, padding: "9px 16px", fontWeight: 600, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
+          <Plus size={14} /> Add Note
+        </button>
+      </div>
+
+      {/* Tab pills */}
+      <div style={{ display: "flex", gap: 6, background: "#f8fafc", borderRadius: 10, padding: 4, border: "1px solid #e2e8f0", marginBottom: 16, width: "fit-content" }}>
+        {tabs.map(t => (
+          <button key={t.id} onClick={() => { setActiveTab(t.id); setPropFilter("all"); setFlipFilter("all"); }}
+            style={{ padding: "7px 14px", borderRadius: 8, border: "none", background: activeTab === t.id ? "#f59e0b" : "transparent", color: activeTab === t.id ? "#fff" : "#64748b", fontWeight: 600, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 5, transition: "all 0.15s" }}>
+            {t.label}
+            <span style={{ background: activeTab === t.id ? "rgba(255,255,255,0.3)" : "#e2e8f0", color: activeTab === t.id ? "#fff" : "#94a3b8", fontSize: 11, fontWeight: 700, padding: "1px 6px", borderRadius: 6, minWidth: 18, textAlign: "center" }}>{t.count}</span>
+          </button>
+        ))}
       </div>
 
       {/* Filter bar */}
@@ -8411,12 +8623,21 @@ function RentalNotes({ preFilterPropId, onBack, highlightNoteId, onClearHighligh
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search notes..."
             style={{ width: "100%", paddingLeft: 36, paddingRight: 12, paddingTop: 9, paddingBottom: 9, border: "1px solid #e2e8f0", borderRadius: 10, fontSize: 13, color: "#041830", background: "#fff", outline: "none", boxSizing: "border-box" }} />
         </div>
-        {hasFilters && (
-          <button onClick={clearFilters} style={{ background: "none", border: "none", color: "#94a3b8", fontSize: 12, cursor: "pointer", textDecoration: "underline", padding: 0 }}>Clear filters</button>
+        {activeTab === "properties" && (
+          <select value={propFilter} onChange={e => setPropFilter(e.target.value)} style={{ ...iS, width: 200, fontSize: 14, padding: "9px 14px", fontWeight: 600 }}>
+            <option value="all">All Properties</option>
+            {PROPERTIES.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+          </select>
         )}
-        <button onClick={() => { setEditId(null); setNoteForm({ propId: preFilterPropId ? String(preFilterPropId) : (PROPERTIES[0] ? String(PROPERTIES[0].id) : ""), text: "" }); setShowAdd(true); }} style={{ marginLeft: "auto", background: "#3b82f6", color: "#fff", border: "none", borderRadius: 10, padding: "9px 16px", fontWeight: 600, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
-          <Plus size={14} /> Add Note
-        </button>
+        {activeTab === "deals" && (
+          <select value={flipFilter} onChange={e => setFlipFilter(e.target.value)} style={{ ...iS, width: 200, fontSize: 14, padding: "9px 14px", fontWeight: 600 }}>
+            <option value="all">All Deals</option>
+            {FLIPS.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
+          </select>
+        )}
+        {hasFilters && (
+          <button onClick={clearFilters} style={{ background: "none", border: "none", color: "#94a3b8", fontSize: 12, cursor: "pointer", display: "flex", alignItems: "center", gap: 3 }}><X size={11} /> Clear filters</button>
+        )}
       </div>
 
       {/* Notes grouped by date */}
@@ -8431,7 +8652,7 @@ function RentalNotes({ preFilterPropId, onBack, highlightNoteId, onClearHighligh
           ) : (
             <>
               <p style={{ fontWeight: 600, marginBottom: 4 }}>No notes yet</p>
-              <p style={{ fontSize: 13 }}>Click "Add Note" to start documenting your properties.</p>
+              <p style={{ fontSize: 13 }}>Click "Add Note" to start documenting.</p>
             </>
           )}
         </div>
@@ -8439,21 +8660,50 @@ function RentalNotes({ preFilterPropId, onBack, highlightNoteId, onClearHighligh
         <div key={dateKey} style={{ marginBottom: 20 }}>
           <p style={{ fontSize: 12, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 10 }}>{label}</p>
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {notes.map(n => (
-              <div key={n.id} id={"note-" + n.id} style={{ background: flashId === n.id ? "#ede9fe" : "#fff", borderRadius: 16, padding: 18, boxShadow: flashId === n.id ? "0 0 0 2px #8b5cf6" : "0 1px 3px rgba(0,0,0,0.06)", border: flashId === n.id ? "1px solid #8b5cf6" : "1px solid #f1f5f9", transition: "all 0.4s ease" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <div style={{ width: 26, height: 26, borderRadius: 7, background: n.propColor + "20", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, fontWeight: 700, color: n.propColor }}>{n.propImage}</div>
-                    <span style={{ fontSize: 13, fontWeight: 600, color: "#041830" }}>{n.propName}</span>
+            {notes.map(n => {
+              const badge = typeBadge(n.noteType);
+              return (
+                <div key={n.id} id={"unote-" + n.id}
+                  onMouseEnter={e => { if (flashId !== n.id) e.currentTarget.style.background = "#f8fafc"; }}
+                  onMouseLeave={e => { if (flashId !== n.id) e.currentTarget.style.background = "#fff"; }}
+                  style={{ background: flashId === n.id ? "#ede9fe" : "#fff", borderRadius: 16, padding: 18, boxShadow: flashId === n.id ? "0 0 0 2px #8b5cf6" : "0 1px 3px rgba(0,0,0,0.06)", border: flashId === n.id ? "1px solid #8b5cf6" : "1px solid #f1f5f9", transition: "all 0.4s ease" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      {n.entityImage ? (
+                        <div style={{ width: 26, height: 26, borderRadius: 7, background: n.entityColor + "20", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, fontWeight: 700, color: n.entityColor }}>{n.entityImage}</div>
+                      ) : (
+                        <div style={{ width: 26, height: 26, borderRadius: 7, background: n.entityColor + "20", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                          <MessageSquare size={12} color={n.entityColor} />
+                        </div>
+                      )}
+                      <span style={{ fontSize: 13, fontWeight: 600, color: "#041830" }}>{n.entityName}</span>
+                      {activeTab === "all" && (
+                        <span style={{ fontSize: 10, fontWeight: 700, background: badge.bg, color: badge.color, padding: "2px 7px", borderRadius: 5 }}>{badge.label}</span>
+                      )}
+                    </div>
+                    <div style={{ display: "flex", gap: 4 }}>
+                      <button onClick={() => openEdit(n)} style={{ background: "#f1f5f9", border: "none", borderRadius: 7, padding: "4px 7px", cursor: "pointer", color: "#475569", display: "flex", alignItems: "center" }} title="Edit"><Pencil size={12} /></button>
+                      <button onClick={() => setDeleteConfirm(n)} style={{ background: "#fee2e2", border: "none", borderRadius: 7, padding: "4px 7px", cursor: "pointer", color: "#ef4444", display: "flex", alignItems: "center" }} title="Delete"><Trash2 size={12} /></button>
+                    </div>
                   </div>
-                  <div style={{ display: "flex", gap: 4 }}>
-                    <button onClick={() => openEdit(n)} style={{ background: "#f1f5f9", border: "none", borderRadius: 7, padding: "4px 7px", cursor: "pointer", color: "#475569", display: "flex", alignItems: "center" }} title="Edit"><Pencil size={12} /></button>
-                    <button onClick={() => setDeleteConfirm(n)} style={{ background: "#fee2e2", border: "none", borderRadius: 7, padding: "4px 7px", cursor: "pointer", color: "#ef4444", display: "flex", alignItems: "center" }} title="Delete"><Trash2 size={12} /></button>
-                  </div>
+                  <NoteTextWithMentions text={n.text} />
+                  {/* Mention chips */}
+                  {n.mentions && n.mentions.length > 0 && (
+                    <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginTop: 8 }}>
+                      {n.mentions.map(mId => {
+                        const member = TEAM_MEMBERS.find(m => m.id === mId);
+                        if (!member) return null;
+                        return (
+                          <span key={mId} style={{ display: "inline-flex", alignItems: "center", gap: 3, background: member.color + "12", color: member.color, fontSize: 11, fontWeight: 600, padding: "2px 7px", borderRadius: 5 }}>
+                            @{member.name}
+                          </span>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
-                <p style={{ fontSize: 13, color: "#475569", lineHeight: 1.6 }}>{n.text}</p>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       ))}
@@ -8461,26 +8711,59 @@ function RentalNotes({ preFilterPropId, onBack, highlightNoteId, onClearHighligh
       {/* Add/Edit Note Modal */}
       {showAdd && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
-          <div style={{ background: "#fff", borderRadius: 20, padding: 32, width: 500, boxShadow: "0 20px 60px rgba(0,0,0,0.18)" }}>
+          <div style={{ background: "#fff", borderRadius: 20, padding: 32, width: 520, boxShadow: "0 20px 60px rgba(0,0,0,0.18)" }}>
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 20 }}>
               <h2 style={{ color: "#041830", fontSize: 19, fontWeight: 700 }}>{editId ? "Edit Note" : "Add Note"}</h2>
               <button onClick={() => { setShowAdd(false); setEditId(null); }} style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8" }}><X size={20} /></button>
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-              <div>
-                <p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Property *</p>
-                <select style={iS} value={noteForm.propId} onChange={e => setNoteForm(f => ({ ...f, propId: e.target.value }))} disabled={!!editId || !!preFilterPropId}>
-                  <option value="">Select property...</option>
-                  {PROPERTIES.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                </select>
-              </div>
+              {/* Category selector */}
+              {!editId && (
+                <div>
+                  <p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Category *</p>
+                  <div style={{ display: "flex", gap: 6 }}>
+                    {[{ id: "general", label: "General", color: "#8b5cf6" }, { id: "property", label: "Property", color: "#3b82f6" }, { id: "deal", label: "Deal", color: "#e95e00" }].map(c => (
+                      <button key={c.id} onClick={() => setNoteForm(f => ({ ...f, category: c.id, entityId: c.id === "property" ? (PROPERTIES[0] ? String(PROPERTIES[0].id) : "") : c.id === "deal" ? (FLIPS[0] ? String(FLIPS[0].id) : "") : "" }))}
+                        style={{ flex: 1, padding: "8px 12px", borderRadius: 8, border: noteForm.category === c.id ? "2px solid " + c.color : "1.5px solid #e2e8f0", background: noteForm.category === c.id ? c.color + "10" : "#fff", color: noteForm.category === c.id ? c.color : "#64748b", fontWeight: 600, fontSize: 13, cursor: "pointer", transition: "all 0.15s" }}>
+                        {c.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {/* Entity selector (property/deal) */}
+              {noteForm.category === "property" && (
+                <div>
+                  <p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Property *</p>
+                  <select style={iS} value={noteForm.entityId} onChange={e => setNoteForm(f => ({ ...f, entityId: e.target.value }))} disabled={!!editId}>
+                    <option value="">Select property...</option>
+                    {PROPERTIES.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                  </select>
+                </div>
+              )}
+              {noteForm.category === "deal" && (
+                <div>
+                  <p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Deal *</p>
+                  <select style={iS} value={noteForm.entityId} onChange={e => setNoteForm(f => ({ ...f, entityId: e.target.value }))} disabled={!!editId}>
+                    <option value="">Select deal...</option>
+                    {FLIPS.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
+                  </select>
+                </div>
+              )}
+              {/* Note text with @mention */}
               <div>
                 <p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Note *</p>
-                <textarea style={{ ...iS, minHeight: 120, resize: "vertical", fontFamily: "inherit" }} placeholder="Maintenance updates, tenant conversations, inspection notes, reminders..." value={noteForm.text} onChange={e => setNoteForm(f => ({ ...f, text: e.target.value }))} />
+                <MentionTextarea
+                  value={noteForm.text}
+                  onChange={(text) => setNoteForm(f => ({ ...f, text }))}
+                  mentions={noteForm.mentions}
+                  onMentionsChange={(mentions) => setNoteForm(f => ({ ...f, mentions }))}
+                  placeholder="Write a note... Type @ to mention a team member"
+                />
               </div>
             </div>
             <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
-              <button onClick={handleSave} style={{ flex: 1, padding: "11px", borderRadius: 10, border: "none", background: "#3b82f6", color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer", opacity: (!noteForm.text.trim() || !noteForm.propId) ? 0.5 : 1 }}>{editId ? "Save Changes" : "Add Note"}</button>
+              <button onClick={handleSave} style={{ flex: 1, padding: "11px", borderRadius: 10, border: "none", background: "#3b82f6", color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer", opacity: (!noteForm.text.trim() || (noteForm.category !== "general" && !noteForm.entityId)) ? 0.5 : 1 }}>{editId ? "Save Changes" : "Add Note"}</button>
               <button onClick={() => { setShowAdd(false); setEditId(null); }} style={{ padding: "11px 18px", borderRadius: 10, border: "1.5px solid #e2e8f0", background: "#fff", fontWeight: 600, fontSize: 14, cursor: "pointer", color: "#64748b" }}>Cancel</button>
             </div>
           </div>
@@ -8716,7 +8999,6 @@ function AppShell() {
     { id: "tenants",      label: "Tenants",        icon: Users           },
     { id: "transactions", label: "Transactions",  icon: ArrowUpDown     },
     { id: "analytics",    label: "Analytics",     icon: BarChart3       },
-    { id: "notes",        label: "Notes",         icon: MessageSquare   },
     { id: "reports",      label: "Reports",       icon: FileText        },
   ];
 
@@ -8727,15 +9009,15 @@ function AppShell() {
     { id: "flipexpenses",    label: "Expenses",        icon: Receipt         },
     { id: "flipcontractors", label: "Contractors",     icon: Users           },
     { id: "flipmilestones",  label: "Milestones",      icon: Flag            },
-    { id: "flipnotes",       label: "Notes",            icon: MessageSquare   },
     { id: "flipanalytics",   label: "Analytics",       icon: BarChart3       },
     { id: "flipreports",    label: "Reports",         icon: FileText        },
   ];
 
   // Cross-cutting tools — apply to both rentals and flips
   const toolNavItems = [
-    { id: "dealanalyzer", label: "Deal Analyzer",   icon: Calculator },
-    { id: "mileage",      label: "Mileage Tracker",  icon: Car        },
+    { id: "notes",         label: "Notes",            icon: MessageSquare },
+    { id: "dealanalyzer",  label: "Deal Analyzer",    icon: Calculator },
+    { id: "mileage",       label: "Mileage Tracker",  icon: Car        },
   ];
 
   const handlePropertySelect = (p) => {
@@ -8864,7 +9146,7 @@ function AppShell() {
               else if (item.type === "transaction") { setHighlightTxId(item.data.id); setActiveView("transactions"); }
               else if (item.type === "contractor") { setSelectedContractor(item.data); setActiveView("contractorDetail"); }
               else if (item.type === "rental-note") { setHighlightNoteId(item.data.id); setActiveView("notes"); }
-              else if (item.type === "flip-note") { setHighlightFlipNoteId(item.data.id); setActiveView("flipnotes"); }
+              else if (item.type === "flip-note") { setHighlightFlipNoteId(item.data.id); setActiveView("notes"); }
               else if (item.type === "flip-expense") { setHighlightExpId(item.data.id); setActiveView("flipexpenses"); }
             }} />
             <div style={{ position: "relative", cursor: "pointer" }}>
@@ -8881,9 +9163,9 @@ function AppShell() {
           {activeView === "propertyDetail" && selectedProperty && <PropertyDetail key={selectedProperty.id + "-" + (propDetailTab || "overview") + "-" + (propDetailTenantHighlight || "")} property={selectedProperty} onBack={() => { setActiveView(navSource === "dashboard" ? "dashboard" : navSource === "portfolio" ? "portfolio" : "properties"); setPropDetailTab(null); setPropDetailTenantHighlight(null); setPrevNavSource(null); setNavSource(null); }} backLabel={navSource === "dashboard" ? "Back to Dashboard" : navSource === "portfolio" ? "Back to Portfolio" : "Back to Properties"} onEditProperty={(p) => { setEditPropertyId(p.id); setActiveView("properties"); }} onGoToTransactions={() => setActiveView("transactions")} onNavigateToTransaction={(txId) => { if (txId) { setHighlightTxId(txId); } setPrevNavSource(navSource); setNavSource("propertyDetail"); setActiveView("transactions"); }} onNavigateToTenant={(tenantId) => { setHighlightTenantId(tenantId); setPrevNavSource(navSource); setNavSource("propertyDetail"); setActiveView("tenants"); }} initialTab={propDetailTab} highlightTenantId={propDetailTenantHighlight} onClearHighlightTenant={() => setPropDetailTenantHighlight(null)} />}
           {activeView === "transactions" && <Transactions highlightTxId={highlightTxId} backLabel={navSource === "propertyDetail" ? "Back to Property" : navSource === "portfolio" ? "Back to Portfolio" : "Back to Dashboard"} onBack={navSource === "dashboard" ? () => { setActiveView("dashboard"); setHighlightTxId(null); setNavSource(null); setPrevNavSource(null); } : navSource === "portfolio" ? () => { setActiveView("portfolio"); setHighlightTxId(null); setNavSource(null); setPrevNavSource(null); } : navSource === "propertyDetail" ? () => { setActiveView("propertyDetail"); setHighlightTxId(null); setNavSource(prevNavSource); setPrevNavSource(null); } : null} onClearHighlight={() => setHighlightTxId(null)} />}
           {activeView === "analytics" && <Analytics />}
-          {activeView === "notes" && <RentalNotes highlightNoteId={highlightNoteId} onBack={navSource === "dashboard" ? () => { setActiveView("dashboard"); setHighlightNoteId(null); setNavSource(null); } : null} onClearHighlight={() => setHighlightNoteId(null)} />}
+          {activeView === "notes" && <UnifiedNotes highlightNoteId={highlightNoteId} highlightFlipNoteId={highlightFlipNoteId} onBack={navSource === "dashboard" ? () => { setActiveView("dashboard"); setHighlightNoteId(null); setNavSource(null); } : navSource === "flipdashboard" ? () => { setActiveView("flipdashboard"); setHighlightFlipNoteId(null); setNavSource(null); } : null} onClearHighlight={() => { setHighlightNoteId(null); setHighlightFlipNoteId(null); }} />}
           {activeView === "reports" && <Reports />}
-          {activeView === "flipdashboard"   && <FlipDashboard onSelect={(f, tab) => handleFlipSelect(f, tab, "flipdashboard")} onNavigateToNote={(noteId) => { setHighlightFlipNoteId(noteId); setNavSource("flipdashboard"); setActiveView("flipnotes"); }} onNavigateToExpense={(expId) => { setHighlightExpId(expId); setNavSource("flipdashboard"); setActiveView("flipexpenses"); }} onNavigateToMilestone={(msKey) => { setHighlightMilestoneKey(msKey); setNavSource("flipdashboard"); setActiveView("flipmilestones"); }} />}
+          {activeView === "flipdashboard"   && <FlipDashboard onSelect={(f, tab) => handleFlipSelect(f, tab, "flipdashboard")} onNavigateToNote={(noteId) => { setHighlightFlipNoteId(noteId); setNavSource("flipdashboard"); setActiveView("notes"); }} onNavigateToExpense={(expId) => { setHighlightExpId(expId); setNavSource("flipdashboard"); setActiveView("flipexpenses"); }} onNavigateToMilestone={(msKey) => { setHighlightMilestoneKey(msKey); setNavSource("flipdashboard"); setActiveView("flipmilestones"); }} />}
           {activeView === "flips"           && <FlipPipeline onSelect={(f, tab) => handleFlipSelect(f, tab, "flips")} />}
           {activeView === "flipDetail"      && selectedFlip && <ErrorBoundary key={"eb-" + selectedFlip.id}><FlipDetail key={selectedFlip.id + "-" + (flipInitialTab || "overview")} flip={selectedFlip} onBack={() => { setActiveView(flipNavSource || "flips"); setFlipNavSource(null); setPrevFlipNavSource(null); setFlipInitialTab(null); }} backLabel={flipNavSource === "flipdashboard" ? "Back to Dashboard" : flipNavSource === "portfolio" ? "Back to Portfolio" : "Back to Deals"} onNavigateToExpense={navigateToFlipExpense} onNavigateToContractor={(con) => { setSelectedContractor(con); setPrevFlipNavSource(flipNavSource); setNavSource("flipDetail"); setActiveView("contractorDetail"); }} initialTab={flipInitialTab} onConvertToRental={(flipData) => { setConvertFlipData(flipData); setActiveView("properties"); }} onFlipUpdated={onFlipUpdated} onNavigateToFlip={(f) => handleFlipSelect(f, null, flipNavSource || "flips")} /></ErrorBoundary>}
           {activeView === "fliprehab"        && <RehabTracker />}
@@ -8891,7 +9173,7 @@ function AppShell() {
           {activeView === "flipcontractors" && <FlipContractors onSelectContractor={handleSelectContractor} />}
           {activeView === "contractorDetail" && selectedContractor && <ContractorDetail contractor={selectedContractor} onBack={() => { setSelectedContractor(null); if (navSource === "flipDetail" && selectedFlip) { setActiveView("flipDetail"); setFlipInitialTab("contractors"); setNavSource(null); setFlipNavSource(prevFlipNavSource); setPrevFlipNavSource(null); } else { setActiveView("flipcontractors"); } }} />}
           {activeView === "flipmilestones"  && <FlipMilestones highlightMilestoneKey={highlightMilestoneKey} onBack={navSource === "flipdashboard" ? () => { setActiveView("flipdashboard"); setHighlightMilestoneKey(null); setNavSource(null); } : null} onClearHighlight={() => setHighlightMilestoneKey(null)} />}
-          {activeView === "flipnotes"       && <FlipNotes highlightNoteId={highlightFlipNoteId} onBack={navSource === "flipdashboard" ? () => { setActiveView("flipdashboard"); setHighlightFlipNoteId(null); setNavSource(null); } : null} onClearHighlight={() => setHighlightFlipNoteId(null)} />}
+          {activeView === "flipnotes"       && <UnifiedNotes highlightFlipNoteId={highlightFlipNoteId} onBack={navSource === "flipdashboard" ? () => { setActiveView("flipdashboard"); setHighlightFlipNoteId(null); setNavSource(null); } : null} onClearHighlight={() => setHighlightFlipNoteId(null)} />}
           {activeView === "flipanalytics"   && <FlipAnalytics />}
           {activeView === "flipreports"    && <FlipReports />}
           {activeView === "tenants" && <RentRoll onBack={navSource === "propertyDetail" ? () => { setActiveView("propertyDetail"); setHighlightTenantId(null); setNavSource(prevNavSource); setPrevNavSource(null); } : null} highlightTenantId={highlightTenantId} onClearHighlight={() => setHighlightTenantId(null)} prefillTenant={prefillTenant} onClearPrefill={() => setPrefillTenant(null)} />}
