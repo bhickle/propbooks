@@ -318,7 +318,7 @@ export function AuthScreen() {
             {[
               { icon: PieChart, label: "Rental Cash Flow", sub: "Income, expenses & equity across every door" },
               { icon: Hammer, label: "Flip Pipeline", sub: "Rehab budgets, milestones & contractor tracking" },
-              { icon: Building2, label: "Rent Roll", sub: "Leases, vacancies & expiration alerts" },
+              { icon: Building2, label: "Tenant Management", sub: "Leases, vacancies & expiration alerts" },
               { icon: TrendingUp, label: "Deal Analyzer", sub: "Run the numbers before you buy" },
             ].map((f, i) => (
               <div key={i} style={{
