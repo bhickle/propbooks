@@ -8039,7 +8039,7 @@ function DealAnalyzer() {
   const [rental, setRental] = useState({ price: "", downPct: "20", rate: "7.25", termYears: "30", monthlyRent: "", taxes: "", insurance: "", maintenance: "", vacancy: "5", mgmtPct: "0" });
 
   // Deal calcs
-  const fARV = parseFloat(deal.arv) || 0;
+  const fARV = parseFloat(dealCalc.arv) || 0;
   const fPurchase = parseFloat(dealCalc.purchase) || 0;
   const fRehab = parseFloat(dealCalc.rehab) || 0;
   const fHold = parseFloat(dealCalc.holdMonths) || 0;
@@ -8098,7 +8098,7 @@ function DealAnalyzer() {
           <div style={{ background: "#fff", borderRadius: 16, padding: 24, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
               <h3 style={{ color: "#041830", fontSize: 16, fontWeight: 700 }}>Deal Inputs</h3>
-              {(deal.arv || deal.purchase || deal.rehab) && (
+              {(dealCalc.arv || dealCalc.purchase || dealCalc.rehab) && (
                 <button onClick={() => setDealCalc({ arv: "", purchase: "", rehab: "", holdMonths: "4", sellingPct: "6" })} style={{ background: "none", border: "none", color: "#94a3b8", fontSize: 12, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
                   <X size={13} /> Reset
                 </button>
@@ -8113,7 +8113,7 @@ function DealAnalyzer() {
             ].map(f => (
               <div key={f.key} style={{ marginBottom: 14 }}>
                 <label style={labelStyle}>{f.label}</label>
-                <input type="number" placeholder={f.placeholder} value={dealCalc[f.key]} onChange={e => setDealCalc({ ...deal, [f.key]: e.target.value })} style={inputStyle} />
+                <input type="number" placeholder={f.placeholder} value={dealCalc[f.key]} onChange={e => setDealCalc({ ...dealCalc, [f.key]: e.target.value })} style={inputStyle} />
               </div>
             ))}
           </div>
