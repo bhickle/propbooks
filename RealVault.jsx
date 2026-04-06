@@ -5468,6 +5468,9 @@ function FlipDetail({ flip, onBack, backLabel, allFlips, setAllFlips, onNavigate
   const [deleteConfirm, setDeleteConfirm] = useState(null); // { type: "expense"|"contractor"|"rehab"|"milestone", item, index? }
   const [stage, setStage] = useState(flip.stage);
   const [showConvertConfirm, setShowConvertConfirm] = useState(false);
+  const [showCloseDeal, setShowCloseDeal] = useState(false);
+  const [closeForm, setCloseForm] = useState({ salePrice: "", closeDate: "", sellingCosts: "", buyerCredit: "", closingNotes: "" });
+  const sfClose = k => e => setCloseForm(f => ({ ...f, [k]: e.target.value }));
 
   // Expense tab filters
   const [expSearch, setExpSearch] = useState("");
@@ -5651,7 +5654,23 @@ function FlipDetail({ flip, onBack, backLabel, allFlips, setAllFlips, onNavigate
 
   const handleStageChange = (e) => {
     const newStage = e.target.value;
+    if (newStage === "Sold") {
+      // Intercept — open Close Deal modal instead of directly changing stage
+      const rehabSpent = (rehabItems || []).reduce((s, i) => s + (i.spent || 0), 0);
+      const estSellingCosts = Math.round((flip.arv || 0) * ((flip.sellingCostPct || 6) / 100));
+      setCloseForm({
+        salePrice: String(flip.arv || ""),
+        closeDate: today,
+        sellingCosts: String(estSellingCosts || ""),
+        buyerCredit: "",
+        closingNotes: "",
+      });
+      setShowCloseDeal(true);
+      return;
+    }
     setStage(newStage);
+    const idx = FLIPS.findIndex(f => f.id === flip.id);
+    if (idx !== -1) FLIPS[idx].stage = newStage;
     if (setAllFlips) setAllFlips(prev => prev.map(f => f.id === flip.id ? { ...f, stage: newStage } : f));
   };
 
@@ -5741,9 +5760,13 @@ function FlipDetail({ flip, onBack, backLabel, allFlips, setAllFlips, onNavigate
               <p style={{ color: "#64748b", fontSize: 14, display: "flex", alignItems: "center", gap: 4 }}><MapPin size={13} /> {flip.address}</p>
               <div style={{ marginTop: 8, display: "flex", alignItems: "center", gap: 10 }}>
                 <StageBadge stage={stage} />
-                <select value={stage} onChange={handleStageChange} style={{ border: "1px solid rgba(0,0,0,0.12)", borderRadius: 8, padding: "4px 8px", fontSize: 12, background: "rgba(255,255,255,0.8)", color: "#475569", cursor: "pointer", outline: "none" }}>
-                  {STAGE_ORDER.map(s => <option key={s}>{s}</option>)}
-                </select>
+                {stage === "Sold" || stage === "Converted to Rental" ? (
+                  <span style={{ fontSize: 12, color: "#94a3b8", fontStyle: "italic" }}>Deal closed</span>
+                ) : (
+                  <select value={stage} onChange={handleStageChange} style={{ border: "1px solid rgba(0,0,0,0.12)", borderRadius: 8, padding: "4px 8px", fontSize: 12, background: "rgba(255,255,255,0.8)", color: "#475569", cursor: "pointer", outline: "none" }}>
+                    {STAGE_ORDER.filter(s => s !== "Converted to Rental").map(s => <option key={s}>{s}</option>)}
+                  </select>
+                )}
               </div>
             </div>
           </div>
@@ -6808,6 +6831,105 @@ function FlipDetail({ flip, onBack, backLabel, allFlips, setAllFlips, onNavigate
           <div style={{ display: "flex", gap: 10, marginTop: 8 }}>
             <button onClick={() => setShowEditDeal(false)} style={{ flex: 1, padding: "12px", border: "1px solid #e2e8f0", borderRadius: 10, background: "#fff", color: "#475569", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
             <button onClick={handleSaveDeal} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "#e95e00", color: "#fff", fontWeight: 700, cursor: "pointer" }}>Save Changes</button>
+          </div>
+        </Modal>
+      )}
+      {showCloseDeal && (
+        <Modal title="Close Deal — Mark as Sold" onClose={() => setShowCloseDeal(false)}>
+          <p style={{ color: "#475569", fontSize: 14, marginBottom: 16 }}>
+            Enter the final sale details to close out this deal. These numbers will replace projections with actuals.
+          </p>
+          <div style={{ background: "#f8fafc", borderRadius: 12, padding: 14, marginBottom: 16, border: "1px solid #e2e8f0" }}>
+            <p style={{ fontSize: 15, fontWeight: 700, color: "#041830" }}>{flip.name}</p>
+            <p style={{ fontSize: 13, color: "#64748b", marginTop: 2 }}>{flip.address}</p>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
+            <div>
+              <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Sale Price *</label>
+              <input type="number" placeholder="361500" value={closeForm.salePrice} onChange={sfClose("salePrice")} style={iS} />
+            </div>
+            <div>
+              <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Close Date *</label>
+              <input type="date" value={closeForm.closeDate} onChange={sfClose("closeDate")} style={iS} />
+            </div>
+            <div>
+              <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Selling Costs ($)</label>
+              <input type="number" placeholder="Agent commissions, title, etc." value={closeForm.sellingCosts} onChange={sfClose("sellingCosts")} style={iS} />
+            </div>
+            <div>
+              <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Buyer Credit ($)</label>
+              <input type="number" placeholder="0" value={closeForm.buyerCredit} onChange={sfClose("buyerCredit")} style={iS} />
+            </div>
+          </div>
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Closing Notes (optional)</label>
+            <textarea placeholder="Any notes about the sale..." value={closeForm.closingNotes} onChange={sfClose("closingNotes")} rows={2} style={{ ...iS, resize: "vertical", fontFamily: "inherit" }} />
+          </div>
+          {/* Profit preview */}
+          {(() => {
+            const sp = parseFloat(closeForm.salePrice) || 0;
+            const sc = parseFloat(closeForm.sellingCosts) || 0;
+            const bc = parseFloat(closeForm.buyerCredit) || 0;
+            const rehabSpent = (rehabItems || []).reduce((s, i) => s + (i.spent || 0), 0);
+            const holdDays = closeForm.closeDate && flip.acquisitionDate ? Math.max(0, Math.ceil((new Date(closeForm.closeDate) - new Date(flip.acquisitionDate)) / 86400000)) : (flip.daysOwned || 0);
+            const totalHolding = Math.round((flip.holdingCostsPerMonth || 0) * (holdDays / 30));
+            const netProfit = sp - flip.purchasePrice - rehabSpent - totalHolding - sc - bc;
+            return (
+              <div style={{ background: netProfit >= 0 ? "#f0fdf4" : "#fef2f2", borderRadius: 12, padding: 16, marginBottom: 20, border: `1px solid ${netProfit >= 0 ? "#bbf7d0" : "#fecaca"}` }}>
+                <p style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 8 }}>Profit Preview</p>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
+                  <div>
+                    <p style={{ fontSize: 11, color: "#64748b" }}>Sale Price</p>
+                    <p style={{ fontSize: 14, fontWeight: 700, color: "#041830" }}>{fmt(sp)}</p>
+                  </div>
+                  <div>
+                    <p style={{ fontSize: 11, color: "#64748b" }}>Total Costs</p>
+                    <p style={{ fontSize: 14, fontWeight: 700, color: "#b91c1c" }}>{fmt(flip.purchasePrice + rehabSpent + totalHolding + sc + bc)}</p>
+                  </div>
+                  <div>
+                    <p style={{ fontSize: 11, color: "#64748b" }}>Net Profit</p>
+                    <p style={{ fontSize: 14, fontWeight: 800, color: netProfit >= 0 ? "#15803d" : "#b91c1c" }}>{netProfit >= 0 ? "+" : ""}{fmt(netProfit)}</p>
+                  </div>
+                </div>
+                <div style={{ marginTop: 10, display: "flex", gap: 16, fontSize: 11, color: "#64748b" }}>
+                  <span>Purchase: {fmt(flip.purchasePrice)}</span>
+                  <span>Rehab: {fmt(rehabSpent)}</span>
+                  <span>Holding ({holdDays}d): {fmt(totalHolding)}</span>
+                  <span>Selling: {fmt(sc)}</span>
+                  {bc > 0 && <span>Credit: {fmt(bc)}</span>}
+                </div>
+              </div>
+            );
+          })()}
+          <div style={{ display: "flex", gap: 10 }}>
+            <button onClick={() => setShowCloseDeal(false)} style={{ flex: 1, padding: "12px", border: "1px solid #e2e8f0", borderRadius: 10, background: "#fff", color: "#475569", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
+            <button onClick={() => {
+              const sp = parseFloat(closeForm.salePrice) || 0;
+              if (!sp || !closeForm.closeDate) return;
+              const sc = parseFloat(closeForm.sellingCosts) || 0;
+              const bc = parseFloat(closeForm.buyerCredit) || 0;
+              const rehabSpent = (rehabItems || []).reduce((s, i) => s + (i.spent || 0), 0);
+              const holdDays = Math.max(0, Math.ceil((new Date(closeForm.closeDate) - new Date(flip.acquisitionDate || flip.contractDate)) / 86400000));
+              const totalHolding = Math.round((flip.holdingCostsPerMonth || 0) * (holdDays / 30));
+              const netProfit = sp - flip.purchasePrice - rehabSpent - totalHolding - sc - bc;
+              // Update the flip with final sale data
+              const soldData = {
+                stage: "Sold", salePrice: sp, closeDate: closeForm.closeDate,
+                sellingCosts: sc, buyerCredit: bc, rehabSpent, daysOwned: holdDays,
+                totalHoldingCosts: totalHolding, netProfit,
+              };
+              const idx = FLIPS.findIndex(f => f.id === flip.id);
+              if (idx !== -1) Object.assign(FLIPS[idx], soldData);
+              if (setAllFlips) setAllFlips(prev => prev.map(f => f.id === flip.id ? { ...f, ...soldData } : f));
+              setStage("Sold");
+              if (closeForm.closingNotes.trim()) {
+                setDealNotes(prev => [{ id: newId(), date: today, text: closeForm.closingNotes.trim() }, ...prev]);
+              }
+              setDealNotes(prev => [{ id: newId(), date: today, text: `Deal closed — sold for ${fmt(sp)} with net profit of ${fmt(netProfit)}.` }, ...prev]);
+              setShowCloseDeal(false);
+            }} disabled={!closeForm.salePrice || !closeForm.closeDate} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: (!closeForm.salePrice || !closeForm.closeDate) ? "#cbd5e1" : "#15803d", color: "#fff", fontWeight: 700, cursor: (!closeForm.salePrice || !closeForm.closeDate) ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+              <DollarSign size={14} /> Mark as Sold
+            </button>
           </div>
         </Modal>
       )}
