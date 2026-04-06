@@ -26,12 +26,12 @@ export const fmtK = (n) =>
 // -----------------------------------------------------------------------------
 // Constants (move to DB config table later)
 // -----------------------------------------------------------------------------
-export const PROP_COLORS  = ["#3b82f6","#10b981","#8b5cf6","#f59e0b","#ef4444","#06b6d4","#ec4899"];
-export const FLIP_COLORS  = ["#f59e0b","#10b981","#8b5cf6","#3b82f6","#ef4444","#06b6d4"];
+export const PROP_COLORS  = ["#3b82f6","#10b981","#8b5cf6","#e95e00","#ef4444","#06b6d4","#ec4899"];
+export const FLIP_COLORS  = ["#e95e00","#10b981","#8b5cf6","#3b82f6","#ef4444","#06b6d4"];
 export const STAGE_ORDER  = ["Under Contract","Active Rehab","Listed","Sold"];
 export const STAGE_COLORS = {
   "Under Contract": { bg: "#ede9fe", text: "#6d28d9", dot: "#8b5cf6" },
-  "Active Rehab":   { bg: "#fef9c3", text: "#a16207", dot: "#f59e0b" },
+  "Active Rehab":   { bg: "#fff7ed", text: "#9a3412", dot: "#e95e00" },
   "Listed":         { bg: "#dbeafe", text: "#1d4ed8", dot: "#3b82f6" },
   "Sold":           { bg: "#dcfce7", text: "#15803d", dot: "#10b981" },
 };

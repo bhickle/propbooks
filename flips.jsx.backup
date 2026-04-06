@@ -31,7 +31,7 @@ import { FLIPS as _FLIPS, FLIP_EXPENSES as _FE, CONTRACTORS as _CON, FLIP_MILEST
 // ---------------------------------------------------------------------------
 // Shared helpers
 // ---------------------------------------------------------------------------
-const iS = { width: "100%", padding: "10px 12px", border: "1px solid #e2e8f0", borderRadius: 10, fontSize: 14, color: "#041830", background: "#fff", outline: "none", boxSizing: "border-box" };
+const iS = { width: "100%", padding: "10px 12px", border: "1px solid #e2e8f0", borderRadius: 10, fontSize: 14, color: "#0f172a", background: "#fff", outline: "none", boxSizing: "border-box" };
 
 // ── Attachment components (mirrors RealVault.jsx versions) ──
 function FlipAttachmentZone({ onFiles, accept = "image/*,.pdf", label = "Drop file here or click to browse", compact = false }) {
@@ -61,7 +61,7 @@ function FlipAttachmentList({ items, onRemove, compact = false }) {
           <div key={item.id} style={{ display: "flex", alignItems: "center", gap: 10, background: "#f8fafc", borderRadius: 10, padding: compact ? "6px 10px" : "8px 12px", border: "1px solid #f1f5f9" }}>
             <Icon size={16} color="#64748b" style={{ flexShrink: 0 }} />
             <div style={{ flex: 1, minWidth: 0 }}>
-              <p style={{ fontSize: 12, fontWeight: 600, color: "#041830", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.name}</p>
+              <p style={{ fontSize: 12, fontWeight: 600, color: "#0f172a", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.name}</p>
               {item.size && <p style={{ fontSize: 11, color: "#94a3b8" }}>{item.size}</p>}
             </div>
             {item.ocrData && <span style={{ fontSize: 10, fontWeight: 600, color: "#15803d", background: "#dcfce7", borderRadius: 6, padding: "2px 6px", flexShrink: 0 }}>OCR</span>}
@@ -92,9 +92,9 @@ function FlipOcrPrompt({ attachment, onResult, onDismiss }) {
   };
   if (scanning) {
     return (
-      <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", background: "#fff7ed", borderRadius: 10, border: "1px solid #fdba74", marginTop: 6 }}>
-        <Loader size={14} color="#e95e00" style={{ animation: "spin 1s linear infinite" }} />
-        <span style={{ fontSize: 12, color: "#9a3412", fontWeight: 600 }}>Reading receipt...</span>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", background: "#fffbeb", borderRadius: 10, border: "1px solid #fde68a", marginTop: 6 }}>
+        <Loader size={14} color="#f59e0b" style={{ animation: "spin 1s linear infinite" }} />
+        <span style={{ fontSize: 12, color: "#92400e", fontWeight: 600 }}>Reading receipt...</span>
         <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
       </div>
     );
@@ -135,7 +135,7 @@ function StatCard({ icon: Icon, label, value, sub, color = "#3b82f6", trend, tre
             <p style={{ color: "#94a3b8", fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 6 }}>{label}</p>
             {tip && <InfoTip text={tip} />}
           </div>
-          <p style={{ color: "#041830", fontSize: 26, fontWeight: 800, lineHeight: 1 }}>{value}</p>
+          <p style={{ color: "#0f172a", fontSize: 26, fontWeight: 800, lineHeight: 1 }}>{value}</p>
           {sub && <p style={{ color: "#64748b", fontSize: 12, marginTop: 4 }}>{sub}</p>}
         </div>
         <div style={{ background: color + "18", borderRadius: 12, padding: 10 }}>
@@ -157,7 +157,7 @@ function PageHeader({ title, sub, action, filter }) {
   return (
     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
       <div>
-        <h1 style={{ color: "#041830", fontSize: 26, fontWeight: 700, marginBottom: 4 }}>{title}</h1>
+        <h1 style={{ color: "#0f172a", fontSize: 26, fontWeight: 700, marginBottom: 4 }}>{title}</h1>
         <p style={{ color: "#64748b", fontSize: 15 }}>{sub}</p>
       </div>
       <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
@@ -177,14 +177,14 @@ function InfoTip({ text }) {
       {show && (
         <span style={{
           position: "absolute", bottom: "calc(100% + 8px)", left: "50%", transform: "translateX(-50%)",
-          background: "#041830", color: "#f8fafc", fontSize: 12, lineHeight: 1.5, fontWeight: 400,
+          background: "#0f172a", color: "#f8fafc", fontSize: 12, lineHeight: 1.5, fontWeight: 400,
           padding: "10px 14px", borderRadius: 10, width: 240, zIndex: 50,
           boxShadow: "0 8px 24px rgba(0,0,0,0.2)", pointerEvents: "none", whiteSpace: "normal", border: "1px solid #e2e8f0",
         }}>
           {text}
           <span style={{
             position: "absolute", top: "100%", left: "50%", transform: "translateX(-50%)",
-            border: "6px solid transparent", borderTopColor: "#041830",
+            border: "6px solid transparent", borderTopColor: "#0f172a",
           }} />
         </span>
       )}
@@ -285,7 +285,7 @@ export function FlipDashboard({ onSelect, onNavigateToNote, onNavigateToExpense,
       <PageHeader title="Overview" sub="All fix & flip deals at a glance" />
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 20 }}>
-        <StatCard icon={Hammer}     label="Active Deals"     value={active.length}              sub={isFiltered ? "Filtered" : "In pipeline"}        color="#e95e00" trend={!isFiltered ? "up" : undefined} trendVal="+1 this quarter" tip="Number of deals in active pipeline stages (not Sold)." />
+        <StatCard icon={Hammer}     label="Active Deals"     value={active.length}              sub={isFiltered ? "Filtered" : "In pipeline"}        color="#f59e0b" trend={!isFiltered ? "up" : undefined} trendVal="+1 this quarter" tip="Number of deals in active pipeline stages (not Sold)." />
         <StatCard icon={DollarSign} label="Capital Deployed" value={fmtK(totalDeployed)}        sub={isFiltered ? "Filtered" : "Purchase + rehab"}   color="#3b82f6" tip="Total Purchase Price + Rehab Budget across active deals." />
         <StatCard icon={TrendingUp} label="Projected Profit" value={fmtK(Math.round(projectedProfit))} sub={isFiltered ? "Filtered" : "Active deals"}  color="#10b981" tip="ARV − Purchase − Rehab Budget − Estimated Holding & Selling Costs for all active deals." />
         <StatCard icon={Star}       label="Realized Profit"  value={fmt(realizedProfit)}        sub={isFiltered ? "Filtered" : "Closed deals YTD"}   color="#8b5cf6" trend={!isFiltered ? "up" : undefined} trendVal="+$61K YTD" tip="Actual profit from closed/sold deals this year." />
@@ -299,7 +299,7 @@ export function FlipDashboard({ onSelect, onNavigateToNote, onNavigateToExpense,
             const label = s === "all" ? "All Stages" : s;
             const count = s === "all" ? allFlips.length : allFlips.filter(f => f.stage === s).length;
             return (
-              <button key={s} onClick={() => setFilterStage(s)} style={{ padding: "7px 14px", borderRadius: 8, border: "none", background: active2 ? "#e95e00" : "transparent", color: active2 ? "#fff" : "#64748b", fontWeight: active2 ? 700 : 500, fontSize: 12, cursor: "pointer", whiteSpace: "nowrap", transition: "all 0.15s" }}>
+              <button key={s} onClick={() => setFilterStage(s)} style={{ padding: "7px 14px", borderRadius: 8, border: "none", background: active2 ? "#f59e0b" : "transparent", color: active2 ? "#fff" : "#64748b", fontWeight: active2 ? 700 : 500, fontSize: 12, cursor: "pointer", whiteSpace: "nowrap", transition: "all 0.15s" }}>
                 {label} ({count})
               </button>
             );
@@ -315,7 +315,7 @@ export function FlipDashboard({ onSelect, onNavigateToNote, onNavigateToExpense,
       <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 20, marginBottom: 20 }}>
         {/* Active Flips Table */}
         <div style={{ background: "#fff", borderRadius: 16, padding: 22, border: "1px solid #f1f5f9" }}>
-          <p style={{ color: "#041830", fontSize: 16, fontWeight: 700, marginBottom: 16 }}>Active Deals</p>
+          <p style={{ color: "#0f172a", fontSize: 16, fontWeight: 700, marginBottom: 16 }}>Active Deals</p>
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr>
@@ -336,16 +336,16 @@ export function FlipDashboard({ onSelect, onNavigateToNote, onNavigateToExpense,
                         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                           <div style={{ width: 32, height: 32, borderRadius: 8, background: f.color + "20", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, color: f.color }}>{f.image}</div>
                           <div>
-                            <p style={{ color: "#041830", fontSize: 13, fontWeight: 600 }}>{f.name}</p>
+                            <p style={{ color: "#0f172a", fontSize: 13, fontWeight: 600 }}>{f.name}</p>
                             <p style={{ color: "#94a3b8", fontSize: 11 }}>{f.address.split(",")[1]?.trim()}</p>
                           </div>
                         </div>
                       </button>
                     </td>
                     <td style={{ padding: "12px 0" }}><StageDot stage={f.stage} /></td>
-                    <td style={{ padding: "12px 0", color: "#041830", fontSize: 13, fontWeight: 500 }}>{f.daysOwned}d</td>
+                    <td style={{ padding: "12px 0", color: "#0f172a", fontSize: 13, fontWeight: 500 }}>{f.daysOwned}d</td>
                     <td style={{ padding: "12px 0" }}>
-                      <span style={{ color: budgetLeft < 0 ? "#ef4444" : "#041830", fontSize: 13, fontWeight: 600 }}>{fmt(budgetLeft)}</span>
+                      <span style={{ color: budgetLeft < 0 ? "#ef4444" : "#0f172a", fontSize: 13, fontWeight: 600 }}>{fmt(budgetLeft)}</span>
                     </td>
                     <td style={{ padding: "12px 0" }}>
                       <span style={{ color: proj > 0 ? "#10b981" : "#ef4444", fontSize: 13, fontWeight: 600 }}>{fmt(Math.round(proj))}</span>
@@ -360,18 +360,18 @@ export function FlipDashboard({ onSelect, onNavigateToNote, onNavigateToExpense,
         {/* Stage Breakdown + Recent Activity */}
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           <div style={{ background: "#fff", borderRadius: 16, padding: 22, border: "1px solid #f1f5f9" }}>
-            <p style={{ color: "#041830", fontSize: 15, fontWeight: 700, marginBottom: 14 }}>By Stage</p>
+            <p style={{ color: "#0f172a", fontSize: 15, fontWeight: 700, marginBottom: 14 }}>By Stage</p>
             {stageBreakdown.map(s => (
               <div key={s.stage} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
                 <div style={{ width: 10, height: 10, borderRadius: "50%", background: s.color, flexShrink: 0 }} />
                 <span style={{ color: "#374151", fontSize: 13, flex: 1 }}>{s.stage}</span>
-                <span style={{ color: "#041830", fontWeight: 700, fontSize: 13 }}>{s.count}</span>
+                <span style={{ color: "#0f172a", fontWeight: 700, fontSize: 13 }}>{s.count}</span>
               </div>
             ))}
           </div>
 
           <div style={{ background: "#fff", borderRadius: 16, padding: 22, border: "1px solid #f1f5f9", flex: 1 }}>
-            <p style={{ color: "#041830", fontSize: 15, fontWeight: 700, marginBottom: 14 }}>Recent Activity</p>
+            <p style={{ color: "#0f172a", fontSize: 15, fontWeight: 700, marginBottom: 14 }}>Recent Activity</p>
             {recentActivity.length === 0 && (
               <p style={{ color: "#94a3b8", fontSize: 12 }}>No activity yet. Complete milestones, log expenses, or add notes to see updates here.</p>
             )}
@@ -394,7 +394,7 @@ export function FlipDashboard({ onSelect, onNavigateToNote, onNavigateToExpense,
       {/* Rehab Budget Overview Bar */}
       <div style={{ background: "#fff", borderRadius: 16, padding: 22, border: "1px solid #f1f5f9" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-          <p style={{ color: "#041830", fontSize: 16, fontWeight: 700 }}>Rehab Budget Overview</p>
+          <p style={{ color: "#0f172a", fontSize: 16, fontWeight: 700 }}>Rehab Budget Overview</p>
           <div style={{ display: "flex", gap: 16 }}>
             <span style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "#64748b" }}><span style={{ width: 10, height: 10, borderRadius: 2, background: "#3b82f6", display: "inline-block" }} />Budgeted</span>
             <span style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "#64748b" }}><span style={{ width: 10, height: 10, borderRadius: 2, background: "#10b981", display: "inline-block" }} />Spent</span>
@@ -449,7 +449,7 @@ export function RehabTracker() {
 
   const statusStyle = {
     "complete":    { bg: "#dcfce7", text: "#15803d", label: "Complete"    },
-    "in-progress": { bg: "#fff7ed", text: "#9a3412", label: "In Progress" },
+    "in-progress": { bg: "#fef9c3", text: "#a16207", label: "In Progress" },
     "pending":     { bg: "#f1f5f9", text: "#64748b", label: "Pending"     },
   };
 
@@ -557,7 +557,7 @@ export function RehabTracker() {
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 24 }}>
         <StatCard icon={Target}      label="Total Budget"  value={fmtK(totalBudget)} sub="Active deals"   color="#3b82f6" tip="Sum of rehab budgets across all active deals." />
-        <StatCard icon={Receipt}     label="Total Spent"   value={fmt(totalSpent)}   sub="To date"        color="#e95e00" tip="Total amount spent on rehab across all deals to date." />
+        <StatCard icon={Receipt}     label="Total Spent"   value={fmt(totalSpent)}   sub="To date"        color="#f59e0b" tip="Total amount spent on rehab across all deals to date." />
         <StatCard icon={DollarSign}  label="Budget Left"   value={fmt(totalLeft)}    sub={totalLeft < 0 ? "OVER BUDGET" : "Remaining"} color={totalLeft < 0 ? "#ef4444" : "#10b981"} tip="Total Budget − Total Spent. Negative means over budget." />
         <StatCard icon={CheckCircle} label="Tasks Done"    value={`${complete}/${allItems.length}`} sub={`${inProgress} in progress`} color="#8b5cf6" tip="Completed rehab line items out of total across all deals." />
       </div>
@@ -574,7 +574,7 @@ export function RehabTracker() {
         <div style={{ background: "#f1f5f9", borderRadius: 10, padding: "8px 14px", display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: "#64748b" }}>
           <Search size={13} /> {filtered.length} items
         </div>
-        <button onClick={() => setShowAddItem(true)} style={{ marginLeft: "auto", background: "#e95e00", color: "#fff", border: "none", borderRadius: 10, padding: "9px 16px", fontWeight: 600, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
+        <button onClick={() => setShowAddItem(true)} style={{ marginLeft: "auto", background: "#f59e0b", color: "#fff", border: "none", borderRadius: 10, padding: "9px 16px", fontWeight: 600, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
           <Plus size={14} /> Add Rehab Item
         </button>
       </div>
@@ -598,7 +598,7 @@ export function RehabTracker() {
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                   <div style={{ width: 36, height: 36, borderRadius: 9, background: f.color + "20", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, color: f.color }}>{f.image}</div>
                   <div>
-                    <p style={{ color: "#041830", fontWeight: 700, fontSize: 15 }}>{f.name}</p>
+                    <p style={{ color: "#0f172a", fontWeight: 700, fontSize: 15 }}>{f.name}</p>
                     <p style={{ color: "#94a3b8", fontSize: 12 }}>
                       {fmt(flipSpent)} spent of {fmt(flipBudget)} · {assignedCount}/{items.length} scopes assigned
                     </p>
@@ -631,9 +631,9 @@ export function RehabTracker() {
                     const isEditing   = editingItem?.flipId === f.id && editingItem?.idx === item._idx;
 
                     return (
-                      <tr key={i} style={{ borderBottom: i < items.length - 1 ? "1px solid #f8fafc" : "none", background: isEditing ? "#fff7ed" : "transparent" }}>
+                      <tr key={i} style={{ borderBottom: i < items.length - 1 ? "1px solid #f8fafc" : "none", background: isEditing ? "#fffbeb" : "transparent" }}>
                         {/* Category */}
-                        <td style={{ padding: "10px 0 10px", color: "#041830", fontSize: 13, fontWeight: 500, paddingRight: 12 }}>
+                        <td style={{ padding: "10px 0 10px", color: "#0f172a", fontSize: 13, fontWeight: 500, paddingRight: 12 }}>
                           {item.category}
                         </td>
 
@@ -657,7 +657,7 @@ export function RehabTracker() {
                                     style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8", padding: 0, display: "flex", alignItems: "center" }}>
                                     <X size={10} />
                                   </button>
-                                  {mm1 && <span title={`${con.name} still marked active`} style={{ cursor: "help" }}><AlertCircle size={12} color="#e95e00" /></span>}
+                                  {mm1 && <span title={`${con.name} still marked active`} style={{ cursor: "help" }}><AlertCircle size={12} color="#f59e0b" /></span>}
                                   {mm2 && <span title={`${con.name} is complete but item isn't`} style={{ cursor: "help" }}><AlertCircle size={12} color="#3b82f6" /></span>}
                                 </div>
                               );
@@ -699,7 +699,7 @@ export function RehabTracker() {
                             <input type="number" value={editVals.budgeted} onChange={e => setEditVals(v => ({ ...v, budgeted: e.target.value }))}
                               style={{ ...iS, padding: "4px 8px", fontSize: 12, width: 100 }} />
                           ) : (
-                            <span style={{ color: "#041830", fontSize: 13 }}>{fmt(item.budgeted)}</span>
+                            <span style={{ color: "#0f172a", fontSize: 13 }}>{fmt(item.budgeted)}</span>
                           )}
                         </td>
 
@@ -709,7 +709,7 @@ export function RehabTracker() {
                             <input type="number" value={editVals.spent} onChange={e => setEditVals(v => ({ ...v, spent: e.target.value }))}
                               style={{ ...iS, padding: "4px 8px", fontSize: 12, width: 100 }} />
                           ) : (
-                            <span style={{ color: "#041830", fontSize: 13 }}>{fmt(item.spent)}</span>
+                            <span style={{ color: "#0f172a", fontSize: 13 }}>{fmt(item.spent)}</span>
                           )}
                         </td>
 
@@ -758,7 +758,7 @@ export function RehabTracker() {
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
           <div style={{ background: "#fff", borderRadius: 20, padding: 32, width: 480, boxShadow: "0 20px 60px rgba(0,0,0,0.18)" }}>
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 20 }}>
-              <h2 style={{ color: "#041830", fontSize: 19, fontWeight: 700 }}>Add Rehab Item</h2>
+              <h2 style={{ color: "#0f172a", fontSize: 19, fontWeight: 700 }}>Add Rehab Item</h2>
               <button onClick={() => setShowAddItem(false)} style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8" }}><X size={20} /></button>
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -785,16 +785,16 @@ export function RehabTracker() {
                     <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, background: "#fff", border: "1px solid #e2e8f0", borderRadius: 12, boxShadow: "0 8px 24px rgba(0,0,0,0.10)", zIndex: 200, overflow: "hidden", maxHeight: 200, overflowY: "auto" }}>
                       {matches.slice(0, 6).map(c => (
                         <button key={c} onMouseDown={() => { setItemForm(f => ({ ...f, category: c })); setCatFocus(false); }}
-                          style={{ width: "100%", padding: "10px 14px", background: "none", border: "none", borderBottom: "1px solid #f1f5f9", textAlign: "left", cursor: "pointer", fontSize: 13, color: "#041830", display: "flex", alignItems: "center", gap: 8 }}>
+                          style={{ width: "100%", padding: "10px 14px", background: "none", border: "none", borderBottom: "1px solid #f1f5f9", textAlign: "left", cursor: "pointer", fontSize: 13, color: "#0f172a", display: "flex", alignItems: "center", gap: 8 }}>
                           <Wrench size={13} style={{ color: "#94a3b8", flexShrink: 0 }} />
                           <span>{c}</span>
                         </button>
                       ))}
                       {showNew && (
                         <button onMouseDown={() => { setItemForm(f => ({ ...f, category: f.category })); setCatFocus(false); }}
-                          style={{ width: "100%", padding: "10px 14px", display: "flex", alignItems: "center", gap: 8, background: "#fff7ed", border: "none", borderTop: matches.length > 0 ? "1px solid #e2e8f0" : "none", cursor: "pointer", textAlign: "left" }}>
-                          <Plus size={13} style={{ color: "#e95e00", flexShrink: 0 }} />
-                          <span style={{ fontSize: 13, color: "#e95e00", fontWeight: 600 }}>Add &ldquo;{itemForm.category}&rdquo; as new</span>
+                          style={{ width: "100%", padding: "10px 14px", display: "flex", alignItems: "center", gap: 8, background: "#fffbeb", border: "none", borderTop: matches.length > 0 ? "1px solid #e2e8f0" : "none", cursor: "pointer", textAlign: "left" }}>
+                          <Plus size={13} style={{ color: "#f59e0b", flexShrink: 0 }} />
+                          <span style={{ fontSize: 13, color: "#f59e0b", fontWeight: 600 }}>Add &ldquo;{itemForm.category}&rdquo; as new</span>
                         </button>
                       )}
                     </div>
@@ -821,7 +821,7 @@ export function RehabTracker() {
               </div>
             </div>
             <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
-              <button onClick={saveLineItem} style={{ flex: 1, padding: "11px", borderRadius: 10, border: "none", background: "#e95e00", color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer" }}>Add Rehab Item</button>
+              <button onClick={saveLineItem} style={{ flex: 1, padding: "11px", borderRadius: 10, border: "none", background: "#f59e0b", color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer" }}>Add Rehab Item</button>
               <button onClick={() => setShowAddItem(false)} style={{ padding: "11px 18px", borderRadius: 10, border: "1.5px solid #e2e8f0", background: "#fff", fontWeight: 600, fontSize: 14, cursor: "pointer", color: "#64748b" }}>Cancel</button>
             </div>
           </div>
@@ -830,10 +830,10 @@ export function RehabTracker() {
       {deleteConfirm && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
           <div style={{ background: "#fff", borderRadius: 20, width: 480, padding: 28 }}>
-            <h2 style={{ color: "#041830", fontSize: 18, fontWeight: 700, marginBottom: 14 }}>Delete Rehab Item</h2>
+            <h2 style={{ color: "#0f172a", fontSize: 18, fontWeight: 700, marginBottom: 14 }}>Delete Rehab Item</h2>
             <p style={{ color: "#475569", fontSize: 14, marginBottom: 8 }}>Are you sure you want to delete this rehab item?</p>
             <div style={{ background: "#f8fafc", borderRadius: 10, padding: 14, marginBottom: 18 }}>
-              <p style={{ fontSize: 13, fontWeight: 600, color: "#041830" }}>{deleteConfirm.category}</p>
+              <p style={{ fontSize: 13, fontWeight: 600, color: "#0f172a" }}>{deleteConfirm.category}</p>
               <p style={{ fontSize: 12, color: "#64748b", marginTop: 4 }}>Budget: ${deleteConfirm.budgeted?.toLocaleString()} · Spent: ${deleteConfirm.spent?.toLocaleString()}</p>
             </div>
             <p style={{ color: "#94a3b8", fontSize: 12, marginBottom: 18 }}>This action cannot be undone.</p>
@@ -988,7 +988,7 @@ export function FlipExpenses({ highlightExpId, onBack, onClearHighlight, backLab
   return (
     <div>
       {onBack && (
-        <button onClick={onBack} style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: "none", color: "#e95e00", fontSize: 13, fontWeight: 600, cursor: "pointer", padding: "0 0 12px" }}>
+        <button onClick={onBack} style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: "none", color: "#f59e0b", fontSize: 13, fontWeight: 600, cursor: "pointer", padding: "0 0 12px" }}>
           <ChevronLeft size={14} /> {backLabel || "Back to Deal"}
         </button>
       )}
@@ -1004,7 +1004,7 @@ export function FlipExpenses({ highlightExpId, onBack, onClearHighlight, backLab
       />
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, marginBottom: 24 }}>
-        <StatCard icon={Receipt}    label="Total Expenses"    value={fmt(total)}     sub={`${filtered.length} transactions`} color="#e95e00" tip="Sum of all expenses matching the current filters." />
+        <StatCard icon={Receipt}    label="Total Expenses"    value={fmt(total)}     sub={`${filtered.length} transactions`} color="#f59e0b" tip="Sum of all expenses matching the current filters." />
         <StatCard icon={TrendingUp}  label="Largest Expense"   value={highestExp ? fmt(highestExp.amount) : "—"} sub={highestExp ? `${highestExp.description || highestExp.category}` : "No expenses"} color="#3b82f6" tip="The single highest expense in the current filtered view." />
         <StatCard icon={Hammer}     label="Largest Category"  value={catTotals[0]?.cat || "—"} sub={catTotals[0] ? fmt(catTotals[0].total) : ""}  color="#8b5cf6" tip="The expense category with the highest total spend." />
       </div>
@@ -1014,7 +1014,7 @@ export function FlipExpenses({ highlightExpId, onBack, onClearHighlight, backLab
         <div style={{ position: "relative", flex: "1 1 200px", minWidth: 180 }}>
           <Search size={15} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "#94a3b8" }} />
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search..."
-            style={{ width: "100%", paddingLeft: 36, paddingRight: 12, paddingTop: 9, paddingBottom: 9, border: "1px solid #e2e8f0", borderRadius: 10, fontSize: 13, color: "#041830", background: "#fff", outline: "none", boxSizing: "border-box" }} />
+            style={{ width: "100%", paddingLeft: 36, paddingRight: 12, paddingTop: 9, paddingBottom: 9, border: "1px solid #e2e8f0", borderRadius: 10, fontSize: 13, color: "#0f172a", background: "#fff", outline: "none", boxSizing: "border-box" }} />
         </div>
         <select value={filterCat} onChange={e => setFilterCat(e.target.value)} style={{ ...iS, width: "auto", minWidth: 160, fontSize: 13, padding: "9px 12px" }}>
           <option value="all">All Categories</option>
@@ -1039,7 +1039,7 @@ export function FlipExpenses({ highlightExpId, onBack, onClearHighlight, backLab
             <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} style={{ ...iS, width: "auto", fontSize: 13, padding: "9px 12px" }} />
           </>
         )}
-        <button onClick={openAdd} style={{ marginLeft: "auto", background: "#e95e00", color: "#fff", border: "none", borderRadius: 10, padding: "9px 16px", fontWeight: 600, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
+        <button onClick={openAdd} style={{ marginLeft: "auto", background: "#f59e0b", color: "#fff", border: "none", borderRadius: 10, padding: "9px 16px", fontWeight: 600, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
           <Plus size={14} /> Add Expense
         </button>
       </div>
@@ -1048,7 +1048,7 @@ export function FlipExpenses({ highlightExpId, onBack, onClearHighlight, backLab
         <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap", alignItems: "center" }}>
           <span style={{ fontSize: 12, color: "#94a3b8", fontWeight: 600 }}>Filtered:</span>
           {filterFlip !== "all" && <span style={{ background: "#eff6ff", color: "#3b82f6", borderRadius: 20, padding: "3px 10px", fontSize: 12, fontWeight: 600 }}>{_FLIPS.find(f => f.id === parseInt(filterFlip))?.name || filterFlip}</span>}
-          {filterCat !== "all" && <span style={{ background: "#fff7ed", color: "#7c2d12", borderRadius: 20, padding: "3px 10px", fontSize: 12, fontWeight: 600 }}>{filterCat}</span>}
+          {filterCat !== "all" && <span style={{ background: "#fef9c3", color: "#854d0e", borderRadius: 20, padding: "3px 10px", fontSize: 12, fontWeight: 600 }}>{filterCat}</span>}
           {dateFilter !== "all" && <span style={{ background: "#f0fdf4", color: "#15803d", borderRadius: 20, padding: "3px 10px", fontSize: 12, fontWeight: 600 }}>{{ thisMonth: "This Month", lastMonth: "Last Month", thisYear: "This Year", lastYear: "Last Year", custom: dateFrom && dateTo ? `${dateFrom} – ${dateTo}` : "Custom Range" }[dateFilter]}</span>}
           {search && <span style={{ background: "#f1f5f9", color: "#475569", borderRadius: 20, padding: "3px 10px", fontSize: 12, fontWeight: 600 }}>&ldquo;{search}&rdquo;</span>}
           <button onClick={clearAllFilters} style={{ background: "none", border: "none", color: "#94a3b8", fontSize: 12, cursor: "pointer", textDecoration: "underline", padding: 0 }}>Clear all</button>
@@ -1069,13 +1069,13 @@ export function FlipExpenses({ highlightExpId, onBack, onClearHighlight, backLab
             {filtered.length === 0 && (
               <tr><td colSpan={7} style={{ padding: "48px 20px", textAlign: "center", color: "#94a3b8", fontSize: 14 }}>
                 No expenses match your filters.{" "}
-                <button onClick={clearAllFilters} style={{ background: "none", border: "none", color: "#e95e00", fontSize: 14, cursor: "pointer", textDecoration: "underline", padding: 0 }}>Clear filters</button>
+                <button onClick={clearAllFilters} style={{ background: "none", border: "none", color: "#f59e0b", fontSize: 14, cursor: "pointer", textDecoration: "underline", padding: 0 }}>Clear filters</button>
               </td></tr>
             )}
             {filtered.map((e, i) => {
               const flip = _FLIPS.find(f => f.id === e.flipId);
               return (
-                <tr key={e.id} ref={e.id === flashId ? highlightRef : undefined} style={{ borderTop: "1px solid #f1f5f9", background: e.id === flashId ? "#fff7ed" : "transparent", transition: "background 1.5s ease" }}>
+                <tr key={e.id} ref={e.id === flashId ? highlightRef : undefined} style={{ borderTop: "1px solid #f1f5f9", background: e.id === flashId ? "#fef9c3" : "transparent", transition: "background 1.5s ease" }}>
                   <td style={{ padding: "12px 16px", color: "#64748b", fontSize: 13 }}>{e.date}</td>
                   <td style={{ padding: "12px 16px" }}>
                     {flip && (
@@ -1085,12 +1085,12 @@ export function FlipExpenses({ highlightExpId, onBack, onClearHighlight, backLab
                       </span>
                     )}
                   </td>
-                  <td style={{ padding: "12px 16px", color: "#041830", fontSize: 13, fontWeight: 500 }}>{e.vendor}</td>
+                  <td style={{ padding: "12px 16px", color: "#0f172a", fontSize: 13, fontWeight: 500 }}>{e.vendor}</td>
                   <td style={{ padding: "12px 16px" }}>
                     <span style={{ background: "#f1f5f9", color: "#475569", borderRadius: 6, padding: "2px 8px", fontSize: 11, fontWeight: 600 }}>{e.category}</span>
                   </td>
                   <td style={{ padding: "12px 16px", color: "#64748b", fontSize: 13 }}>{e.description}</td>
-                  <td style={{ padding: "12px 16px", color: "#041830", fontSize: 13, fontWeight: 700 }}>{fmt(e.amount)}</td>
+                  <td style={{ padding: "12px 16px", color: "#0f172a", fontSize: 13, fontWeight: 700 }}>{fmt(e.amount)}</td>
                   <td style={{ padding: "12px 16px" }}>
                     <div style={{ display: "flex", gap: 4 }}>
                       <button onClick={() => openEdit(e)} style={{ background: "#f1f5f9", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "#475569", display: "flex", alignItems: "center" }} title="Edit"><Pencil size={13} /></button>
@@ -1106,7 +1106,7 @@ export function FlipExpenses({ highlightExpId, onBack, onClearHighlight, backLab
           </tbody>
         </table>
         <div style={{ padding: "12px 16px", borderTop: "1px solid #f1f5f9", background: "#f8fafc", display: "flex", justifyContent: "flex-end", gap: 24 }}>
-          <span style={{ fontSize: 13, color: "#64748b" }}>Total: <strong style={{ color: "#041830" }}>{fmt(total)}</strong></span>
+          <span style={{ fontSize: 13, color: "#64748b" }}>Total: <strong style={{ color: "#0f172a" }}>{fmt(total)}</strong></span>
         </div>
       </div>
 
@@ -1115,7 +1115,7 @@ export function FlipExpenses({ highlightExpId, onBack, onClearHighlight, backLab
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
           <div style={{ background: "#fff", borderRadius: 20, padding: 32, width: 480, boxShadow: "0 20px 60px rgba(0,0,0,0.18)" }}>
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 20 }}>
-              <h2 style={{ color: "#041830", fontSize: 19, fontWeight: 700 }}>{editId ? "Edit Expense" : "Add Expense"}</h2>
+              <h2 style={{ color: "#0f172a", fontSize: 19, fontWeight: 700 }}>{editId ? "Edit Expense" : "Add Expense"}</h2>
               <button onClick={() => { setShowModal(false); setEditId(null); }} style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8" }}><X size={20} /></button>
             </div>
             {flipReceipts.length === 0 && (
@@ -1160,16 +1160,16 @@ export function FlipExpenses({ highlightExpId, onBack, onClearHighlight, backLab
                     <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, background: "#fff", border: "1px solid #e2e8f0", borderRadius: 12, boxShadow: "0 8px 24px rgba(0,0,0,0.10)", zIndex: 200, overflow: "hidden", maxHeight: 200, overflowY: "auto" }}>
                       {matches.slice(0, 6).map(v => (
                         <button key={v} onMouseDown={() => { setForm(f => ({ ...f, vendor: v })); setVendorFocus(false); }}
-                          style={{ width: "100%", padding: "10px 14px", background: "none", border: "none", borderBottom: "1px solid #f1f5f9", textAlign: "left", cursor: "pointer", fontSize: 13, color: "#041830", display: "flex", alignItems: "center", gap: 8 }}>
+                          style={{ width: "100%", padding: "10px 14px", background: "none", border: "none", borderBottom: "1px solid #f1f5f9", textAlign: "left", cursor: "pointer", fontSize: 13, color: "#0f172a", display: "flex", alignItems: "center", gap: 8 }}>
                           <Users size={13} style={{ color: "#94a3b8", flexShrink: 0 }} />
                           <span>{v}</span>
                         </button>
                       ))}
                       {showNew && (
                         <button onMouseDown={() => { setForm(f => ({ ...f, vendor: f.vendor })); setVendorFocus(false); }}
-                          style={{ width: "100%", padding: "10px 14px", display: "flex", alignItems: "center", gap: 8, background: "#fff7ed", border: "none", borderTop: matches.length > 0 ? "1px solid #e2e8f0" : "none", cursor: "pointer", textAlign: "left" }}>
-                          <Plus size={13} style={{ color: "#e95e00", flexShrink: 0 }} />
-                          <span style={{ fontSize: 13, color: "#e95e00", fontWeight: 600 }}>Add &ldquo;{form.vendor}&rdquo; as new</span>
+                          style={{ width: "100%", padding: "10px 14px", display: "flex", alignItems: "center", gap: 8, background: "#fffbeb", border: "none", borderTop: matches.length > 0 ? "1px solid #e2e8f0" : "none", cursor: "pointer", textAlign: "left" }}>
+                          <Plus size={13} style={{ color: "#f59e0b", flexShrink: 0 }} />
+                          <span style={{ fontSize: 13, color: "#f59e0b", fontWeight: 600 }}>Add &ldquo;{form.vendor}&rdquo; as new</span>
                         </button>
                       )}
                     </div>
@@ -1244,7 +1244,7 @@ export function FlipExpenses({ highlightExpId, onBack, onClearHighlight, backLab
               </div>
             </div>
             <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
-              <button onClick={handleSave} style={{ flex: 1, padding: "11px", borderRadius: 10, border: "none", background: "#e95e00", color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer" }}>{editId ? "Save Changes" : "Save Expense"}</button>
+              <button onClick={handleSave} style={{ flex: 1, padding: "11px", borderRadius: 10, border: "none", background: "#f59e0b", color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer" }}>{editId ? "Save Changes" : "Save Expense"}</button>
               <button onClick={() => { setShowModal(false); setEditId(null); setFlipReceipts([]); }} style={{ padding: "11px 18px", borderRadius: 10, border: "1.5px solid #e2e8f0", background: "#fff", fontWeight: 600, fontSize: 14, cursor: "pointer", color: "#64748b" }}>Cancel</button>
             </div>
           </div>
@@ -1253,10 +1253,10 @@ export function FlipExpenses({ highlightExpId, onBack, onClearHighlight, backLab
       {deleteConfirm && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
           <div style={{ background: "#fff", borderRadius: 20, width: 480, padding: 28 }}>
-            <h2 style={{ color: "#041830", fontSize: 18, fontWeight: 700, marginBottom: 14 }}>Delete Expense</h2>
+            <h2 style={{ color: "#0f172a", fontSize: 18, fontWeight: 700, marginBottom: 14 }}>Delete Expense</h2>
             <p style={{ color: "#475569", fontSize: 14, marginBottom: 8 }}>Are you sure you want to delete this expense?</p>
             <div style={{ background: "#f8fafc", borderRadius: 10, padding: 14, marginBottom: 18 }}>
-              <p style={{ fontSize: 13, fontWeight: 600, color: "#041830" }}>{deleteConfirm.description}</p>
+              <p style={{ fontSize: 13, fontWeight: 600, color: "#0f172a" }}>{deleteConfirm.description}</p>
               <p style={{ fontSize: 12, color: "#64748b", marginTop: 4 }}>{deleteConfirm.vendor} · {deleteConfirm.date} · <span style={{ color: "#b91c1c", fontWeight: 700 }}>${deleteConfirm.amount?.toLocaleString()}</span></p>
             </div>
             <p style={{ color: "#94a3b8", fontSize: 12, marginBottom: 18 }}>This action cannot be undone.</p>
@@ -1339,10 +1339,10 @@ export function FlipContractors({ onSelectContractor }) {
         } />
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 24 }}>
-        <StatCard icon={Users} label="Contractors" value={filtered.length} sub={filterFlip !== "all" ? `of ${_CON.length} total` : `${_CON.filter(c => (c.dealIds || []).length > 0).length} with active deals`} color="#e95e00" tip="Number of contractors matching the current filters." />
+        <StatCard icon={Users} label="Contractors" value={filtered.length} sub={filterFlip !== "all" ? `of ${_CON.length} total` : `${_CON.filter(c => (c.dealIds || []).length > 0).length} with active deals`} color="#f59e0b" tip="Number of contractors matching the current filters." />
         <StatCard icon={DollarSign} label="Accepted Bids" value={fmt(totalBids)} sub={`${filtered.length} contractor${filtered.length !== 1 ? "s" : ""}`} color="#3b82f6" tip="Sum of all accepted bid amounts for contractors in the current view." />
         <StatCard icon={CheckCircle} label="Total Paid" value={fmt(totalPaid)} sub="Disbursed to date" color="#10b981" tip="Total payments disbursed to contractors in the current view." />
-        <StatCard icon={AlertCircle} label="Outstanding" value={fmt(outstanding)} sub="Remaining balance" color={outstanding > 0 ? "#e95e00" : "#94a3b8"} tip="Accepted Bids − Total Paid. Amount still owed to contractors in the current view." />
+        <StatCard icon={AlertCircle} label="Outstanding" value={fmt(outstanding)} sub="Remaining balance" color={outstanding > 0 ? "#f59e0b" : "#94a3b8"} tip="Accepted Bids − Total Paid. Amount still owed to contractors in the current view." />
       </div>
 
       <div style={{ display: "flex", gap: 10, marginBottom: 18 }}>
@@ -1351,7 +1351,7 @@ export function FlipContractors({ onSelectContractor }) {
           {allTrades.map(t => <option key={t} value={t}>{t}</option>)}
         </select>
         <div style={{ fontSize: 13, color: "#64748b", display: "flex", alignItems: "center" }}>{filtered.length} contractors</div>
-        <button onClick={() => { setForm(emptyForm); setShowModal(true); }} style={{ marginLeft: "auto", background: "#e95e00", color: "#fff", border: "none", borderRadius: 10, padding: "9px 16px", fontWeight: 600, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}><Plus size={14} /> Add Contractor</button>
+        <button onClick={() => { setForm(emptyForm); setShowModal(true); }} style={{ marginLeft: "auto", background: "#f59e0b", color: "#fff", border: "none", borderRadius: 10, padding: "9px 16px", fontWeight: 600, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}><Plus size={14} /> Add Contractor</button>
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 14 }}>
@@ -1366,7 +1366,7 @@ export function FlipContractors({ onSelectContractor }) {
           return (
             <div key={c.id} onClick={() => onSelectContractor && onSelectContractor(c)}
               style={{ background: "#fff", borderRadius: 16, padding: 20, border: "1px solid #f1f5f9", cursor: "pointer", transition: "all 0.15s" }}
-              onMouseEnter={e => { e.currentTarget.style.borderColor = "#e95e00"; e.currentTarget.style.boxShadow = "0 4px 12px rgba(245,158,11,0.10)"; }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = "#f59e0b"; e.currentTarget.style.boxShadow = "0 4px 12px rgba(245,158,11,0.10)"; }}
               onMouseLeave={e => { e.currentTarget.style.borderColor = "#f1f5f9"; e.currentTarget.style.boxShadow = "none"; }}>
               <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 12 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -1374,12 +1374,12 @@ export function FlipContractors({ onSelectContractor }) {
                     <Truck size={18} color="#64748b" />
                   </div>
                   <div>
-                    <p style={{ color: "#041830", fontWeight: 700, fontSize: 14 }}>{c.name}</p>
+                    <p style={{ color: "#0f172a", fontWeight: 700, fontSize: 14 }}>{c.name}</p>
                     <p style={{ color: "#94a3b8", fontSize: 12 }}>{c.trade}{c.phone ? ` · ${c.phone}` : ""}</p>
                   </div>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                  {stars > 0 && <div style={{ display: "flex", gap: 1 }}>{Array.from({ length: 5 }, (_, i) => <Star key={i} size={12} fill={i < stars ? "#e95e00" : "none"} color={i < stars ? "#e95e00" : "#e2e8f0"} />)}</div>}
+                  {stars > 0 && <div style={{ display: "flex", gap: 1 }}>{Array.from({ length: 5 }, (_, i) => <Star key={i} size={12} fill={i < stars ? "#f59e0b" : "none"} color={i < stars ? "#f59e0b" : "#e2e8f0"} />)}</div>}
                   <ChevronRight size={16} color="#94a3b8" />
                 </div>
               </div>
@@ -1395,7 +1395,7 @@ export function FlipContractors({ onSelectContractor }) {
               {deals.length === 0 && <p style={{ fontSize: 12, color: "#cbd5e1", fontStyle: "italic", marginBottom: 10 }}>No deals assigned yet</p>}
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
                 <span style={{ fontSize: 12, color: "#94a3b8" }}>Accepted: {fmt(totalConBids)}</span>
-                <span style={{ fontSize: 12, color: "#041830", fontWeight: 600 }}>{fmt(totalConPaid)} paid</span>
+                <span style={{ fontSize: 12, color: "#0f172a", fontWeight: 600 }}>{fmt(totalConPaid)} paid</span>
               </div>
               <div style={{ background: "#f1f5f9", borderRadius: 4, height: 5, overflow: "hidden" }}>
                 <div style={{ height: "100%", width: `${pct}%`, background: "#10b981", borderRadius: 4 }} />
@@ -1415,7 +1415,7 @@ export function FlipContractors({ onSelectContractor }) {
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
           <div style={{ background: "#fff", borderRadius: 20, padding: 32, width: 480, boxShadow: "0 20px 60px rgba(0,0,0,0.18)" }}>
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 20 }}>
-              <h2 style={{ color: "#041830", fontSize: 19, fontWeight: 700 }}>Add Contractor</h2>
+              <h2 style={{ color: "#0f172a", fontSize: 19, fontWeight: 700 }}>Add Contractor</h2>
               <button onClick={() => setShowModal(false)} style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8" }}><X size={20} /></button>
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -1437,7 +1437,7 @@ export function FlipContractors({ onSelectContractor }) {
                         const existing = _CON.find(c => c.name === n);
                         return (
                           <button key={n} onMouseDown={() => { setForm(f => ({ ...f, name: n, trade: existing?.trade || f.trade })); setNameFocus(false); }}
-                            style={{ width: "100%", padding: "10px 14px", background: "none", border: "none", borderBottom: "1px solid #f1f5f9", textAlign: "left", cursor: "pointer", fontSize: 13, color: "#041830", display: "flex", alignItems: "center", gap: 8 }}>
+                            style={{ width: "100%", padding: "10px 14px", background: "none", border: "none", borderBottom: "1px solid #f1f5f9", textAlign: "left", cursor: "pointer", fontSize: 13, color: "#0f172a", display: "flex", alignItems: "center", gap: 8 }}>
                             <Wrench size={13} style={{ color: "#94a3b8", flexShrink: 0 }} /><span>{n}</span>
                             {existing?.trade && <span style={{ fontSize: 11, color: "#94a3b8", marginLeft: "auto" }}>{existing.trade}</span>}
                           </button>
@@ -1445,9 +1445,9 @@ export function FlipContractors({ onSelectContractor }) {
                       })}
                       {showNew && (
                         <button onMouseDown={() => { setForm(f => ({ ...f, name: f.name })); setNameFocus(false); }}
-                          style={{ width: "100%", padding: "10px 14px", display: "flex", alignItems: "center", gap: 8, background: "#fff7ed", border: "none", borderTop: matches.length > 0 ? "1px solid #e2e8f0" : "none", cursor: "pointer", textAlign: "left" }}>
-                          <Plus size={13} style={{ color: "#e95e00", flexShrink: 0 }} />
-                          <span style={{ fontSize: 13, color: "#e95e00", fontWeight: 600 }}>Add &ldquo;{form.name}&rdquo; as new</span>
+                          style={{ width: "100%", padding: "10px 14px", display: "flex", alignItems: "center", gap: 8, background: "#fffbeb", border: "none", borderTop: matches.length > 0 ? "1px solid #e2e8f0" : "none", cursor: "pointer", textAlign: "left" }}>
+                          <Plus size={13} style={{ color: "#f59e0b", flexShrink: 0 }} />
+                          <span style={{ fontSize: 13, color: "#f59e0b", fontWeight: 600 }}>Add &ldquo;{form.name}&rdquo; as new</span>
                         </button>
                       )}
                     </div>
@@ -1466,7 +1466,7 @@ export function FlipContractors({ onSelectContractor }) {
               <div><p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Notes <span style={{ color: "#94a3b8", fontWeight: 400 }}>(optional)</span></p><textarea style={{ ...iS, minHeight: 70, resize: "vertical" }} placeholder="Notes about this contractor..." value={form.notes} onChange={sf("notes")} /></div>
             </div>
             <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
-              <button onClick={handleAdd} disabled={!form.name.trim()} style={{ flex: 1, padding: "11px", borderRadius: 10, border: "none", background: !form.name.trim() ? "#e2e8f0" : "#e95e00", color: "#fff", fontWeight: 700, fontSize: 14, cursor: !form.name.trim() ? "not-allowed" : "pointer" }}>Add Contractor</button>
+              <button onClick={handleAdd} disabled={!form.name.trim()} style={{ flex: 1, padding: "11px", borderRadius: 10, border: "none", background: !form.name.trim() ? "#e2e8f0" : "#f59e0b", color: "#fff", fontWeight: 700, fontSize: 14, cursor: !form.name.trim() ? "not-allowed" : "pointer" }}>Add Contractor</button>
               <button onClick={() => setShowModal(false)} style={{ padding: "11px 18px", borderRadius: 10, border: "1.5px solid #e2e8f0", background: "#fff", fontWeight: 600, fontSize: 14, cursor: "pointer", color: "#64748b" }}>Cancel</button>
             </div>
           </div>
@@ -1475,7 +1475,7 @@ export function FlipContractors({ onSelectContractor }) {
       {deleteConfirm && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
           <div style={{ background: "#fff", borderRadius: 20, width: 480, padding: 28 }}>
-            <h2 style={{ color: "#041830", fontSize: 18, fontWeight: 700, marginBottom: 14 }}>Delete Contractor</h2>
+            <h2 style={{ color: "#0f172a", fontSize: 18, fontWeight: 700, marginBottom: 14 }}>Delete Contractor</h2>
             <p style={{ color: "#475569", fontSize: 14, marginBottom: 8 }}>Remove <strong>{deleteConfirm.name}</strong> and all their bids, payments, and documents?</p>
             <p style={{ color: "#94a3b8", fontSize: 12, marginBottom: 18 }}>This action cannot be undone.</p>
             <div style={{ display: "flex", gap: 10 }}>
@@ -1628,7 +1628,7 @@ export function ContractorDetail({ contractor, onBack }) {
   }, []);
 
   const DOC_TYPES = { contract: "Contract", w9: "W-9", insurance: "Insurance", lienWaiver: "Lien Waiver", changeOrder: "Change Order", warranty: "Warranty", invoice: "Invoice", other: "Other" };
-  const DOC_COLORS = { contract: "#3b82f6", w9: "#8b5cf6", insurance: "#10b981", lienWaiver: "#e95e00", changeOrder: "#ef4444", warranty: "#06b6d4", invoice: "#ec4899", other: "#64748b" };
+  const DOC_COLORS = { contract: "#3b82f6", w9: "#8b5cf6", insurance: "#10b981", lienWaiver: "#f59e0b", changeOrder: "#ef4444", warranty: "#06b6d4", invoice: "#ec4899", other: "#64748b" };
 
   return (
     <div>
@@ -1644,14 +1644,14 @@ export function ContractorDetail({ contractor, onBack }) {
           <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
             <div style={{ width: 52, height: 52, borderRadius: 14, background: "#f1f5f9", display: "flex", alignItems: "center", justifyContent: "center" }}><Truck size={24} color="#64748b" /></div>
             <div>
-              <h1 style={{ fontSize: 26, fontWeight: 700, color: "#041830", margin: 0 }}>{con.name}</h1>
+              <h1 style={{ fontSize: 26, fontWeight: 700, color: "#0f172a", margin: 0 }}>{con.name}</h1>
               <p style={{ fontSize: 14, color: "#64748b", margin: 0 }}>{con.trade}{con.phone ? ` · ${con.phone}` : ""}</p>
             </div>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <div style={{ display: "flex", gap: 2 }}>
               {Array.from({ length: 5 }, (_, i) => (
-                <Star key={i} size={18} fill={i < (ratingHover || con.rating || 0) ? "#e95e00" : "none"} color={i < (ratingHover || con.rating || 0) ? "#e95e00" : "#e2e8f0"}
+                <Star key={i} size={18} fill={i < (ratingHover || con.rating || 0) ? "#f59e0b" : "none"} color={i < (ratingHover || con.rating || 0) ? "#f59e0b" : "#e2e8f0"}
                   style={{ cursor: "pointer" }} onMouseEnter={() => setRatingHover(i + 1)} onMouseLeave={() => setRatingHover(0)} onClick={() => setRating(i + 1)} />
               ))}
             </div>
@@ -1666,8 +1666,8 @@ export function ContractorDetail({ contractor, onBack }) {
           </div>
         </div>
         <div style={{ display: "flex", gap: 24, marginTop: 16, paddingTop: 16, borderTop: "1px solid #f1f5f9" }}>
-          <div><span style={{ fontSize: 11, color: "#94a3b8", textTransform: "uppercase", fontWeight: 600 }}>Accepted Bids</span><p style={{ fontSize: 18, fontWeight: 700, color: "#041830", margin: "2px 0 0" }}>{fmt(totalAccepted)}</p></div>
-          <div><span style={{ fontSize: 11, color: "#94a3b8", textTransform: "uppercase", fontWeight: 600 }}>Pending Bids</span><p style={{ fontSize: 18, fontWeight: 700, color: "#e95e00", margin: "2px 0 0" }}>{fmt(totalPending)}</p></div>
+          <div><span style={{ fontSize: 11, color: "#94a3b8", textTransform: "uppercase", fontWeight: 600 }}>Accepted Bids</span><p style={{ fontSize: 18, fontWeight: 700, color: "#0f172a", margin: "2px 0 0" }}>{fmt(totalAccepted)}</p></div>
+          <div><span style={{ fontSize: 11, color: "#94a3b8", textTransform: "uppercase", fontWeight: 600 }}>Pending Bids</span><p style={{ fontSize: 18, fontWeight: 700, color: "#f59e0b", margin: "2px 0 0" }}>{fmt(totalPending)}</p></div>
           <div><span style={{ fontSize: 11, color: "#94a3b8", textTransform: "uppercase", fontWeight: 600 }}>Total Paid</span><p style={{ fontSize: 18, fontWeight: 700, color: "#10b981", margin: "2px 0 0" }}>{fmt(totalPaidAmt)}</p></div>
           <div><span style={{ fontSize: 11, color: "#94a3b8", textTransform: "uppercase", fontWeight: 600 }}>Outstanding</span><p style={{ fontSize: 18, fontWeight: 700, color: totalAccepted - totalPaidAmt > 0 ? "#ef4444" : "#10b981", margin: "2px 0 0" }}>{fmt(totalAccepted - totalPaidAmt)}</p></div>
         </div>
@@ -1680,7 +1680,7 @@ export function ContractorDetail({ contractor, onBack }) {
           const Icon = tab.icon;
           return (
             <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-              style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "10px 16px", borderRadius: 10, border: "none", background: active ? "#fff" : "transparent", boxShadow: active ? "0 1px 3px rgba(0,0,0,0.08)" : "none", color: active ? "#041830" : "#64748b", fontWeight: active ? 600 : 500, fontSize: 13, cursor: "pointer", transition: "all 0.15s" }}>
+              style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "10px 16px", borderRadius: 10, border: "none", background: active ? "#fff" : "transparent", boxShadow: active ? "0 1px 3px rgba(0,0,0,0.08)" : "none", color: active ? "#0f172a" : "#64748b", fontWeight: active ? 600 : 500, fontSize: 13, cursor: "pointer", transition: "all 0.15s" }}>
               <Icon size={15} />{tab.label}
               {tab.count !== undefined && <span style={{ background: active ? "#f1f5f9" : "#e2e8f0", borderRadius: 20, padding: "1px 7px", fontSize: 11, fontWeight: 600, color: "#64748b" }}>{tab.count}</span>}
             </button>
@@ -1692,7 +1692,7 @@ export function ContractorDetail({ contractor, onBack }) {
       {activeTab === "overview" && (
         <div style={{ background: "#fff", borderRadius: 16, padding: 24, border: "1px solid #f1f5f9" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-            <h3 style={{ fontSize: 16, fontWeight: 700, color: "#041830" }}>Contact & License Info</h3>
+            <h3 style={{ fontSize: 16, fontWeight: 700, color: "#0f172a" }}>Contact & License Info</h3>
           </div>
           {editMode ? (
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -1710,16 +1710,16 @@ export function ContractorDetail({ contractor, onBack }) {
               </div>
               <div><p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Notes</p><textarea style={{ ...iS, minHeight: 80, resize: "vertical" }} value={editForm.notes} onChange={e => setEditForm(f => ({ ...f, notes: e.target.value }))} placeholder="Notes about this contractor..." /></div>
               <div style={{ display: "flex", gap: 10 }}>
-                <button onClick={saveOverview} style={{ padding: "10px 20px", borderRadius: 10, border: "none", background: "#e95e00", color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer" }}>Save</button>
+                <button onClick={saveOverview} style={{ padding: "10px 20px", borderRadius: 10, border: "none", background: "#f59e0b", color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer" }}>Save</button>
                 <button onClick={() => setEditMode(false)} style={{ padding: "10px 20px", borderRadius: 10, border: "1.5px solid #e2e8f0", background: "#fff", fontWeight: 600, fontSize: 14, cursor: "pointer", color: "#64748b" }}>Cancel</button>
               </div>
             </div>
           ) : (
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}><Phone size={14} color="#94a3b8" /><span style={{ fontSize: 13, color: "#041830" }}>{con.phone || "—"}</span></div>
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}><Mail size={14} color="#94a3b8" /><span style={{ fontSize: 13, color: "#041830" }}>{con.email || "—"}</span></div>
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}><Shield size={14} color="#94a3b8" /><span style={{ fontSize: 13, color: "#041830" }}>License: {con.license || "—"}</span></div>
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}><FileCheck size={14} color="#94a3b8" /><span style={{ fontSize: 13, color: con.insuranceExpiry && con.insuranceExpiry < new Date().toISOString().slice(0, 10) ? "#ef4444" : "#041830" }}>Insurance: {con.insuranceExpiry || "—"}{con.insuranceExpiry && con.insuranceExpiry < new Date().toISOString().slice(0, 10) ? " (EXPIRED)" : ""}</span></div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}><Phone size={14} color="#94a3b8" /><span style={{ fontSize: 13, color: "#0f172a" }}>{con.phone || "—"}</span></div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}><Mail size={14} color="#94a3b8" /><span style={{ fontSize: 13, color: "#0f172a" }}>{con.email || "—"}</span></div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}><Shield size={14} color="#94a3b8" /><span style={{ fontSize: 13, color: "#0f172a" }}>License: {con.license || "—"}</span></div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}><FileCheck size={14} color="#94a3b8" /><span style={{ fontSize: 13, color: con.insuranceExpiry && con.insuranceExpiry < new Date().toISOString().slice(0, 10) ? "#ef4444" : "#0f172a" }}>Insurance: {con.insuranceExpiry || "—"}{con.insuranceExpiry && con.insuranceExpiry < new Date().toISOString().slice(0, 10) ? " (EXPIRED)" : ""}</span></div>
               {con.notes && <div style={{ gridColumn: "1/-1", marginTop: 8, padding: 14, background: "#f8fafc", borderRadius: 10, fontSize: 13, color: "#475569", lineHeight: 1.5 }}>{con.notes}</div>}
             </div>
           )}
@@ -1730,8 +1730,8 @@ export function ContractorDetail({ contractor, onBack }) {
       {activeTab === "bids" && (
         <div>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-            <h3 style={{ fontSize: 16, fontWeight: 700, color: "#041830" }}>All Bids</h3>
-            <button onClick={() => setShowBidModal(true)} style={{ background: "#e95e00", color: "#fff", border: "none", borderRadius: 10, padding: "8px 16px", fontWeight: 600, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}><Plus size={14} /> Add Bid</button>
+            <h3 style={{ fontSize: 16, fontWeight: 700, color: "#0f172a" }}>All Bids</h3>
+            <button onClick={() => setShowBidModal(true)} style={{ background: "#f59e0b", color: "#fff", border: "none", borderRadius: 10, padding: "8px 16px", fontWeight: 600, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}><Plus size={14} /> Add Bid</button>
           </div>
           <div style={{ background: "#fff", borderRadius: 16, border: "1px solid #f1f5f9", overflow: "hidden" }}>
             {bids.length === 0 && <div style={{ padding: 40, textAlign: "center", color: "#94a3b8", fontSize: 14 }}>No bids yet. Add a bid to get started.</div>}
@@ -1741,12 +1741,12 @@ export function ContractorDetail({ contractor, onBack }) {
                 <div key={b.id} style={{ display: "flex", alignItems: "center", padding: "14px 20px", borderBottom: i < bids.length - 1 ? "1px solid #f1f5f9" : "none", gap: 12 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, flex: 1, minWidth: 0 }}>
                     {fl && <span style={{ width: 8, height: 8, borderRadius: "50%", background: fl.color, flexShrink: 0 }} />}
-                    <span style={{ fontSize: 13, fontWeight: 600, color: "#041830" }}>{b.rehabItem}</span>
+                    <span style={{ fontSize: 13, fontWeight: 600, color: "#0f172a" }}>{b.rehabItem}</span>
                     {fl && <span style={{ fontSize: 12, color: "#94a3b8" }}>· {fl.name}</span>}
                   </div>
-                  <span style={{ fontSize: 14, fontWeight: 700, color: "#041830", minWidth: 80, textAlign: "right" }}>{fmt(b.amount)}</span>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: "#0f172a", minWidth: 80, textAlign: "right" }}>{fmt(b.amount)}</span>
                   <button onClick={(e) => { e.stopPropagation(); toggleBidStatus(b.id); }}
-                    style={{ background: b.status === "accepted" ? "#dcfce7" : "#fff7ed", color: b.status === "accepted" ? "#15803d" : "#9a3412", border: "none", borderRadius: 20, padding: "3px 12px", fontSize: 11, fontWeight: 600, cursor: "pointer", minWidth: 70 }}>
+                    style={{ background: b.status === "accepted" ? "#dcfce7" : "#fef9c3", color: b.status === "accepted" ? "#15803d" : "#a16207", border: "none", borderRadius: 20, padding: "3px 12px", fontSize: 11, fontWeight: 600, cursor: "pointer", minWidth: 70 }}>
                     {b.status === "accepted" ? "Accepted" : "Pending"}
                   </button>
                   <span style={{ fontSize: 12, color: "#94a3b8", minWidth: 80 }}>{b.date}</span>
@@ -1763,8 +1763,8 @@ export function ContractorDetail({ contractor, onBack }) {
       {activeTab === "documents" && (
         <div>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-            <h3 style={{ fontSize: 16, fontWeight: 700, color: "#041830" }}>Documents</h3>
-            <button onClick={() => setShowDocModal(true)} style={{ background: "#e95e00", color: "#fff", border: "none", borderRadius: 10, padding: "8px 16px", fontWeight: 600, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}><Upload size={14} /> Add Document</button>
+            <h3 style={{ fontSize: 16, fontWeight: 700, color: "#0f172a" }}>Documents</h3>
+            <button onClick={() => setShowDocModal(true)} style={{ background: "#f59e0b", color: "#fff", border: "none", borderRadius: 10, padding: "8px 16px", fontWeight: 600, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}><Upload size={14} /> Add Document</button>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
             {documents.length === 0 && <div style={{ gridColumn: "1/-1", padding: 40, textAlign: "center", color: "#94a3b8", fontSize: 14 }}>No documents yet.</div>}
@@ -1776,7 +1776,7 @@ export function ContractorDetail({ contractor, onBack }) {
                   <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 8 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                       <FileText size={16} color={typeColor} />
-                      <span style={{ fontSize: 13, fontWeight: 600, color: "#041830" }}>{d.name}</span>
+                      <span style={{ fontSize: 13, fontWeight: 600, color: "#0f172a" }}>{d.name}</span>
                     </div>
                     <div style={{ display: "flex", gap: 4 }}>
                       <button onClick={() => openEditDoc(d)} style={{ background: "#f1f5f9", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "#475569", display: "flex", alignItems: "center" }} title="Edit"><Pencil size={13} /></button>
@@ -1800,7 +1800,7 @@ export function ContractorDetail({ contractor, onBack }) {
       {/* DEAL HISTORY TAB */}
       {activeTab === "history" && (
         <div>
-          <h3 style={{ fontSize: 16, fontWeight: 700, color: "#041830", marginBottom: 16 }}>Deal History</h3>
+          <h3 style={{ fontSize: 16, fontWeight: 700, color: "#0f172a", marginBottom: 16 }}>Deal History</h3>
           {deals.length === 0 && <div style={{ padding: 40, textAlign: "center", color: "#94a3b8", fontSize: 14, background: "#fff", borderRadius: 16, border: "1px solid #f1f5f9" }}>No deals assigned yet.</div>}
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             {deals.map(fl => {
@@ -1815,14 +1815,14 @@ export function ContractorDetail({ contractor, onBack }) {
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                       <span style={{ width: 10, height: 10, borderRadius: "50%", background: fl.color }} />
-                      <span style={{ fontSize: 15, fontWeight: 700, color: "#041830" }}>{fl.name}</span>
+                      <span style={{ fontSize: 15, fontWeight: 700, color: "#0f172a" }}>{fl.name}</span>
                       <span style={{ background: stageStyle.bg, color: stageStyle.text, borderRadius: 20, padding: "2px 10px", fontSize: 11, fontWeight: 600 }}>{fl.stage}</span>
                     </div>
                   </div>
                   <div style={{ display: "flex", gap: 20, fontSize: 13 }}>
-                    <div><span style={{ color: "#94a3b8" }}>Bids: </span><span style={{ fontWeight: 600, color: "#041830" }}>{fmt(dealBidTotal)} ({dealBids.length})</span></div>
+                    <div><span style={{ color: "#94a3b8" }}>Bids: </span><span style={{ fontWeight: 600, color: "#0f172a" }}>{fmt(dealBidTotal)} ({dealBids.length})</span></div>
                     <div><span style={{ color: "#94a3b8" }}>Paid: </span><span style={{ fontWeight: 600, color: "#10b981" }}>{fmt(dealPaidTotal)}</span></div>
-                    <div><span style={{ color: "#94a3b8" }}>Docs: </span><span style={{ fontWeight: 600, color: "#041830" }}>{dealDocs.length}</span></div>
+                    <div><span style={{ color: "#94a3b8" }}>Docs: </span><span style={{ fontWeight: 600, color: "#0f172a" }}>{dealDocs.length}</span></div>
                   </div>
                   {dealPayments.length > 0 && (
                     <div style={{ marginTop: 10, paddingTop: 10, borderTop: "1px solid #f8fafc" }}>
@@ -1846,7 +1846,7 @@ export function ContractorDetail({ contractor, onBack }) {
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
           <div style={{ background: "#fff", borderRadius: 20, padding: 32, width: 480, boxShadow: "0 20px 60px rgba(0,0,0,0.18)" }}>
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 20 }}>
-              <h2 style={{ color: "#041830", fontSize: 19, fontWeight: 700 }}>{editingBidId ? "Edit Bid" : "Add Bid"}</h2>
+              <h2 style={{ color: "#0f172a", fontSize: 19, fontWeight: 700 }}>{editingBidId ? "Edit Bid" : "Add Bid"}</h2>
               <button onClick={() => { setShowBidModal(false); setEditingBidId(null); setBidForm({ flipId: "", rehabItem: "", amount: "" }); }} style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8" }}><X size={20} /></button>
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -1876,7 +1876,7 @@ export function ContractorDetail({ contractor, onBack }) {
                       {dealMatches.length > 0 && <p style={{ padding: "6px 14px 2px", fontSize: 10, fontWeight: 600, color: "#94a3b8", textTransform: "uppercase" }}>This Deal</p>}
                       {dealMatches.slice(0, 6).map(c => (
                         <button key={c} onMouseDown={() => { setBidForm(f => ({ ...f, rehabItem: c })); setRehabFocus(false); }}
-                          style={{ width: "100%", padding: "9px 14px", background: "none", border: "none", borderBottom: "1px solid #f8fafc", textAlign: "left", cursor: "pointer", fontSize: 13, color: "#041830", display: "flex", alignItems: "center", gap: 8 }}>
+                          style={{ width: "100%", padding: "9px 14px", background: "none", border: "none", borderBottom: "1px solid #f8fafc", textAlign: "left", cursor: "pointer", fontSize: 13, color: "#0f172a", display: "flex", alignItems: "center", gap: 8 }}>
                           <Wrench size={13} style={{ color: "#94a3b8", flexShrink: 0 }} />{c}
                         </button>
                       ))}
@@ -1889,9 +1889,9 @@ export function ContractorDetail({ contractor, onBack }) {
                       ))}
                       {showNew && (
                         <button onMouseDown={() => { setBidForm(f => ({ ...f, rehabItem: f.rehabItem })); setRehabFocus(false); }}
-                          style={{ width: "100%", padding: "10px 14px", display: "flex", alignItems: "center", gap: 8, background: "#fff7ed", border: "none", borderTop: (dealMatches.length > 0 || otherMatches.length > 0) ? "1px solid #e2e8f0" : "none", cursor: "pointer", textAlign: "left" }}>
-                          <Plus size={13} style={{ color: "#e95e00", flexShrink: 0 }} />
-                          <span style={{ fontSize: 13, color: "#e95e00", fontWeight: 600 }}>Add &ldquo;{bidForm.rehabItem}&rdquo; as new rehab item</span>
+                          style={{ width: "100%", padding: "10px 14px", display: "flex", alignItems: "center", gap: 8, background: "#fffbeb", border: "none", borderTop: (dealMatches.length > 0 || otherMatches.length > 0) ? "1px solid #e2e8f0" : "none", cursor: "pointer", textAlign: "left" }}>
+                          <Plus size={13} style={{ color: "#f59e0b", flexShrink: 0 }} />
+                          <span style={{ fontSize: 13, color: "#f59e0b", fontWeight: 600 }}>Add &ldquo;{bidForm.rehabItem}&rdquo; as new rehab item</span>
                         </button>
                       )}
                     </div>
@@ -1904,7 +1904,7 @@ export function ContractorDetail({ contractor, onBack }) {
               </div>
             </div>
             <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
-              <button onClick={saveBid} disabled={!bidForm.flipId || !bidForm.rehabItem || !bidForm.amount} style={{ flex: 1, padding: "11px", borderRadius: 10, border: "none", background: !bidForm.flipId || !bidForm.rehabItem || !bidForm.amount ? "#e2e8f0" : "#e95e00", color: "#fff", fontWeight: 700, fontSize: 14, cursor: !bidForm.flipId || !bidForm.rehabItem || !bidForm.amount ? "not-allowed" : "pointer" }}>{editingBidId ? "Save Changes" : "Add Bid"}</button>
+              <button onClick={saveBid} disabled={!bidForm.flipId || !bidForm.rehabItem || !bidForm.amount} style={{ flex: 1, padding: "11px", borderRadius: 10, border: "none", background: !bidForm.flipId || !bidForm.rehabItem || !bidForm.amount ? "#e2e8f0" : "#f59e0b", color: "#fff", fontWeight: 700, fontSize: 14, cursor: !bidForm.flipId || !bidForm.rehabItem || !bidForm.amount ? "not-allowed" : "pointer" }}>{editingBidId ? "Save Changes" : "Add Bid"}</button>
               <button onClick={() => { setShowBidModal(false); setEditingBidId(null); setBidForm({ flipId: "", rehabItem: "", amount: "" }); }} style={{ padding: "11px 18px", borderRadius: 10, border: "1.5px solid #e2e8f0", background: "#fff", fontWeight: 600, fontSize: 14, cursor: "pointer", color: "#64748b" }}>Cancel</button>
             </div>
           </div>
@@ -1916,7 +1916,7 @@ export function ContractorDetail({ contractor, onBack }) {
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
           <div style={{ background: "#fff", borderRadius: 20, padding: 32, width: 480, boxShadow: "0 20px 60px rgba(0,0,0,0.18)" }}>
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 20 }}>
-              <h2 style={{ color: "#041830", fontSize: 19, fontWeight: 700 }}>{editingDocId ? "Edit Document" : "Add Document"}</h2>
+              <h2 style={{ color: "#0f172a", fontSize: 19, fontWeight: 700 }}>{editingDocId ? "Edit Document" : "Add Document"}</h2>
               <button onClick={() => { setShowDocModal(false); setEditingDocId(null); setDocForm({ name: "", type: "contract", flipId: "" }); }} style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8" }}><X size={20} /></button>
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -1938,7 +1938,7 @@ export function ContractorDetail({ contractor, onBack }) {
               </div>
             </div>
             <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
-              <button onClick={saveDoc} disabled={!docForm.name.trim()} style={{ flex: 1, padding: "11px", borderRadius: 10, border: "none", background: !docForm.name.trim() ? "#e2e8f0" : "#e95e00", color: "#fff", fontWeight: 700, fontSize: 14, cursor: !docForm.name.trim() ? "not-allowed" : "pointer" }}>{editingDocId ? "Save Changes" : "Add Document"}</button>
+              <button onClick={saveDoc} disabled={!docForm.name.trim()} style={{ flex: 1, padding: "11px", borderRadius: 10, border: "none", background: !docForm.name.trim() ? "#e2e8f0" : "#f59e0b", color: "#fff", fontWeight: 700, fontSize: 14, cursor: !docForm.name.trim() ? "not-allowed" : "pointer" }}>{editingDocId ? "Save Changes" : "Add Document"}</button>
               <button onClick={() => { setShowDocModal(false); setEditingDocId(null); setDocForm({ name: "", type: "contract", flipId: "" }); }} style={{ padding: "11px 18px", borderRadius: 10, border: "1.5px solid #e2e8f0", background: "#fff", fontWeight: 600, fontSize: 14, cursor: "pointer", color: "#64748b" }}>Cancel</button>
             </div>
           </div>
@@ -1949,7 +1949,7 @@ export function ContractorDetail({ contractor, onBack }) {
       {deleteConfirm && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
           <div style={{ background: "#fff", borderRadius: 20, width: 400, padding: 28 }}>
-            <h2 style={{ color: "#041830", fontSize: 18, fontWeight: 700, marginBottom: 10 }}>Delete {deleteConfirm.type === "bid" ? "Bid" : "Document"}</h2>
+            <h2 style={{ color: "#0f172a", fontSize: 18, fontWeight: 700, marginBottom: 10 }}>Delete {deleteConfirm.type === "bid" ? "Bid" : "Document"}</h2>
             <p style={{ color: "#475569", fontSize: 14, marginBottom: 18 }}>Remove &ldquo;{deleteConfirm.label}&rdquo;? This cannot be undone.</p>
             <div style={{ display: "flex", gap: 10 }}>
               <button onClick={() => setDeleteConfirm(null)} style={{ flex: 1, padding: "12px", border: "1px solid #e2e8f0", borderRadius: 10, background: "#fff", color: "#475569", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
@@ -1995,7 +1995,7 @@ export function FlipAnalytics() {
     return acc;
   }, {});
   const catChartData = Object.entries(catSpend).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value);
-  const COLORS = ["#e95e00", "#3b82f6", "#10b981", "#8b5cf6", "#ef4444", "#06b6d4"];
+  const COLORS = ["#f59e0b", "#3b82f6", "#10b981", "#8b5cf6", "#ef4444", "#06b6d4"];
 
   // Monthly expense trend – group all flip expenses by month
   const monthlyTrend = useMemo(() => {
@@ -2072,7 +2072,7 @@ export function FlipAnalytics() {
       {/* Header — matches rental Analytics pattern */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
         <div>
-          <h1 style={{ color: "#041830", fontSize: 26, fontWeight: 700, marginBottom: 4 }}>Analytics</h1>
+          <h1 style={{ color: "#0f172a", fontSize: 26, fontWeight: 700, marginBottom: 4 }}>Analytics</h1>
           <p style={{ color: "#64748b", fontSize: 15 }}>
             {singleDeal ? `Performance details — ${singleDeal.name}` : "Performance metrics across all deals"}
           </p>
@@ -2092,7 +2092,7 @@ export function FlipAnalytics() {
           <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
             <div style={{ width: 38, height: 38, borderRadius: 10, background: singleDeal.color + "20", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700, color: singleDeal.color }}>{singleDeal.image}</div>
             <div>
-              <h3 style={{ color: "#041830", fontSize: 16, fontWeight: 700, marginBottom: 2 }}>Deal Scorecard</h3>
+              <h3 style={{ color: "#0f172a", fontSize: 16, fontWeight: 700, marginBottom: 2 }}>Deal Scorecard</h3>
               <p style={{ color: "#94a3b8", fontSize: 13, display: "flex", alignItems: "center", gap: 4 }}><MapPin size={11} /> {singleDeal.address}</p>
             </div>
             <div style={{ marginLeft: "auto" }}><StageDot stage={singleDeal.stage} /></div>
@@ -2101,7 +2101,7 @@ export function FlipAnalytics() {
             {[
               { label: "Projected ROI", value: `${dealROI?.roi || 0}%`, color: "#10b981", sub: singleDeal.stage === "Sold" ? "Realized return" : "Estimated return", tip: "Return on Investment = (Sale Price \u2212 Total Cost) \u00f7 Total Cost \u00d7 100. Total Cost includes purchase, rehab, holding, and selling costs." },
               { label: "Projected Profit", value: fmt(dealROI?.profit || 0), color: "#8b5cf6", sub: singleDeal.stage === "Sold" ? "Realized" : "Based on ARV", tip: "ARV (or Sale Price) minus all costs: purchase price, rehab, holding costs, and estimated 6% selling costs." },
-              { label: "Cost Per Day", value: dealCostPerDay > 0 ? `${fmt(dealCostPerDay)}/day` : "N/A", color: "#e95e00", sub: `${singleDeal.daysOwned || 0} days owned`, tip: "Total spend (rehab + holding costs) divided by days owned. Helps quantify the daily burn rate on this deal." },
+              { label: "Cost Per Day", value: dealCostPerDay > 0 ? `${fmt(dealCostPerDay)}/day` : "N/A", color: "#f59e0b", sub: `${singleDeal.daysOwned || 0} days owned`, tip: "Total spend (rehab + holding costs) divided by days owned. Helps quantify the daily burn rate on this deal." },
             ].map((m, i) => (
               <div key={i} style={{ background: "#f8fafc", borderRadius: 14, padding: "18px 16px", border: "1px solid #f1f5f9" }}>
                 <p style={{ color: "#94a3b8", fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6, display: "flex", alignItems: "center" }}>{m.label}<InfoTip text={m.tip} /></p>
@@ -2120,7 +2120,7 @@ export function FlipAnalytics() {
             ].map(item => (
               <div key={item.label} style={{ background: "#f8fafc", borderRadius: 10, padding: "10px 14px" }}>
                 <p style={{ color: "#94a3b8", fontSize: 10, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.04em", margin: 0, display: "flex", alignItems: "center" }}>{item.label}<InfoTip text={item.tip} /></p>
-                <p style={{ color: "#041830", fontSize: 16, fontWeight: 700, margin: "4px 0 0" }}>{item.value}</p>
+                <p style={{ color: "#0f172a", fontSize: 16, fontWeight: 700, margin: "4px 0 0" }}>{item.value}</p>
               </div>
             ))}
           </div>
@@ -2129,15 +2129,15 @@ export function FlipAnalytics() {
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 20 }}>
           {/* Cumulative Spend Curve */}
           <div style={sectionS}>
-            <h3 style={{ color: "#041830", fontSize: 16, fontWeight: 700, marginBottom: 4 }}>Rehab Spend Curve</h3>
+            <h3 style={{ color: "#0f172a", fontSize: 16, fontWeight: 700, marginBottom: 4 }}>Rehab Spend Curve</h3>
             <p style={{ color: "#94a3b8", fontSize: 13, marginBottom: 20 }}>Cumulative spend vs budget over time</p>
             {spendCurve.length > 0 ? (
               <ResponsiveContainer width="100%" height={200}>
                 <AreaChart data={spendCurve}>
                   <defs>
                     <linearGradient id="spendGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#e95e00" stopOpacity={0.15} />
-                      <stop offset="95%" stopColor="#e95e00" stopOpacity={0} />
+                      <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.15} />
+                      <stop offset="95%" stopColor="#f59e0b" stopOpacity={0} />
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
@@ -2145,7 +2145,7 @@ export function FlipAnalytics() {
                   <YAxis tick={{ fontSize: 12, fill: "#94a3b8" }} axisLine={false} tickLine={false} tickFormatter={v => `$${(v/1000).toFixed(0)}K`} />
                   <Tooltip formatter={v => fmt(v)} contentStyle={{ borderRadius: 10, border: "1px solid #e2e8f0", fontSize: 12 }} />
                   <ReferenceLine y={singleDeal.rehabBudget} stroke="#ef4444" strokeDasharray="6 4" label={{ value: "Budget", position: "right", fontSize: 11, fill: "#ef4444" }} />
-                  <Area type="monotone" dataKey="spent" stroke="#e95e00" strokeWidth={2.5} fill="url(#spendGrad)" dot={{ fill: "#e95e00", r: 3 }} />
+                  <Area type="monotone" dataKey="spent" stroke="#f59e0b" strokeWidth={2.5} fill="url(#spendGrad)" dot={{ fill: "#f59e0b", r: 3 }} />
                 </AreaChart>
               </ResponsiveContainer>
             ) : (
@@ -2155,7 +2155,7 @@ export function FlipAnalytics() {
 
           {/* Expense Category Breakdown (single deal) */}
           <div style={sectionS}>
-            <h3 style={{ color: "#041830", fontSize: 16, fontWeight: 700, marginBottom: 4 }}>Cost Breakdown</h3>
+            <h3 style={{ color: "#0f172a", fontSize: 16, fontWeight: 700, marginBottom: 4 }}>Cost Breakdown</h3>
             <p style={{ color: "#94a3b8", fontSize: 13, marginBottom: 20 }}>Expenses by category</p>
             {dealCatChart.length > 0 ? (
               <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
@@ -2173,7 +2173,7 @@ export function FlipAnalytics() {
                         <div style={{ width: 8, height: 8, borderRadius: 2, background: COLORS[i % COLORS.length], flexShrink: 0 }} />
                         <span style={{ fontSize: 12, color: "#374151" }}>{d.name}</span>
                       </div>
-                      <span style={{ fontSize: 12, fontWeight: 600, color: "#041830" }}>{fmt(d.value)}</span>
+                      <span style={{ fontSize: 12, fontWeight: 600, color: "#0f172a" }}>{fmt(d.value)}</span>
                     </div>
                   ))}
                 </div>
@@ -2188,7 +2188,7 @@ export function FlipAnalytics() {
         <div style={{ ...sectionS, marginBottom: 20 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 }}>
             <div>
-              <h3 style={{ color: "#041830", fontSize: 16, fontWeight: 700, marginBottom: 4 }}>Rehab Item Progress</h3>
+              <h3 style={{ color: "#0f172a", fontSize: 16, fontWeight: 700, marginBottom: 4 }}>Rehab Item Progress</h3>
               <p style={{ color: "#94a3b8", fontSize: 13 }}>Budget consumed per line item</p>
             </div>
             {rehabProgress.length > 0 && (() => {
@@ -2198,7 +2198,7 @@ export function FlipAnalytics() {
                 <div style={{ display: "flex", gap: 16 }}>
                   {[
                     { color: "#10b981", label: `${done} Complete` },
-                    { color: "#e95e00", label: `${rehabProgress.length - done - over} In Progress` },
+                    { color: "#f59e0b", label: `${rehabProgress.length - done - over} In Progress` },
                     ...(over > 0 ? [{ color: "#ef4444", label: `${over} Over Budget` }] : []),
                   ].map(l => (
                     <div key={l.label} style={{ display: "flex", alignItems: "center", gap: 5 }}>
@@ -2214,7 +2214,7 @@ export function FlipAnalytics() {
             <div style={{ display: "grid", gap: 14 }}>
               {rehabProgress.map((item, i) => {
                 const overBudget = item.pct > 100;
-                const barColor = item.status === "complete" ? "#10b981" : overBudget ? "#ef4444" : "#e95e00";
+                const barColor = item.status === "complete" ? "#10b981" : overBudget ? "#ef4444" : "#f59e0b";
                 const statusIcon = item.status === "complete" ? CheckCircle : item.status === "in-progress" ? Clock : AlertCircle;
                 const StatusIcon = statusIcon;
                 const remaining = item.budgeted - item.spent;
@@ -2222,11 +2222,11 @@ export function FlipAnalytics() {
                   <div key={i} style={{ display: "flex", alignItems: "center", gap: 14 }}>
                     {/* Status icon + category name */}
                     <div style={{ display: "flex", alignItems: "center", gap: 8, width: 160, flexShrink: 0 }}>
-                      <div style={{ width: 28, height: 28, borderRadius: 7, background: item.status === "complete" ? "#dcfce7" : item.status === "in-progress" ? "#ffedd5" : "#f1f5f9", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                      <div style={{ width: 28, height: 28, borderRadius: 7, background: item.status === "complete" ? "#dcfce7" : item.status === "in-progress" ? "#fef3c7" : "#f1f5f9", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                         <StatusIcon size={13} color={item.status === "complete" ? "#16a34a" : item.status === "in-progress" ? "#d97706" : "#94a3b8"} />
                       </div>
                       <div style={{ minWidth: 0 }}>
-                        <p style={{ fontSize: 12, fontWeight: 600, color: "#041830", lineHeight: 1.2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }} title={item.fullName}>{item.fullName}</p>
+                        <p style={{ fontSize: 12, fontWeight: 600, color: "#0f172a", lineHeight: 1.2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }} title={item.fullName}>{item.fullName}</p>
                         <p style={{ fontSize: 10, color: "#94a3b8", textTransform: "capitalize" }}>{item.status.replace("-", " ")}</p>
                       </div>
                     </div>
@@ -2258,7 +2258,7 @@ export function FlipAnalytics() {
         {/* Expense Log */}
         <div style={{ background: "#fff", borderRadius: 16, border: "1px solid #f1f5f9", boxShadow: "0 1px 3px rgba(0,0,0,0.06)", overflow: "hidden" }}>
           <div style={{ padding: "16px 24px", borderBottom: "1px solid #f1f5f9" }}>
-            <h3 style={{ color: "#041830", fontSize: 16, fontWeight: 700 }}>Expense Log</h3>
+            <h3 style={{ color: "#0f172a", fontSize: 16, fontWeight: 700 }}>Expense Log</h3>
           </div>
           {dealExpenses.length > 0 ? (
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
@@ -2273,10 +2273,10 @@ export function FlipAnalytics() {
                 {dealExpenses.map(e => (
                   <tr key={e.id} style={{ borderTop: "1px solid #f1f5f9" }}>
                     <td style={{ padding: "10px 16px", color: "#64748b", fontSize: 13 }}>{new Date(e.date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</td>
-                    <td style={{ padding: "10px 16px", color: "#041830", fontSize: 13, fontWeight: 500 }}>{e.vendor}</td>
+                    <td style={{ padding: "10px 16px", color: "#0f172a", fontSize: 13, fontWeight: 500 }}>{e.vendor}</td>
                     <td style={{ padding: "10px 16px" }}><span style={{ fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 6, background: "#f1f5f9", color: "#64748b" }}>{e.category}</span></td>
                     <td style={{ padding: "10px 16px", color: "#64748b", fontSize: 13 }}>{e.description}</td>
-                    <td style={{ padding: "10px 16px", color: "#041830", fontSize: 13, fontWeight: 600 }}>{fmt(e.amount)}</td>
+                    <td style={{ padding: "10px 16px", color: "#0f172a", fontSize: 13, fontWeight: 600 }}>{fmt(e.amount)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -2294,7 +2294,7 @@ export function FlipAnalytics() {
           { label: "Avg ROI", value: `${avgROI}%`, color: "#10b981", sub: "All deals", tip: "Average Return on Investment across all deals. ROI = (Sale/ARV \u2212 Total Cost) \u00f7 Total Cost \u00d7 100. Active deals use projected ARV and estimated costs." },
           { label: "Avg Hold Time", value: `${avgDays} days`, color: "#3b82f6", sub: "Active deals", tip: "Average number of days properties have been owned. Shorter hold times mean less carrying cost and faster capital recycling." },
           { label: "Total Realized", value: fmt(totalProfit), color: "#8b5cf6", sub: "Closed deals", tip: "Sum of net profit from all sold deals. Net Profit = Sale Price \u2212 Purchase Price \u2212 Rehab Spent \u2212 Holding Costs \u2212 Selling Costs." },
-          { label: "Deals Analyzed", value: flips.length, color: "#e95e00", sub: `${sold.length} closed`, tip: "Total number of deals in your pipeline. Includes active, listed, under contract, and sold properties." },
+          { label: "Deals Analyzed", value: flips.length, color: "#f59e0b", sub: `${sold.length} closed`, tip: "Total number of deals in your pipeline. Includes active, listed, under contract, and sold properties." },
         ].map((m, i) => (
           <div key={i} style={cardS}>
             <p style={{ color: "#94a3b8", fontSize: 12, fontWeight: 600, textTransform: "uppercase", marginBottom: 6, display: "flex", alignItems: "center" }}>{m.label}<InfoTip text={m.tip} /></p>
@@ -2307,7 +2307,7 @@ export function FlipAnalytics() {
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
         {/* ROI by Deal */}
         <div style={sectionS}>
-          <h3 style={{ color: "#041830", fontSize: 16, fontWeight: 700, marginBottom: 4 }}>ROI by Deal</h3>
+          <h3 style={{ color: "#0f172a", fontSize: 16, fontWeight: 700, marginBottom: 4 }}>ROI by Deal</h3>
           <p style={{ color: "#94a3b8", fontSize: 13, marginBottom: 20 }}>Actual (sold) vs projected (active)</p>
           <ResponsiveContainer width="100%" height={220}>
             <BarChart data={roiData}>
@@ -2324,7 +2324,7 @@ export function FlipAnalytics() {
 
         {/* Expense Category Breakdown */}
         <div style={sectionS}>
-          <h3 style={{ color: "#041830", fontSize: 16, fontWeight: 700, marginBottom: 4 }}>Expense Breakdown</h3>
+          <h3 style={{ color: "#0f172a", fontSize: 16, fontWeight: 700, marginBottom: 4 }}>Expense Breakdown</h3>
           <p style={{ color: "#94a3b8", fontSize: 13, marginBottom: 20 }}>By category across all deals</p>
           <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
             <ResponsiveContainer width={160} height={160}>
@@ -2341,7 +2341,7 @@ export function FlipAnalytics() {
                     <div style={{ width: 8, height: 8, borderRadius: 2, background: COLORS[i % COLORS.length], flexShrink: 0 }} />
                     <span style={{ fontSize: 12, color: "#374151" }}>{d.name}</span>
                   </div>
-                  <span style={{ fontSize: 12, fontWeight: 600, color: "#041830" }}>{fmt(d.value)}</span>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: "#0f172a" }}>{fmt(d.value)}</span>
                 </div>
               ))}
             </div>
@@ -2351,7 +2351,7 @@ export function FlipAnalytics() {
 
       {/* Budget vs Actual */}
       <div style={sectionS}>
-        <h3 style={{ color: "#041830", fontSize: 16, fontWeight: 700, marginBottom: 4 }}>Rehab Budget vs Actual</h3>
+        <h3 style={{ color: "#0f172a", fontSize: 16, fontWeight: 700, marginBottom: 4 }}>Rehab Budget vs Actual</h3>
         <p style={{ color: "#94a3b8", fontSize: 13, marginBottom: 20 }}>How well rehab budgets are holding</p>
         <ResponsiveContainer width="100%" height={180}>
           <BarChart data={budgetVsActual}>
@@ -2361,7 +2361,7 @@ export function FlipAnalytics() {
             <Tooltip formatter={v => fmt(v)} contentStyle={{ borderRadius: 10, border: "1px solid #e2e8f0", fontSize: 12 }} />
             <Legend />
             <Bar dataKey="budget" fill="#3b82f6" name="Budgeted" radius={[4, 4, 0, 0]} />
-            <Bar dataKey="actual" fill="#e95e00" name="Actual"   radius={[4, 4, 0, 0]} />
+            <Bar dataKey="actual" fill="#f59e0b" name="Actual"   radius={[4, 4, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </div>
@@ -2369,7 +2369,7 @@ export function FlipAnalytics() {
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
         {/* Hold Time by Deal */}
         <div style={sectionS}>
-          <h3 style={{ color: "#041830", fontSize: 16, fontWeight: 700, marginBottom: 4 }}>Hold Time by Deal</h3>
+          <h3 style={{ color: "#0f172a", fontSize: 16, fontWeight: 700, marginBottom: 4 }}>Hold Time by Deal</h3>
           <p style={{ color: "#94a3b8", fontSize: 13, marginBottom: 20 }}>Days owned per property{avgDays > 0 ? ` (avg ${avgDays}d)` : ""}</p>
           <ResponsiveContainer width="100%" height={200}>
             <BarChart data={timelineData} layout="vertical">
@@ -2386,7 +2386,7 @@ export function FlipAnalytics() {
 
         {/* Monthly Expense Trend */}
         <div style={sectionS}>
-          <h3 style={{ color: "#041830", fontSize: 16, fontWeight: 700, marginBottom: 4 }}>Monthly Expense Trend</h3>
+          <h3 style={{ color: "#0f172a", fontSize: 16, fontWeight: 700, marginBottom: 4 }}>Monthly Expense Trend</h3>
           <p style={{ color: "#94a3b8", fontSize: 13, marginBottom: 20 }}>Total spend by month</p>
           {monthlyTrend.length > 0 ? (
             <ResponsiveContainer width="100%" height={200}>
@@ -2395,7 +2395,7 @@ export function FlipAnalytics() {
                 <XAxis dataKey="month" tick={{ fontSize: 11, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fontSize: 12, fill: "#94a3b8" }} axisLine={false} tickLine={false} tickFormatter={v => `$${(v/1000).toFixed(0)}K`} />
                 <Tooltip formatter={v => [fmt(v), "Spent"]} contentStyle={{ borderRadius: 10, border: "1px solid #e2e8f0", fontSize: 12 }} />
-                <Line type="monotone" dataKey="total" stroke="#e95e00" strokeWidth={2.5} dot={{ fill: "#e95e00", r: 4 }} activeDot={{ r: 6 }} />
+                <Line type="monotone" dataKey="total" stroke="#f59e0b" strokeWidth={2.5} dot={{ fill: "#f59e0b", r: 4 }} activeDot={{ r: 6 }} />
               </LineChart>
             </ResponsiveContainer>
           ) : (
@@ -2408,13 +2408,13 @@ export function FlipAnalytics() {
       <div style={sectionS}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 }}>
           <div>
-            <h3 style={{ color: "#041830", fontSize: 16, fontWeight: 700, marginBottom: 4 }}>Profit Breakdown by Deal</h3>
+            <h3 style={{ color: "#0f172a", fontSize: 16, fontWeight: 700, marginBottom: 4 }}>Profit Breakdown by Deal</h3>
             <p style={{ color: "#94a3b8", fontSize: 13 }}>Cost components vs sale price — hover segments for details</p>
           </div>
           <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
             {[
               { color: "#3b82f6", label: "Purchase" },
-              { color: "#e95e00", label: "Rehab" },
+              { color: "#f59e0b", label: "Rehab" },
               { color: "#8b5cf6", label: "Holding" },
               { color: "#94a3b8", label: "Selling" },
               { color: "#10b981", label: "Profit" },
@@ -2431,7 +2431,7 @@ export function FlipAnalytics() {
             const maxVal = Math.max(...profitBreakdown.map(x => x.sale));
             const segments = [
               { key: "purchase", value: d.purchase, color: "#3b82f6", label: "Purchase" },
-              { key: "rehab", value: d.rehab, color: "#e95e00", label: "Rehab" },
+              { key: "rehab", value: d.rehab, color: "#f59e0b", label: "Rehab" },
               { key: "holding", value: d.holding, color: "#8b5cf6", label: "Holding" },
               { key: "selling", value: d.selling, color: "#94a3b8", label: "Selling" },
             ];
@@ -2442,7 +2442,7 @@ export function FlipAnalytics() {
                 <div style={{ display: "flex", alignItems: "center", gap: 8, width: 120, flexShrink: 0 }}>
                   <div style={{ width: 28, height: 28, borderRadius: 7, background: d.color + "20", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 700, color: d.color }}>{d.name}</div>
                   <div>
-                    <p style={{ fontSize: 12, fontWeight: 600, color: "#041830", lineHeight: 1.2 }}>{d.fullName.split(" ")[0]}</p>
+                    <p style={{ fontSize: 12, fontWeight: 600, color: "#0f172a", lineHeight: 1.2 }}>{d.fullName.split(" ")[0]}</p>
                     <p style={{ fontSize: 10, color: "#94a3b8" }}>{d.stage}</p>
                   </div>
                 </div>
@@ -2471,7 +2471,7 @@ export function FlipAnalytics() {
       {/* Deal Summary Table */}
       <div style={{ background: "#fff", borderRadius: 16, border: "1px solid #f1f5f9", boxShadow: "0 1px 3px rgba(0,0,0,0.06)", overflow: "hidden" }}>
         <div style={{ padding: "16px 24px", borderBottom: "1px solid #f1f5f9" }}>
-          <h3 style={{ color: "#041830", fontSize: 16, fontWeight: 700 }}>Deal Summary</h3>
+          <h3 style={{ color: "#0f172a", fontSize: 16, fontWeight: 700 }}>Deal Summary</h3>
         </div>
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
@@ -2489,13 +2489,13 @@ export function FlipAnalytics() {
                   <td style={{ padding: "12px 16px" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                       <div style={{ width: 28, height: 28, borderRadius: 7, background: flip.color + "20", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 700, color: flip.color }}>{flip.image}</div>
-                      <span style={{ color: "#041830", fontSize: 13, fontWeight: 600 }}>{flip.name}</span>
+                      <span style={{ color: "#0f172a", fontSize: 13, fontWeight: 600 }}>{flip.name}</span>
                     </div>
                   </td>
                   <td style={{ padding: "12px 16px" }}><StageDot stage={flip.stage} /></td>
-                  <td style={{ padding: "12px 16px", color: "#041830", fontSize: 13 }}>{fmt(flip.purchasePrice)}</td>
-                  <td style={{ padding: "12px 16px", color: "#041830", fontSize: 13 }}>{fmt(flip.rehabBudget)}</td>
-                  <td style={{ padding: "12px 16px", color: "#041830", fontSize: 13 }}>{fmt(flip.stage === "Sold" ? flip.salePrice : flip.arv)}</td>
+                  <td style={{ padding: "12px 16px", color: "#0f172a", fontSize: 13 }}>{fmt(flip.purchasePrice)}</td>
+                  <td style={{ padding: "12px 16px", color: "#0f172a", fontSize: 13 }}>{fmt(flip.rehabBudget)}</td>
+                  <td style={{ padding: "12px 16px", color: "#0f172a", fontSize: 13 }}>{fmt(flip.stage === "Sold" ? flip.salePrice : flip.arv)}</td>
                   <td style={{ padding: "12px 16px" }}>
                     <span style={{ color: d.profit > 0 ? "#10b981" : "#ef4444", fontWeight: 700, fontSize: 13 }}>{fmt(d.profit)}</span>
                   </td>
@@ -2658,7 +2658,7 @@ export function FlipMilestones({ highlightMilestoneKey, onBack, onClearHighlight
   return (
     <div>
       {onBack && (
-        <button onClick={onBack} style={{ display: "flex", alignItems: "center", gap: 6, color: "#e95e00", fontWeight: 600, fontSize: 14, background: "none", border: "none", cursor: "pointer", marginBottom: 14 }}>
+        <button onClick={onBack} style={{ display: "flex", alignItems: "center", gap: 6, color: "#f59e0b", fontWeight: 600, fontSize: 14, background: "none", border: "none", cursor: "pointer", marginBottom: 14 }}>
           <ChevronLeft size={15} /> Back to Dashboard
         </button>
       )}
@@ -2690,7 +2690,7 @@ export function FlipMilestones({ highlightMilestoneKey, onBack, onClearHighlight
         {hasFilters && (
           <button onClick={clearFilters} style={{ background: "none", border: "none", color: "#94a3b8", fontSize: 12, cursor: "pointer", textDecoration: "underline", padding: 0 }}>Clear filters</button>
         )}
-        <button onClick={() => setShowAdd(true)} style={{ marginLeft: "auto", background: "#e95e00", color: "#fff", border: "none", borderRadius: 10, padding: "9px 16px", fontWeight: 600, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
+        <button onClick={() => setShowAdd(true)} style={{ marginLeft: "auto", background: "#f59e0b", color: "#fff", border: "none", borderRadius: 10, padding: "9px 16px", fontWeight: 600, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
           <Plus size={14} /> Add Milestone
         </button>
       </div>
@@ -2700,7 +2700,7 @@ export function FlipMilestones({ highlightMilestoneKey, onBack, onClearHighlight
         <div style={{ ...sectionS, textAlign: "center", padding: 48, color: "#94a3b8" }}>
           <Flag size={32} style={{ margin: "0 auto 12px", display: "block" }} />
           <p style={{ fontWeight: 600, marginBottom: 4 }}>No milestones match your filters</p>
-          {hasFilters && <button onClick={clearFilters} style={{ background: "none", border: "none", color: "#e95e00", fontSize: 13, cursor: "pointer", textDecoration: "underline", padding: 0 }}>Clear filters</button>}
+          {hasFilters && <button onClick={clearFilters} style={{ background: "none", border: "none", color: "#f59e0b", fontSize: 13, cursor: "pointer", textDecoration: "underline", padding: 0 }}>Clear filters</button>}
         </div>
       ) : Object.values(groupedByDeal).map(({ flip, items }) => {
         const done = items.filter(m => m.done).length;
@@ -2711,12 +2711,12 @@ export function FlipMilestones({ highlightMilestoneKey, onBack, onClearHighlight
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                 <div style={{ width: 32, height: 32, borderRadius: 8, background: flip.color + "20", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, color: flip.color }}>{flip.image}</div>
                 <div>
-                  <p style={{ fontSize: 14, fontWeight: 700, color: "#041830" }}>{flip.name}</p>
+                  <p style={{ fontSize: 14, fontWeight: 700, color: "#0f172a" }}>{flip.name}</p>
                   <p style={{ fontSize: 12, color: "#94a3b8" }}>{flip.stage}</p>
                 </div>
               </div>
               <div style={{ textAlign: "right" }}>
-                <p style={{ fontSize: 14, fontWeight: 700, color: "#041830" }}>{pct}%</p>
+                <p style={{ fontSize: 14, fontWeight: 700, color: "#0f172a" }}>{pct}%</p>
                 <p style={{ fontSize: 11, color: "#94a3b8" }}>{done} of {items.length}</p>
               </div>
             </div>
@@ -2731,10 +2731,10 @@ export function FlipMilestones({ highlightMilestoneKey, onBack, onClearHighlight
                 const isEditing = editItem?.flipId === flip.id && editItem?.idx === m._idx;
                 const isCompleting = completingItem?.flipId === flip.id && completingItem?.idx === m._idx;
                 return isEditing ? (
-                  <div key={i} style={{ padding: "10px 12px", borderRadius: 8, background: "#fff7ed", border: "1px solid #fdba74" }}>
+                  <div key={i} style={{ padding: "10px 12px", borderRadius: 8, background: "#fffbeb", border: "1px solid #fde68a" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
                       <input value={editForm.label} onChange={e => setEditForm(f => ({ ...f, label: e.target.value }))} style={{ ...iS, flex: 1, padding: "6px 10px", fontSize: 13 }} placeholder="Milestone label" />
-                      <button onClick={saveEdit} style={{ background: "#e95e00", color: "#fff", border: "none", borderRadius: 6, padding: "5px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>Save</button>
+                      <button onClick={saveEdit} style={{ background: "#f59e0b", color: "#fff", border: "none", borderRadius: 6, padding: "5px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>Save</button>
                       <button onClick={() => setEditItem(null)} style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8", padding: 0 }}><X size={14} /></button>
                     </div>
                     <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
@@ -2751,18 +2751,18 @@ export function FlipMilestones({ highlightMilestoneKey, onBack, onClearHighlight
                 ) : isCompleting ? (
                   <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", borderRadius: 8, background: "#f0fdf4", border: "1px solid #bbf7d0" }}>
                     <CheckCircle size={18} color="#10b981" />
-                    <span style={{ fontSize: 13, fontWeight: 500, color: "#041830", flex: 1 }}>{m.label}</span>
+                    <span style={{ fontSize: 13, fontWeight: 500, color: "#0f172a", flex: 1 }}>{m.label}</span>
                     <span style={{ fontSize: 11, color: "#64748b" }}>Completed:</span>
                     <input type="date" value={completionDate} onChange={e => setCompletionDate(e.target.value)} style={{ ...iS, width: 140, padding: "5px 10px", fontSize: 12 }} />
                     <button onClick={confirmComplete} style={{ background: "#10b981", color: "#fff", border: "none", borderRadius: 6, padding: "5px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>Confirm</button>
                     <button onClick={() => setCompletingItem(null)} style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8", padding: 0 }}><X size={14} /></button>
                   </div>
                 ) : (
-                  <div key={i} id={"ms-" + flip.id + "-" + m.label} className="ms-row" onMouseEnter={e => { if (flashKey !== (flip.id + "-" + m.label)) e.currentTarget.style.background = "#f8fafc"; }} onMouseLeave={e => { if (flashKey !== (flip.id + "-" + m.label)) e.currentTarget.style.background = m.done ? "#f0fdf4" : overdue ? "#fef2f2" : "#f8fafc"; }} style={{ display: "flex", alignItems: "center", gap: 12, padding: "8px 10px", borderRadius: 8, background: flashKey === (flip.id + "-" + m.label) ? "#fff7ed" : m.done ? "#f0fdf4" : overdue ? "#fef2f2" : "#f8fafc", border: `1px solid ${flashKey === (flip.id + "-" + m.label) ? "#e95e00" : m.done ? "#bbf7d0" : overdue ? "#fecaca" : "#f1f5f9"}`, boxShadow: flashKey === (flip.id + "-" + m.label) ? "0 0 0 2px #e95e00" : "none", position: "relative", transition: "all 0.4s ease" }}>
+                  <div key={i} id={"ms-" + flip.id + "-" + m.label} className="ms-row" onMouseEnter={e => { if (flashKey !== (flip.id + "-" + m.label)) e.currentTarget.style.background = "#f8fafc"; }} onMouseLeave={e => { if (flashKey !== (flip.id + "-" + m.label)) e.currentTarget.style.background = m.done ? "#f0fdf4" : overdue ? "#fef2f2" : "#f8fafc"; }} style={{ display: "flex", alignItems: "center", gap: 12, padding: "8px 10px", borderRadius: 8, background: flashKey === (flip.id + "-" + m.label) ? "#fef9c3" : m.done ? "#f0fdf4" : overdue ? "#fef2f2" : "#f8fafc", border: `1px solid ${flashKey === (flip.id + "-" + m.label) ? "#f59e0b" : m.done ? "#bbf7d0" : overdue ? "#fecaca" : "#f1f5f9"}`, boxShadow: flashKey === (flip.id + "-" + m.label) ? "0 0 0 2px #f59e0b" : "none", position: "relative", transition: "all 0.4s ease" }}>
                     <button onClick={() => m.done ? uncomplete(flip.id, m._idx) : startComplete(flip.id, m._idx)} style={{ background: "none", border: "none", cursor: "pointer", padding: 0, display: "flex", flexShrink: 0 }}>
                       {m.done ? <CheckCircle size={18} color="#10b981" /> : <Circle size={18} color={overdue ? "#ef4444" : "#cbd5e1"} />}
                     </button>
-                    <span style={{ flex: 1, fontSize: 13, fontWeight: 500, color: m.done ? "#6b7280" : "#041830", textDecoration: m.done ? "line-through" : "none" }}>{m.label}</span>
+                    <span style={{ flex: 1, fontSize: 13, fontWeight: 500, color: m.done ? "#6b7280" : "#0f172a", textDecoration: m.done ? "line-through" : "none" }}>{m.label}</span>
                     {m.targetDate && (
                       <span style={{ fontSize: 11, color: overdue ? "#ef4444" : "#94a3b8", fontWeight: overdue ? 600 : 400, flexShrink: 0 }}>
                         {overdue ? "Overdue: " : "Target: "}{new Date(m.targetDate).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
@@ -2790,7 +2790,7 @@ export function FlipMilestones({ highlightMilestoneKey, onBack, onClearHighlight
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
           <div style={{ background: "#fff", borderRadius: 20, padding: 32, width: 480, boxShadow: "0 20px 60px rgba(0,0,0,0.18)" }}>
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 20 }}>
-              <h2 style={{ color: "#041830", fontSize: 19, fontWeight: 700 }}>Add Milestone</h2>
+              <h2 style={{ color: "#0f172a", fontSize: 19, fontWeight: 700 }}>Add Milestone</h2>
               <button onClick={() => setShowAdd(false)} style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8" }}><X size={20} /></button>
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -2817,16 +2817,16 @@ export function FlipMilestones({ highlightMilestoneKey, onBack, onClearHighlight
                     <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, background: "#fff", border: "1px solid #e2e8f0", borderRadius: 12, boxShadow: "0 8px 24px rgba(0,0,0,0.10)", zIndex: 200, overflow: "hidden", maxHeight: 200, overflowY: "auto" }}>
                       {matches.slice(0, 6).map(l => (
                         <button key={l} onMouseDown={() => { setMsForm(f => ({ ...f, label: l })); setLabelFocus(false); }}
-                          style={{ width: "100%", padding: "10px 14px", background: "none", border: "none", borderBottom: "1px solid #f1f5f9", textAlign: "left", cursor: "pointer", fontSize: 13, color: "#041830", display: "flex", alignItems: "center", gap: 8 }}>
+                          style={{ width: "100%", padding: "10px 14px", background: "none", border: "none", borderBottom: "1px solid #f1f5f9", textAlign: "left", cursor: "pointer", fontSize: 13, color: "#0f172a", display: "flex", alignItems: "center", gap: 8 }}>
                           <Flag size={13} style={{ color: "#94a3b8", flexShrink: 0 }} />
                           <span>{l}</span>
                         </button>
                       ))}
                       {showNew && (
                         <button onMouseDown={() => { setMsForm(f => ({ ...f, label: f.label })); setLabelFocus(false); }}
-                          style={{ width: "100%", padding: "10px 14px", display: "flex", alignItems: "center", gap: 8, background: "#fff7ed", border: "none", borderTop: matches.length > 0 ? "1px solid #e2e8f0" : "none", cursor: "pointer", textAlign: "left" }}>
-                          <Plus size={13} style={{ color: "#e95e00", flexShrink: 0 }} />
-                          <span style={{ fontSize: 13, color: "#e95e00", fontWeight: 600 }}>Add &ldquo;{msForm.label}&rdquo; as new</span>
+                          style={{ width: "100%", padding: "10px 14px", display: "flex", alignItems: "center", gap: 8, background: "#fffbeb", border: "none", borderTop: matches.length > 0 ? "1px solid #e2e8f0" : "none", cursor: "pointer", textAlign: "left" }}>
+                          <Plus size={13} style={{ color: "#f59e0b", flexShrink: 0 }} />
+                          <span style={{ fontSize: 13, color: "#f59e0b", fontWeight: 600 }}>Add &ldquo;{msForm.label}&rdquo; as new</span>
                         </button>
                       )}
                     </div>
@@ -2839,7 +2839,7 @@ export function FlipMilestones({ highlightMilestoneKey, onBack, onClearHighlight
               </div>
             </div>
             <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
-              <button onClick={saveMilestone} disabled={!msForm.flipId || !msForm.label.trim()} style={{ flex: 1, padding: "11px", borderRadius: 10, border: "none", background: !msForm.flipId || !msForm.label.trim() ? "#e2e8f0" : "#e95e00", color: "#fff", fontWeight: 700, fontSize: 14, cursor: !msForm.flipId || !msForm.label.trim() ? "not-allowed" : "pointer" }}>Add Milestone</button>
+              <button onClick={saveMilestone} disabled={!msForm.flipId || !msForm.label.trim()} style={{ flex: 1, padding: "11px", borderRadius: 10, border: "none", background: !msForm.flipId || !msForm.label.trim() ? "#e2e8f0" : "#f59e0b", color: "#fff", fontWeight: 700, fontSize: 14, cursor: !msForm.flipId || !msForm.label.trim() ? "not-allowed" : "pointer" }}>Add Milestone</button>
               <button onClick={() => setShowAdd(false)} style={{ padding: "11px 18px", borderRadius: 10, border: "1.5px solid #e2e8f0", background: "#fff", fontWeight: 600, fontSize: 14, cursor: "pointer", color: "#64748b" }}>Cancel</button>
             </div>
           </div>
@@ -2850,10 +2850,10 @@ export function FlipMilestones({ highlightMilestoneKey, onBack, onClearHighlight
       {deleteConfirm && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
           <div style={{ background: "#fff", borderRadius: 20, width: 480, padding: 28 }}>
-            <h2 style={{ color: "#041830", fontSize: 18, fontWeight: 700, marginBottom: 14 }}>Delete Milestone</h2>
+            <h2 style={{ color: "#0f172a", fontSize: 18, fontWeight: 700, marginBottom: 14 }}>Delete Milestone</h2>
             <p style={{ color: "#475569", fontSize: 14, marginBottom: 8 }}>Are you sure you want to remove this milestone?</p>
             <div style={{ background: "#f8fafc", borderRadius: 10, padding: 14, marginBottom: 18 }}>
-              <p style={{ fontSize: 13, fontWeight: 600, color: "#041830" }}>{deleteConfirm.label}</p>
+              <p style={{ fontSize: 13, fontWeight: 600, color: "#0f172a" }}>{deleteConfirm.label}</p>
             </div>
             <p style={{ color: "#94a3b8", fontSize: 12, marginBottom: 18 }}>This action cannot be undone.</p>
             <div style={{ display: "flex", gap: 10 }}>
@@ -2952,7 +2952,7 @@ export function FlipNotes({ highlightNoteId, onBack, onClearHighlight }) {
   return (
     <div>
       {onBack && (
-        <button onClick={onBack} style={{ display: "flex", alignItems: "center", gap: 6, color: "#e95e00", fontWeight: 600, fontSize: 14, background: "none", border: "none", cursor: "pointer", marginBottom: 14 }}>
+        <button onClick={onBack} style={{ display: "flex", alignItems: "center", gap: 6, color: "#f59e0b", fontWeight: 600, fontSize: 14, background: "none", border: "none", cursor: "pointer", marginBottom: 14 }}>
           <ChevronLeft size={15} /> Back to Dashboard
         </button>
       )}
@@ -2972,12 +2972,12 @@ export function FlipNotes({ highlightNoteId, onBack, onClearHighlight }) {
         <div style={{ position: "relative", flex: "1 1 200px", minWidth: 180 }}>
           <Search size={15} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "#94a3b8" }} />
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search notes..."
-            style={{ width: "100%", paddingLeft: 36, paddingRight: 12, paddingTop: 9, paddingBottom: 9, border: "1px solid #e2e8f0", borderRadius: 10, fontSize: 13, color: "#041830", background: "#fff", outline: "none", boxSizing: "border-box" }} />
+            style={{ width: "100%", paddingLeft: 36, paddingRight: 12, paddingTop: 9, paddingBottom: 9, border: "1px solid #e2e8f0", borderRadius: 10, fontSize: 13, color: "#0f172a", background: "#fff", outline: "none", boxSizing: "border-box" }} />
         </div>
         {hasFilters && (
           <button onClick={clearFilters} style={{ background: "none", border: "none", color: "#94a3b8", fontSize: 12, cursor: "pointer", textDecoration: "underline", padding: 0 }}>Clear filters</button>
         )}
-        <button onClick={() => { setEditId(null); setNoteForm({ flipId: _FLIPS[0] ? String(_FLIPS[0].id) : "", text: "" }); setShowAdd(true); }} style={{ marginLeft: "auto", background: "#e95e00", color: "#fff", border: "none", borderRadius: 10, padding: "9px 16px", fontWeight: 600, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
+        <button onClick={() => { setEditId(null); setNoteForm({ flipId: _FLIPS[0] ? String(_FLIPS[0].id) : "", text: "" }); setShowAdd(true); }} style={{ marginLeft: "auto", background: "#f59e0b", color: "#fff", border: "none", borderRadius: 10, padding: "9px 16px", fontWeight: 600, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
           <Plus size={14} /> Add Note
         </button>
       </div>
@@ -2989,7 +2989,7 @@ export function FlipNotes({ highlightNoteId, onBack, onClearHighlight }) {
           {hasFilters ? (
             <>
               <p style={{ fontWeight: 600, marginBottom: 4 }}>No notes match your filters</p>
-              <button onClick={clearFilters} style={{ background: "none", border: "none", color: "#e95e00", fontSize: 13, cursor: "pointer", textDecoration: "underline", padding: 0 }}>Clear filters</button>
+              <button onClick={clearFilters} style={{ background: "none", border: "none", color: "#f59e0b", fontSize: 13, cursor: "pointer", textDecoration: "underline", padding: 0 }}>Clear filters</button>
             </>
           ) : (
             <>
@@ -3007,7 +3007,7 @@ export function FlipNotes({ highlightNoteId, onBack, onClearHighlight }) {
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                     <div style={{ width: 26, height: 26, borderRadius: 7, background: n.flipColor + "20", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, fontWeight: 700, color: n.flipColor }}>{n.flipImage}</div>
-                    <span style={{ fontSize: 13, fontWeight: 600, color: "#041830" }}>{n.flipName}</span>
+                    <span style={{ fontSize: 13, fontWeight: 600, color: "#0f172a" }}>{n.flipName}</span>
                   </div>
                   <div style={{ display: "flex", gap: 4 }}>
                     <button onClick={() => openEdit(n)} style={{ background: "#f1f5f9", border: "none", borderRadius: 7, padding: "4px 7px", cursor: "pointer", color: "#475569", display: "flex", alignItems: "center" }} title="Edit"><Pencil size={12} /></button>
@@ -3026,7 +3026,7 @@ export function FlipNotes({ highlightNoteId, onBack, onClearHighlight }) {
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
           <div style={{ background: "#fff", borderRadius: 20, padding: 32, width: 500, boxShadow: "0 20px 60px rgba(0,0,0,0.18)" }}>
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 20 }}>
-              <h2 style={{ color: "#041830", fontSize: 19, fontWeight: 700 }}>{editId ? "Edit Note" : "Add Note"}</h2>
+              <h2 style={{ color: "#0f172a", fontSize: 19, fontWeight: 700 }}>{editId ? "Edit Note" : "Add Note"}</h2>
               <button onClick={() => { setShowAdd(false); setEditId(null); }} style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8" }}><X size={20} /></button>
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -3043,7 +3043,7 @@ export function FlipNotes({ highlightNoteId, onBack, onClearHighlight }) {
               </div>
             </div>
             <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
-              <button onClick={handleSave} style={{ flex: 1, padding: "11px", borderRadius: 10, border: "none", background: "#e95e00", color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer", opacity: (!noteForm.text.trim() || !noteForm.flipId) ? 0.5 : 1 }}>{editId ? "Save Changes" : "Add Note"}</button>
+              <button onClick={handleSave} style={{ flex: 1, padding: "11px", borderRadius: 10, border: "none", background: "#f59e0b", color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer", opacity: (!noteForm.text.trim() || !noteForm.flipId) ? 0.5 : 1 }}>{editId ? "Save Changes" : "Add Note"}</button>
               <button onClick={() => { setShowAdd(false); setEditId(null); }} style={{ padding: "11px 18px", borderRadius: 10, border: "1.5px solid #e2e8f0", background: "#fff", fontWeight: 600, fontSize: 14, cursor: "pointer", color: "#64748b" }}>Cancel</button>
             </div>
           </div>
@@ -3054,7 +3054,7 @@ export function FlipNotes({ highlightNoteId, onBack, onClearHighlight }) {
       {deleteConfirm && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
           <div style={{ background: "#fff", borderRadius: 20, width: 480, padding: 28 }}>
-            <h2 style={{ color: "#041830", fontSize: 18, fontWeight: 700, marginBottom: 14 }}>Delete Note</h2>
+            <h2 style={{ color: "#0f172a", fontSize: 18, fontWeight: 700, marginBottom: 14 }}>Delete Note</h2>
             <p style={{ color: "#475569", fontSize: 14, marginBottom: 8 }}>Are you sure you want to delete this note?</p>
             <div style={{ background: "#f8fafc", borderRadius: 10, padding: 14, marginBottom: 18 }}>
               <p style={{ fontSize: 13, color: "#475569", lineHeight: 1.5 }}>{deleteConfirm.text.substring(0, 120)}{deleteConfirm.text.length > 120 ? "..." : ""}</p>
