@@ -89,7 +89,7 @@ export function FlipReports() {
       {/* Header */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
         <div>
-          <h1 style={{ color: "#0f172a", fontSize: 26, fontWeight: 700, marginBottom: 4 }}>Fix &amp; Flip Reports</h1>
+          <h1 style={{ color: "#0f172a", fontSize: 26, fontWeight: 700, marginBottom: 4 }}>Deal Reports</h1>
           <p style={{ color: "#64748b", fontSize: 15 }}>Profitability, rehab analysis, contractor payments, and projections</p>
         </div>
         <div style={{ display: "flex", gap: 10, alignItems: "center" }}>

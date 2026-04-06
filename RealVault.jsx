@@ -454,11 +454,11 @@ const TENANTS = [
 ];
 
 const MILEAGE_TRIPS = [
-  { id: 1, date: "2026-03-22", description: "Inspect Oakdale Craftsman - contractor walkthrough", from: "Home", to: "1422 Oakdale Ave, Nashville", miles: 14.2, purpose: "Flip", businessPct: 100 },
+  { id: 1, date: "2026-03-22", description: "Inspect Oakdale Craftsman - contractor walkthrough", from: "Home", to: "1422 Oakdale Ave, Nashville", miles: 14.2, purpose: "Deal", businessPct: 100 },
   { id: 2, date: "2026-03-20", description: "Collect rent - Maple Ridge Duplex", from: "Home", to: "2847 Maple Ridge Dr, Austin", miles: 8.5, purpose: "Rental", businessPct: 100 },
-  { id: 3, date: "2026-03-18", description: "Meet plumber - Oakdale Craftsman", from: "Home", to: "1422 Oakdale Ave, Nashville", miles: 14.2, purpose: "Flip", businessPct: 100 },
+  { id: 3, date: "2026-03-18", description: "Meet plumber - Oakdale Craftsman", from: "Home", to: "1422 Oakdale Ave, Nashville", miles: 14.2, purpose: "Deal", businessPct: 100 },
   { id: 4, date: "2026-03-15", description: "Annual inspection - Lakeview SFR", from: "Home", to: "518 Lakeview Terrace, Denver", miles: 22.7, purpose: "Rental", businessPct: 100 },
-  { id: 5, date: "2026-03-12", description: "Pine Street Ranch showing", from: "Home", to: "874 Pine Street, Memphis", miles: 18.9, purpose: "Flip", businessPct: 100 },
+  { id: 5, date: "2026-03-12", description: "Pine Street Ranch showing", from: "Home", to: "874 Pine Street, Memphis", miles: 18.9, purpose: "Deal", businessPct: 100 },
   { id: 6, date: "2026-03-10", description: "Commercial property check-in", from: "Home", to: "9220 Sunset Blvd, W Hollywood", miles: 31.4, purpose: "Rental", businessPct: 100 },
   { id: 7, date: "2026-03-05", description: "Riverside Triplex - maintenance call", from: "Home", to: "744 Riverside Blvd, Portland", miles: 12.1, purpose: "Rental", businessPct: 100 },
   { id: 8, date: "2026-02-28", description: "Accountant meeting - tax prep", from: "Home", to: "Downtown Office", miles: 9.3, purpose: "Business", businessPct: 100 },
@@ -990,22 +990,22 @@ function PortfolioDashboard({ onNavigate, onSelectProperty, onSelectFlip, onNavi
       {/* Header */}
       <div style={{ marginBottom: 28 }}>
         <h1 style={{ fontSize: 26, fontWeight: 700, color: "#041830", margin: "0 0 8px 0" }}>Portfolio Overview</h1>
-        <p style={{ fontSize: 15, color: "#64748b", margin: 0 }}>Your complete real estate snapshot — rentals and flips combined.</p>
+        <p style={{ fontSize: 15, color: "#64748b", margin: 0 }}>Your complete real estate snapshot — rentals and deals combined.</p>
       </div>
 
       {/* Row 1: KPI Cards */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 20, marginBottom: 28 }}>
-        <StatCard icon={Wallet} label="Total Equity" value={fmt(totalEquity)} color="#3b82f6" tip="Sum of rental equity (property value − mortgage balance) plus flip purchase prices invested." />
+        <StatCard icon={Wallet} label="Total Equity" value={fmt(totalEquity)} color="#3b82f6" tip="Sum of rental equity (property value − mortgage balance) plus deal purchase prices invested." />
         <StatCard icon={TrendingUp} label="Monthly Cash Flow" value={fmt(netCashFlow)} color="#10b981" tip="Net rental income across all properties (income minus expenses)." />
-        <StatCard icon={Target} label="Active Deals" value={String(activeDeals)} color="#e95e00" tip="Number of flip deals currently in progress (not sold)." />
-        <StatCard icon={DollarSign} label="Capital Deployed" value={fmt(capitalDeployed)} color="#8b5cf6" tip="Total money invested in active flip deals (purchase price + rehab spent)." />
+        <StatCard icon={Target} label="Active Deals" value={String(activeDeals)} color="#e95e00" tip="Number of deals currently in progress (not sold)." />
+        <StatCard icon={DollarSign} label="Capital Deployed" value={fmt(capitalDeployed)} color="#8b5cf6" tip="Total money invested in active deals (purchase price + rehab spent)." />
       </div>
 
       {/* Row 2: Quick Actions */}
       <div style={{ display: "flex", gap: 12, marginBottom: 28 }}>
         {[
           { label: "Log Rental Transaction", icon: ArrowUpDown, color: "#10b981", bg: "#dcfce7", action: () => onNavigate("transactions") },
-          { label: "Log Flip Expense", icon: Hammer, color: "#e95e00", bg: "#ffedd5", action: () => onNavigate("flipexpenses") },
+          { label: "Log Deal Expense", icon: Hammer, color: "#e95e00", bg: "#ffedd5", action: () => onNavigate("flipexpenses") },
           { label: "Add Property", icon: Building2, color: "#e95e00", bg: "#fff7ed", action: () => onNavigate("properties") },
           { label: "Add Deal", icon: Target, color: "#8b5cf6", bg: "#ede9fe", action: () => onNavigate("flipdeals") },
         ].map((qa, i) => (
@@ -1133,7 +1133,7 @@ function PortfolioDashboard({ onNavigate, onSelectProperty, onSelectFlip, onNavi
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <Hammer size={18} color="#e95e00" />
-              <h3 style={{ fontSize: 16, fontWeight: 700, color: "#041830", margin: 0 }}>Active Flips</h3>
+              <h3 style={{ fontSize: 16, fontWeight: 700, color: "#041830", margin: 0 }}>Active Deals</h3>
               <span style={{ fontSize: 13, color: "#94a3b8", fontWeight: 500 }}>({flipSnapshots.length})</span>
             </div>
             <button onClick={() => onNavigate("flipdashboard")} style={{ background: "none", border: "none", color: "#e95e00", cursor: "pointer", fontSize: 13, fontWeight: 600, display: "flex", alignItems: "center", gap: 4 }}>
@@ -5354,7 +5354,7 @@ function FlipPipeline({ onSelect }) {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
         <div>
           <h1 style={{ color: "#041830", fontSize: 26, fontWeight: 700, marginBottom: 4 }}>Deals</h1>
-          <p style={{ color: "#64748b", fontSize: 15 }}>Track every flip from contract to close</p>
+          <p style={{ color: "#64748b", fontSize: 15 }}>Track every deal from contract to close</p>
         </div>
         <button onClick={() => setShowAddDeal(true)} style={{ background: "#e95e00", color: "#fff", border: "none", borderRadius: 10, padding: "10px 18px", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
           <Plus size={16} /> Add Deal
@@ -5403,7 +5403,7 @@ function FlipPipeline({ onSelect }) {
         {filtered.length === 0 && (
           <div style={{ gridColumn: "1 / -1" }}>
             {FLIPS.length === 0
-              ? <EmptyState icon={Layers} title="No deals yet" subtitle="Add your first flip deal to start tracking your pipeline." actionLabel="Add Deal" onAction={() => setShowAddDeal(true)} />
+              ? <EmptyState icon={Layers} title="No deals yet" subtitle="Add your first deal to start tracking your pipeline." actionLabel="Add Deal" onAction={() => setShowAddDeal(true)} />
               : <EmptyState icon={Search} title="No deals match this filter" subtitle="Try selecting a different stage or clear the filter." />
             }
           </div>
@@ -7884,7 +7884,7 @@ function MileageTracker() {
       {/* Mileage filters */}
       <div style={{ display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap", alignItems: "center" }}>
         <div style={{ display: "flex", gap: 4, background: "#f8fafc", borderRadius: 10, padding: 4, border: "1px solid #e2e8f0" }}>
-          {[["all", "All Purposes"], ["Rental", "Rental"], ["Flip", "Flip"], ["Business", "Business"]].map(([val, label]) => {
+          {[["all", "All Purposes"], ["Rental", "Rental"], ["Deal", "Deal"], ["Business", "Business"]].map(([val, label]) => {
             const active = purposeFilter === val;
             return (
               <button key={val} onClick={() => setPurposeFilter(val)} style={{ padding: "7px 14px", borderRadius: 8, border: "none", background: active ? "#e95e00" : "transparent", color: active ? "#fff" : "#64748b", fontWeight: active ? 700 : 500, fontSize: 12, cursor: "pointer", whiteSpace: "nowrap", transition: "all 0.15s" }}>
@@ -7990,7 +7990,7 @@ function MileageTracker() {
           <div style={{ marginBottom: 12 }}>
             <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Purpose</label>
             <select value={form.purpose} onChange={sf("purpose")} style={iS}>
-              {["Flip","Rental","Business"].map(o => <option key={o}>{o}</option>)}
+              {["Deal","Rental","Business"].map(o => <option key={o}>{o}</option>)}
             </select>
           </div>
           <div style={{ marginBottom: 16 }}>
@@ -9073,7 +9073,7 @@ function AppShell() {
             );
           })}
           <div style={{ height: 1, background: "rgba(255,255,255,0.07)", margin: "14px 8px 12px" }} />
-          <p style={{ color: "#475569", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", padding: "0 8px", marginBottom: 8 }}>Fix &amp; Flip</p>
+          <p style={{ color: "#475569", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", padding: "0 8px", marginBottom: 8 }}>Deals</p>
           {flipNavItems.map(item => {
             const active = activeView === item.id || (item.id === "flips" && activeView === "flipDetail");
             return (

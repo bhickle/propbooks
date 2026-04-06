@@ -282,7 +282,7 @@ export function FlipDashboard({ onSelect, onNavigateToNote, onNavigateToExpense,
 
   return (
     <div>
-      <PageHeader title="Overview" sub="All fix & flip deals at a glance" />
+      <PageHeader title="Overview" sub="All deals at a glance" />
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 20 }}>
         <StatCard icon={Hammer}     label="Active Deals"     value={active.length}              sub={isFiltered ? "Filtered" : "In pipeline"}        color="#e95e00" trend={!isFiltered ? "up" : undefined} trendVal="+1 this quarter" tip="Number of deals in active pipeline stages (not Sold)." />
@@ -994,7 +994,7 @@ export function FlipExpenses({ highlightExpId, onBack, onClearHighlight, backLab
       )}
       <PageHeader
         title="Expenses"
-        sub="All costs across every fix & flip project"
+        sub="All costs across every deal"
         filter={
           <select value={filterFlip} onChange={e => setFilterFlip(e.target.value)} style={{ ...iS, width: 200, fontSize: 14, padding: "9px 14px", fontWeight: 600 }}>
             <option value="all">All Deals</option>
@@ -2664,7 +2664,7 @@ export function FlipMilestones({ highlightMilestoneKey, onBack, onClearHighlight
       )}
       <PageHeader
         title="Milestones"
-        sub="Track progress across all your flips"
+        sub="Track progress across all your deals"
         filter={
           <select value={filterFlip} onChange={e => setFilterFlip(e.target.value)} style={{ ...iS, width: 200, fontSize: 14, padding: "9px 14px", fontWeight: 600 }}>
             <option value="all">All Deals</option>
