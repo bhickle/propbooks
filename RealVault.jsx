@@ -2172,7 +2172,7 @@ function PropertyDetail({ property, onBack, backLabel, onEditProperty, onGoToTra
             const accentColor = isIncome ? "#15803d" : "#b91c1c";
             const accentBg    = isIncome ? "#f0fdf4"  : "#fef2f2";
             const accentBorder= isIncome ? "#bbf7d0"  : "#fecaca";
-            const payeeLabel  = isIncome ? "Received From" : "Paid To";
+            const payeeLabel  = isIncome ? "Received From" : "Paid To *";
             const payeePlaceholder = isIncome ? "Who paid?" : "Who was paid?";
             const payeePool   = isIncome ? allPayers : allPayees;
             const payeeHint   = <p style={{ fontSize: 11, color: "#94a3b8", marginTop: 4, fontStyle: "italic" }}>Type to search previous entries or add new</p>;
@@ -2696,10 +2696,10 @@ function Transactions({ highlightTxId, onBack, onClearHighlight, backLabel }) {
         const accentBg    = isIncome ? "#f0fdf4"  : "#fef2f2";
         const accentBorder= isIncome ? "#bbf7d0"  : "#fecaca";
         const saveColor   = isIncome ? "#15803d"  : "#b91c1c";
-        const payeeLabel  = isIncome ? "Received From" : "Payee";
+        const payeeLabel  = isIncome ? "Received From" : "Paid To *";
         const payeePlaceholder = isIncome
-          ? "Start typing to search or add new..."
-          : "Start typing to search or add new...";
+          ? "Who paid?"
+          : "Who was paid?";
         const payeePool = isIncome ? allPayers : allPayees;
 
         const typeaheadHint = <p style={{ fontSize: 11, color: "#94a3b8", marginTop: 4, fontStyle: "italic" }}>Type to search previous entries or add new</p>;

@@ -1046,8 +1046,8 @@ export function FlipExpenses({ highlightExpId, onBack, onClearHighlight, backLab
                 </div>
               </div>
               <div style={{ position: "relative" }}>
-                <p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Paid To</p>
-                <input style={iS} placeholder="Start typing to search or add new..." value={form.vendor}
+                <p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Paid To *</p>
+                <input style={iS} placeholder="Who was paid?" value={form.vendor}
                   onChange={e => { setForm(f => ({ ...f, vendor: e.target.value })); setVendorFocus(true); }}
                   onFocus={() => setVendorFocus(true)} onBlur={() => setTimeout(() => setVendorFocus(false), 150)} />
                 {!vendorFocus && !form.vendor && <p style={{ fontSize: 11, color: "#94a3b8", marginTop: 4, fontStyle: "italic" }}>Type to search previous vendors or add new</p>}
