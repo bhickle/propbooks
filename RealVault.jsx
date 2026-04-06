@@ -2516,6 +2516,16 @@ function PropertyDetail({ property, onBack, backLabel, onEditProperty, onGoToTra
                   <span style={{ fontSize: 13, fontWeight: 700, color: accentColor }}>{isIncome ? "Income" : "Expense"}</span>
                 </div>
 
+                {/* OCR hint — expense only, hides once a receipt is attached */}
+                {!isIncome && txReceipts.length === 0 && (
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 14px", background: "#f0f9ff", borderRadius: 10, border: "1px solid #bae6fd", marginBottom: 16 }}>
+                    <ScanLine size={16} color="#0284c7" />
+                    <p style={{ fontSize: 12, color: "#0c4a6e", margin: 0 }}>
+                      <strong>Have a receipt?</strong> Attach it below and we can auto-fill the details for you.
+                    </p>
+                  </div>
+                )}
+
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
                   <div>
                     <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Date</label>
@@ -3102,6 +3112,16 @@ function Transactions({ highlightTxId, onBack, onClearHighlight, backLabel }) {
               <span style={{ width: 8, height: 8, borderRadius: "50%", background: accentColor, display: "inline-block" }} />
               <span style={{ fontSize: 13, fontWeight: 700, color: accentColor }}>{isIncome ? "Income" : "Expense"}</span>
             </div>
+
+            {/* OCR hint — expense only, hides once a receipt is attached */}
+            {!isIncome && mainReceipts.length === 0 && (
+              <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 14px", background: "#f0f9ff", borderRadius: 10, border: "1px solid #bae6fd", marginBottom: 16 }}>
+                <ScanLine size={16} color="#0284c7" />
+                <p style={{ fontSize: 12, color: "#0c4a6e", margin: 0 }}>
+                  <strong>Have a receipt?</strong> Attach it below and we can auto-fill the details for you.
+                </p>
+              </div>
+            )}
 
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
               <div>

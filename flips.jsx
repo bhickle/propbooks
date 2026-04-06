@@ -1118,6 +1118,14 @@ export function FlipExpenses({ highlightExpId, onBack, onClearHighlight, backLab
               <h2 style={{ color: "#0f172a", fontSize: 19, fontWeight: 700 }}>{editId ? "Edit Expense" : "Add Expense"}</h2>
               <button onClick={() => { setShowModal(false); setEditId(null); }} style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8" }}><X size={20} /></button>
             </div>
+            {flipReceipts.length === 0 && (
+              <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 14px", background: "#f0f9ff", borderRadius: 10, border: "1px solid #bae6fd", marginBottom: 16 }}>
+                <ScanLine size={16} color="#0284c7" />
+                <p style={{ fontSize: 12, color: "#0c4a6e", margin: 0 }}>
+                  <strong>Have a receipt?</strong> Attach it below and we can auto-fill the details for you.
+                </p>
+              </div>
+            )}
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               <div>
                 <p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Deal *</p>
