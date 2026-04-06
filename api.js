@@ -1,5 +1,5 @@
 // =============================================================================
-// PropBooks API Service Layer
+// PropBooks API Service Layer — updated 2026-04-06
 // =============================================================================
 // All data access goes through this file. Right now every function returns
 // mock data. When you add a backend (Supabase, etc.) swap the implementation

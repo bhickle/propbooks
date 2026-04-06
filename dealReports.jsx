@@ -1,4 +1,4 @@
-// ─── DEAL REPORTS ─────────────────────────────────────────────────────
+// ─── DEAL REPORTS — updated 2026-04-06 ────────────────────────────────
 // Deal profitability · Rehab budget vs actual · Contractor payments · Holding costs
 // Capital gains · Cash flow · Pipeline value
 // Matches rental Reports layout: sidebar nav, KPI strip, content area

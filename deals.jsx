@@ -1,5 +1,5 @@
 // =============================================================================
-// PropBooks – Deal Modules
+// PropBooks – Deal Modules — updated 2026-04-06
 // DealDashboard | RehabTracker | DealExpenses | DealContractors | DealAnalytics
 // =============================================================================
 
