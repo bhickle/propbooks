@@ -14,10 +14,14 @@ import {
   Wrench, Users, Receipt, BarChart3, Target, Calendar, Flag,
   ArrowUp, ArrowDown, Truck, Building2, MapPin, Home, Info,
   MessageSquare, FileText, Circle, Phone, Mail, Shield, Upload,
-  ChevronLeft, Eye, FileCheck, Award,
+  ChevronLeft, Eye, FileCheck, Award, Paperclip, ScanLine, UploadCloud,
+  FileImage, FilePlus, Loader, User, UserCheck,
 } from "lucide-react";
 import {
   fmt, fmtK, newId, STAGE_ORDER, STAGE_COLORS, DEFAULT_MILESTONES,
+  FLIP_EXPENSE_RECEIPTS, addFlipExpenseReceipt, deleteFlipExpenseReceipt,
+  DEAL_DOCUMENTS, addDealDocument, deleteDealDocument,
+  mockOcrScan,
 } from "./api.js";
 
 // Shared mock data refs (passed as props or imported directly)
@@ -28,6 +32,78 @@ import { FLIPS as _FLIPS, FLIP_EXPENSES as _FE, CONTRACTORS as _CON, FLIP_MILEST
 // Shared helpers
 // ---------------------------------------------------------------------------
 const iS = { width: "100%", padding: "10px 12px", border: "1px solid #e2e8f0", borderRadius: 10, fontSize: 14, color: "#0f172a", background: "#fff", outline: "none", boxSizing: "border-box" };
+
+// ── Attachment components (mirrors RealVault.jsx versions) ──
+function FlipAttachmentZone({ onFiles, accept = "image/*,.pdf", label = "Drop file here or click to browse", compact = false }) {
+  const inputRef = useRef(null);
+  const [dragOver, setDragOver] = useState(false);
+  const handleDrop = e => { e.preventDefault(); setDragOver(false); if (e.dataTransfer.files.length) onFiles([...e.dataTransfer.files]); };
+  const handleChange = e => { if (e.target.files.length) { onFiles([...e.target.files]); e.target.value = ""; } };
+  return (
+    <div onDragOver={e => { e.preventDefault(); setDragOver(true); }} onDragLeave={() => setDragOver(false)} onDrop={handleDrop}
+      onClick={() => inputRef.current?.click()}
+      style={{ border: `2px dashed ${dragOver ? "#3b82f6" : "#e2e8f0"}`, borderRadius: 12, padding: compact ? "12px 16px" : "20px 24px", textAlign: "center", cursor: "pointer", background: dragOver ? "#eff6ff" : "#f8fafc", transition: "all 0.15s", display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }}>
+      <input ref={inputRef} type="file" accept={accept} multiple onChange={handleChange} style={{ display: "none" }} />
+      <UploadCloud size={compact ? 16 : 20} color="#94a3b8" />
+      <span style={{ fontSize: compact ? 12 : 13, color: "#64748b" }}>{label}</span>
+    </div>
+  );
+}
+
+function FlipAttachmentList({ items, onRemove, compact = false }) {
+  if (!items || items.length === 0) return null;
+  const iconForType = mime => { if (!mime) return FileText; if (mime.startsWith("image/")) return FileImage; return FileText; };
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+      {items.map(item => {
+        const Icon = iconForType(item.mimeType);
+        return (
+          <div key={item.id} style={{ display: "flex", alignItems: "center", gap: 10, background: "#f8fafc", borderRadius: 10, padding: compact ? "6px 10px" : "8px 12px", border: "1px solid #f1f5f9" }}>
+            <Icon size={16} color="#64748b" style={{ flexShrink: 0 }} />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={{ fontSize: 12, fontWeight: 600, color: "#0f172a", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.name}</p>
+              {item.size && <p style={{ fontSize: 11, color: "#94a3b8" }}>{item.size}</p>}
+            </div>
+            {item.ocrData && <span style={{ fontSize: 10, fontWeight: 600, color: "#15803d", background: "#dcfce7", borderRadius: 6, padding: "2px 6px", flexShrink: 0 }}>OCR</span>}
+            {onRemove && (
+              <button onClick={e => { e.stopPropagation(); onRemove(item.id); }}
+                style={{ background: "none", border: "none", cursor: "pointer", padding: 4, borderRadius: 6, display: "flex", color: "#94a3b8" }}
+                onMouseEnter={e => e.currentTarget.style.color = "#ef4444"} onMouseLeave={e => e.currentTarget.style.color = "#94a3b8"}>
+                <X size={14} />
+              </button>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function FlipReceiptScanButton({ onResult, onFileAttached, accent = "#f59e0b" }) {
+  const inputRef = useRef(null);
+  const [scanning, setScanning] = useState(false);
+  const handleFile = async (file) => {
+    const attachment = {
+      id: newId(), name: file.name, mimeType: file.type,
+      size: file.size > 1024 * 1024 ? (file.size / (1024 * 1024)).toFixed(1) + " MB" : Math.round(file.size / 1024) + " KB",
+      url: URL.createObjectURL(file), ocrData: null, createdAt: new Date().toISOString(), userId: "usr_001",
+    };
+    if (onFileAttached) onFileAttached(attachment);
+    setScanning(true);
+    try { const ocrData = await mockOcrScan(file); attachment.ocrData = ocrData; if (onResult) onResult(ocrData, attachment); } catch (err) { console.error("OCR failed:", err); } finally { setScanning(false); }
+  };
+  return (
+    <>
+      <input ref={inputRef} type="file" accept="image/*,.pdf" onChange={e => { if (e.target.files[0]) handleFile(e.target.files[0]); e.target.value = ""; }} style={{ display: "none" }} />
+      <button onClick={() => inputRef.current?.click()} disabled={scanning}
+        style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 14px", borderRadius: 10, border: `1px solid ${accent}40`, background: `${accent}10`, color: accent, fontSize: 12, fontWeight: 600, cursor: scanning ? "wait" : "pointer", opacity: scanning ? 0.7 : 1 }}>
+        {scanning ? <Loader size={14} style={{ animation: "spin 1s linear infinite" }} /> : <ScanLine size={14} />}
+        {scanning ? "Scanning..." : "Scan Receipt"}
+      </button>
+      {scanning && <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>}
+    </>
+  );
+}
 
 function StageDot({ stage }) {
   const c = STAGE_COLORS[stage] || STAGE_COLORS["Active Rehab"];
@@ -811,6 +887,7 @@ export function FlipExpenses({ highlightExpId, onBack, onClearHighlight, backLab
   const [form, setForm]   = useState(emptyForm);
   const sf = k => e => setForm(f => ({ ...f, [k]: e.target.value }));
   const [vendorFocus, setVendorFocus] = useState(false);
+  const [flipReceipts, setFlipReceipts] = useState([]);
 
   // Unique vendor names for typeahead
   const allVendors = useMemo(() => {
@@ -822,10 +899,11 @@ export function FlipExpenses({ highlightExpId, onBack, onClearHighlight, backLab
   const expFlip = _FLIPS.find(f => f.id === parseInt(form.flipId));
   const expRehabItems = expFlip?.rehabItems || [];
 
-  const openAdd = () => { setEditId(null); setForm(emptyForm); setShowModal(true); };
+  const openAdd = () => { setEditId(null); setForm(emptyForm); setFlipReceipts([]); setShowModal(true); };
   const openEdit = exp => {
     setEditId(exp.id);
     setForm({ flipId: String(exp.flipId), date: exp.date, vendor: exp.vendor || "", category: exp.category, description: exp.description || "", amount: String(exp.amount), rehabItemIdx: exp.rehabItemIdx != null ? String(exp.rehabItemIdx) : "" });
+    setFlipReceipts(FLIP_EXPENSE_RECEIPTS.filter(r => r.expenseId === exp.id));
     setShowModal(true);
   };
 
@@ -884,14 +962,17 @@ export function FlipExpenses({ highlightExpId, onBack, onClearHighlight, backLab
         if (oldItem) oldItem.spent = Math.max(0, oldItem.spent - oldExp.amount);
       }
       setExpenses(prev => prev.map(e => e.id === editId ? { ...e, ...built } : e));
+      flipReceipts.filter(r => !FLIP_EXPENSE_RECEIPTS.some(er => er.id === r.id)).forEach(r => addFlipExpenseReceipt({ ...r, expenseId: editId }));
     } else {
-      setExpenses(prev => [{ id: newId(), ...built }, ...prev]);
+      const expId = newId();
+      setExpenses(prev => [{ id: expId, ...built }, ...prev]);
+      flipReceipts.forEach(r => addFlipExpenseReceipt({ ...r, expenseId: expId }));
     }
     // Update rehab item spent
     if (riIdx != null && flip && flip.rehabItems[riIdx]) {
       flip.rehabItems[riIdx].spent += amt;
     }
-    setForm(emptyForm); setEditId(null); setShowModal(false);
+    setForm(emptyForm); setEditId(null); setFlipReceipts([]); setShowModal(false);
   };
 
   return (
@@ -1102,10 +1183,54 @@ export function FlipExpenses({ highlightExpId, onBack, onClearHighlight, backLab
                 <p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Description</p>
                 <input style={iS} placeholder="Brief description" value={form.description} onChange={sf("description")} />
               </div>
+
+              {/* Receipt / Attachment */}
+              <div>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 5 }}>
+                  <p style={{ fontSize: 12, fontWeight: 600, color: "#374151" }}>
+                    <Paperclip size={12} style={{ marginRight: 4, verticalAlign: "middle" }} />Receipt / Attachment
+                  </p>
+                  <FlipReceiptScanButton
+                    accent="#f59e0b"
+                    onFileAttached={att => setFlipReceipts(prev => [...prev, att])}
+                    onResult={(ocrData, att) => {
+                      setForm(f => ({
+                        ...f,
+                        vendor: f.vendor || ocrData.vendor || "",
+                        amount: f.amount || String(ocrData.amount || ""),
+                        date: f.date || ocrData.date || "",
+                        description: f.description || `Receipt — ${ocrData.vendor || "scanned"}`,
+                      }));
+                      setFlipReceipts(prev => prev.map(r => r.id === att.id ? { ...r, ocrData } : r));
+                    }}
+                  />
+                </div>
+                {flipReceipts.length > 0 && (
+                  <FlipAttachmentList items={flipReceipts} onRemove={id => setFlipReceipts(prev => prev.filter(r => r.id !== id))} compact />
+                )}
+                {flipReceipts.length === 0 && (
+                  <FlipAttachmentZone
+                    onFiles={files => {
+                      const newAtts = files.map(f => ({
+                        id: newId(), name: f.name, mimeType: f.type,
+                        size: f.size > 1024 * 1024 ? (f.size / (1024 * 1024)).toFixed(1) + " MB" : Math.round(f.size / 1024) + " KB",
+                        url: URL.createObjectURL(f), ocrData: null, createdAt: new Date().toISOString(), userId: "usr_001",
+                      }));
+                      setFlipReceipts(prev => [...prev, ...newAtts]);
+                    }}
+                    compact label="Drop receipt or click to attach" />
+                )}
+                {flipReceipts.some(r => r.ocrData) && (
+                  <p style={{ fontSize: 11, color: "#15803d", marginTop: 4, fontStyle: "italic" }}>
+                    <CheckCircle size={11} style={{ verticalAlign: "middle", marginRight: 3 }} />
+                    Fields auto-populated from receipt — please verify
+                  </p>
+                )}
+              </div>
             </div>
             <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
               <button onClick={handleSave} style={{ flex: 1, padding: "11px", borderRadius: 10, border: "none", background: "#f59e0b", color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer" }}>{editId ? "Save Changes" : "Save Expense"}</button>
-              <button onClick={() => { setShowModal(false); setEditId(null); }} style={{ padding: "11px 18px", borderRadius: 10, border: "1.5px solid #e2e8f0", background: "#fff", fontWeight: 600, fontSize: 14, cursor: "pointer", color: "#64748b" }}>Cancel</button>
+              <button onClick={() => { setShowModal(false); setEditId(null); setFlipReceipts([]); }} style={{ padding: "11px 18px", borderRadius: 10, border: "1.5px solid #e2e8f0", background: "#fff", fontWeight: 600, fontSize: 14, cursor: "pointer", color: "#64748b" }}>Cancel</button>
             </div>
           </div>
         </div>

@@ -225,6 +225,41 @@ export const CONTRACTOR_DOCUMENTS = [
   { id:305, contractorId:6, name:"HVAC Warranty Certificate", type:"warranty", flipId:4, date:"2025-08-20", size:"56 KB", createdAt:"2025-08-20T09:00:00Z", updatedAt:"2025-08-20T09:00:00Z", userId:"usr_001" },
 ];
 
+// ── Property-level documents (leases, inspections, insurance, etc.) ──
+export const PROPERTY_DOCUMENTS = [
+  { id: 401, propertyId: 1, name: "Lease Agreement — Unit A", type: "lease", mimeType: "application/pdf", size: "1.2 MB", date: "2024-02-01", url: null, createdAt: "2024-02-01T10:00:00Z", updatedAt: "2024-02-01T10:00:00Z", userId: "usr_001" },
+  { id: 402, propertyId: 1, name: "Home Inspection Report", type: "inspection", mimeType: "application/pdf", size: "3.8 MB", date: "2023-06-15", url: null, createdAt: "2023-06-15T10:00:00Z", updatedAt: "2023-06-15T10:00:00Z", userId: "usr_001" },
+  { id: 403, propertyId: 2, name: "Property Insurance Policy", type: "insurance", mimeType: "application/pdf", size: "892 KB", date: "2026-01-10", url: null, createdAt: "2026-01-10T10:00:00Z", updatedAt: "2026-01-10T10:00:00Z", userId: "usr_001" },
+  { id: 404, propertyId: 4, name: "Lease Agreement — Unit 1", type: "lease", mimeType: "application/pdf", size: "1.1 MB", date: "2024-09-01", url: null, createdAt: "2024-09-01T10:00:00Z", updatedAt: "2024-09-01T10:00:00Z", userId: "usr_001" },
+  { id: 405, propertyId: 5, name: "NNN Lease — Pacific Rim", type: "lease", mimeType: "application/pdf", size: "2.4 MB", date: "2023-01-01", url: null, createdAt: "2023-01-01T10:00:00Z", updatedAt: "2023-01-01T10:00:00Z", userId: "usr_001" },
+];
+
+// ── Deal-level documents (contracts, scope docs, closing statements) ──
+export const DEAL_DOCUMENTS = [
+  { id: 501, flipId: 1, name: "Purchase Agreement — Oakdale", type: "contract", mimeType: "application/pdf", size: "1.5 MB", date: "2026-01-06", url: null, createdAt: "2026-01-06T10:00:00Z", updatedAt: "2026-01-06T10:00:00Z", userId: "usr_001" },
+  { id: 502, flipId: 1, name: "Scope of Work — Full Rehab", type: "scope", mimeType: "application/pdf", size: "680 KB", date: "2026-01-08", url: null, createdAt: "2026-01-08T10:00:00Z", updatedAt: "2026-01-08T10:00:00Z", userId: "usr_001" },
+  { id: 503, flipId: 2, name: "Closing Statement — Pine Street", type: "closing", mimeType: "application/pdf", size: "420 KB", date: "2025-10-14", url: null, createdAt: "2025-10-14T10:00:00Z", updatedAt: "2025-10-14T10:00:00Z", userId: "usr_001" },
+  { id: 504, flipId: 4, name: "Appraisal Report — Biltmore", type: "appraisal", mimeType: "application/pdf", size: "2.1 MB", date: "2025-04-05", url: null, createdAt: "2025-04-05T10:00:00Z", updatedAt: "2025-04-05T10:00:00Z", userId: "usr_001" },
+];
+
+// ── Tenant-level documents (applications, IDs, lease addenda) ──
+export const TENANT_DOCUMENTS = [
+  { id: 601, tenantId: 1, name: "Rental Application — Williams", type: "application", mimeType: "application/pdf", size: "340 KB", date: "2024-01-15", url: null, createdAt: "2024-01-15T10:00:00Z", updatedAt: "2024-01-15T10:00:00Z", userId: "usr_001" },
+  { id: 602, tenantId: 3, name: "Pet Addendum — Kowalski", type: "addendum", mimeType: "application/pdf", size: "180 KB", date: "2024-06-01", url: null, createdAt: "2024-06-01T10:00:00Z", updatedAt: "2024-06-01T10:00:00Z", userId: "usr_001" },
+  { id: 603, tenantId: 8, name: "Commercial Lease Addendum", type: "addendum", mimeType: "application/pdf", size: "520 KB", date: "2025-01-01", url: null, createdAt: "2025-01-01T10:00:00Z", updatedAt: "2025-01-01T10:00:00Z", userId: "usr_001" },
+];
+
+// ── Receipt / attachment records on transactions and expenses ──
+export const TRANSACTION_RECEIPTS = [
+  { id: 701, transactionId: 3, name: "HVAC_repair_receipt.jpg", mimeType: "image/jpeg", size: "1.4 MB", url: null, ocrData: { vendor: "AirPro HVAC Services", amount: 420, date: "2026-03-18" }, createdAt: "2026-03-18T11:30:00Z", userId: "usr_001" },
+  { id: 702, transactionId: 8, name: "StateFarm_Q1_invoice.pdf", mimeType: "application/pdf", size: "380 KB", url: null, ocrData: null, createdAt: "2026-03-05T14:00:00Z", userId: "usr_001" },
+];
+
+export const FLIP_EXPENSE_RECEIPTS = [
+  { id: 801, expenseId: 1, name: "HomeDepot_flooring_receipt.jpg", mimeType: "image/jpeg", size: "2.1 MB", url: null, ocrData: { vendor: "Home Depot", amount: 2890, date: "2026-03-18" }, createdAt: "2026-03-18T12:00:00Z", userId: "usr_001" },
+  { id: 802, expenseId: 4, name: "Nashville_permit_receipt.pdf", mimeType: "application/pdf", size: "156 KB", url: null, ocrData: null, createdAt: "2026-03-04T15:00:00Z", userId: "usr_001" },
+];
+
 export const FLIP_MILESTONES = [
   // Flip 1 milestones (id 3001-3012)
   { id: 3001, flipId: 1, label: "Contract Executed", done: true, date: "2026-01-06", createdAt:"2026-01-06T09:00:00Z", updatedAt:"2026-01-06T09:00:00Z", userId:"usr_001" },
@@ -449,5 +484,68 @@ export async function lookupPropertyByAddress(address) {
     yearBuilt: 2001,
     lastSalePrice: Math.floor(Math.random() * 350000) + 150000,
     lastSaleDate: "2022-06-14",
+  };
+}
+
+// ── Document & Receipt CRUD helpers ──────────────────────────────────────────
+export function getPropertyDocuments(propertyId) { return PROPERTY_DOCUMENTS.filter(d => d.propertyId === propertyId); }
+export function addPropertyDocument(doc) { PROPERTY_DOCUMENTS.push(doc); return doc; }
+export function deletePropertyDocument(id) { const i = PROPERTY_DOCUMENTS.findIndex(d => d.id === id); if (i !== -1) PROPERTY_DOCUMENTS.splice(i, 1); }
+
+export function getDealDocuments(flipId) { return DEAL_DOCUMENTS.filter(d => d.flipId === flipId); }
+export function addDealDocument(doc) { DEAL_DOCUMENTS.push(doc); return doc; }
+export function deleteDealDocument(id) { const i = DEAL_DOCUMENTS.findIndex(d => d.id === id); if (i !== -1) DEAL_DOCUMENTS.splice(i, 1); }
+
+export function getTenantDocuments(tenantId) { return TENANT_DOCUMENTS.filter(d => d.tenantId === tenantId); }
+export function addTenantDocument(doc) { TENANT_DOCUMENTS.push(doc); return doc; }
+export function deleteTenantDocument(id) { const i = TENANT_DOCUMENTS.findIndex(d => d.id === id); if (i !== -1) TENANT_DOCUMENTS.splice(i, 1); }
+
+export function getTransactionReceipts(transactionId) { return TRANSACTION_RECEIPTS.filter(r => r.transactionId === transactionId); }
+export function addTransactionReceipt(r) { TRANSACTION_RECEIPTS.push(r); return r; }
+export function deleteTransactionReceipt(id) { const i = TRANSACTION_RECEIPTS.findIndex(r => r.id === id); if (i !== -1) TRANSACTION_RECEIPTS.splice(i, 1); }
+
+export function getFlipExpenseReceipts(expenseId) { return FLIP_EXPENSE_RECEIPTS.filter(r => r.expenseId === expenseId); }
+export function addFlipExpenseReceipt(r) { FLIP_EXPENSE_RECEIPTS.push(r); return r; }
+export function deleteFlipExpenseReceipt(id) { const i = FLIP_EXPENSE_RECEIPTS.findIndex(r => r.id === id); if (i !== -1) FLIP_EXPENSE_RECEIPTS.splice(i, 1); }
+
+// ── Mock OCR — simulates receipt scanning ────────────────────────────────────
+// In production, replace with Google Cloud Vision / AWS Textract API call.
+// Returns a promise that resolves with extracted fields after a simulated delay.
+export async function mockOcrScan(file) {
+  await new Promise(r => setTimeout(r, 1200)); // simulate processing time
+  // Generate plausible receipt data based on filename hints
+  const name = (file.name || "").toLowerCase();
+  const vendors = {
+    homedepot: { vendor: "Home Depot", categories: ["Materials & Supplies"] },
+    lowes:     { vendor: "Lowe's", categories: ["Materials & Supplies"] },
+    sherwin:   { vendor: "Sherwin-Williams", categories: ["Materials & Supplies"] },
+    statefarm: { vendor: "State Farm", categories: ["Insurance"] },
+    hvac:      { vendor: "AirPro HVAC Services", categories: ["Maintenance"] },
+    plumbing:  { vendor: "ABC Plumbing", categories: ["Maintenance"] },
+    permit:    { vendor: "City Permits Office", categories: ["Permits"] },
+    electric:  { vendor: "Elite Electric", categories: ["Utilities"] },
+  };
+  let match = null;
+  for (const [key, val] of Object.entries(vendors)) {
+    if (name.includes(key)) { match = val; break; }
+  }
+  if (!match) {
+    // Fallback: generate generic receipt data
+    const genericVendors = ["Home Depot", "Lowe's", "Ace Hardware", "Menards", "Harbor Freight"];
+    match = { vendor: genericVendors[Math.floor(Math.random() * genericVendors.length)], categories: ["Materials & Supplies"] };
+  }
+  const amount = parseFloat((Math.random() * 500 + 20).toFixed(2));
+  const today = new Date().toISOString().slice(0, 10);
+  return {
+    vendor: match.vendor,
+    amount,
+    date: today,
+    category: match.categories[0],
+    tax: parseFloat((amount * 0.0825).toFixed(2)),
+    subtotal: parseFloat((amount - amount * 0.0825).toFixed(2)),
+    confidence: 0.87 + Math.random() * 0.12, // 87-99% confidence
+    lineItems: [
+      { description: "Item from receipt", qty: 1, amount },
+    ],
   };
 }

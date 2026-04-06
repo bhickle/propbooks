@@ -12,7 +12,8 @@ import {
   Hammer, Clock, Target, Flag, Wrench,
   Users, Route, Calculator, FileCheck, UserCheck, Truck, Layers, Car,
   CheckSquare, Square, PlusCircle, Receipt, UploadCloud, Trash2, Pencil, Info, List,
-  CreditCard, MessageSquare, Copy, Camera, Image, AlertTriangle, ArrowRight, ArrowLeft, ExternalLink
+  CreditCard, MessageSquare, Copy, Camera, Image, AlertTriangle, ArrowRight, ArrowLeft, ExternalLink,
+  Paperclip, ScanLine, FileImage, FilePlus, Loader
 } from "lucide-react";
 import {
   newId, fmt, fmtK,
@@ -24,6 +25,12 @@ import {
   CONTRACTOR_BIDS, CONTRACTOR_PAYMENTS, CONTRACTOR_DOCUMENTS,
   getFlipMilestones, updateFlipMilestones, FLIP_MILESTONES,
   getTenants, getMileageTrips, addMileageTrip, RENTAL_NOTES, FLIP_NOTES, MOCK_USER,
+  PROPERTY_DOCUMENTS, addPropertyDocument, deletePropertyDocument,
+  DEAL_DOCUMENTS, addDealDocument, deleteDealDocument,
+  TENANT_DOCUMENTS, addTenantDocument, deleteTenantDocument,
+  TRANSACTION_RECEIPTS, addTransactionReceipt, deleteTransactionReceipt,
+  FLIP_EXPENSE_RECEIPTS, addFlipExpenseReceipt, deleteFlipExpenseReceipt,
+  mockOcrScan,
 } from "./api.js";
 import { AuthProvider, AuthScreen, useAuth } from "./auth.jsx";
 import { Settings, OnboardingWizard } from "./settings.jsx";
@@ -442,6 +449,289 @@ function InfoTip({ text }) {
         </span>
       )}
     </span>
+  );
+}
+
+// ── AttachmentZone — reusable drag-and-drop / click-to-browse file upload ──
+function AttachmentZone({ onFiles, accept = "image/*,.pdf", label = "Drop file here or click to browse", compact = false, scanning = false }) {
+  const inputRef = useRef(null);
+  const [dragOver, setDragOver] = useState(false);
+  const handleDrop = e => { e.preventDefault(); setDragOver(false); if (e.dataTransfer.files.length) onFiles([...e.dataTransfer.files]); };
+  const handleChange = e => { if (e.target.files.length) { onFiles([...e.target.files]); e.target.value = ""; } };
+  if (scanning) {
+    return (
+      <div style={{ border: "2px dashed #f59e0b", borderRadius: 12, padding: compact ? "12px 16px" : "20px 24px", textAlign: "center", background: "#fffbeb", display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }}>
+        <Loader size={18} color="#f59e0b" style={{ animation: "spin 1s linear infinite" }} />
+        <span style={{ fontSize: 13, color: "#92400e", fontWeight: 600 }}>Scanning receipt...</span>
+        <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
+      </div>
+    );
+  }
+  return (
+    <div
+      onDragOver={e => { e.preventDefault(); setDragOver(true); }} onDragLeave={() => setDragOver(false)} onDrop={handleDrop}
+      onClick={() => inputRef.current?.click()}
+      style={{ border: `2px dashed ${dragOver ? "#3b82f6" : "#e2e8f0"}`, borderRadius: 12, padding: compact ? "12px 16px" : "20px 24px", textAlign: "center", cursor: "pointer", background: dragOver ? "#eff6ff" : "#f8fafc", transition: "all 0.15s", display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }}>
+      <input ref={inputRef} type="file" accept={accept} multiple onChange={handleChange} style={{ display: "none" }} />
+      <UploadCloud size={compact ? 16 : 20} color="#94a3b8" />
+      <span style={{ fontSize: compact ? 12 : 13, color: "#64748b" }}>{label}</span>
+    </div>
+  );
+}
+
+// ── AttachmentList — shows files with thumbnails, names, and remove buttons ──
+function AttachmentList({ items, onRemove, compact = false }) {
+  if (!items || items.length === 0) return null;
+  const iconForType = mime => {
+    if (!mime) return FileText;
+    if (mime.startsWith("image/")) return FileImage;
+    if (mime.includes("pdf")) return FileText;
+    return FileText;
+  };
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+      {items.map(item => {
+        const Icon = iconForType(item.mimeType);
+        return (
+          <div key={item.id} style={{ display: "flex", alignItems: "center", gap: 10, background: "#f8fafc", borderRadius: 10, padding: compact ? "6px 10px" : "8px 12px", border: "1px solid #f1f5f9" }}>
+            <Icon size={16} color="#64748b" style={{ flexShrink: 0 }} />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={{ fontSize: 12, fontWeight: 600, color: "#0f172a", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.name}</p>
+              {item.size && <p style={{ fontSize: 11, color: "#94a3b8" }}>{item.size}</p>}
+            </div>
+            {item.ocrData && (
+              <span style={{ fontSize: 10, fontWeight: 600, color: "#15803d", background: "#dcfce7", borderRadius: 6, padding: "2px 6px", flexShrink: 0 }}>OCR</span>
+            )}
+            {onRemove && (
+              <button onClick={e => { e.stopPropagation(); onRemove(item.id); }}
+                style={{ background: "none", border: "none", cursor: "pointer", padding: 4, borderRadius: 6, display: "flex", color: "#94a3b8" }}
+                onMouseEnter={e => e.currentTarget.style.color = "#ef4444"} onMouseLeave={e => e.currentTarget.style.color = "#94a3b8"}>
+                <X size={14} />
+              </button>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ── ReceiptScanButton — triggers file pick and OCR scan, then calls onResult ──
+function ReceiptScanButton({ onResult, onFileAttached, accent = "#f59e0b" }) {
+  const inputRef = useRef(null);
+  const [scanning, setScanning] = useState(false);
+
+  const handleFile = async (file) => {
+    // Create attachment record
+    const attachment = {
+      id: newId(),
+      name: file.name,
+      mimeType: file.type,
+      size: file.size > 1024 * 1024 ? (file.size / (1024 * 1024)).toFixed(1) + " MB" : Math.round(file.size / 1024) + " KB",
+      url: URL.createObjectURL(file),
+      ocrData: null,
+      createdAt: new Date().toISOString(),
+      userId: "usr_001",
+    };
+    if (onFileAttached) onFileAttached(attachment);
+
+    // Run OCR
+    setScanning(true);
+    try {
+      const ocrData = await mockOcrScan(file);
+      attachment.ocrData = ocrData;
+      if (onResult) onResult(ocrData, attachment);
+    } catch (err) {
+      console.error("OCR scan failed:", err);
+    } finally {
+      setScanning(false);
+    }
+  };
+
+  return (
+    <>
+      <input ref={inputRef} type="file" accept="image/*,.pdf" onChange={e => { if (e.target.files[0]) handleFile(e.target.files[0]); e.target.value = ""; }} style={{ display: "none" }} />
+      <button onClick={() => inputRef.current?.click()} disabled={scanning}
+        style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 14px", borderRadius: 10, border: `1px solid ${accent}40`, background: `${accent}10`, color: accent, fontSize: 12, fontWeight: 600, cursor: scanning ? "wait" : "pointer", opacity: scanning ? 0.7 : 1 }}>
+        {scanning ? <Loader size={14} style={{ animation: "spin 1s linear infinite" }} /> : <ScanLine size={14} />}
+        {scanning ? "Scanning..." : "Scan Receipt"}
+      </button>
+      {scanning && <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>}
+    </>
+  );
+}
+
+// ── DocumentsPanel — reusable documents tab content for any entity ──
+const DOC_TYPE_OPTIONS = [
+  { value: "lease", label: "Lease" }, { value: "contract", label: "Contract" }, { value: "insurance", label: "Insurance" },
+  { value: "inspection", label: "Inspection" }, { value: "appraisal", label: "Appraisal" }, { value: "closing", label: "Closing Statement" },
+  { value: "scope", label: "Scope of Work" }, { value: "addendum", label: "Addendum" }, { value: "application", label: "Application" },
+  { value: "w9", label: "W-9" }, { value: "warranty", label: "Warranty" }, { value: "receipt", label: "Receipt" },
+  { value: "photo", label: "Photo" }, { value: "other", label: "Other" },
+];
+
+function DocumentsPanel({ documents, onAdd, onDelete, entityLabel = "item" }) {
+  const [showModal, setShowModal] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [docForm, setDocForm] = useState({ name: "", type: "other" });
+  const [pendingFiles, setPendingFiles] = useState([]);
+  const dsf = k => e => setDocForm(f => ({ ...f, [k]: e.target.value }));
+
+  const handleFilesSelected = (files) => {
+    const newPending = files.map(f => ({
+      id: newId(), name: f.name, mimeType: f.type,
+      size: f.size > 1024 * 1024 ? (f.size / (1024 * 1024)).toFixed(1) + " MB" : Math.round(f.size / 1024) + " KB",
+      url: URL.createObjectURL(f), file: f,
+    }));
+    setPendingFiles(prev => [...prev, ...newPending]);
+    if (!docForm.name && files.length === 1) setDocForm(f => ({ ...f, name: files[0].name.replace(/\.[^.]+$/, "") }));
+  };
+
+  const handleSave = () => {
+    if (!docForm.name && pendingFiles.length === 0) return;
+    pendingFiles.forEach((pf, idx) => {
+      const doc = {
+        id: newId(),
+        name: docForm.name || pf.name,
+        type: docForm.type,
+        mimeType: pf.mimeType,
+        size: pf.size,
+        date: new Date().toISOString().slice(0, 10),
+        url: pf.url,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        userId: "usr_001",
+      };
+      onAdd(doc);
+    });
+    // If no files but a name, add as a record placeholder
+    if (pendingFiles.length === 0 && docForm.name) {
+      onAdd({
+        id: newId(), name: docForm.name, type: docForm.type, mimeType: null,
+        size: null, date: new Date().toISOString().slice(0, 10), url: null,
+        createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), userId: "usr_001",
+      });
+    }
+    setDocForm({ name: "", type: "other" }); setPendingFiles([]); setShowModal(false);
+  };
+
+  const typeLabel = t => (DOC_TYPE_OPTIONS.find(o => o.value === t) || {}).label || t;
+  const typeColor = t => {
+    const colors = { lease: "#3b82f6", contract: "#8b5cf6", insurance: "#10b981", inspection: "#f59e0b", appraisal: "#06b6d4", closing: "#ef4444", scope: "#ec4899", addendum: "#64748b", application: "#a855f7", w9: "#0ea5e9", warranty: "#22c55e", receipt: "#f97316", photo: "#6366f1" };
+    return colors[t] || "#94a3b8";
+  };
+
+  return (
+    <div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+        <h3 style={{ fontSize: 16, fontWeight: 700, color: "#0f172a" }}>Documents</h3>
+        <button onClick={() => setShowModal(true)} style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 10, border: "none", background: "#3b82f6", color: "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
+          <FilePlus size={14} /> Add Document
+        </button>
+      </div>
+
+      {documents.length === 0 && (
+        <div style={{ padding: 40, textAlign: "center", color: "#94a3b8", fontSize: 14, background: "#f8fafc", borderRadius: 12, border: "1px dashed #e2e8f0" }}>
+          <FileText size={32} color="#cbd5e1" style={{ marginBottom: 8 }} />
+          <p>No documents yet</p>
+          <p style={{ fontSize: 12, marginTop: 4 }}>Upload leases, inspections, receipts, and more</p>
+        </div>
+      )}
+
+      {documents.length > 0 && (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 12 }}>
+          {documents.map(doc => (
+            <div key={doc.id} style={{ background: "#fff", borderRadius: 12, padding: 16, border: "1px solid #f1f5f9", boxShadow: "0 1px 3px rgba(0,0,0,0.04)", display: "flex", flexDirection: "column", gap: 8 }}>
+              <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+                <div style={{ background: typeColor(doc.type) + "18", borderRadius: 8, padding: 8, flexShrink: 0 }}>
+                  {doc.mimeType?.startsWith("image/") ? <FileImage size={18} color={typeColor(doc.type)} /> : <FileText size={18} color={typeColor(doc.type)} />}
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ fontSize: 13, fontWeight: 600, color: "#0f172a", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{doc.name}</p>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4 }}>
+                    <span style={{ fontSize: 10, fontWeight: 600, color: typeColor(doc.type), background: typeColor(doc.type) + "18", borderRadius: 6, padding: "2px 8px", textTransform: "uppercase" }}>{typeLabel(doc.type)}</span>
+                    {doc.size && <span style={{ fontSize: 11, color: "#94a3b8" }}>{doc.size}</span>}
+                  </div>
+                </div>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span style={{ fontSize: 11, color: "#94a3b8" }}>{doc.date}</span>
+                <button onClick={() => setDeleteConfirm(doc)} style={{ background: "none", border: "none", cursor: "pointer", padding: 4, color: "#94a3b8", borderRadius: 6 }}
+                  onMouseEnter={e => e.currentTarget.style.color = "#ef4444"} onMouseLeave={e => e.currentTarget.style.color = "#94a3b8"}>
+                  <Trash2 size={14} />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Add Document Modal */}
+      {showModal && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.35)", zIndex: 100, display: "flex", alignItems: "center", justifyContent: "center" }}
+          onClick={() => { setShowModal(false); setPendingFiles([]); setDocForm({ name: "", type: "other" }); }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: "#fff", borderRadius: 16, padding: 28, width: 440, maxHeight: "80vh", overflow: "auto", boxShadow: "0 20px 60px rgba(0,0,0,0.15)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+              <h3 style={{ fontSize: 18, fontWeight: 700, color: "#0f172a" }}>Add Document</h3>
+              <button onClick={() => { setShowModal(false); setPendingFiles([]); setDocForm({ name: "", type: "other" }); }}
+                style={{ background: "#f1f5f9", border: "none", borderRadius: 8, padding: 6, cursor: "pointer", display: "flex" }}><X size={16} color="#64748b" /></button>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+              <div>
+                <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Document Name *</label>
+                <input type="text" value={docForm.name} onChange={dsf("name")} placeholder="e.g. Lease Agreement" style={iS} />
+              </div>
+              <div>
+                <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Type</label>
+                <select value={docForm.type} onChange={dsf("type")} style={iS}>
+                  {DOC_TYPE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                </select>
+              </div>
+              <div>
+                <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>File</label>
+                <AttachmentZone onFiles={handleFilesSelected} accept="image/*,.pdf,.doc,.docx" label="Drop file here or click to browse" />
+                {pendingFiles.length > 0 && (
+                  <div style={{ marginTop: 8 }}>
+                    <AttachmentList items={pendingFiles} onRemove={id => setPendingFiles(prev => prev.filter(p => p.id !== id))} compact />
+                  </div>
+                )}
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
+              <button onClick={handleSave} disabled={!docForm.name && pendingFiles.length === 0}
+                style={{ flex: 1, padding: "10px 0", borderRadius: 10, border: "none", background: "#3b82f6", color: "#fff", fontSize: 14, fontWeight: 600, cursor: "pointer", opacity: (!docForm.name && pendingFiles.length === 0) ? 0.5 : 1 }}>
+                Save Document
+              </button>
+              <button onClick={() => { setShowModal(false); setPendingFiles([]); setDocForm({ name: "", type: "other" }); }}
+                style={{ padding: "10px 20px", borderRadius: 10, border: "1px solid #e2e8f0", background: "#fff", color: "#64748b", fontSize: 14, fontWeight: 600, cursor: "pointer" }}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation */}
+      {deleteConfirm && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.35)", zIndex: 100, display: "flex", alignItems: "center", justifyContent: "center" }}
+          onClick={() => setDeleteConfirm(null)}>
+          <div onClick={e => e.stopPropagation()} style={{ background: "#fff", borderRadius: 16, padding: 28, width: 380, boxShadow: "0 20px 60px rgba(0,0,0,0.15)" }}>
+            <h3 style={{ fontSize: 16, fontWeight: 700, color: "#0f172a", marginBottom: 8 }}>Delete Document?</h3>
+            <p style={{ color: "#475569", fontSize: 14, marginBottom: 20 }}>Remove <strong>{deleteConfirm.name}</strong>? This cannot be undone.</p>
+            <div style={{ display: "flex", gap: 10 }}>
+              <button onClick={() => { onDelete(deleteConfirm.id); setDeleteConfirm(null); }}
+                style={{ flex: 1, padding: "10px 0", borderRadius: 10, border: "none", background: "#ef4444", color: "#fff", fontSize: 14, fontWeight: 600, cursor: "pointer" }}>
+                Delete
+              </button>
+              <button onClick={() => setDeleteConfirm(null)}
+                style={{ padding: "10px 20px", borderRadius: 10, border: "1px solid #e2e8f0", background: "#fff", color: "#64748b", fontSize: 14, fontWeight: 600, cursor: "pointer" }}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -1822,6 +2112,8 @@ function PropertyDetail({ property, onBack, backLabel, onEditProperty, onGoToTra
   const [txDeleteConfirm, setTxDeleteConfirm] = useState(null);
   const [txPayeeFocus, setTxPayeeFocus] = useState(false);
   const [txRenderKey, txForceRender] = useState(0);
+  const [txReceipts, setTxReceipts] = useState([]);  // receipts attached to current transaction in modal
+  const [txScanning, setTxScanning] = useState(false);
 
   const INCOME_GROUPS = {
     "Rent":           ["Rent Income", "Parking / Storage", "Laundry Income"],
@@ -1856,13 +2148,15 @@ function PropertyDetail({ property, onBack, backLabel, onEditProperty, onGoToTra
   const [txForm, setTxForm] = useState(txEmptyIncome);
   const txSf = k => e => setTxForm(f => ({ ...f, [k]: e.target.value }));
 
-  const txCloseModal = () => { setTxShowModal(false); setTxPayeeFocus(false); };
-  const txOpenAddIncome  = () => { setTxEditId(null); setTxForm(txEmptyIncome);  setTxPayeeFocus(false); setTxShowModal("income");  };
-  const txOpenAddExpense = () => { setTxEditId(null); setTxForm(txEmptyExpense); setTxPayeeFocus(false); setTxShowModal("expense"); };
+  const txCloseModal = () => { setTxShowModal(false); setTxPayeeFocus(false); setTxReceipts([]); setTxScanning(false); };
+  const txOpenAddIncome  = () => { setTxEditId(null); setTxForm(txEmptyIncome);  setTxPayeeFocus(false); setTxReceipts([]); setTxShowModal("income");  };
+  const txOpenAddExpense = () => { setTxEditId(null); setTxForm(txEmptyExpense); setTxPayeeFocus(false); setTxReceipts([]); setTxShowModal("expense"); };
   const txOpenEdit = t => {
     setTxEditId(t.id);
     setTxForm({ date: t.date, propertyId: t.propertyId, type: t.type, category: t.category, description: t.description, amount: String(Math.abs(t.amount)), payee: t.payee || "" });
     setTxPayeeFocus(false);
+    // Load existing receipts for this transaction
+    setTxReceipts(TRANSACTION_RECEIPTS.filter(r => r.transactionId === t.id));
     setTxShowModal(t.type);
   };
 
@@ -1876,8 +2170,13 @@ function PropertyDetail({ property, onBack, backLabel, onEditProperty, onGoToTra
     if (txEditId !== null) {
       const idx = TRANSACTIONS.findIndex(t => t.id === txEditId);
       if (idx !== -1) Object.assign(TRANSACTIONS[idx], built);
+      // Persist new receipts
+      txReceipts.filter(r => !TRANSACTION_RECEIPTS.some(er => er.id === r.id)).forEach(r => addTransactionReceipt({ ...r, transactionId: txEditId }));
     } else {
-      TRANSACTIONS.unshift({ id: newId(), ...built });
+      const txId = newId();
+      TRANSACTIONS.unshift({ id: txId, ...built });
+      // Persist attached receipts
+      txReceipts.forEach(r => addTransactionReceipt({ ...r, transactionId: txId }));
     }
     txCloseModal();
     txForceRender(n => n + 1);
@@ -1892,10 +2191,13 @@ function PropertyDetail({ property, onBack, backLabel, onEditProperty, onGoToTra
 
   const propNotes = RENTAL_NOTES.filter(n => n.propertyId === property.id);
 
+  const propDocs = PROPERTY_DOCUMENTS.filter(d => d.propertyId === property.id);
+
   const tabs = [
     { id: "overview", label: "Overview", icon: Home },
     { id: "transactions", label: "Transactions", icon: Receipt, count: propTransactions.length },
     { id: "tenants", label: "Tenants", icon: Users, count: propTenants.filter(t => t.status !== "vacant").length },
+    { id: "documents", label: "Documents", icon: FileText, count: propDocs.length },
     { id: "notes", label: "Notes", icon: MessageSquare, count: propNotes.length },
   ];
 
@@ -2247,6 +2549,53 @@ function PropertyDetail({ property, onBack, backLabel, onEditProperty, onGoToTra
                       ))}
                     </select>
                   </div>
+
+                  {/* Receipt / Attachment */}
+                  <div style={{ gridColumn: "1 / -1" }}>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+                      <label style={{ color: "#475569", fontSize: 13, fontWeight: 600 }}>
+                        <Paperclip size={13} style={{ marginRight: 4, verticalAlign: "middle" }} />Receipt / Attachment
+                      </label>
+                      {!isIncome && (
+                        <ReceiptScanButton
+                          accent={accentColor}
+                          onFileAttached={att => setTxReceipts(prev => [...prev, att])}
+                          onResult={(ocrData, att) => {
+                            // Auto-populate form fields from OCR
+                            setTxForm(f => ({
+                              ...f,
+                              payee: f.payee || ocrData.vendor || "",
+                              amount: f.amount || String(ocrData.amount || ""),
+                              date: f.date || ocrData.date || "",
+                              description: f.description || `Receipt — ${ocrData.vendor || "scanned"}`,
+                            }));
+                            setTxReceipts(prev => prev.map(r => r.id === att.id ? { ...r, ocrData } : r));
+                          }}
+                        />
+                      )}
+                    </div>
+                    {txReceipts.length > 0 && (
+                      <AttachmentList items={txReceipts} onRemove={id => setTxReceipts(prev => prev.filter(r => r.id !== id))} compact />
+                    )}
+                    {txReceipts.length === 0 && (
+                      <AttachmentZone
+                        onFiles={files => {
+                          const newAtts = files.map(f => ({
+                            id: newId(), name: f.name, mimeType: f.type,
+                            size: f.size > 1024 * 1024 ? (f.size / (1024 * 1024)).toFixed(1) + " MB" : Math.round(f.size / 1024) + " KB",
+                            url: URL.createObjectURL(f), ocrData: null, createdAt: new Date().toISOString(), userId: "usr_001",
+                          }));
+                          setTxReceipts(prev => [...prev, ...newAtts]);
+                        }}
+                        compact label="Drop receipt or click to attach" />
+                    )}
+                    {txReceipts.some(r => r.ocrData) && (
+                      <p style={{ fontSize: 11, color: "#15803d", marginTop: 4, fontStyle: "italic" }}>
+                        <CheckCircle size={11} style={{ verticalAlign: "middle", marginRight: 3 }} />
+                        Fields auto-populated from receipt — please verify
+                      </p>
+                    )}
+                  </div>
                 </div>
 
                 <div style={{ display: "flex", gap: 10, marginTop: 24, justifyContent: "flex-end" }}>
@@ -2401,6 +2750,15 @@ function PropertyDetail({ property, onBack, backLabel, onEditProperty, onGoToTra
         </div>
       )}
 
+      {activeTab === "documents" && (
+        <DocumentsPanel
+          documents={propDocs}
+          onAdd={doc => { addPropertyDocument({ ...doc, propertyId: property.id }); txForceRender(n => n + 1); }}
+          onDelete={id => { deletePropertyDocument(id); txForceRender(n => n + 1); }}
+          entityLabel="property"
+        />
+      )}
+
       {activeTab === "notes" && (
         <RentalNotes preFilterPropId={property.id} />
       )}
@@ -2478,15 +2836,17 @@ function Transactions({ highlightTxId, onBack, onClearHighlight, backLabel }) {
   const emptyExpense = { date: "", propertyId: PROPERTIES[0]?.id || "", type: "expense", category: "Mortgage Payment", description: "", amount: "", payee: "", piOverride: false, piPrincipal: "", piInterest: "", createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), userId: MOCK_USER.id };
   const [form, setForm] = useState(emptyIncome);
   const [payeeFocus, setPayeeFocus] = useState(false);
+  const [mainReceipts, setMainReceipts] = useState([]);
   const sf = k => e => setForm(f => ({ ...f, [k]: e.target.value }));
 
-  const closeModal = () => { setShowModal(false); setPayeeFocus(false); };
-  const openAddIncome  = () => { setEditId(null); setForm(emptyIncome);  setPayeeFocus(false); setShowModal("income");  };
-  const openAddExpense = () => { setEditId(null); setForm(emptyExpense); setPayeeFocus(false); setShowModal("expense"); };
+  const closeModal = () => { setShowModal(false); setPayeeFocus(false); setMainReceipts([]); };
+  const openAddIncome  = () => { setEditId(null); setForm(emptyIncome);  setPayeeFocus(false); setMainReceipts([]); setShowModal("income");  };
+  const openAddExpense = () => { setEditId(null); setForm(emptyExpense); setPayeeFocus(false); setMainReceipts([]); setShowModal("expense"); };
   const openEdit = t => {
     setEditId(t.id);
     setForm({ date: t.date, propertyId: t.propertyId, type: t.type, category: t.category, description: t.description, amount: String(Math.abs(t.amount)), payee: t.payee || "", piOverride: !!(t.piPrincipal || t.piInterest), piPrincipal: t.piPrincipal ? String(t.piPrincipal) : "", piInterest: t.piInterest ? String(t.piInterest) : "" });
     setPayeeFocus(false);
+    setMainReceipts(TRANSACTION_RECEIPTS.filter(r => r.transactionId === t.id));
     setShowModal(t.type);
   };
 
@@ -2555,8 +2915,11 @@ function Transactions({ highlightTxId, onBack, onClearHighlight, backLabel }) {
     }
     if (editId !== null) {
       setTxData(prev => prev.map(t => t.id === editId ? { ...t, ...built } : t));
+      mainReceipts.filter(r => !TRANSACTION_RECEIPTS.some(er => er.id === r.id)).forEach(r => addTransactionReceipt({ ...r, transactionId: editId }));
     } else {
-      setTxData(prev => [{ id: newId(), ...built }, ...prev]);
+      const txId = newId();
+      setTxData(prev => [{ id: txId, ...built }, ...prev]);
+      mainReceipts.forEach(r => addTransactionReceipt({ ...r, transactionId: txId }));
     }
     setForm(emptyIncome);
     closeModal();
@@ -2837,6 +3200,52 @@ function Transactions({ highlightTxId, onBack, onClearHighlight, backLabel }) {
                     </optgroup>
                   ))}
                 </select>
+              </div>
+
+              {/* Receipt / Attachment */}
+              <div style={{ gridColumn: "1 / -1" }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+                  <label style={{ color: "#475569", fontSize: 13, fontWeight: 600 }}>
+                    <Paperclip size={13} style={{ marginRight: 4, verticalAlign: "middle" }} />Receipt / Attachment
+                  </label>
+                  {!isIncome && (
+                    <ReceiptScanButton
+                      accent={saveColor}
+                      onFileAttached={att => setMainReceipts(prev => [...prev, att])}
+                      onResult={(ocrData, att) => {
+                        setForm(f => ({
+                          ...f,
+                          payee: f.payee || ocrData.vendor || "",
+                          amount: f.amount || String(ocrData.amount || ""),
+                          date: f.date || ocrData.date || "",
+                          description: f.description || `Receipt — ${ocrData.vendor || "scanned"}`,
+                        }));
+                        setMainReceipts(prev => prev.map(r => r.id === att.id ? { ...r, ocrData } : r));
+                      }}
+                    />
+                  )}
+                </div>
+                {mainReceipts.length > 0 && (
+                  <AttachmentList items={mainReceipts} onRemove={id => setMainReceipts(prev => prev.filter(r => r.id !== id))} compact />
+                )}
+                {mainReceipts.length === 0 && (
+                  <AttachmentZone
+                    onFiles={files => {
+                      const newAtts = files.map(f => ({
+                        id: newId(), name: f.name, mimeType: f.type,
+                        size: f.size > 1024 * 1024 ? (f.size / (1024 * 1024)).toFixed(1) + " MB" : Math.round(f.size / 1024) + " KB",
+                        url: URL.createObjectURL(f), ocrData: null, createdAt: new Date().toISOString(), userId: "usr_001",
+                      }));
+                      setMainReceipts(prev => [...prev, ...newAtts]);
+                    }}
+                    compact label="Drop receipt or click to attach" />
+                )}
+                {mainReceipts.some(r => r.ocrData) && (
+                  <p style={{ fontSize: 11, color: "#15803d", marginTop: 4, fontStyle: "italic" }}>
+                    <CheckCircle size={11} style={{ verticalAlign: "middle", marginRight: 3 }} />
+                    Fields auto-populated from receipt — please verify
+                  </p>
+                )}
               </div>
             </div>
 
@@ -5271,12 +5680,15 @@ function FlipDetail({ flip, onBack, backLabel, allFlips, setAllFlips, onNavigate
   const overdueCount = milestones.filter(m => !m.done && m.targetDate && m.targetDate < today).length;
 
   const rehabComplete = rehabItems.filter(i => i.status === "complete").length;
+  const dealDocs = DEAL_DOCUMENTS.filter(d => d.flipId === flip.id);
+  const [, dealDocRerender] = useState(0);
   const tabs = [
     { id: "overview", label: "Overview", icon: LayoutDashboard },
     { id: "milestones", label: `Milestones (${doneCount}/${milestones.length})`, icon: CheckSquare },
     { id: "rehab", label: `Rehab (${rehabComplete}/${rehabItems.length})`, icon: Wrench },
     { id: "contractors", label: `Contractors (${flipContractors.length})`, icon: UserCheck },
     { id: "expenses", label: `Expenses (${flipExpenses.length})`, icon: Receipt },
+    { id: "documents", label: `Documents (${dealDocs.length})`, icon: FileText },
     { id: "notes", label: `Notes (${dealNotes.length})`, icon: MessageSquare },
   ];
 
@@ -6225,6 +6637,15 @@ function FlipDetail({ flip, onBack, backLabel, allFlips, setAllFlips, onNavigate
           </div>
         </Modal>
       )}
+      {activeTab === "documents" && (
+        <DocumentsPanel
+          documents={dealDocs}
+          onAdd={doc => { addDealDocument({ ...doc, flipId: flip.id }); dealDocRerender(n => n + 1); }}
+          onDelete={id => { deleteDealDocument(id); dealDocRerender(n => n + 1); }}
+          entityLabel="deal"
+        />
+      )}
+
       {activeTab === "notes" && (() => {
         const q = noteSearch.toLowerCase().trim();
         const filtered = q ? dealNotes.filter(n => n.text.toLowerCase().includes(q) || n.date.includes(q)) : dealNotes;
