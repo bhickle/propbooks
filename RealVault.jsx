@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from "react";
+import propbooksLogo from "./logos/PropBooks Horizontal Logo (3).png";
 import {
   AreaChart, Area, BarChart, Bar, LineChart, Line,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend
@@ -8405,7 +8406,7 @@ function AppShell() {
       <div style={{ width: 240, background: "#041830", display: "flex", flexDirection: "column", position: "fixed", top: 0, bottom: 0, left: 0, zIndex: 100 }}>
         <div style={{ padding: "24px 20px", borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <img src="./logos/PropBooks Horizontal Logo (3).png" alt="PropBooks" style={{ height: 36, objectFit: "contain" }} />
+            <img src={propbooksLogo} alt="PropBooks" style={{ height: 36, objectFit: "contain" }} />
           </div>
         </div>
         <nav style={{ flex: 1, padding: "16px 12px", overflowY: "auto" }}>
