@@ -10,7 +10,6 @@
 import { useState, createContext, useContext } from "react";
 import { Eye, EyeOff, ArrowRight, CheckCircle, Building2, TrendingUp, PieChart, Hammer, Car } from "lucide-react";
 import propbooksLogoDark from "./logos/PropBooks Horizontal Logo (3).png";
-import propbooksLogoLight from "./logos/PropBooks Horizontal Logo (2).png";
 
 // -----------------------------------------------------------------------------
 // Auth Context
@@ -115,7 +114,6 @@ function SignIn({ onSwitch }) {
 
   return (
     <form onSubmit={handleSubmit}>
-      <img src={propbooksLogoLight} alt="PropBooks" style={{ height: 32, objectFit: "contain", marginBottom: 36 }} />
       <h1 style={{ color: "#041830", fontSize: 26, fontWeight: 800, marginBottom: 6 }}>Welcome back</h1>
       <p style={{ color: "#64748b", fontSize: 14, marginBottom: 28 }}>Sign in to manage your portfolio</p>
 
@@ -184,7 +182,6 @@ function SignUp({ onSwitch }) {
 
   return (
     <div>
-      <img src={propbooksLogoLight} alt="PropBooks" style={{ height: 32, objectFit: "contain", marginBottom: 36 }} />
       <h1 style={{ color: "#041830", fontSize: 26, fontWeight: 800, marginBottom: 6 }}>
         {step === 1 ? "Create your account" : "Choose a plan"}
       </h1>
@@ -307,22 +304,22 @@ export function AuthScreen() {
 
         <div style={{ position: "relative", zIndex: 1, textAlign: "center", maxWidth: 440 }}>
           {/* Logo */}
-          <img src={propbooksLogoDark} alt="PropBooks" style={{ height: 44, objectFit: "contain", marginBottom: 36 }} />
+          <img src={propbooksLogoDark} alt="PropBooks" style={{ height: 56, objectFit: "contain", marginBottom: 40 }} />
 
-          <h2 style={{ color: "#fff", fontSize: 30, fontWeight: 800, marginBottom: 12, lineHeight: 1.25 }}>
-            Your entire portfolio.<br />One clean dashboard.
+          <h2 style={{ color: "#fff", fontSize: 30, fontWeight: 800, marginBottom: 14, lineHeight: 1.25 }}>
+            Whether you hold it or flip it,<br />we've got you covered.
           </h2>
           <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 15, lineHeight: 1.7, marginBottom: 40 }}>
-            Track rentals, manage flips, analyze deals, and log mileage — built for serious real estate investors.
+            The only platform that treats your rentals and flips as equals — cash flow tracking, rehab budgets, tenant management, and deal analysis, all under one roof.
           </p>
 
           {/* Feature cards */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, textAlign: "left" }}>
             {[
-              { icon: PieChart, label: "Portfolio Analytics", sub: "Cash flow & equity tracking" },
-              { icon: Hammer, label: "Flip Pipeline", sub: "Rehab budgets & milestones" },
-              { icon: Building2, label: "Rent Roll", sub: "Tenants, leases & units" },
-              { icon: Car, label: "Mileage Log", sub: "IRS-ready trip tracking" },
+              { icon: PieChart, label: "Rental Cash Flow", sub: "Income, expenses & equity across every door" },
+              { icon: Hammer, label: "Flip Pipeline", sub: "Rehab budgets, milestones & contractor tracking" },
+              { icon: Building2, label: "Rent Roll", sub: "Leases, vacancies & expiration alerts" },
+              { icon: TrendingUp, label: "Deal Analyzer", sub: "Run the numbers before you buy" },
             ].map((f, i) => (
               <div key={i} style={{
                 display: "flex", alignItems: "flex-start", gap: 12, padding: "14px 16px",
@@ -341,7 +338,7 @@ export function AuthScreen() {
 
           {/* Trust line */}
           <p style={{ color: "rgba(255,255,255,0.25)", fontSize: 12, marginTop: 36, fontWeight: 500 }}>
-            Trusted by real estate investors nationwide
+            Built for serious real estate investors
           </p>
         </div>
       </div>
