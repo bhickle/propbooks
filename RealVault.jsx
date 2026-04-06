@@ -9,7 +9,7 @@ import {
   Building2, LayoutDashboard, ArrowUpDown, BarChart3, FileText,
   TrendingUp, TrendingDown, DollarSign, Home, Plus, Search, Bell,
   ChevronRight, Settings as SettingsIcon, LogOut, Filter, Download, Eye, MoreHorizontal,
-  Calendar, Tag, CheckCircle, AlertCircle, X, ChevronDown, User,
+  Calendar, Tag, CheckCircle, Circle, AlertCircle, X, ChevronDown, User,
   Percent, ArrowUp, ArrowDown, Star, MapPin, Wallet, PieChartIcon,
   Hammer, Clock, Target, Flag, Wrench,
   Users, Route, Calculator, FileCheck, UserCheck, Truck, Layers, Car,
@@ -5514,6 +5514,12 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
   const [milestoneForm, setMilestoneForm] = useState(emptyMilestone);
   const sfM = k => e => setMilestoneForm(f => ({ ...f, [k]: e.target.value }));
   const [editingMilestoneId, setEditingMilestoneId] = useState(null); // index when editing
+  const [msLabelFocus, setMsLabelFocus] = useState(false);
+  const allMilestoneLabels = useMemo(() => {
+    const labels = new Set(DEFAULT_MILESTONES);
+    DEAL_MILESTONES.forEach(m => { if (m.label) labels.add(m.label); });
+    return [...labels].sort();
+  }, [milestones]);
   const [completingMsIdx, setCompletingMsIdx] = useState(null);
   const [msCompletionDate, setMsCompletionDate] = useState(new Date().toISOString().split("T")[0]);
   const [showAddRehab, setShowAddRehab] = useState(false);
@@ -6636,137 +6642,83 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
               <p style={{ fontWeight: 600, marginBottom: 4 }}>No milestones yet</p>
               <p style={{ fontSize: 13 }}>Add milestones to track your deal's progress.</p>
             </div>
-          ) : (<>
-            {/* Completed section — collapsible */}
-            {doneCount > 0 && (
-              <div style={{ background: "#fff", borderRadius: 16, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9", overflow: "hidden", marginBottom: 16 }}>
-                <button onClick={() => setShowCompletedMilestones(!showCompletedMilestones)} style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 20px", background: "#f8fafc", border: "none", cursor: "pointer" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <CheckSquare size={16} color="#10b981" />
-                    <span style={{ fontSize: 14, fontWeight: 700, color: "#041830" }}>Completed ({doneCount})</span>
-                  </div>
-                  <ChevronDown size={16} color="#64748b" style={{ transform: showCompletedMilestones ? "rotate(180deg)" : "rotate(0)", transition: "transform 0.2s" }} />
-                </button>
-                {showCompletedMilestones && (
-                  <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                    <thead>
-                      <tr style={{ background: "#f8fafc" }}>
-                        {["", "Milestone", "Target Date", "Completed", "Status", ""].map(h => (
-                          <th key={h} style={{ padding: "8px 16px", textAlign: "left", color: "#94a3b8", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>{h}</th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {milestones.map((m, i) => {
-                        if (!m.done) return null;
-                        const completedLate = m.date && m.targetDate && m.date > m.targetDate;
-                        return (
-                          <tr key={i} style={{ borderTop: "1px solid #f1f5f9" }}>
-                            <td style={{ padding: "10px 16px", width: 40 }}>
-                              <div onClick={() => {
-                                const updated = milestones.map((item, idx) => idx === i ? { ...item, done: false, date: null } : item);
-                                setMilestones(updated);
-                              }} style={{ color: "#10b981", cursor: "pointer" }}>
-                                <CheckSquare size={18} />
-                              </div>
-                            </td>
-                            <td style={{ padding: "10px 16px" }}>
-                              <p style={{ fontSize: 13, fontWeight: 500, color: "#94a3b8", textDecoration: "line-through", textDecorationColor: "#cbd5e1" }}>{m.label}</p>
-                            </td>
-                            <td style={{ padding: "10px 16px", fontSize: 12, color: "#cbd5e1" }}>{m.targetDate || "-"}</td>
-                            <td style={{ padding: "10px 16px", fontSize: 12, color: completedLate ? "#e95e00" : "#94a3b8" }}>
-                              {m.date || "-"}
-                              {completedLate && <span style={{ fontSize: 10, color: "#e95e00", fontWeight: 600, marginLeft: 4 }}>late</span>}
-                            </td>
-                            <td style={{ padding: "10px 16px" }}>
-                              <span style={{ background: "#dcfce7", color: "#15803d", borderRadius: 20, padding: "3px 10px", fontSize: 11, fontWeight: 600 }}>Done</span>
-                            </td>
-                            <td style={{ padding: "10px 16px" }}>
-                              <div style={{ display: "flex", gap: 4 }}>
-                                <button onClick={() => openEditMilestone(m, i)} style={{ background: "#f1f5f9", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "#475569", display: "flex", alignItems: "center" }} title="Edit"><Pencil size={13} /></button>
-                                <button onClick={() => setDeleteConfirm({ type: "milestone", item: m, index: i })} style={{ background: "#fee2e2", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "#ef4444", display: "flex", alignItems: "center" }} title="Delete"><Trash2 size={13} /></button>
-                              </div>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                )}
+          ) : (
+            <div style={{ background: "#fff", borderRadius: 16, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9", padding: 20 }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                {milestones.map((m, i) => {
+                  const overdue = !m.done && m.targetDate && m.targetDate < today;
+                  const isCompleting = completingMsIdx === i;
+                  return isCompleting ? (
+                    <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", borderRadius: 8, background: "#f0fdf4", border: "1px solid #bbf7d0" }}>
+                      <CheckCircle size={18} color="#10b981" />
+                      <span style={{ fontSize: 13, fontWeight: 500, color: "#041830", flex: 1 }}>{m.label}</span>
+                      <span style={{ fontSize: 11, color: "#64748b" }}>Completed:</span>
+                      <input type="date" value={msCompletionDate} onChange={e => setMsCompletionDate(e.target.value)} style={{ ...iS, width: 140, padding: "5px 10px", fontSize: 12 }} />
+                      <button onClick={() => { const updated = milestones.map((item, idx) => idx === i ? { ...item, done: true, date: msCompletionDate } : item); setMilestones(updated); setCompletingMsIdx(null); }} style={{ background: "#10b981", color: "#fff", border: "none", borderRadius: 6, padding: "5px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>Confirm</button>
+                      <button onClick={() => setCompletingMsIdx(null)} style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8", padding: 0 }}><X size={14} /></button>
+                    </div>
+                  ) : (
+                    <div key={i} onMouseEnter={e => { e.currentTarget.style.background = m.done ? "#f0fdf4" : overdue ? "#fef2f2" : "#f1f5f9"; }} onMouseLeave={e => { e.currentTarget.style.background = m.done ? "#f0fdf4" : overdue ? "#fef2f2" : "#f8fafc"; }} style={{ display: "flex", alignItems: "center", gap: 12, padding: "8px 10px", borderRadius: 8, background: m.done ? "#f0fdf4" : overdue ? "#fef2f2" : "#f8fafc", border: `1px solid ${m.done ? "#bbf7d0" : overdue ? "#fecaca" : "#f1f5f9"}`, transition: "all 0.15s ease" }}>
+                      <button onClick={() => m.done ? (() => { const updated = milestones.map((item, idx) => idx === i ? { ...item, done: false, date: null } : item); setMilestones(updated); })() : (() => { setCompletingMsIdx(i); setMsCompletionDate(today); })()} style={{ background: "none", border: "none", cursor: "pointer", padding: 0, display: "flex", flexShrink: 0 }}>
+                        {m.done ? <CheckCircle size={18} color="#10b981" /> : <Circle size={18} color={overdue ? "#ef4444" : "#cbd5e1"} />}
+                      </button>
+                      <span style={{ flex: 1, fontSize: 13, fontWeight: 500, color: m.done ? "#6b7280" : "#041830", textDecoration: m.done ? "line-through" : "none" }}>{m.label}</span>
+                      {m.targetDate && !m.done && (
+                        <span style={{ fontSize: 11, color: overdue ? "#ef4444" : "#94a3b8", fontWeight: overdue ? 600 : 400, flexShrink: 0 }}>
+                          {overdue ? "Overdue: " : "Target: "}{new Date(m.targetDate).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                        </span>
+                      )}
+                      {m.done && m.date && (
+                        <span style={{ fontSize: 11, color: "#10b981", flexShrink: 0 }}>
+                          {new Date(m.date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                        </span>
+                      )}
+                      <div style={{ display: "flex", gap: 4, flexShrink: 0, marginLeft: 4 }}>
+                        <button onClick={() => openEditMilestone(m, i)} style={{ background: "#f1f5f9", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "#475569", display: "flex", alignItems: "center" }} title="Edit"><Pencil size={13} /></button>
+                        <button onClick={() => setDeleteConfirm({ type: "milestone", item: m, index: i })} style={{ background: "#fee2e2", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "#ef4444", display: "flex", alignItems: "center" }} title="Delete"><Trash2 size={13} /></button>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
-            )}
-            {/* Active / Upcoming section */}
-            {milestones.some(m => !m.done) && (
-              <div style={{ background: "#fff", borderRadius: 16, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9", overflow: "hidden" }}>
-                <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                  <thead>
-                    <tr style={{ background: "#f8fafc" }}>
-                      {["", "Milestone", "Target Date", "Completed", "Status", ""].map(h => (
-                        <th key={h} style={{ padding: "10px 16px", textAlign: "left", color: "#94a3b8", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {milestones.map((m, i) => {
-                      if (m.done) return null;
-                      const isOverdue = m.targetDate && m.targetDate < today;
-                      return (
-                        <tr key={i} style={{ borderTop: "1px solid #f1f5f9", background: isOverdue ? "#fef2f2" : "transparent", transition: "all 0.25s ease" }}>
-                          <td style={{ padding: "12px 16px", width: 40 }}>
-                            <div onClick={() => { setCompletingMsIdx(i); setMsCompletionDate(today); }} style={{ color: "#cbd5e1", cursor: "pointer" }}>
-                              <Square size={20} />
-                            </div>
-                          </td>
-                          {completingMsIdx === i ? (
-                            <td colSpan={4} style={{ padding: "12px 16px" }}>
-                              <div style={{ display: "flex", alignItems: "center", gap: 10, background: "#f0fdf4", borderRadius: 10, padding: "8px 14px", border: "1px solid #bbf7d0" }}>
-                                <span style={{ fontSize: 13, fontWeight: 600, color: "#041830" }}>{m.label}</span>
-                                <span style={{ fontSize: 12, color: "#64748b", marginLeft: "auto" }}>Completed:</span>
-                                <input type="date" value={msCompletionDate} onChange={e => setMsCompletionDate(e.target.value)} style={{ ...iS, width: 150, padding: "5px 10px", fontSize: 12 }} />
-                                <button onClick={() => { const updated = milestones.map((item, idx) => idx === i ? { ...item, done: true, date: msCompletionDate } : item); setMilestones(updated); setCompletingMsIdx(null); }} style={{ background: "#10b981", color: "#fff", border: "none", borderRadius: 7, padding: "6px 14px", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>Confirm</button>
-                                <button onClick={() => setCompletingMsIdx(null)} style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8" }}><X size={14} /></button>
-                              </div>
-                            </td>
-                          ) : (
-                            <>
-                            <td style={{ padding: "12px 16px" }}>
-                              <p style={{ fontSize: 14, fontWeight: isOverdue ? 700 : 500, color: isOverdue ? "#b91c1c" : "#041830" }}>{m.label}</p>
-                            </td>
-                            <td style={{ padding: "12px 16px", fontSize: 13, color: isOverdue ? "#b91c1c" : "#64748b", fontWeight: isOverdue ? 700 : 400 }}>
-                              {m.targetDate || <span style={{ color: "#cbd5e1" }}>-</span>}
-                            </td>
-                            <td style={{ padding: "12px 16px", fontSize: 13, color: "#cbd5e1" }}>-</td>
-                            <td style={{ padding: "12px 16px" }}>
-                              {isOverdue ? (
-                                <span style={{ background: "#fee2e2", color: "#b91c1c", borderRadius: 20, padding: "3px 10px", fontSize: 12, fontWeight: 600 }}>Overdue</span>
-                              ) : (
-                                <span style={{ background: "#f1f5f9", color: "#64748b", borderRadius: 20, padding: "3px 10px", fontSize: 12, fontWeight: 600 }}>Pending</span>
-                              )}
-                            </td>
-                            </>
-                          )}
-                          <td style={{ padding: "12px 16px" }}>
-                            <div style={{ display: "flex", gap: 4 }}>
-                              <button onClick={() => openEditMilestone(m, i)} style={{ background: "#f1f5f9", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "#475569", display: "flex", alignItems: "center" }} title="Edit"><Pencil size={13} /></button>
-                              <button onClick={() => setDeleteConfirm({ type: "milestone", item: m, index: i })} style={{ background: "#fee2e2", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "#ef4444", display: "flex", alignItems: "center" }} title="Delete"><Trash2 size={13} /></button>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </>)}
+            </div>
+          )}
         </div>
       )}
       {showMilestoneModal && (
         <Modal title={editingMilestoneId !== null ? "Edit Milestone" : "Add Milestone"} onClose={() => { setShowMilestoneModal(false); setEditingMilestoneId(null); setMilestoneForm(emptyMilestone); }}>
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-            <div>
+            <div style={{ position: "relative" }}>
               <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Milestone Name *</label>
-              <input value={milestoneForm.label} onChange={sfM("label")} placeholder="e.g. Demo Complete, Listed for Sale" style={iS} />
+              <input value={milestoneForm.label} style={iS} placeholder="Start typing to search or add new..."
+                onChange={e => { setMilestoneForm(f => ({ ...f, label: e.target.value })); setMsLabelFocus(true); }}
+                onFocus={() => setMsLabelFocus(true)} onBlur={() => setTimeout(() => setMsLabelFocus(false), 150)} />
+              {!msLabelFocus && !milestoneForm.label && <p style={{ fontSize: 11, color: "#94a3b8", marginTop: 4, fontStyle: "italic" }}>Type to search previous milestones or add new</p>}
+              {msLabelFocus && (() => {
+                const q = milestoneForm.label.toLowerCase();
+                const matches = q ? allMilestoneLabels.filter(l => l.toLowerCase().includes(q) && l.toLowerCase() !== q) : allMilestoneLabels.slice(0, 6);
+                const exactExists = allMilestoneLabels.some(l => l.toLowerCase() === q);
+                const showNew = q && !exactExists;
+                if (matches.length === 0 && !showNew) return null;
+                return (
+                  <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, background: "#fff", border: "1px solid #e2e8f0", borderRadius: 12, boxShadow: "0 8px 24px rgba(0,0,0,0.10)", zIndex: 200, overflow: "hidden", maxHeight: 200, overflowY: "auto" }}>
+                    {matches.slice(0, 6).map(l => (
+                      <button key={l} onMouseDown={() => { setMilestoneForm(f => ({ ...f, label: l })); setMsLabelFocus(false); }}
+                        style={{ width: "100%", padding: "10px 14px", background: "none", border: "none", borderBottom: "1px solid #f1f5f9", textAlign: "left", cursor: "pointer", fontSize: 13, color: "#041830", display: "flex", alignItems: "center", gap: 8 }}>
+                        <Flag size={13} style={{ color: "#94a3b8", flexShrink: 0 }} />
+                        <span>{l}</span>
+                      </button>
+                    ))}
+                    {showNew && (
+                      <button onMouseDown={() => { setMilestoneForm(f => ({ ...f, label: f.label })); setMsLabelFocus(false); }}
+                        style={{ width: "100%", padding: "10px 14px", display: "flex", alignItems: "center", gap: 8, background: "#fff7ed", border: "none", borderTop: matches.length > 0 ? "1px solid #e2e8f0" : "none", cursor: "pointer", textAlign: "left" }}>
+                        <Plus size={13} style={{ color: "#e95e00", flexShrink: 0 }} />
+                        <span style={{ fontSize: 13, color: "#e95e00", fontWeight: 600 }}>Add &ldquo;{milestoneForm.label}&rdquo; as new</span>
+                      </button>
+                    )}
+                  </div>
+                );
+              })()}
             </div>
             <div>
               <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Target Date</label>
