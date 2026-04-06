@@ -648,7 +648,7 @@ export function RehabTracker() {
                               const mm2 = false;
                               return (
                                 <div key={asgn.id} style={{ display: "flex", alignItems: "center", gap: 5, background: "#f1f5f9", borderRadius: 20, padding: "4px 8px 4px 6px" }}>
-                                  <div style={{ width: 18, height: 18, borderRadius: "50%", background: "linear-gradient(135deg, #3b82f6, #8b5cf6)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                                  <div style={{ width: 18, height: 18, borderRadius: "50%", background: "linear-gradient(135deg, #e95e00, #041830)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                                     <Truck size={9} color="#fff" />
                                   </div>
                                   <span style={{ fontSize: 12, fontWeight: 600, color: "#374151" }}>{con.name}</span>
@@ -1005,7 +1005,7 @@ export function FlipExpenses({ highlightExpId, onBack, onClearHighlight, backLab
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, marginBottom: 24 }}>
         <StatCard icon={Receipt}    label="Total Expenses"    value={fmt(total)}     sub={`${filtered.length} transactions`} color="#e95e00" tip="Sum of all expenses matching the current filters." />
-        <StatCard icon={TrendingUp}  label="Largest Expense"   value={highestExp ? fmt(highestExp.amount) : "—"} sub={highestExp ? `${highestExp.description || highestExp.category}` : "No expenses"} color="#3b82f6" tip="The single highest expense in the current filtered view." />
+        <StatCard icon={TrendingUp}  label="Largest Expense"   value={highestExp ? fmt(highestExp.amount) : "—"} sub={highestExp ? `${highestExp.description || highestExp.category}` : "No expenses"} color="#e95e00" tip="The single highest expense in the current filtered view." />
         <StatCard icon={Hammer}     label="Largest Category"  value={catTotals[0]?.cat || "—"} sub={catTotals[0] ? fmt(catTotals[0].total) : ""}  color="#8b5cf6" tip="The expense category with the highest total spend." />
       </div>
 
@@ -1047,7 +1047,7 @@ export function FlipExpenses({ highlightExpId, onBack, onClearHighlight, backLab
       {hasActiveFilters && (
         <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap", alignItems: "center" }}>
           <span style={{ fontSize: 12, color: "#94a3b8", fontWeight: 600 }}>Filtered:</span>
-          {filterFlip !== "all" && <span style={{ background: "#eff6ff", color: "#3b82f6", borderRadius: 20, padding: "3px 10px", fontSize: 12, fontWeight: 600 }}>{_FLIPS.find(f => f.id === parseInt(filterFlip))?.name || filterFlip}</span>}
+          {filterFlip !== "all" && <span style={{ background: "#fff7ed", color: "#e95e00", borderRadius: 20, padding: "3px 10px", fontSize: 12, fontWeight: 600 }}>{_FLIPS.find(f => f.id === parseInt(filterFlip))?.name || filterFlip}</span>}
           {filterCat !== "all" && <span style={{ background: "#fff7ed", color: "#7c2d12", borderRadius: 20, padding: "3px 10px", fontSize: 12, fontWeight: 600 }}>{filterCat}</span>}
           {dateFilter !== "all" && <span style={{ background: "#f0fdf4", color: "#15803d", borderRadius: 20, padding: "3px 10px", fontSize: 12, fontWeight: 600 }}>{{ thisMonth: "This Month", lastMonth: "Last Month", thisYear: "This Year", lastYear: "Last Year", custom: dateFrom && dateTo ? `${dateFrom} – ${dateTo}` : "Custom Range" }[dateFilter]}</span>}
           {search && <span style={{ background: "#f1f5f9", color: "#475569", borderRadius: 20, padding: "3px 10px", fontSize: 12, fontWeight: 600 }}>&ldquo;{search}&rdquo;</span>}
@@ -1340,7 +1340,7 @@ export function FlipContractors({ onSelectContractor }) {
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 24 }}>
         <StatCard icon={Users} label="Contractors" value={filtered.length} sub={filterFlip !== "all" ? `of ${_CON.length} total` : `${_CON.filter(c => (c.dealIds || []).length > 0).length} with active deals`} color="#e95e00" tip="Number of contractors matching the current filters." />
-        <StatCard icon={DollarSign} label="Accepted Bids" value={fmt(totalBids)} sub={`${filtered.length} contractor${filtered.length !== 1 ? "s" : ""}`} color="#3b82f6" tip="Sum of all accepted bid amounts for contractors in the current view." />
+        <StatCard icon={DollarSign} label="Accepted Bids" value={fmt(totalBids)} sub={`${filtered.length} contractor${filtered.length !== 1 ? "s" : ""}`} color="#e95e00" tip="Sum of all accepted bid amounts for contractors in the current view." />
         <StatCard icon={CheckCircle} label="Total Paid" value={fmt(totalPaid)} sub="Disbursed to date" color="#10b981" tip="Total payments disbursed to contractors in the current view." />
         <StatCard icon={AlertCircle} label="Outstanding" value={fmt(outstanding)} sub="Remaining balance" color={outstanding > 0 ? "#e95e00" : "#94a3b8"} tip="Accepted Bids − Total Paid. Amount still owed to contractors in the current view." />
       </div>

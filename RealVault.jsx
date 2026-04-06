@@ -472,7 +472,7 @@ function AttachmentZone({ onFiles, accept = "image/*,.pdf", label = "Drop file h
     <div
       onDragOver={e => { e.preventDefault(); setDragOver(true); }} onDragLeave={() => setDragOver(false)} onDrop={handleDrop}
       onClick={() => inputRef.current?.click()}
-      style={{ border: `2px dashed ${dragOver ? "#3b82f6" : "#e2e8f0"}`, borderRadius: 12, padding: compact ? "12px 16px" : "20px 24px", textAlign: "center", cursor: "pointer", background: dragOver ? "#eff6ff" : "#f8fafc", transition: "all 0.15s", display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }}>
+      style={{ border: `2px dashed ${dragOver ? "#e95e00" : "#e2e8f0"}`, borderRadius: 12, padding: compact ? "12px 16px" : "20px 24px", textAlign: "center", cursor: "pointer", background: dragOver ? "#fff7ed" : "#f8fafc", transition: "all 0.15s", display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }}>
       <input ref={inputRef} type="file" accept={accept} multiple onChange={handleChange} style={{ display: "none" }} />
       <UploadCloud size={compact ? 16 : 20} color="#94a3b8" />
       <span style={{ fontSize: compact ? 12 : 13, color: "#64748b" }}>{label}</span>
@@ -630,7 +630,7 @@ function DocumentsPanel({ documents, onAdd, onDelete, entityLabel = "item" }) {
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
         <h3 style={{ fontSize: 16, fontWeight: 700, color: "#041830" }}>Documents</h3>
-        <button onClick={() => setShowModal(true)} style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 10, border: "none", background: "#3b82f6", color: "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
+        <button onClick={() => setShowModal(true)} style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 10, border: "none", background: "#e95e00", color: "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
           <FilePlus size={14} /> Add Document
         </button>
       </div>
@@ -704,7 +704,7 @@ function DocumentsPanel({ documents, onAdd, onDelete, entityLabel = "item" }) {
             </div>
             <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
               <button onClick={handleSave} disabled={!docForm.name && pendingFiles.length === 0}
-                style={{ flex: 1, padding: "10px 0", borderRadius: 10, border: "none", background: "#3b82f6", color: "#fff", fontSize: 14, fontWeight: 600, cursor: "pointer", opacity: (!docForm.name && pendingFiles.length === 0) ? 0.5 : 1 }}>
+                style={{ flex: 1, padding: "10px 0", borderRadius: 10, border: "none", background: "#e95e00", color: "#fff", fontSize: 14, fontWeight: 600, cursor: "pointer", opacity: (!docForm.name && pendingFiles.length === 0) ? 0.5 : 1 }}>
                 Save Document
               </button>
               <button onClick={() => { setShowModal(false); setPendingFiles([]); setDocForm({ name: "", type: "other" }); }}
@@ -964,7 +964,7 @@ function PortfolioDashboard({ onNavigate, onSelectProperty, onSelectFlip, onNavi
         {[
           { label: "Log Rental Transaction", icon: ArrowUpDown, color: "#10b981", bg: "#dcfce7", action: () => onNavigate("transactions") },
           { label: "Log Flip Expense", icon: Hammer, color: "#e95e00", bg: "#ffedd5", action: () => onNavigate("flipexpenses") },
-          { label: "Add Property", icon: Building2, color: "#3b82f6", bg: "#eff6ff", action: () => onNavigate("properties") },
+          { label: "Add Property", icon: Building2, color: "#e95e00", bg: "#fff7ed", action: () => onNavigate("properties") },
           { label: "Add Deal", icon: Target, color: "#8b5cf6", bg: "#ede9fe", action: () => onNavigate("flipdeals") },
         ].map((qa, i) => (
           <button key={i} onClick={qa.action} style={qaBtnS(qa.color, qa.bg)}
@@ -1464,7 +1464,7 @@ function Dashboard({ onNavigate, onNavigateToTx, onSelectProperty, onNavigateToT
                               style={qInput} placeholder={String(a.tenant?.rent || "")} />
                           </div>
                           <button onClick={confirmRenew}
-                            style={{ padding: "8px 16px", borderRadius: 8, border: "none", background: "#3b82f6", color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap", marginTop: 16 }}>
+                            style={{ padding: "8px 16px", borderRadius: 8, border: "none", background: "#e95e00", color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap", marginTop: 16 }}>
                             Confirm
                           </button>
                         </div>
@@ -1732,7 +1732,7 @@ function Properties({ onSelect, editPropertyId, onClearEditId }) {
           <h1 style={{ color: "#041830", fontSize: 26, fontWeight: 700, marginBottom: 4 }}>Properties</h1>
           <p style={{ color: "#64748b", fontSize: 15 }}>{propData.length} properties in your portfolio</p>
         </div>
-        <button onClick={openAdd} style={{ background: "#3b82f6", color: "#fff", border: "none", borderRadius: 10, padding: "10px 18px", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
+        <button onClick={openAdd} style={{ background: "#e95e00", color: "#fff", border: "none", borderRadius: 10, padding: "10px 18px", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
           <Plus size={16} /> Add Property
         </button>
       </div>
@@ -1809,11 +1809,11 @@ function Properties({ onSelect, editPropertyId, onClearEditId }) {
                     </div>
                     <div style={{ background: "#f8fafc", borderRadius: 10, padding: "10px 12px" }}>
                       <p style={{ color: "#94a3b8", fontSize: 11, fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.04em" }}>Monthly CF</p>
-                      <p style={{ color: "#3b82f6", fontSize: 15, fontWeight: 700 }}>{fmt(monthlyNet)}</p>
+                      <p style={{ color: "#041830", fontSize: 15, fontWeight: 700 }}>{fmt(monthlyNet)}</p>
                     </div>
                     <div style={{ background: "#f8fafc", borderRadius: 10, padding: "10px 12px" }}>
                       <p style={{ color: "#94a3b8", fontSize: 11, fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.04em" }}>Cap Rate</p>
-                      <p style={{ color: "#8b5cf6", fontSize: 15, fontWeight: 700 }}>{calcCapRate(p)}%</p>
+                      <p style={{ color: "#e95e00", fontSize: 15, fontWeight: 700 }}>{calcCapRate(p)}%</p>
                     </div>
                   </div>
                 </div>
@@ -1875,7 +1875,7 @@ function Properties({ onSelect, editPropertyId, onClearEditId }) {
                     {lBal !== null && <p style={{ fontSize: 11, color: "#cbd5e1" }}>Balance {fmtK(effMort)}</p>}
                   </td>
                   <td style={{ padding: "16px 20px", fontSize: 14, fontWeight: 600, color: "#041830" }}>{fmt(getEffectiveMonthly(p, TRANSACTIONS).monthlyIncome)}</td>
-                  <td style={{ padding: "16px 20px", fontSize: 14, fontWeight: 700, color: "#3b82f6" }}>{fmt(getEffectiveMonthly(p, TRANSACTIONS).monthlyIncome - getEffectiveMonthly(p, TRANSACTIONS).monthlyExpenses)}</td>
+                  <td style={{ padding: "16px 20px", fontSize: 14, fontWeight: 700, color: "#041830" }}>{fmt(getEffectiveMonthly(p, TRANSACTIONS).monthlyIncome - getEffectiveMonthly(p, TRANSACTIONS).monthlyExpenses)}</td>
                   <td style={{ padding: "16px 20px" }}>
                     <span style={{ background: "#ede9fe", color: "#6d28d9", borderRadius: 20, padding: "3px 10px", fontSize: 12, fontWeight: 700 }}>{calcCapRate(p, TRANSACTIONS)}%</span>
                   </td>
@@ -1982,7 +1982,7 @@ function Properties({ onSelect, editPropertyId, onClearEditId }) {
           </div>
 
           {/* Loan Details Section */}
-          <div style={{ margin: "20px 0 14px", padding: "14px 16px", background: "#f0f9ff", borderRadius: 12, border: "1px solid #bae6fd" }}>
+          <div style={{ margin: "20px 0 14px", padding: "14px 16px", background: "#fff7ed", borderRadius: 12, border: "1px solid #fdba74" }}>
             <p style={{ color: "#0369a1", fontSize: 13, fontWeight: 700, marginBottom: 12, display: "flex", alignItems: "center", gap: 6 }}>
               🏦 Loan Details — balance calculated automatically from these
             </p>
@@ -2017,7 +2017,7 @@ function Properties({ onSelect, editPropertyId, onClearEditId }) {
 
           <div style={{ display: "flex", gap: 10, marginTop: 4 }}>
             <button onClick={() => setShowModal(false)} style={{ flex: 1, padding: "12px", border: "1px solid #e2e8f0", borderRadius: 10, background: "#fff", color: "#475569", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
-            <button onClick={handleSaveProp} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "#3b82f6", color: "#fff", fontWeight: 600, cursor: "pointer" }}>
+            <button onClick={handleSaveProp} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "#e95e00", color: "#fff", fontWeight: 600, cursor: "pointer" }}>
               {editId ? "Save Changes" : "Add Property"}
             </button>
           </div>
@@ -2308,7 +2308,7 @@ function PropertyDetail({ property, onBack, backLabel, onEditProperty, onGoToTra
             {[
               { label: "Monthly Income", value: fmt(eff.monthlyIncome), color: "#10b981", sub: eff.source === "transactions" ? `Avg from ${eff.months}mo of transactions` : "Manual estimate — log transactions for actuals", tip: "Average monthly rental income. Derived from transaction history when available, otherwise uses manually entered estimate." },
               { label: "Monthly Expenses", value: fmt(eff.monthlyExpenses), color: "#ef4444", sub: eff.source === "transactions" ? `Avg from ${eff.months}mo of transactions` : "Manual estimate — log transactions for actuals", tip: "Average monthly operating expenses. Derived from transaction history when available, otherwise uses manually entered estimate." },
-              { label: "Net Cash Flow", value: fmt(eff.monthlyIncome - eff.monthlyExpenses), color: "#3b82f6", tip: "Monthly Income − Monthly Expenses. Positive means the property cash-flows." },
+              { label: "Net Cash Flow", value: fmt(eff.monthlyIncome - eff.monthlyExpenses), color: "#041830", tip: "Monthly Income − Monthly Expenses. Positive means the property cash-flows." },
               { label: "Total Equity", value: fmt(equity), color: "#8b5cf6", tip: "Current Property Value − Mortgage Balance." },
               { label: "Purchase Price", value: fmt(property.purchasePrice), color: "#041830", tip: "Original acquisition cost of the property." },
               { label: "Closing Costs", value: property.closingCosts ? fmt(property.closingCosts) : "—", color: "#64748b", tip: "One-time costs paid at closing (title, legal, inspection, etc.)." },
@@ -3014,7 +3014,7 @@ function Transactions({ highlightTxId, onBack, onClearHighlight, backLabel }) {
       {(propFilter !== "all" || catFilter !== "all" || dateFilter !== "all" || search) && (
         <div style={{ display: "flex", gap: 8, marginBottom: 14, flexWrap: "wrap", alignItems: "center" }}>
           <span style={{ fontSize: 12, color: "#94a3b8", fontWeight: 600 }}>Filtered:</span>
-          {propFilter !== "all" && <span style={{ background: "#eff6ff", color: "#3b82f6", borderRadius: 20, padding: "3px 10px", fontSize: 12, fontWeight: 600 }}>{(PROPERTIES.find(p => p.id === Number(propFilter))?.name || "Property").split(" ").slice(0, 2).join(" ")}</span>}
+          {propFilter !== "all" && <span style={{ background: "#fff7ed", color: "#e95e00", borderRadius: 20, padding: "3px 10px", fontSize: 12, fontWeight: 600 }}>{(PROPERTIES.find(p => p.id === Number(propFilter))?.name || "Property").split(" ").slice(0, 2).join(" ")}</span>}
           {catFilter !== "all" && <span style={{ background: "#f0fdf4", color: "#15803d", borderRadius: 20, padding: "3px 10px", fontSize: 12, fontWeight: 600 }}>{catFilter}</span>}
           {dateFilter !== "all" && <span style={{ background: "#fff7ed", color: "#7c2d12", borderRadius: 20, padding: "3px 10px", fontSize: 12, fontWeight: 600 }}>{{ thisMonth: "This Month", lastMonth: "Last Month", thisYear: "This Year", lastYear: "Last Year", custom: dateFrom && dateTo ? `${dateFrom} – ${dateTo}` : "Custom Range" }[dateFilter]}</span>}
           {search && <span style={{ background: "#f1f5f9", color: "#475569", borderRadius: 20, padding: "3px 10px", fontSize: 12, fontWeight: 600 }}>"{search}"</span>}
@@ -4241,7 +4241,7 @@ function Reports() {
           <button onClick={() => exportReportCSV(activeReport, reportProps, monthlyData, deprRows, lenderData, calcPropLines, taxYear, ownerMonth)} style={{ background: "#fff", color: "#475569", border: "1px solid #e2e8f0", borderRadius: 10, padding: "10px 16px", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
             <Download size={16} /> CSV
           </button>
-          <button onClick={() => exportReportPDF(activeReport, reportProps, monthlyData, deprRows, lenderData, calcPropLines, taxYear, propFilter, ownerMonth)} style={{ background: "#3b82f6", color: "#fff", border: "none", borderRadius: 10, padding: "10px 16px", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
+          <button onClick={() => exportReportPDF(activeReport, reportProps, monthlyData, deprRows, lenderData, calcPropLines, taxYear, propFilter, ownerMonth)} style={{ background: "#e95e00", color: "#fff", border: "none", borderRadius: 10, padding: "10px 16px", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
             <Download size={16} /> PDF
           </button>
         </div>
@@ -8470,7 +8470,7 @@ function AppShell() {
           })}
         </nav>
         <div style={{ padding: 16, borderTop: "1px solid rgba(255,255,255,0.08)" }}>
-          <div style={{ background: "rgba(59,130,246,0.15)", borderRadius: 12, padding: "12px 14px", marginBottom: 12, border: "1px solid rgba(59,130,246,0.3)" }}>
+          <div style={{ background: "rgba(233,94,0,0.12)", borderRadius: 12, padding: "12px 14px", marginBottom: 12, border: "1px solid rgba(233,94,0,0.25)" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
               <Star size={12} color="#f97316" fill="#f97316" />
               <span style={{ color: "#f97316", fontSize: 11, fontWeight: 700 }}>{user?.planLabel || "PRO PLAN"}</span>
@@ -8478,7 +8478,7 @@ function AppShell() {
             <p style={{ color: "#94a3b8", fontSize: 12 }}>{user?.planDescription || "Unlimited properties"}</p>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={{ width: 34, height: 34, borderRadius: 10, background: "linear-gradient(135deg, #3b82f6, #8b5cf6)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 700, fontSize: 13 }}>
+            <div style={{ width: 34, height: 34, borderRadius: 10, background: "linear-gradient(135deg, #e95e00, #041830)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 700, fontSize: 13 }}>
               {user?.initials || "?"}
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
@@ -8519,7 +8519,7 @@ function AppShell() {
               <Bell size={20} color="#64748b" />
               <div style={{ position: "absolute", top: -3, right: -3, width: 8, height: 8, borderRadius: "50%", background: "#ef4444", border: "2px solid #fff" }} />
             </div>
-            <div onClick={() => setShowSettings(true)} style={{ width: 34, height: 34, borderRadius: 10, background: "linear-gradient(135deg, #3b82f6, #8b5cf6)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>{user?.initials || "?"}</div>
+            <div onClick={() => setShowSettings(true)} style={{ width: 34, height: 34, borderRadius: 10, background: "linear-gradient(135deg, #e95e00, #041830)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>{user?.initials || "?"}</div>
           </div>
         </div>
         <div style={{ flex: 1, padding: 32, maxWidth: 1400, width: "100%" }}>

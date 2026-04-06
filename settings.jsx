@@ -14,7 +14,7 @@ import {
 // -----------------------------------------------------------------------------
 const inp = {
   width: "100%", padding: "10px 13px", border: "1.5px solid #e2e8f0",
-  borderRadius: 10, fontSize: 14, color: "#0f172a", background: "#fff",
+  borderRadius: 10, fontSize: 14, color: "#041830", background: "#fff",
   outline: "none", boxSizing: "border-box",
 };
 const label = (text) => (
@@ -22,7 +22,7 @@ const label = (text) => (
 );
 const section = (title, sub) => (
   <div style={{ marginBottom: 20 }}>
-    <h3 style={{ color: "#0f172a", fontSize: 16, fontWeight: 700, marginBottom: 2 }}>{title}</h3>
+    <h3 style={{ color: "#041830", fontSize: 16, fontWeight: 700, marginBottom: 2 }}>{title}</h3>
     {sub && <p style={{ color: "#94a3b8", fontSize: 13 }}>{sub}</p>}
   </div>
 );
@@ -64,14 +64,14 @@ function ProfileTab() {
         <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 24 }}>
           <div style={{
             width: 64, height: 64, borderRadius: 18,
-            background: "linear-gradient(135deg, #3b82f6, #8b5cf6)",
+            background: "linear-gradient(135deg, #e95e00, #041830)",
             display: "flex", alignItems: "center", justifyContent: "center",
             color: "#fff", fontWeight: 800, fontSize: 24, flexShrink: 0,
           }}>
             {user?.initials || "?"}
           </div>
           <div>
-            <p style={{ color: "#0f172a", fontWeight: 700, fontSize: 17 }}>{user?.name}</p>
+            <p style={{ color: "#041830", fontWeight: 700, fontSize: 17 }}>{user?.name}</p>
             <p style={{ color: "#64748b", fontSize: 13 }}>{user?.email}</p>
             <p style={{ color: "#94a3b8", fontSize: 12, marginTop: 2 }}>
               Member since {user?.memberSince || "2024"}
@@ -95,7 +95,7 @@ function ProfileTab() {
             </div>
             <div style={{ display: "flex", gap: 10 }}>
               <button onClick={handleSave}
-                style={{ display: "flex", alignItems: "center", gap: 6, padding: "9px 18px", borderRadius: 9, border: "none", background: "#3b82f6", color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
+                style={{ display: "flex", alignItems: "center", gap: 6, padding: "9px 18px", borderRadius: 9, border: "none", background: "#e95e00", color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
                 <Save size={13} /> Save Changes
               </button>
               <button onClick={() => setEditing(false)}
@@ -115,7 +115,7 @@ function ProfileTab() {
       </div>
 
       <div style={card}>
-        <p style={{ color: "#0f172a", fontWeight: 700, fontSize: 15, marginBottom: 4 }}>Sign Out</p>
+        <p style={{ color: "#041830", fontWeight: 700, fontSize: 15, marginBottom: 4 }}>Sign Out</p>
         <p style={{ color: "#94a3b8", fontSize: 13, marginBottom: 16 }}>Sign out of your PropBooks account on this device.</p>
         <button onClick={signOut}
           style={{ padding: "9px 18px", borderRadius: 9, border: "1.5px solid #fecaca", background: "#fef2f2", color: "#b91c1c", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
@@ -144,9 +144,9 @@ function SubscriptionTab() {
       {section("Subscription", "Manage your plan and billing")}
 
       {/* Current plan */}
-      <div style={{ ...card, border: "2px solid #3b82f6", background: "#eff6ff" }}>
+      <div style={{ ...card, border: "2px solid #e95e00", background: "#eff6ff" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
-          <Star size={16} color="#f59e0b" fill="#f59e0b" />
+          <Star size={16} color="#e95e00" fill="#e95e00" />
           <span style={{ color: "#1d4ed8", fontWeight: 700, fontSize: 14 }}>
             {current.toUpperCase()} PLAN — Active
           </span>
@@ -163,7 +163,7 @@ function SubscriptionTab() {
 
       {/* Plan comparison */}
       <div style={card}>
-        <p style={{ color: "#0f172a", fontWeight: 700, fontSize: 15, marginBottom: 16 }}>All Plans</p>
+        <p style={{ color: "#041830", fontWeight: 700, fontSize: 15, marginBottom: 16 }}>All Plans</p>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
           {[
             { id: "starter", label: "Starter", price: "$25", period: "/mo" },
@@ -171,16 +171,16 @@ function SubscriptionTab() {
             { id: "team",    label: "Team",    price: "$99", period: "/mo" },
           ].map(p => (
             <div key={p.id} style={{
-              padding: 16, borderRadius: 12, border: current === p.id ? "2px solid #3b82f6" : "2px solid #e2e8f0",
+              padding: 16, borderRadius: 12, border: current === p.id ? "2px solid #e95e00" : "2px solid #e2e8f0",
               background: current === p.id ? "#eff6ff" : "#fafafa", position: "relative",
             }}>
               {p.popular && current !== p.id && (
-                <span style={{ position: "absolute", top: -9, left: "50%", transform: "translateX(-50%)", background: "#3b82f6", color: "#fff", fontSize: 9, fontWeight: 700, padding: "2px 8px", borderRadius: 20, whiteSpace: "nowrap" }}>
+                <span style={{ position: "absolute", top: -9, left: "50%", transform: "translateX(-50%)", background: "#e95e00", color: "#fff", fontSize: 9, fontWeight: 700, padding: "2px 8px", borderRadius: 20, whiteSpace: "nowrap" }}>
                   POPULAR
                 </span>
               )}
-              <p style={{ fontWeight: 700, color: "#0f172a", fontSize: 15, marginBottom: 4 }}>{p.label}</p>
-              <p style={{ fontWeight: 800, color: "#0f172a", fontSize: 20 }}>
+              <p style={{ fontWeight: 700, color: "#041830", fontSize: 15, marginBottom: 4 }}>{p.label}</p>
+              <p style={{ fontWeight: 800, color: "#041830", fontSize: 20 }}>
                 {p.price}<span style={{ fontSize: 13, fontWeight: 500, color: "#94a3b8" }}>{p.period}</span>
               </p>
               <div style={{ marginTop: 10 }}>
@@ -192,7 +192,7 @@ function SubscriptionTab() {
                 ))}
               </div>
               {current !== p.id && (
-                <button style={{ width: "100%", marginTop: 12, padding: "7px", borderRadius: 8, border: "none", background: "#3b82f6", color: "#fff", fontWeight: 700, fontSize: 12, cursor: "pointer" }}>
+                <button style={{ width: "100%", marginTop: 12, padding: "7px", borderRadius: 8, border: "none", background: "#e95e00", color: "#fff", fontWeight: 700, fontSize: 12, cursor: "pointer" }}>
                   {current === "starter" ? "Upgrade" : "Switch"}
                 </button>
               )}
@@ -207,10 +207,10 @@ function SubscriptionTab() {
       </div>
 
       <div style={card}>
-        <p style={{ color: "#0f172a", fontWeight: 700, fontSize: 15, marginBottom: 4 }}>Billing</p>
+        <p style={{ color: "#041830", fontWeight: 700, fontSize: 15, marginBottom: 4 }}>Billing</p>
         <p style={{ color: "#94a3b8", fontSize: 13, marginBottom: 16 }}>Billing management will be available when payments are enabled.</p>
         <div style={{ background: "#f8fafc", borderRadius: 10, padding: 14, border: "1px solid #e2e8f0" }}>
-          <p style={{ color: "#64748b", fontSize: 13 }}>Next billing date: <strong style={{ color: "#0f172a" }}>April 15, 2026</strong></p>
+          <p style={{ color: "#64748b", fontSize: 13 }}>Next billing date: <strong style={{ color: "#041830" }}>April 15, 2026</strong></p>
         </div>
       </div>
     </div>
@@ -224,7 +224,7 @@ function Toggle({ on, onChange }) {
   return (
     <button onClick={() => onChange(!on)} style={{
       width: 44, height: 24, borderRadius: 12, border: "none", cursor: "pointer",
-      background: on ? "#3b82f6" : "#e2e8f0", position: "relative", transition: "background 0.2s", flexShrink: 0,
+      background: on ? "#e95e00" : "#e2e8f0", position: "relative", transition: "background 0.2s", flexShrink: 0,
     }}>
       <div style={{
         width: 18, height: 18, borderRadius: "50%", background: "#fff",
@@ -267,7 +267,7 @@ function NotificationsTab() {
             borderBottom: i < items.length - 1 ? "1px solid #f1f5f9" : "none",
           }}>
             <div>
-              <p style={{ color: "#0f172a", fontWeight: 600, fontSize: 14 }}>{item.label}</p>
+              <p style={{ color: "#041830", fontWeight: 600, fontSize: 14 }}>{item.label}</p>
               <p style={{ color: "#94a3b8", fontSize: 12, marginTop: 2 }}>{item.desc}</p>
             </div>
             <Toggle on={prefs[item.key]} onChange={() => toggle(item.key)} />
@@ -300,7 +300,7 @@ function SecurityTab() {
     <div>
       {section("Security", "Manage your password and account security")}
       <div style={card}>
-        <p style={{ color: "#0f172a", fontWeight: 700, fontSize: 15, marginBottom: 16 }}>Change Password</p>
+        <p style={{ color: "#041830", fontWeight: 700, fontSize: 15, marginBottom: 16 }}>Change Password</p>
         <form onSubmit={handleSave}>
           <div style={{ display: "flex", flexDirection: "column", gap: 14, marginBottom: 20 }}>
             <div>{label("Current Password")}<input style={inp} type="password" value={current} onChange={e => setCurrent(e.target.value)} placeholder="••••••••" /></div>
@@ -314,17 +314,17 @@ function SecurityTab() {
             </div>
           )}
           <button type="submit"
-            style={{ padding: "9px 20px", borderRadius: 9, border: "none", background: "#3b82f6", color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
+            style={{ padding: "9px 20px", borderRadius: 9, border: "none", background: "#e95e00", color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
             Update Password
           </button>
         </form>
       </div>
 
       <div style={card}>
-        <p style={{ color: "#0f172a", fontWeight: 700, fontSize: 15, marginBottom: 4 }}>Two-Factor Authentication</p>
+        <p style={{ color: "#041830", fontWeight: 700, fontSize: 15, marginBottom: 4 }}>Two-Factor Authentication</p>
         <p style={{ color: "#94a3b8", fontSize: 13, marginBottom: 14 }}>Add an extra layer of security to your account. Coming soon.</p>
         <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 8, padding: "7px 12px" }}>
-          <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#f59e0b" }} />
+          <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#e95e00" }} />
           <span style={{ fontSize: 13, color: "#64748b", fontWeight: 500 }}>Not enabled</span>
         </div>
       </div>
@@ -350,7 +350,7 @@ export function Settings({ onClose }) {
       {/* Sidebar */}
       <div style={{ width: 220, borderRight: "1px solid #f1f5f9", paddingRight: 24, flexShrink: 0 }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
-          <h2 style={{ color: "#0f172a", fontSize: 18, fontWeight: 700 }}>Settings</h2>
+          <h2 style={{ color: "#041830", fontSize: 18, fontWeight: 700 }}>Settings</h2>
           {onClose && (
             <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8" }}>
               <X size={18} />
@@ -416,11 +416,11 @@ export function OnboardingWizard({ onComplete }) {
         {/* Progress */}
         <div style={{ display: "flex", gap: 6, marginBottom: 32 }}>
           {ONBOARDING_STEPS.map((_, i) => (
-            <div key={i} style={{ flex: 1, height: 4, borderRadius: 2, background: i <= step ? "#3b82f6" : "#e2e8f0", transition: "background 0.3s" }} />
+            <div key={i} style={{ flex: 1, height: 4, borderRadius: 2, background: i <= step ? "#e95e00" : "#e2e8f0", transition: "background 0.3s" }} />
           ))}
         </div>
 
-        <h2 style={{ color: "#0f172a", fontSize: 22, fontWeight: 800, marginBottom: 6 }}>{current.title}</h2>
+        <h2 style={{ color: "#041830", fontSize: 22, fontWeight: 800, marginBottom: 6 }}>{current.title}</h2>
         <p style={{ color: "#64748b", fontSize: 14, marginBottom: 28 }}>{current.sub}</p>
 
         {/* Step content */}
@@ -428,7 +428,7 @@ export function OnboardingWizard({ onComplete }) {
           <div style={{ display: "flex", flexDirection: "column", gap: 14, marginBottom: 28 }}>
             {[
               { icon: Building2, color: "#3b82f6", title: "Track your rentals",    sub: "Properties, tenants, cash flow"  },
-              { icon: Star,      color: "#f59e0b", title: "Manage your flips",     sub: "Pipeline, rehab budget, P&L"     },
+              { icon: Star,      color: "#e95e00", title: "Manage your flips",     sub: "Pipeline, rehab budget, P&L"     },
               { icon: CheckCircle, color: "#10b981", title: "Analyze new deals",   sub: "Cap rate, CoC, GRM calculator"  },
             ].map(item => (
               <div key={item.title} style={{ display: "flex", alignItems: "center", gap: 14, padding: 14, borderRadius: 12, background: "#f8fafc", border: "1px solid #f1f5f9" }}>
@@ -436,7 +436,7 @@ export function OnboardingWizard({ onComplete }) {
                   <item.icon size={18} color={item.color} />
                 </div>
                 <div>
-                  <p style={{ fontWeight: 700, color: "#0f172a", fontSize: 14 }}>{item.title}</p>
+                  <p style={{ fontWeight: 700, color: "#041830", fontSize: 14 }}>{item.title}</p>
                   <p style={{ color: "#94a3b8", fontSize: 12 }}>{item.sub}</p>
                 </div>
               </div>
@@ -448,26 +448,26 @@ export function OnboardingWizard({ onComplete }) {
           <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 28 }}>
             <div>
               <p style={{ fontSize: 13, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Property Name</p>
-              <input style={{ width: "100%", padding: "10px 13px", border: "1.5px solid #e2e8f0", borderRadius: 10, fontSize: 14, color: "#0f172a", background: "#fff", outline: "none", boxSizing: "border-box" }}
+              <input style={{ width: "100%", padding: "10px 13px", border: "1.5px solid #e2e8f0", borderRadius: 10, fontSize: 14, color: "#041830", background: "#fff", outline: "none", boxSizing: "border-box" }}
                 placeholder="e.g. Oak Street Duplex"
                 value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
             </div>
             <div>
               <p style={{ fontSize: 13, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Address</p>
-              <input style={{ width: "100%", padding: "10px 13px", border: "1.5px solid #e2e8f0", borderRadius: 10, fontSize: 14, color: "#0f172a", background: "#fff", outline: "none", boxSizing: "border-box" }}
+              <input style={{ width: "100%", padding: "10px 13px", border: "1.5px solid #e2e8f0", borderRadius: 10, fontSize: 14, color: "#041830", background: "#fff", outline: "none", boxSizing: "border-box" }}
                 placeholder="123 Main St, City, State"
                 value={form.address} onChange={e => setForm(f => ({ ...f, address: e.target.value }))} />
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
               <div>
                 <p style={{ fontSize: 13, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Purchase Price</p>
-                <input style={{ width: "100%", padding: "10px 13px", border: "1.5px solid #e2e8f0", borderRadius: 10, fontSize: 14, color: "#0f172a", background: "#fff", outline: "none", boxSizing: "border-box" }}
+                <input style={{ width: "100%", padding: "10px 13px", border: "1.5px solid #e2e8f0", borderRadius: 10, fontSize: 14, color: "#041830", background: "#fff", outline: "none", boxSizing: "border-box" }}
                   placeholder="$350,000" type="number"
                   value={form.purchasePrice} onChange={e => setForm(f => ({ ...f, purchasePrice: e.target.value }))} />
               </div>
               <div>
                 <p style={{ fontSize: 13, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Monthly Rent</p>
-                <input style={{ width: "100%", padding: "10px 13px", border: "1.5px solid #e2e8f0", borderRadius: 10, fontSize: 14, color: "#0f172a", background: "#fff", outline: "none", boxSizing: "border-box" }}
+                <input style={{ width: "100%", padding: "10px 13px", border: "1.5px solid #e2e8f0", borderRadius: 10, fontSize: 14, color: "#041830", background: "#fff", outline: "none", boxSizing: "border-box" }}
                   placeholder="$2,500" type="number"
                   value={form.monthlyRent} onChange={e => setForm(f => ({ ...f, monthlyRent: e.target.value }))} />
               </div>
@@ -498,7 +498,7 @@ export function OnboardingWizard({ onComplete }) {
             {step < 2 ? "Skip for now" : ""}
           </button>
           <button onClick={handleNext}
-            style={{ display: "flex", alignItems: "center", gap: 8, padding: "11px 24px", borderRadius: 10, border: "none", background: "#3b82f6", color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer" }}>
+            style={{ display: "flex", alignItems: "center", gap: 8, padding: "11px 24px", borderRadius: 10, border: "none", background: "#e95e00", color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer" }}>
             {step < 2 ? "Continue" : "Go to Dashboard"}
             <ArrowRight size={15} />
           </button>
