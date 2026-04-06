@@ -943,50 +943,23 @@ function PortfolioDashboard({ onNavigate, onSelectProperty, onSelectFlip, onNavi
   const sectionS = { background: "#fff", borderRadius: 16, padding: 24, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" };
   const qaBtnS = (color, bg) => ({ display: "flex", flexDirection: "column", alignItems: "center", gap: 8, padding: "16px 12px", borderRadius: 12, border: "1px solid #e2e8f0", background: "#fff", cursor: "pointer", transition: "all 0.15s", flex: 1 });
 
-  const greetingTime = now.getHours() < 12 ? "Good morning" : now.getHours() < 17 ? "Good afternoon" : "Good evening";
-  const dateStr = now.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" });
-
   return (
     <div>
-      {/* Hero Welcome Banner */}
-      <div style={{ background: "linear-gradient(135deg, #041830 0%, #0a2a4a 60%, #0e3460 100%)", borderRadius: 20, padding: "32px 36px", marginBottom: 28, position: "relative", overflow: "hidden" }}>
-        {/* Subtle decorative circles */}
-        <div style={{ position: "absolute", top: -40, right: -40, width: 200, height: 200, borderRadius: "50%", background: "rgba(233,94,0,0.08)" }} />
-        <div style={{ position: "absolute", bottom: -60, right: 120, width: 160, height: 160, borderRadius: "50%", background: "rgba(233,94,0,0.05)" }} />
-
-        <div style={{ position: "relative", zIndex: 1 }}>
-          {/* Top row: Logo + Date */}
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-            <img src={propbooksLogo} alt="PropBooks" style={{ height: 30, objectFit: "contain" }} />
-            <span style={{ fontSize: 13, color: "rgba(255,255,255,0.5)", fontWeight: 500 }}>{dateStr}</span>
-          </div>
-
-          {/* Greeting */}
-          <h1 style={{ fontSize: 28, fontWeight: 800, color: "#fff", margin: "0 0 6px 0" }}>{greetingTime}, Brandon</h1>
-          <p style={{ fontSize: 15, color: "rgba(255,255,255,0.55)", margin: "0 0 28px 0" }}>Here's your complete portfolio snapshot.</p>
-
-          {/* Inline KPI row */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16 }}>
-            {[
-              { icon: Wallet, label: "Total Equity", value: fmt(totalEquity), color: "#60a5fa", tip: "Sum of rental equity (property value − mortgage balance) plus flip purchase prices invested." },
-              { icon: TrendingUp, label: "Monthly Cash Flow", value: fmt(netCashFlow), color: "#34d399", tip: "Net rental income across all properties (income minus expenses)." },
-              { icon: Target, label: "Active Deals", value: String(activeDeals), color: "#fb923c", tip: "Number of flip deals currently in progress (not sold)." },
-              { icon: DollarSign, label: "Capital Deployed", value: fmt(capitalDeployed), color: "#a78bfa", tip: "Total money invested in active flip deals (purchase price + rehab spent)." },
-            ].map((kpi, i) => (
-              <div key={i} style={{ background: "rgba(255,255,255,0.07)", borderRadius: 14, padding: "16px 18px", border: "1px solid rgba(255,255,255,0.08)" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 10 }}>
-                  <kpi.icon size={14} color={kpi.color} />
-                  <span style={{ fontSize: 11, fontWeight: 600, color: "rgba(255,255,255,0.45)", textTransform: "uppercase", letterSpacing: "0.04em" }}>{kpi.label}</span>
-                  <InfoTip text={kpi.tip} />
-                </div>
-                <p style={{ fontSize: 22, fontWeight: 800, color: "#fff", margin: 0 }}>{kpi.value}</p>
-              </div>
-            ))}
-          </div>
-        </div>
+      {/* Header */}
+      <div style={{ marginBottom: 28 }}>
+        <h1 style={{ fontSize: 26, fontWeight: 700, color: "#041830", margin: "0 0 8px 0" }}>Portfolio Overview</h1>
+        <p style={{ fontSize: 15, color: "#64748b", margin: 0 }}>Your complete real estate snapshot — rentals and flips combined.</p>
       </div>
 
-      {/* Quick Actions */}
+      {/* Row 1: KPI Cards */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 20, marginBottom: 28 }}>
+        <StatCard icon={Wallet} label="Total Equity" value={fmt(totalEquity)} color="#3b82f6" tip="Sum of rental equity (property value − mortgage balance) plus flip purchase prices invested." />
+        <StatCard icon={TrendingUp} label="Monthly Cash Flow" value={fmt(netCashFlow)} color="#10b981" tip="Net rental income across all properties (income minus expenses)." />
+        <StatCard icon={Target} label="Active Deals" value={String(activeDeals)} color="#e95e00" tip="Number of flip deals currently in progress (not sold)." />
+        <StatCard icon={DollarSign} label="Capital Deployed" value={fmt(capitalDeployed)} color="#8b5cf6" tip="Total money invested in active flip deals (purchase price + rehab spent)." />
+      </div>
+
+      {/* Row 2: Quick Actions */}
       <div style={{ display: "flex", gap: 12, marginBottom: 28 }}>
         {[
           { label: "Log Rental Transaction", icon: ArrowUpDown, color: "#10b981", bg: "#dcfce7", action: () => onNavigate("transactions") },

@@ -8,7 +8,9 @@
 // =============================================================================
 
 import { useState, createContext, useContext } from "react";
-import { Building2, Eye, EyeOff, ArrowRight, CheckCircle } from "lucide-react";
+import { Eye, EyeOff, ArrowRight, CheckCircle, Building2, TrendingUp, PieChart, Hammer, Car } from "lucide-react";
+import propbooksLogoDark from "./logos/PropBooks Horizontal Logo (3).png";
+import propbooksLogoLight from "./logos/PropBooks Horizontal Logo (2).png";
 
 // -----------------------------------------------------------------------------
 // Auth Context
@@ -54,41 +56,20 @@ export function useAuth() {
 // -----------------------------------------------------------------------------
 const inp = {
   width: "100%", padding: "11px 14px", border: "1.5px solid #e2e8f0",
-  borderRadius: 10, fontSize: 14, color: "#0f172a", background: "#fff",
+  borderRadius: 10, fontSize: 14, color: "#041830", background: "#fff",
   outline: "none", boxSizing: "border-box", transition: "border-color 0.15s",
 };
-const btn = (color = "#3b82f6") => ({
+const primaryBtn = (loading) => ({
   width: "100%", padding: "12px", borderRadius: 10, border: "none",
-  background: color, color: "#fff", fontWeight: 700, fontSize: 15,
-  cursor: "pointer", display: "flex", alignItems: "center",
-  justifyContent: "center", gap: 8, transition: "opacity 0.15s",
+  background: "#e95e00", color: "#fff", fontWeight: 700, fontSize: 15,
+  cursor: loading ? "wait" : "pointer", display: "flex", alignItems: "center",
+  justifyContent: "center", gap: 8, transition: "all 0.15s",
+  opacity: loading ? 0.7 : 1,
 });
 const errStyle = {
-  background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 8,
-  padding: "10px 12px", color: "#b91c1c", fontSize: 13, marginBottom: 16,
+  background: "#fff7ed", border: "1px solid #fdba74", borderRadius: 8,
+  padding: "10px 12px", color: "#9a3412", fontSize: 13, marginBottom: 16,
 };
-
-// -----------------------------------------------------------------------------
-// Logo / Brand mark
-// -----------------------------------------------------------------------------
-function Brand({ size = "lg" }) {
-  const big = size === "lg";
-  return (
-    <div style={{ display: "flex", alignItems: "center", gap: big ? 12 : 8, marginBottom: big ? 32 : 0 }}>
-      <div style={{
-        width: big ? 48 : 36, height: big ? 48 : 36, borderRadius: big ? 14 : 10,
-        background: "linear-gradient(135deg, #3b82f6, #8b5cf6)",
-        display: "flex", alignItems: "center", justifyContent: "center",
-      }}>
-        <Building2 size={big ? 26 : 20} color="#fff" />
-      </div>
-      <div>
-        <p style={{ color: "#0f172a", fontSize: big ? 22 : 16, fontWeight: 800, lineHeight: 1 }}>PropBooks</p>
-        {big && <p style={{ color: "#94a3b8", fontSize: 13, marginTop: 2 }}>Pro Investor Suite</p>}
-      </div>
-    </div>
-  );
-}
 
 // -----------------------------------------------------------------------------
 // Password input with show/hide toggle
@@ -134,9 +115,9 @@ function SignIn({ onSwitch }) {
 
   return (
     <form onSubmit={handleSubmit}>
-      <Brand />
-      <h1 style={{ color: "#0f172a", fontSize: 24, fontWeight: 700, marginBottom: 6 }}>Welcome back</h1>
-      <p style={{ color: "#64748b", fontSize: 14, marginBottom: 28 }}>Sign in to your portfolio</p>
+      <img src={propbooksLogoLight} alt="PropBooks" style={{ height: 32, objectFit: "contain", marginBottom: 36 }} />
+      <h1 style={{ color: "#041830", fontSize: 26, fontWeight: 800, marginBottom: 6 }}>Welcome back</h1>
+      <p style={{ color: "#64748b", fontSize: 14, marginBottom: 28 }}>Sign in to manage your portfolio</p>
 
       {error && <div style={errStyle}>{error}</div>}
 
@@ -148,7 +129,7 @@ function SignIn({ onSwitch }) {
         <div>
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
             <label style={{ fontSize: 13, fontWeight: 600, color: "#374151" }}>Password</label>
-            <button type="button" style={{ background: "none", border: "none", color: "#3b82f6", fontSize: 13, cursor: "pointer", fontWeight: 500 }}>
+            <button type="button" style={{ background: "none", border: "none", color: "#e95e00", fontSize: 13, cursor: "pointer", fontWeight: 500 }}>
               Forgot password?
             </button>
           </div>
@@ -156,14 +137,14 @@ function SignIn({ onSwitch }) {
         </div>
       </div>
 
-      <button type="submit" style={btn()} disabled={loading}>
-        {loading ? "Signing in…" : <><span>Sign In</span><ArrowRight size={16} /></>}
+      <button type="submit" style={primaryBtn(loading)} disabled={loading}>
+        {loading ? "Signing in..." : <><span>Sign In</span><ArrowRight size={16} /></>}
       </button>
 
       <p style={{ textAlign: "center", color: "#64748b", fontSize: 13, marginTop: 20 }}>
         Don't have an account?{" "}
-        <button type="button" onClick={onSwitch} style={{ background: "none", border: "none", color: "#3b82f6", fontWeight: 600, cursor: "pointer", fontSize: 13 }}>
-          Create one free
+        <button type="button" onClick={onSwitch} style={{ background: "none", border: "none", color: "#e95e00", fontWeight: 600, cursor: "pointer", fontSize: 13 }}>
+          Start free trial
         </button>
       </p>
     </form>
@@ -180,7 +161,7 @@ const PLANS = [
 
 function SignUp({ onSwitch }) {
   const { signUp } = useAuth();
-  const [step, setStep]         = useState(1); // 1 = account, 2 = plan
+  const [step, setStep]         = useState(1);
   const [name, setName]         = useState("");
   const [email, setEmail]       = useState("");
   const [password, setPassword] = useState("");
@@ -199,13 +180,12 @@ function SignUp({ onSwitch }) {
     setLoading(true); setError("");
     const { error: err } = await signUp(email, password, name);
     if (err) { setError(err.message || "Sign up failed."); setLoading(false); }
-    // On success, AuthProvider sets user → App renders main app
   }
 
   return (
     <div>
-      <Brand />
-      <h1 style={{ color: "#0f172a", fontSize: 24, fontWeight: 700, marginBottom: 6 }}>
+      <img src={propbooksLogoLight} alt="PropBooks" style={{ height: 32, objectFit: "contain", marginBottom: 36 }} />
+      <h1 style={{ color: "#041830", fontSize: 26, fontWeight: 800, marginBottom: 6 }}>
         {step === 1 ? "Create your account" : "Choose a plan"}
       </h1>
       <p style={{ color: "#64748b", fontSize: 14, marginBottom: 28 }}>
@@ -215,7 +195,7 @@ function SignUp({ onSwitch }) {
       {/* Step indicator */}
       <div style={{ display: "flex", gap: 8, marginBottom: 28 }}>
         {[1, 2].map(s => (
-          <div key={s} style={{ flex: 1, height: 4, borderRadius: 2, background: s <= step ? "#3b82f6" : "#e2e8f0", transition: "background 0.3s" }} />
+          <div key={s} style={{ flex: 1, height: 4, borderRadius: 2, background: s <= step ? "#e95e00" : "#e2e8f0", transition: "background 0.3s" }} />
         ))}
       </div>
 
@@ -237,7 +217,7 @@ function SignUp({ onSwitch }) {
               <PasswordInput value={password} onChange={e => setPassword(e.target.value)} placeholder="Min. 8 characters" />
             </div>
           </div>
-          <button type="submit" style={btn()}>
+          <button type="submit" style={primaryBtn(false)}>
             <span>Continue</span><ArrowRight size={16} />
           </button>
         </form>
@@ -250,17 +230,17 @@ function SignUp({ onSwitch }) {
               <button key={p.id} type="button" onClick={() => setPlan(p.id)}
                 style={{
                   flex: 1, padding: "16px 14px", borderRadius: 12, cursor: "pointer", textAlign: "left",
-                  border: plan === p.id ? "2px solid #3b82f6" : "2px solid #e2e8f0",
-                  background: plan === p.id ? "#eff6ff" : "#fff",
+                  border: plan === p.id ? "2px solid #e95e00" : "2px solid #e2e8f0",
+                  background: plan === p.id ? "#fff7ed" : "#fff",
                   transition: "all 0.15s", position: "relative",
                 }}>
                 {p.highlight && (
-                  <span style={{ position: "absolute", top: -10, right: 10, background: "#3b82f6", color: "#fff", fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 20 }}>
+                  <span style={{ position: "absolute", top: -10, right: 10, background: "#e95e00", color: "#fff", fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 20 }}>
                     POPULAR
                   </span>
                 )}
-                <p style={{ fontWeight: 700, color: "#0f172a", fontSize: 15, marginBottom: 2 }}>{p.label}</p>
-                <p style={{ color: "#3b82f6", fontWeight: 700, fontSize: 14, marginBottom: 10 }}>{p.price}</p>
+                <p style={{ fontWeight: 700, color: "#041830", fontSize: 15, marginBottom: 2 }}>{p.label}</p>
+                <p style={{ color: "#e95e00", fontWeight: 700, fontSize: 14, marginBottom: 10 }}>{p.price}</p>
                 {p.features.map(f => (
                   <div key={f} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
                     <CheckCircle size={12} color="#10b981" />
@@ -270,8 +250,8 @@ function SignUp({ onSwitch }) {
               </button>
             ))}
           </div>
-          <button onClick={handleSignUp} style={btn()} disabled={loading}>
-            {loading ? "Creating account…" : <><span>Start Free Trial</span><ArrowRight size={16} /></>}
+          <button onClick={handleSignUp} style={primaryBtn(loading)} disabled={loading}>
+            {loading ? "Creating account..." : <><span>Start Free Trial</span><ArrowRight size={16} /></>}
           </button>
           <p style={{ fontSize: 12, color: "#94a3b8", textAlign: "center", marginTop: 10 }}>
             14-day free trial · No credit card required
@@ -281,7 +261,7 @@ function SignUp({ onSwitch }) {
 
       <p style={{ textAlign: "center", color: "#64748b", fontSize: 13, marginTop: 20 }}>
         Already have an account?{" "}
-        <button type="button" onClick={onSwitch} style={{ background: "none", border: "none", color: "#3b82f6", fontWeight: 600, cursor: "pointer", fontSize: 13 }}>
+        <button type="button" onClick={onSwitch} style={{ background: "none", border: "none", color: "#e95e00", fontWeight: 600, cursor: "pointer", fontSize: 13 }}>
           Sign in
         </button>
       </p>
@@ -299,7 +279,7 @@ export function AuthScreen() {
     <div style={{
       minHeight: "100vh", display: "flex", background: "#f8fafc",
     }}>
-      {/* Left panel – form */}
+      {/* Left panel - form */}
       <div style={{
         width: "100%", maxWidth: 480, padding: "48px 48px",
         display: "flex", flexDirection: "column", justifyContent: "center",
@@ -311,57 +291,58 @@ export function AuthScreen() {
           : <SignUp onSwitch={() => setMode("signin")} />}
       </div>
 
-      {/* Right panel – visual */}
+      {/* Right panel - branded visual */}
       <div style={{
-        flex: 1, background: "linear-gradient(135deg, #0f172a 0%, #1e3a5f 50%, #1e1b4b 100%)",
+        flex: 1, background: "linear-gradient(135deg, #041830 0%, #0a2a4a 50%, #0e3460 100%)",
         display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
         padding: 48, position: "relative", overflow: "hidden",
       }}>
-        {/* Decorative circles */}
-        {[
-          { size: 400, top: -100, right: -100, opacity: 0.06 },
-          { size: 300, bottom: -80, left: -80,  opacity: 0.05 },
-          { size: 200, top: "40%", right: "10%", opacity: 0.07 },
-        ].map((c, i) => (
-          <div key={i} style={{
-            position: "absolute", width: c.size, height: c.size, borderRadius: "50%",
-            border: "2px solid rgba(255,255,255,0.3)",
-            top: c.top, right: c.right, bottom: c.bottom, left: c.left, opacity: c.opacity,
-          }} />
-        ))}
+        {/* Decorative orange glow circles */}
+        <div style={{ position: "absolute", top: -120, right: -120, width: 400, height: 400, borderRadius: "50%", background: "radial-gradient(circle, rgba(233,94,0,0.15) 0%, transparent 70%)" }} />
+        <div style={{ position: "absolute", bottom: -80, left: -80, width: 300, height: 300, borderRadius: "50%", background: "radial-gradient(circle, rgba(233,94,0,0.1) 0%, transparent 70%)" }} />
+        <div style={{ position: "absolute", top: "35%", right: "8%", width: 200, height: 200, borderRadius: "50%", background: "radial-gradient(circle, rgba(233,94,0,0.08) 0%, transparent 70%)" }} />
 
-        <div style={{ position: "relative", zIndex: 1, textAlign: "center", maxWidth: 420 }}>
-          <div style={{
-            width: 72, height: 72, borderRadius: 20,
-            background: "linear-gradient(135deg, #3b82f6, #8b5cf6)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            margin: "0 auto 24px",
-          }}>
-            <Building2 size={38} color="#fff" />
-          </div>
-          <h2 style={{ color: "#fff", fontSize: 28, fontWeight: 800, marginBottom: 12 }}>
+        {/* Subtle grid pattern overlay */}
+        <div style={{ position: "absolute", inset: 0, opacity: 0.03, backgroundImage: "linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)", backgroundSize: "40px 40px" }} />
+
+        <div style={{ position: "relative", zIndex: 1, textAlign: "center", maxWidth: 440 }}>
+          {/* Logo */}
+          <img src={propbooksLogoDark} alt="PropBooks" style={{ height: 44, objectFit: "contain", marginBottom: 36 }} />
+
+          <h2 style={{ color: "#fff", fontSize: 30, fontWeight: 800, marginBottom: 12, lineHeight: 1.25 }}>
             Your entire portfolio.<br />One clean dashboard.
           </h2>
-          <p style={{ color: "#94a3b8", fontSize: 15, lineHeight: 1.6, marginBottom: 36 }}>
+          <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 15, lineHeight: 1.7, marginBottom: 40 }}>
             Track rentals, manage flips, analyze deals, and log mileage — built for serious real estate investors.
           </p>
 
-          {/* Feature pills */}
-          {[
-            "Portfolio analytics & cash flow",
-            "Fix & flip pipeline tracker",
-            "Rent roll & tenant management",
-            "Deal analyzer & mileage log",
-          ].map(f => (
-            <div key={f} style={{
-              display: "flex", alignItems: "center", gap: 10, marginBottom: 12, textAlign: "left",
-            }}>
-              <div style={{ width: 28, height: 28, borderRadius: 8, background: "rgba(59,130,246,0.25)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                <CheckCircle size={14} color="#60a5fa" />
+          {/* Feature cards */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, textAlign: "left" }}>
+            {[
+              { icon: PieChart, label: "Portfolio Analytics", sub: "Cash flow & equity tracking" },
+              { icon: Hammer, label: "Flip Pipeline", sub: "Rehab budgets & milestones" },
+              { icon: Building2, label: "Rent Roll", sub: "Tenants, leases & units" },
+              { icon: Car, label: "Mileage Log", sub: "IRS-ready trip tracking" },
+            ].map((f, i) => (
+              <div key={i} style={{
+                display: "flex", alignItems: "flex-start", gap: 12, padding: "14px 16px",
+                background: "rgba(255,255,255,0.06)", borderRadius: 12, border: "1px solid rgba(255,255,255,0.08)",
+              }}>
+                <div style={{ width: 32, height: 32, borderRadius: 8, background: "rgba(233,94,0,0.2)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1 }}>
+                  <f.icon size={16} color="#fb923c" />
+                </div>
+                <div>
+                  <p style={{ color: "#fff", fontSize: 13, fontWeight: 700, margin: "0 0 2px 0" }}>{f.label}</p>
+                  <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 12, margin: 0 }}>{f.sub}</p>
+                </div>
               </div>
-              <span style={{ color: "#cbd5e1", fontSize: 14 }}>{f}</span>
-            </div>
-          ))}
+            ))}
+          </div>
+
+          {/* Trust line */}
+          <p style={{ color: "rgba(255,255,255,0.25)", fontSize: 12, marginTop: 36, fontWeight: 500 }}>
+            Trusted by real estate investors nationwide
+          </p>
         </div>
       </div>
     </div>
