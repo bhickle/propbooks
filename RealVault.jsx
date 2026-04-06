@@ -2173,60 +2173,80 @@ function PropertyDetail({ property, onBack, backLabel, onEditProperty, onGoToTra
             const accentBg    = isIncome ? "#f0fdf4"  : "#fef2f2";
             const accentBorder= isIncome ? "#bbf7d0"  : "#fecaca";
             const payeeLabel  = isIncome ? "Received From" : "Paid To";
-            const payeeList   = isIncome ? allPayers : allPayees;
-            const payeeMatches = txPayeeFocus ? payeeList.filter(p => !txForm.payee || p.toLowerCase().includes(txForm.payee.toLowerCase())).slice(0, 6) : [];
+            const payeePlaceholder = isIncome ? "Who paid?" : "Who was paid?";
+            const payeePool   = isIncome ? allPayers : allPayees;
+            const payeeHint   = <p style={{ fontSize: 11, color: "#94a3b8", marginTop: 4, fontStyle: "italic" }}>Type to search previous entries or add new</p>;
+
+            const TxPayeeDropdown = () => {
+              const q = (txForm.payee || "").toLowerCase();
+              const matches = q ? payeePool.filter(p => p.toLowerCase().includes(q) && p.toLowerCase() !== q) : payeePool.slice(0, 6);
+              const exactExists = payeePool.some(p => p.toLowerCase() === q);
+              const showNew = q && !exactExists;
+              if (matches.length === 0 && !showNew) return null;
+              return (
+                <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, background: "#fff", border: "1px solid #e2e8f0", borderRadius: 12, boxShadow: "0 8px 24px rgba(0,0,0,0.10)", zIndex: 200, overflow: "hidden", maxHeight: 200, overflowY: "auto" }}>
+                  {matches.slice(0, 6).map(p => (
+                    <button key={p} onMouseDown={() => { setTxForm(f => ({ ...f, payee: p })); setTxPayeeFocus(false); }}
+                      style={{ width: "100%", padding: "10px 14px", background: "none", border: "none", borderBottom: "1px solid #f1f5f9", textAlign: "left", cursor: "pointer", fontSize: 13, color: "#0f172a", display: "flex", alignItems: "center", gap: 8 }}>
+                      <User size={13} style={{ color: "#94a3b8", flexShrink: 0 }} /> {p}
+                    </button>
+                  ))}
+                  {showNew && (
+                    <button onMouseDown={() => setTxPayeeFocus(false)}
+                      style={{ width: "100%", padding: "10px 14px", display: "flex", alignItems: "center", gap: 8, background: "#fffbeb", border: "none", borderTop: matches.length > 0 ? "1px solid #e2e8f0" : "none", cursor: "pointer", textAlign: "left" }}>
+                      <Plus size={13} style={{ color: "#f59e0b", flexShrink: 0 }} />
+                      <span style={{ fontSize: 13, color: "#f59e0b", fontWeight: 600 }}>Add &ldquo;{txForm.payee}&rdquo; as new</span>
+                    </button>
+                  )}
+                </div>
+              );
+            };
 
             return (
-              <Modal title={txEditId ? `Edit ${isIncome ? "Income" : "Expense"}` : `Log ${isIncome ? "Income" : "Expense"}`} onClose={txCloseModal} width={480}>
-                <div style={{ background: accentBg, borderRadius: 10, padding: "8px 14px", marginBottom: 20, border: `1px solid ${accentBorder}`, display: "inline-block" }}>
+              <Modal title={txEditId ? `Edit ${isIncome ? "Income" : "Expense"}` : `Log ${isIncome ? "Income" : "Expense"}`} onClose={txCloseModal}>
+                {/* Colored type badge at top */}
+                <div style={{ background: accentBg, border: `1px solid ${accentBorder}`, borderRadius: 10, padding: "8px 14px", marginBottom: 20, display: "inline-flex", alignItems: "center", gap: 8 }}>
+                  <span style={{ width: 8, height: 8, borderRadius: "50%", background: accentColor, display: "inline-block" }} />
                   <span style={{ fontSize: 13, fontWeight: 700, color: accentColor }}>{isIncome ? "Income" : "Expense"}</span>
                 </div>
 
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
                   <div>
-                    <label style={{ fontSize: 12, fontWeight: 600, color: "#64748b", display: "block", marginBottom: 4 }}>Date</label>
+                    <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Date</label>
                     <input type="date" value={txForm.date} onChange={txSf("date")} style={iS} />
                   </div>
                   <div>
-                    <label style={{ fontSize: 12, fontWeight: 600, color: "#64748b", display: "block", marginBottom: 4 }}>Amount ($) *</label>
-                    <input type="number" value={txForm.amount} onChange={txSf("amount")} placeholder="0.00" style={iS} />
+                    <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Amount ($) *</label>
+                    <input type="number" placeholder="0.00" value={txForm.amount} onChange={txSf("amount")} style={iS} />
                   </div>
-                </div>
 
-                {/* Payee with typeahead */}
-                <div style={{ position: "relative", marginTop: 14 }}>
-                  <label style={{ fontSize: 12, fontWeight: 600, color: "#64748b", display: "block", marginBottom: 4 }}>{payeeLabel}</label>
-                  <input type="text" value={txForm.payee} onChange={txSf("payee")}
-                    onFocus={() => setTxPayeeFocus(true)} onBlur={() => setTimeout(() => setTxPayeeFocus(false), 150)}
-                    placeholder={isIncome ? "Who paid?" : "Who was paid?"} style={iS} />
-                  {txPayeeFocus && payeeMatches.length > 0 && (
-                    <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: "#fff", border: "1px solid #e2e8f0", borderRadius: 10, boxShadow: "0 8px 24px rgba(0,0,0,0.12)", zIndex: 20, maxHeight: 180, overflowY: "auto", marginTop: 4 }}>
-                      {payeeMatches.map(p => (
-                        <div key={p} onMouseDown={() => setTxForm(f => ({ ...f, payee: p }))}
-                          style={{ padding: "8px 14px", fontSize: 13, cursor: "pointer", color: "#0f172a" }}
-                          onMouseEnter={e => e.currentTarget.style.background = "#f8fafc"}
-                          onMouseLeave={e => e.currentTarget.style.background = "#fff"}>
-                          {p}
-                        </div>
+                  {/* Payee / Received From — typeahead */}
+                  <div style={{ gridColumn: "1 / -1", position: "relative" }}>
+                    <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>
+                      {payeeLabel} {isIncome && <span style={{ color: "#94a3b8", fontWeight: 400 }}>(optional)</span>}
+                    </label>
+                    <input type="text" placeholder={payeePlaceholder} value={txForm.payee} onChange={txSf("payee")}
+                      onFocus={() => setTxPayeeFocus(true)} onBlur={() => setTimeout(() => setTxPayeeFocus(false), 150)}
+                      style={iS} autoComplete="off" />
+                    {txPayeeFocus && <TxPayeeDropdown />}
+                    {!txPayeeFocus && !txForm.payee && payeeHint}
+                  </div>
+
+                  <div style={{ gridColumn: "1 / -1" }}>
+                    <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Description *</label>
+                    <input type="text" placeholder="Brief description" value={txForm.description} onChange={txSf("description")} style={iS} />
+                  </div>
+
+                  <div style={{ gridColumn: "1 / -1" }}>
+                    <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Category</label>
+                    <select value={txForm.category} onChange={txSf("category")} style={iS}>
+                      {Object.entries(txGroupsForType(txForm.type)).map(([group, subs]) => (
+                        <optgroup key={group} label={group}>
+                          {subs.map(s => <option key={s} value={s}>{s}</option>)}
+                        </optgroup>
                       ))}
-                    </div>
-                  )}
-                </div>
-
-                <div style={{ marginTop: 14 }}>
-                  <label style={{ fontSize: 12, fontWeight: 600, color: "#64748b", display: "block", marginBottom: 4 }}>Description *</label>
-                  <input type="text" value={txForm.description} onChange={txSf("description")} placeholder="What was this for?" style={iS} />
-                </div>
-
-                <div style={{ marginTop: 14 }}>
-                  <label style={{ fontSize: 12, fontWeight: 600, color: "#64748b", display: "block", marginBottom: 4 }}>Category</label>
-                  <select value={txForm.category} onChange={txSf("category")} style={iS}>
-                    {Object.entries(txGroupsForType(txForm.type)).map(([group, subs]) => (
-                      <optgroup key={group} label={group}>
-                        {subs.map(s => <option key={s} value={s}>{s}</option>)}
-                      </optgroup>
-                    ))}
-                  </select>
+                    </select>
+                  </div>
                 </div>
 
                 <div style={{ display: "flex", gap: 10, marginTop: 24, justifyContent: "flex-end" }}>
@@ -7174,8 +7194,8 @@ function MileageTracker() {
             { label: "Date", type: "date", key: "date" },
             { label: "Description", type: "text", key: "description", placeholder: "e.g. Inspect Oakdale Craftsman" },
             { label: "From", type: "text", key: "from", placeholder: "Starting location" },
-            { label: "To", type: "text", key: "to", placeholder: "Destination" },
-            { label: "Miles", type: "number", key: "miles", placeholder: "0.0" },
+            { label: "To *", type: "text", key: "to", placeholder: "Destination" },
+            { label: "Miles *", type: "number", key: "miles", placeholder: "0.0" },
             { label: "Business Use %", type: "number", key: "businessPct", placeholder: "100" },
           ].map(f => (
             <div key={f.key} style={{ marginBottom: 12 }}>
