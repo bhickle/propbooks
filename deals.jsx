@@ -15,7 +15,7 @@ import {
   ArrowUp, ArrowDown, Truck, Building2, MapPin, Home, Info,
   MessageSquare, FileText, Circle, Phone, Mail, Shield, Upload,
   ChevronLeft, Eye, FileCheck, Award, Paperclip, ScanLine, UploadCloud,
-  FileImage, FilePlus, Loader, User, UserCheck,
+  FileImage, FilePlus, Loader, User, UserCheck, Tag, Layers,
 } from "lucide-react";
 import {
   fmt, fmtK, newId, STAGE_ORDER, STAGE_COLORS, DEFAULT_MILESTONES,
@@ -857,6 +857,7 @@ function ExpDetailPanel({ exp, onClose, onEdit, onDelete }) {
   if (!exp) return null;
   const deal = _DEALS.find(d => d.id === exp.dealId);
   const contractor = _CON.find(c => c.id === exp.contractorId);
+  const rehabItem = (exp.rehabItemIdx != null && deal?.rehabItems) ? deal.rehabItems[exp.rehabItemIdx] : null;
   const receipts = DEAL_EXPENSE_RECEIPTS.filter(r => r.expenseId === exp.id);
   const isPaid = (exp.status || "paid") === "paid";
   return (
@@ -865,10 +866,7 @@ function ExpDetailPanel({ exp, onClose, onEdit, onDelete }) {
       <div style={{ position: "fixed", top: 0, right: 0, bottom: 0, width: 460, background: "#fff", boxShadow: "-8px 0 40px rgba(0,0,0,0.14)", zIndex: 1201, display: "flex", flexDirection: "column" }}>
         <div style={{ padding: "28px 28px 20px", background: "#f8fafc", borderBottom: "1px solid #f1f5f9" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <span style={{ background: isPaid ? "#dcfce7" : "#fff7ed", color: isPaid ? "#15803d" : "#9a3412", borderRadius: 20, padding: "3px 10px", fontSize: 12, fontWeight: 600 }}>{isPaid ? "Paid" : "Pending"}</span>
-              <span style={{ background: "#f1f5f9", color: "#475569", borderRadius: 6, padding: "3px 8px", fontSize: 12, fontWeight: 600 }}>{exp.category}</span>
-            </div>
+            <span style={{ background: isPaid ? "#dcfce7" : "#fff7ed", color: isPaid ? "#15803d" : "#9a3412", borderRadius: 20, padding: "3px 10px", fontSize: 12, fontWeight: 600 }}>{isPaid ? "Paid" : "Pending"}</span>
             <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8", padding: 4, borderRadius: 8, lineHeight: 1 }}><X size={20} /></button>
           </div>
           <p style={{ fontSize: 32, fontWeight: 800, color: "#b91c1c", margin: "0 0 4px" }}>−{fmt(exp.amount)}</p>
@@ -876,6 +874,13 @@ function ExpDetailPanel({ exp, onClose, onEdit, onDelete }) {
         </div>
         <div style={{ flex: 1, padding: "24px 28px", display: "flex", flexDirection: "column", gap: 20, overflowY: "auto" }}>
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+              <div style={{ width: 28, height: 28, borderRadius: 8, background: "#f1f5f9", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 2 }}><Tag size={14} color="#94a3b8" /></div>
+              <div>
+                <p style={{ fontSize: 11, fontWeight: 600, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 5 }}>Category</p>
+                <span style={{ background: "#f1f5f9", color: "#475569", borderRadius: 6, padding: "3px 9px", fontSize: 13, fontWeight: 600 }}>{exp.category}</span>
+              </div>
+            </div>
             {deal && (
               <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
                 <div style={{ width: 28, height: 28, borderRadius: 8, background: "#f1f5f9", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 2 }}><Hammer size={14} color="#94a3b8" /></div>
@@ -897,6 +902,19 @@ function ExpDetailPanel({ exp, onClose, onEdit, onDelete }) {
                 </div>
               </div>
             ))}
+            {rehabItem && (
+              <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+                <div style={{ width: 28, height: 28, borderRadius: 8, background: "#fff7ed", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 2 }}><Layers size={14} color="#e95e00" /></div>
+                <div>
+                  <p style={{ fontSize: 11, fontWeight: 600, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 3 }}>Rehab Line Item</p>
+                  <p style={{ fontSize: 14, color: "#041830", fontWeight: 500 }}>{rehabItem.category}</p>
+                  <div style={{ display: "flex", gap: 12, marginTop: 4 }}>
+                    <p style={{ fontSize: 12, color: "#64748b" }}>Budget: <strong style={{ color: "#041830" }}>{fmt(rehabItem.budgeted || 0)}</strong></p>
+                    <p style={{ fontSize: 12, color: "#64748b" }}>Spent: <strong style={{ color: "#b91c1c" }}>{fmt(rehabItem.spent || 0)}</strong></p>
+                  </div>
+                </div>
+              </div>
+            )}
             {contractor && (
               <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
                 <div style={{ width: 28, height: 28, borderRadius: 8, background: "#dbeafe", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 2 }}><UserCheck size={14} color="#3b82f6" /></div>
