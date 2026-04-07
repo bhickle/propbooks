@@ -2263,7 +2263,11 @@ function PropertyDetail({ property, onBack, backLabel, onEditProperty, onGoToTra
     txForceRender(n => n + 1);
   };
 
-  const propNotes = RENTAL_NOTES.filter(n => n.propertyId === property.id);
+  const [notesRender, reRenderNotes] = useState(0);
+  const [noteText, setNoteText] = useState("");
+  const [noteEditId, setNoteEditId] = useState(null);
+  const [noteDeleteConfirm, setNoteDeleteConfirm] = useState(null);
+  const propNotes = useMemo(() => RENTAL_NOTES.filter(n => n.propertyId === property.id).sort((a, b) => b.date.localeCompare(a.date)), [notesRender]);
 
   const propDocs = PROPERTY_DOCUMENTS.filter(d => d.propertyId === property.id);
 
@@ -2838,7 +2842,92 @@ function PropertyDetail({ property, onBack, backLabel, onEditProperty, onGoToTra
       )}
 
       {activeTab === "notes" && (
-        <RentalNotes preFilterPropId={property.id} />
+        <div>
+          {/* Add / Edit note form */}
+          <div style={{ background: "#fff", borderRadius: 16, padding: 20, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9", marginBottom: 20 }}>
+            <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#475569", marginBottom: 8 }}>
+              {noteEditId ? "Edit Note" : "Add Note"}
+            </label>
+            <textarea
+              value={noteText}
+              onChange={e => setNoteText(e.target.value)}
+              placeholder="Write a note about this property..."
+              rows={3}
+              style={{ width: "100%", padding: "10px 12px", border: "1.5px solid #e2e8f0", borderRadius: 10, fontSize: 14, color: "#0f172a", resize: "vertical", outline: "none", boxSizing: "border-box", fontFamily: "inherit" }}
+            />
+            <div style={{ display: "flex", gap: 8, marginTop: 10, justifyContent: "flex-end" }}>
+              {noteEditId && (
+                <button onClick={() => { setNoteEditId(null); setNoteText(""); }}
+                  style={{ padding: "8px 16px", borderRadius: 8, border: "1px solid #e2e8f0", background: "#fff", color: "#475569", fontWeight: 600, fontSize: 13, cursor: "pointer" }}>Cancel</button>
+              )}
+              <button onClick={() => {
+                const txt = noteText.trim();
+                if (!txt) return;
+                const now = new Date().toISOString();
+                const today = now.slice(0, 10);
+                if (noteEditId) {
+                  const idx = RENTAL_NOTES.findIndex(n => n.id === noteEditId);
+                  if (idx !== -1) RENTAL_NOTES[idx] = { ...RENTAL_NOTES[idx], text: txt, updatedAt: now };
+                  setNoteEditId(null);
+                } else {
+                  RENTAL_NOTES.unshift({ id: newId(), propertyId: property.id, date: today, text: txt, createdAt: now, updatedAt: now, userId: MOCK_USER.id, mentions: [] });
+                }
+                setNoteText("");
+                reRenderNotes(n => n + 1);
+              }} style={{ padding: "8px 18px", borderRadius: 8, border: "none", background: "#3b82f6", color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
+                {noteEditId ? "Save Changes" : "Add Note"}
+              </button>
+            </div>
+          </div>
+
+          {/* Notes list */}
+          {propNotes.length === 0 ? (
+            <div style={{ textAlign: "center", padding: "40px 0", color: "#94a3b8" }}>
+              <MessageSquare size={28} style={{ marginBottom: 10, opacity: 0.4 }} />
+              <p style={{ fontSize: 14, margin: 0 }}>No notes yet — add one above.</p>
+            </div>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              {propNotes.map(n => (
+                <div key={n.id} style={{ background: "#fff", borderRadius: 14, padding: 18, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                    <span style={{ fontSize: 12, color: "#94a3b8", fontWeight: 500 }}>{n.date}</span>
+                    <div style={{ display: "flex", gap: 6 }}>
+                      <button onClick={() => { setNoteEditId(n.id); setNoteText(n.text); }}
+                        style={{ background: "#f1f5f9", border: "none", borderRadius: 7, padding: "4px 8px", cursor: "pointer", color: "#475569", display: "flex", alignItems: "center" }}>
+                        <Pencil size={12} />
+                      </button>
+                      <button onClick={() => setNoteDeleteConfirm(n.id)}
+                        style={{ background: "#fee2e2", border: "none", borderRadius: 7, padding: "4px 8px", cursor: "pointer", color: "#ef4444", display: "flex", alignItems: "center" }}>
+                        <Trash2 size={12} />
+                      </button>
+                    </div>
+                  </div>
+                  <p style={{ fontSize: 14, color: "#0f172a", margin: 0, lineHeight: 1.6, whiteSpace: "pre-wrap" }}>{n.text}</p>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Delete confirm */}
+          {noteDeleteConfirm && (
+            <div style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 500 }}>
+              <div style={{ background: "#fff", borderRadius: 16, padding: 28, width: 360, boxShadow: "0 25px 60px rgba(0,0,0,0.2)" }}>
+                <h3 style={{ fontSize: 17, fontWeight: 700, color: "#0f172a", margin: "0 0 8px 0" }}>Delete Note?</h3>
+                <p style={{ fontSize: 13, color: "#64748b", margin: "0 0 20px 0" }}>This cannot be undone.</p>
+                <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+                  <button onClick={() => setNoteDeleteConfirm(null)} style={{ padding: "8px 16px", borderRadius: 8, border: "1px solid #e2e8f0", background: "#fff", color: "#475569", fontWeight: 600, fontSize: 13, cursor: "pointer" }}>Cancel</button>
+                  <button onClick={() => {
+                    const idx = RENTAL_NOTES.findIndex(n => n.id === noteDeleteConfirm);
+                    if (idx !== -1) RENTAL_NOTES.splice(idx, 1);
+                    setNoteDeleteConfirm(null);
+                    reRenderNotes(n => n + 1);
+                  }} style={{ padding: "8px 16px", borderRadius: 8, border: "none", background: "#ef4444", color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>Delete</button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
       )}
     </div>
   );
@@ -6119,9 +6208,9 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
                     onChange={e => { setRehabForm(f => ({ ...f, category: e.target.value })); setCatFocus(true); }}
                     onFocus={() => setCatFocus(true)} onBlur={() => setTimeout(() => setCatFocus(false), 150)} />
                   {!catFocus && !rehabForm.category && <p style={{ fontSize: 11, color: "#94a3b8", marginTop: 4, fontStyle: "italic" }}>Type to search existing categories or add new</p>}
-                  {catFocus && rehabForm.category && (() => {
+                  {catFocus && (() => {
                     const q = rehabForm.category.toLowerCase();
-                    const matches = allCategories.filter(c => c.toLowerCase().includes(q) && c.toLowerCase() !== q);
+                    const matches = q ? allCategories.filter(c => c.toLowerCase().includes(q) && c.toLowerCase() !== q) : allCategories.slice(0, 6);
                     const exactExists = allCategories.some(c => c.toLowerCase() === q);
                     const showNew = q && !exactExists;
                     if (matches.length === 0 && !showNew) return null;

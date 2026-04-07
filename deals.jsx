@@ -770,7 +770,7 @@ export function RehabTracker() {
                 </select>
               </div>
               <div style={{ position: "relative" }}>
-                <p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Category / Scope Name *</p>
+                <p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Category *</p>
                 <input style={iS} placeholder="Start typing to search or add new..." value={itemForm.category}
                   onChange={e => { setItemForm(f => ({ ...f, category: e.target.value })); setCatFocus(true); }}
                   onFocus={() => setCatFocus(true)} onBlur={() => setTimeout(() => setCatFocus(false), 150)} />
@@ -2802,7 +2802,7 @@ export function DealMilestones({ highlightMilestoneKey, onBack, onClearHighlight
                 </select>
               </div>
               <div style={{ position: "relative" }}>
-                <p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Milestone Label *</p>
+                <p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Milestone Name *</p>
                 <input value={msForm.label} style={iS} placeholder="Start typing to search or add new..."
                   onChange={e => { setMsForm(f => ({ ...f, label: e.target.value })); setLabelFocus(true); }}
                   onFocus={() => setLabelFocus(true)} onBlur={() => setTimeout(() => setLabelFocus(false), 150)} />
