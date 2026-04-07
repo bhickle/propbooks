@@ -2118,6 +2118,192 @@ function Properties({ onSelect, editPropertyId, onClearEditId, convertDealData, 
   );
 }
 
+// ─── Transaction Detail Slide-Over ─────────────────────────────────────────
+function TxDetailPanel({ tx, onClose, onEdit, onDelete }) {
+  if (!tx) return null;
+  const property = PROPERTIES.find(p => p.id === tx.propertyId);
+  const receipts = TRANSACTION_RECEIPTS.filter(r => r.transactionId === tx.id);
+  const isIncome = tx.type === "income";
+  const color = isIncome ? "#15803d" : "#b91c1c";
+  const bgColor = isIncome ? "#dcfce7" : "#fee2e2";
+  return (
+    <>
+      <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(4,24,48,0.35)", zIndex: 1200 }} />
+      <div style={{ position: "fixed", top: 0, right: 0, bottom: 0, width: 460, background: "#fff", boxShadow: "-8px 0 40px rgba(0,0,0,0.14)", zIndex: 1201, display: "flex", flexDirection: "column" }}>
+        <div style={{ padding: "28px 28px 20px", background: "#f8fafc", borderBottom: "1px solid #f1f5f9" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <span style={{ background: bgColor, color, borderRadius: 20, padding: "3px 10px", fontSize: 12, fontWeight: 600, textTransform: "capitalize" }}>{tx.type}</span>
+              <span style={{ background: "#f1f5f9", color: "#475569", borderRadius: 6, padding: "3px 8px", fontSize: 12, fontWeight: 600 }}>{tx.category}</span>
+            </div>
+            <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8", padding: 4, borderRadius: 8, lineHeight: 1 }}><X size={20} /></button>
+          </div>
+          <p style={{ fontSize: 32, fontWeight: 800, color, margin: "0 0 4px" }}>{isIncome ? "+" : "−"}{fmt(Math.abs(tx.amount))}</p>
+          <p style={{ fontSize: 13, color: "#64748b" }}>{tx.date}</p>
+        </div>
+        <div style={{ flex: 1, padding: "24px 28px", display: "flex", flexDirection: "column", gap: 20, overflowY: "auto" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            {[
+              { label: "Property", value: property?.name || "Unknown", icon: <Building2 size={14} color="#94a3b8" /> },
+              { label: isIncome ? "Received From" : "Paid To", value: tx.payee || "—", icon: <User size={14} color="#94a3b8" /> },
+              { label: "Description", value: tx.description || "—", icon: <MessageSquare size={14} color="#94a3b8" /> },
+            ].map(({ label, value, icon }) => (
+              <div key={label} style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+                <div style={{ width: 28, height: 28, borderRadius: 8, background: "#f1f5f9", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 2 }}>{icon}</div>
+                <div>
+                  <p style={{ fontSize: 11, fontWeight: 600, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 3 }}>{label}</p>
+                  <p style={{ fontSize: 14, color: "#041830", fontWeight: 500 }}>{value}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+          {(tx.piPrincipal || tx.piInterest) && (
+            <div style={{ background: "#f8fafc", borderRadius: 12, padding: "16px 18px", border: "1px solid #e2e8f0" }}>
+              <p style={{ fontSize: 11, fontWeight: 600, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 12 }}>Principal & Interest</p>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                <div><p style={{ fontSize: 12, color: "#64748b", marginBottom: 3 }}>Principal</p><p style={{ fontSize: 18, fontWeight: 700, color: "#041830" }}>{fmt(tx.piPrincipal || 0)}</p></div>
+                <div><p style={{ fontSize: 12, color: "#64748b", marginBottom: 3 }}>Interest</p><p style={{ fontSize: 18, fontWeight: 700, color: "#041830" }}>{fmt(tx.piInterest || 0)}</p></div>
+              </div>
+            </div>
+          )}
+          <div>
+            <p style={{ fontSize: 11, fontWeight: 600, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 12, display: "flex", alignItems: "center", gap: 6 }}>
+              <Paperclip size={12} /> Attachments{receipts.length > 0 && <span style={{ background: "#e2e8f0", borderRadius: 20, padding: "1px 7px", fontSize: 11, color: "#475569", marginLeft: 2 }}>{receipts.length}</span>}
+            </p>
+            {receipts.length === 0 ? (
+              <div style={{ background: "#f8fafc", border: "1px dashed #e2e8f0", borderRadius: 12, padding: "28px 20px", textAlign: "center" }}>
+                <Paperclip size={20} color="#cbd5e1" style={{ display: "block", margin: "0 auto 8px" }} />
+                <p style={{ fontSize: 13, color: "#94a3b8" }}>No receipts attached</p>
+              </div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {receipts.map(r => (
+                  <div key={r.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", background: "#f8fafc", borderRadius: 10, border: "1px solid #e2e8f0" }}>
+                    <div style={{ width: 36, height: 36, borderRadius: 8, background: r.mimeType?.includes("pdf") ? "#fee2e2" : "#dbeafe", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                      {r.mimeType?.includes("pdf") ? <FileText size={16} color="#ef4444" /> : <FileImage size={16} color="#3b82f6" />}
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ fontSize: 13, fontWeight: 600, color: "#041830", marginBottom: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.name}</p>
+                      <p style={{ fontSize: 11, color: "#94a3b8" }}>{r.size}</p>
+                    </div>
+                    {r.ocrData && (
+                      <div style={{ textAlign: "right", flexShrink: 0 }}>
+                        <p style={{ fontSize: 11, color: "#64748b", marginBottom: 1 }}>{r.ocrData.vendor}</p>
+                        <p style={{ fontSize: 13, fontWeight: 700, color: "#041830" }}>{fmt(r.ocrData.amount)}</p>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+        <div style={{ padding: "18px 28px", borderTop: "1px solid #f1f5f9", display: "flex", gap: 10, background: "#fff" }}>
+          <button onClick={() => { onClose(); onEdit(tx); }} style={{ flex: 1, padding: "11px 0", background: "#f1f5f9", border: "none", borderRadius: 10, cursor: "pointer", fontSize: 14, fontWeight: 600, color: "#475569", display: "flex", alignItems: "center", justifyContent: "center", gap: 7 }}><Pencil size={14} /> Edit</button>
+          <button onClick={() => { onClose(); onDelete(tx); }} style={{ padding: "11px 18px", background: "#fee2e2", border: "none", borderRadius: 10, cursor: "pointer", fontSize: 14, fontWeight: 600, color: "#ef4444", display: "flex", alignItems: "center", justifyContent: "center", gap: 7 }}><Trash2 size={14} /> Delete</button>
+        </div>
+      </div>
+    </>
+  );
+}
+
+// ─── Deal Expense Detail Slide-Over ────────────────────────────────────────
+function ExpDetailPanel({ exp, onClose, onEdit, onDelete }) {
+  if (!exp) return null;
+  const deal = DEALS.find(d => d.id === exp.dealId);
+  const contractor = CONTRACTORS.find(c => c.id === exp.contractorId);
+  const receipts = DEAL_EXPENSE_RECEIPTS.filter(r => r.expenseId === exp.id);
+  const isPaid = (exp.status || "paid") === "paid";
+  return (
+    <>
+      <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(4,24,48,0.35)", zIndex: 1200 }} />
+      <div style={{ position: "fixed", top: 0, right: 0, bottom: 0, width: 460, background: "#fff", boxShadow: "-8px 0 40px rgba(0,0,0,0.14)", zIndex: 1201, display: "flex", flexDirection: "column" }}>
+        <div style={{ padding: "28px 28px 20px", background: "#f8fafc", borderBottom: "1px solid #f1f5f9" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <span style={{ background: isPaid ? "#dcfce7" : "#fff7ed", color: isPaid ? "#15803d" : "#9a3412", borderRadius: 20, padding: "3px 10px", fontSize: 12, fontWeight: 600 }}>{isPaid ? "Paid" : "Pending"}</span>
+              <span style={{ background: "#f1f5f9", color: "#475569", borderRadius: 6, padding: "3px 8px", fontSize: 12, fontWeight: 600 }}>{exp.category}</span>
+            </div>
+            <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8", padding: 4, borderRadius: 8, lineHeight: 1 }}><X size={20} /></button>
+          </div>
+          <p style={{ fontSize: 32, fontWeight: 800, color: "#b91c1c", margin: "0 0 4px" }}>−{fmt(exp.amount)}</p>
+          <p style={{ fontSize: 13, color: "#64748b" }}>{exp.date}</p>
+        </div>
+        <div style={{ flex: 1, padding: "24px 28px", display: "flex", flexDirection: "column", gap: 20, overflowY: "auto" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            {deal && (
+              <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+                <div style={{ width: 28, height: 28, borderRadius: 8, background: "#f1f5f9", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 2 }}><Hammer size={14} color="#94a3b8" /></div>
+                <div>
+                  <p style={{ fontSize: 11, fontWeight: 600, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 3 }}>Deal</p>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}><span style={{ width: 8, height: 8, borderRadius: "50%", background: deal.color, display: "inline-block" }} /><p style={{ fontSize: 14, color: "#041830", fontWeight: 500 }}>{deal.name}</p></div>
+                </div>
+              </div>
+            )}
+            {[
+              { label: "Paid To", value: exp.vendor || "—", icon: <User size={14} color="#94a3b8" /> },
+              { label: "Description", value: exp.description || "—", icon: <MessageSquare size={14} color="#94a3b8" /> },
+            ].map(({ label, value, icon }) => (
+              <div key={label} style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+                <div style={{ width: 28, height: 28, borderRadius: 8, background: "#f1f5f9", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 2 }}>{icon}</div>
+                <div>
+                  <p style={{ fontSize: 11, fontWeight: 600, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 3 }}>{label}</p>
+                  <p style={{ fontSize: 14, color: "#041830", fontWeight: 500 }}>{value}</p>
+                </div>
+              </div>
+            ))}
+            {contractor && (
+              <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+                <div style={{ width: 28, height: 28, borderRadius: 8, background: "#dbeafe", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 2 }}><UserCheck size={14} color="#3b82f6" /></div>
+                <div>
+                  <p style={{ fontSize: 11, fontWeight: 600, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 3 }}>Linked Contractor</p>
+                  <p style={{ fontSize: 14, color: "#041830", fontWeight: 500 }}>{contractor.name}</p>
+                  {contractor.trade && <p style={{ fontSize: 12, color: "#64748b" }}>{contractor.trade}</p>}
+                </div>
+              </div>
+            )}
+          </div>
+          <div>
+            <p style={{ fontSize: 11, fontWeight: 600, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 12, display: "flex", alignItems: "center", gap: 6 }}>
+              <Paperclip size={12} /> Attachments{receipts.length > 0 && <span style={{ background: "#e2e8f0", borderRadius: 20, padding: "1px 7px", fontSize: 11, color: "#475569", marginLeft: 2 }}>{receipts.length}</span>}
+            </p>
+            {receipts.length === 0 ? (
+              <div style={{ background: "#f8fafc", border: "1px dashed #e2e8f0", borderRadius: 12, padding: "28px 20px", textAlign: "center" }}>
+                <Paperclip size={20} color="#cbd5e1" style={{ display: "block", margin: "0 auto 8px" }} />
+                <p style={{ fontSize: 13, color: "#94a3b8" }}>No receipts attached</p>
+              </div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {receipts.map(r => (
+                  <div key={r.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", background: "#f8fafc", borderRadius: 10, border: "1px solid #e2e8f0" }}>
+                    <div style={{ width: 36, height: 36, borderRadius: 8, background: r.mimeType?.includes("pdf") ? "#fee2e2" : "#fff7ed", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                      {r.mimeType?.includes("pdf") ? <FileText size={16} color="#ef4444" /> : <FileImage size={16} color="#e95e00" />}
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ fontSize: 13, fontWeight: 600, color: "#041830", marginBottom: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.name}</p>
+                      <p style={{ fontSize: 11, color: "#94a3b8" }}>{r.size}</p>
+                    </div>
+                    {r.ocrData && (
+                      <div style={{ textAlign: "right", flexShrink: 0 }}>
+                        <p style={{ fontSize: 11, color: "#64748b", marginBottom: 1 }}>{r.ocrData.vendor}</p>
+                        <p style={{ fontSize: 13, fontWeight: 700, color: "#041830" }}>{fmt(r.ocrData.amount)}</p>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+        <div style={{ padding: "18px 28px", borderTop: "1px solid #f1f5f9", display: "flex", gap: 10, background: "#fff" }}>
+          <button onClick={() => { onClose(); onEdit(exp); }} style={{ flex: 1, padding: "11px 0", background: "#f1f5f9", border: "none", borderRadius: 10, cursor: "pointer", fontSize: 14, fontWeight: 600, color: "#475569", display: "flex", alignItems: "center", justifyContent: "center", gap: 7 }}><Pencil size={14} /> Edit</button>
+          <button onClick={() => { onClose(); onDelete(exp); }} style={{ padding: "11px 18px", background: "#fee2e2", border: "none", borderRadius: 10, cursor: "pointer", fontSize: 14, fontWeight: 600, color: "#ef4444", display: "flex", alignItems: "center", justifyContent: "center", gap: 7 }}><Trash2 size={14} /> Delete</button>
+        </div>
+      </div>
+    </>
+  );
+}
+
 function PropertyDetail({ property, onBack, backLabel, onEditProperty, onGoToTransactions, onNavigateToTransaction, onNavigateToTenant, initialTab, highlightTenantId, onClearHighlightTenant }) {
   const calcBal = calcLoanBalance(property.loanAmount, property.loanRate, property.loanTermYears, property.loanStartDate);
   const effectiveMortgage = calcBal !== null ? calcBal : (property.mortgage || 0);
@@ -2181,6 +2367,7 @@ function PropertyDetail({ property, onBack, backLabel, onEditProperty, onGoToTra
   const totalExpenses = filteredTx.filter(t => t.type === "expense").reduce((s, t) => s + Math.abs(t.amount), 0);
 
   // ── Inline transaction CRUD ───────────────────────────────────────────
+  const [txDetailItem, setTxDetailItem] = useState(null);
   const [txShowModal, setTxShowModal] = useState(false);  // "income" | "expense" | false
   const [txEditId, setTxEditId] = useState(null);
   const [txDeleteConfirm, setTxDeleteConfirm] = useState(null);
@@ -2506,7 +2693,8 @@ function PropertyDetail({ property, onBack, backLabel, onEditProperty, onGoToTra
                 <tbody>
                   {filteredTx.map((t, i) => (
                     <tr key={t.id}
-                      style={{ borderTop: "1px solid #f1f5f9", background: i % 2 === 0 ? "#fff" : "#fafafa", transition: "background 0.15s" }}
+                      onClick={() => setTxDetailItem(t)}
+                      style={{ borderTop: "1px solid #f1f5f9", background: i % 2 === 0 ? "#fff" : "#fafafa", transition: "background 0.15s", cursor: "pointer" }}
                       onMouseEnter={e => e.currentTarget.style.background = "#f0f9ff"}
                       onMouseLeave={e => e.currentTarget.style.background = i % 2 === 0 ? "#fff" : "#fafafa"}>
                       <td style={{ padding: "12px 16px", fontSize: 13, color: "#64748b" }}>{t.date}</td>
@@ -2524,8 +2712,8 @@ function PropertyDetail({ property, onBack, backLabel, onEditProperty, onGoToTra
                       </td>
                       <td style={{ padding: "12px 16px" }}>
                         <div style={{ display: "flex", gap: 4 }}>
-                          <button onClick={() => txOpenEdit(t)} style={{ background: "#f1f5f9", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "#475569", display: "flex", alignItems: "center" }} title="Edit"><Pencil size={13} /></button>
-                          <button onClick={() => setTxDeleteConfirm(t)} style={{ background: "#fee2e2", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "#ef4444", display: "flex", alignItems: "center" }} title="Delete"><Trash2 size={13} /></button>
+                          <button onClick={e => { e.stopPropagation(); txOpenEdit(t); }} style={{ background: "#f1f5f9", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "#475569", display: "flex", alignItems: "center" }} title="Edit"><Pencil size={13} /></button>
+                          <button onClick={e => { e.stopPropagation(); setTxDeleteConfirm(t); }} style={{ background: "#fee2e2", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "#ef4444", display: "flex", alignItems: "center" }} title="Delete"><Trash2 size={13} /></button>
                         </div>
                       </td>
                     </tr>
@@ -2545,6 +2733,9 @@ function PropertyDetail({ property, onBack, backLabel, onEditProperty, onGoToTra
               </table>
             )}
           </div>
+
+          {/* ── Transaction Detail Panel ── */}
+          {txDetailItem && <TxDetailPanel tx={txDetailItem} onClose={() => setTxDetailItem(null)} onEdit={t => { setTxDetailItem(null); txOpenEdit(t); }} onDelete={t => { setTxDetailItem(null); setTxDeleteConfirm(t); }} />}
 
           {/* ── Add / Edit Transaction Modal ── */}
           {(txShowModal === "income" || txShowModal === "expense") && (() => {
@@ -2942,6 +3133,7 @@ function Transactions({ highlightTxId, onBack, onClearHighlight, backLabel }) {
   const [dateFilter, setDateFilter] = useState("all");
   const [dateFrom, setDateFrom] = useState("");
   const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [detailTx, setDetailTx] = useState(null);
   const [dateTo, setDateTo] = useState("");
   const [flashId, setFlashId] = useState(highlightTxId);
   const highlightRef = useRef(null);
@@ -3193,7 +3385,11 @@ function Transactions({ highlightTxId, onBack, onClearHighlight, backLabel }) {
               <tr><td colSpan={8} style={{ padding: "48px 20px", textAlign: "center", color: "#94a3b8", fontSize: 14 }}>No transactions match your filters. <button onClick={() => { setPropFilter("all"); setCatFilter("all"); setDateFilter("all"); setDateFrom(""); setDateTo(""); setSearch(""); setFilter("all"); }} style={{ background: "none", border: "none", color: "#3b82f6", fontSize: 14, cursor: "pointer", textDecoration: "underline", padding: 0 }}>Clear filters</button></td></tr>
             )}
             {filtered.map((t, i) => (
-              <tr key={t.id} ref={t.id === flashId ? highlightRef : undefined} style={{ borderTop: "1px solid #f1f5f9", background: t.id === flashId ? "#dbeafe" : i % 2 === 0 ? "#fff" : "#fafafa", transition: "background 1.5s ease" }}>
+              <tr key={t.id} ref={t.id === flashId ? highlightRef : undefined}
+                onClick={() => setDetailTx(t)}
+                style={{ borderTop: "1px solid #f1f5f9", background: t.id === flashId ? "#dbeafe" : i % 2 === 0 ? "#fff" : "#fafafa", transition: "background 1.5s ease", cursor: "pointer" }}
+                onMouseEnter={e => { if (t.id !== flashId) e.currentTarget.style.background = "#f0f9ff"; }}
+                onMouseLeave={e => { e.currentTarget.style.background = t.id === flashId ? "#dbeafe" : i % 2 === 0 ? "#fff" : "#fafafa"; }}>
                 <td style={{ padding: "14px 20px", fontSize: 13, color: "#64748b" }}>{t.date}</td>
                 <td style={{ padding: "14px 20px", fontSize: 13, fontWeight: 600, color: "#041830" }}>{(PROPERTIES.find(p => p.id === t.propertyId)?.name || "Unknown").split(" ").slice(0, 2).join(" ")}</td>
                 <td style={{ padding: "14px 20px" }}>
@@ -3210,8 +3406,8 @@ function Transactions({ highlightTxId, onBack, onClearHighlight, backLabel }) {
                 </td>
                 <td style={{ padding: "14px 20px" }}>
                   <div style={{ display: "flex", gap: 4 }}>
-                    <button onClick={() => openEdit(t)} style={{ background: "#f1f5f9", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "#475569", display: "flex", alignItems: "center" }} title="Edit"><Pencil size={13} /></button>
-                    <button onClick={() => setDeleteConfirm(t)} style={{ background: "#fee2e2", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "#ef4444", display: "flex", alignItems: "center" }} title="Delete"><Trash2 size={13} /></button>
+                    <button onClick={e => { e.stopPropagation(); openEdit(t); }} style={{ background: "#f1f5f9", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "#475569", display: "flex", alignItems: "center" }} title="Edit"><Pencil size={13} /></button>
+                    <button onClick={e => { e.stopPropagation(); setDeleteConfirm(t); }} style={{ background: "#fee2e2", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "#ef4444", display: "flex", alignItems: "center" }} title="Delete"><Trash2 size={13} /></button>
                   </div>
                 </td>
               </tr>
@@ -3219,6 +3415,8 @@ function Transactions({ highlightTxId, onBack, onClearHighlight, backLabel }) {
           </tbody>
         </table>
       </div>
+      {/* ── Transaction Detail Panel ── */}
+      {detailTx && <TxDetailPanel tx={detailTx} onClose={() => setDetailTx(null)} onEdit={t => { setDetailTx(null); openEdit(t); }} onDelete={t => { setDetailTx(null); setDeleteConfirm(t); }} />}
       {/* ── Shared payee typeahead — rendered inside whichever modal is open ── */}
       {(showModal === "income" || showModal === "expense") && (() => {
         const isIncome = showModal === "income";
@@ -5575,6 +5773,7 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
   useEffect(() => { if (initialTab) setActiveTab(initialTab); }, [initialTab]);
   const [showExpenseModal, setShowExpenseModal] = useState(false);
   const [showContractorModal, setShowContractorModal] = useState(false);
+  const [expDetailItem, setExpDetailItem] = useState(null);
   const [expData, setExpData] = useState(DEAL_EXPENSES.filter(e => e.dealId === deal.id));
   const [conData, setConData] = useState(CONTRACTORS.filter(c => (c.dealIds || []).includes(deal.id)));
   const [rehabItems, setRehabItems] = useState(deal.rehabItems || []);
@@ -6386,8 +6585,8 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
                 </thead>
                 <tbody>
                   {flipExpenses.map((e, i) => (
-                    <tr key={e.id} onClick={() => onNavigateToExpense && onNavigateToExpense(e.id)} style={{ borderTop: "1px solid #f1f5f9", background: i % 2 === 0 ? "#fff" : "#fafafa", cursor: onNavigateToExpense ? "pointer" : "default", transition: "background 0.15s" }}
-                      onMouseEnter={ev => { if (onNavigateToExpense) ev.currentTarget.style.background = "#f0f9ff"; }}
+                    <tr key={e.id} onClick={() => setExpDetailItem(e)} style={{ borderTop: "1px solid #f1f5f9", background: i % 2 === 0 ? "#fff" : "#fafafa", cursor: "pointer", transition: "background 0.15s" }}
+                      onMouseEnter={ev => { ev.currentTarget.style.background = "#f0f9ff"; }}
                       onMouseLeave={ev => { ev.currentTarget.style.background = i % 2 === 0 ? "#fff" : "#fafafa"; }}>
                       <td style={{ padding: "13px 18px", fontSize: 13, color: "#64748b" }}>{e.date}</td>
                       <td style={{ padding: "13px 18px", fontSize: 13, fontWeight: 600, color: "#041830" }}>
@@ -6401,14 +6600,14 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
                       <td style={{ padding: "13px 18px", fontSize: 13, color: "#475569" }}>{e.description}</td>
                       <td style={{ padding: "13px 18px", fontSize: 14, fontWeight: 700, color: "#b91c1c" }}>{fmt(e.amount)}</td>
                       <td style={{ padding: "13px 18px" }}>
-                        <button onClick={() => setExpData(prev => prev.map(x => x.id === e.id ? { ...x, status: x.status === "paid" ? "pending" : "paid" } : x))} style={{ background: (e.status || "paid") === "paid" ? "#dcfce7" : "#fff7ed", color: (e.status || "paid") === "paid" ? "#15803d" : "#9a3412", borderRadius: 20, padding: "3px 10px", fontSize: 11, fontWeight: 600, border: "none", cursor: "pointer", textTransform: "capitalize" }}>
+                        <button onClick={ev => { ev.stopPropagation(); setExpData(prev => prev.map(x => x.id === e.id ? { ...x, status: x.status === "paid" ? "pending" : "paid" } : x)); }} style={{ background: (e.status || "paid") === "paid" ? "#dcfce7" : "#fff7ed", color: (e.status || "paid") === "paid" ? "#15803d" : "#9a3412", borderRadius: 20, padding: "3px 10px", fontSize: 11, fontWeight: 600, border: "none", cursor: "pointer", textTransform: "capitalize" }}>
                           {(e.status || "paid") === "paid" ? "Paid" : "Pending"}
                         </button>
                       </td>
                       <td style={{ padding: "13px 18px" }}>
                         <div style={{ display: "flex", gap: 4 }}>
-                          <button onClick={() => openEditExp(e)} style={{ background: "#f1f5f9", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "#475569", display: "flex", alignItems: "center" }} title="Edit"><Pencil size={13} /></button>
-                          <button onClick={() => setDeleteConfirm({ type: "expense", item: e })} style={{ background: "#fee2e2", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "#ef4444", display: "flex", alignItems: "center" }} title="Delete"><Trash2 size={13} /></button>
+                          <button onClick={ev => { ev.stopPropagation(); openEditExp(e); }} style={{ background: "#f1f5f9", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "#475569", display: "flex", alignItems: "center" }} title="Edit"><Pencil size={13} /></button>
+                          <button onClick={ev => { ev.stopPropagation(); setDeleteConfirm({ type: "expense", item: e }); }} style={{ background: "#fee2e2", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "#ef4444", display: "flex", alignItems: "center" }} title="Delete"><Trash2 size={13} /></button>
                         </div>
                       </td>
                     </tr>
@@ -6426,6 +6625,7 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
               </table>
             )}
           </div>
+          {expDetailItem && <ExpDetailPanel exp={expDetailItem} onClose={() => setExpDetailItem(null)} onEdit={e => { setExpDetailItem(null); openEditExp(e); }} onDelete={e => { setExpDetailItem(null); setDeleteConfirm({ type: "expense", item: e }); }} />}
           {onNavigateToExpense && flipExpenses.length > 0 && (
             <button onClick={() => onNavigateToExpense(flipExpenses[0].id)} style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: "none", color: "#e95e00", fontSize: 13, fontWeight: 600, cursor: "pointer", padding: "12px 0 0", marginLeft: "auto" }}>
               View all expenses across deals <ChevronRight size={14} />
