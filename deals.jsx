@@ -406,7 +406,7 @@ export function DealDashboard({ onSelect, onNavigateToNote, onNavigateToExpense,
             <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
             <XAxis dataKey="name" tick={{ fontSize: 12, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
             <YAxis tick={{ fontSize: 12, fill: "#94a3b8" }} axisLine={false} tickLine={false} tickFormatter={v => `$${(v/1000).toFixed(0)}K`} />
-            <Tooltip formatter={v => fmt(v)} contentStyle={{ borderRadius: 10, border: "1px solid #e2e8f0", fontSize: 13 }} />
+            <Tooltip formatter={v => fmt(v)} contentStyle={{ borderRadius: 10, border: "1px solid #e2e8f0", fontSize: 12 }} />
             <Bar dataKey="budget" fill="#3b82f6" radius={[6, 6, 0, 0]} name="Budgeted" />
             <Bar dataKey="spent"  fill="#10b981" radius={[6, 6, 0, 0]} name="Spent" />
           </BarChart>
@@ -2602,8 +2602,8 @@ export function DealAnalytics() {
             <YAxis tick={{ fontSize: 12, fill: "#94a3b8" }} axisLine={false} tickLine={false} tickFormatter={v => `$${(v/1000).toFixed(0)}K`} />
             <Tooltip formatter={v => fmt(v)} contentStyle={{ borderRadius: 10, border: "1px solid #e2e8f0", fontSize: 12 }} />
             <Legend />
-            <Bar dataKey="budget" fill="#3b82f6" name="Budgeted" radius={[4, 4, 0, 0]} />
-            <Bar dataKey="actual" fill="#e95e00" name="Actual"   radius={[4, 4, 0, 0]} />
+            <Bar dataKey="budget" fill="#3b82f6" name="Budgeted" radius={[6, 6, 0, 0]} />
+            <Bar dataKey="actual" fill="#e95e00" name="Actual"   radius={[6, 6, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </div>
