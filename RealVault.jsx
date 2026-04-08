@@ -5718,6 +5718,12 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
   useEffect(() => { if (initialTab) setActiveTab(initialTab); }, [initialTab]);
   const [showExpenseModal, setShowExpenseModal] = useState(false);
   const [showContractorModal, setShowContractorModal] = useState(false);
+  // Quick bid modal — opened from a contractor tile. Skips deal + contractor selection.
+  const [quickBid, setQuickBid] = useState(null); // { contractorId, rehabItem, canonicalCategory, amount } | null
+  const [quickBidRehabFocus, setQuickBidRehabFocus] = useState(false);
+  // Optional first-bid fields tacked onto the Add Contractor modal
+  const [conFirstBid, setConFirstBid] = useState({ rehabItem: "", canonicalCategory: null, amount: "" });
+  const [conFirstBidFocus, setConFirstBidFocus] = useState(false);
   const [expDetailItem, setExpDetailItem] = useState(null);
   const [expData, setExpData] = useState(DEAL_EXPENSES.filter(e => e.dealId === deal.id));
   const [conData, setConData] = useState(CONTRACTORS.filter(c => (c.dealIds || []).includes(deal.id)));
@@ -5985,6 +5991,39 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
     setShowExpenseModal(false);
   };
 
+  // Push a bid into the shared CONTRACTOR_BIDS store. Returns the new bid.
+  const pushContractorBid = (contractorId, rehabItem, canonicalCategory, amount) => {
+    const amt = parseFloat(amount) || 0;
+    if (!contractorId || !rehabItem || !amt) return null;
+    const newBid = {
+      id: newId(),
+      contractorId,
+      dealId: deal.id,
+      rehabItem,
+      canonicalCategory: canonicalCategory || null,
+      amount: amt,
+      status: "pending",
+      date: new Date().toISOString().slice(0, 10),
+    };
+    CONTRACTOR_BIDS.push(newBid);
+    // Also wire the contractor into the matching rehab item's contractors[] if we can match
+    const matchingIdx = rehabItems.findIndex(ri =>
+      (canonicalCategory && ri.canonicalCategory === canonicalCategory) ||
+      ri.category === rehabItem
+    );
+    if (matchingIdx !== -1) {
+      const existing = rehabItems[matchingIdx].contractors || [];
+      if (!existing.some(c => c.id === contractorId)) {
+        const updatedContractors = [...existing, { id: contractorId, bid: amt }];
+        setRehabItems(prev => prev.map((it, i) => i === matchingIdx ? { ...it, contractors: updatedContractors } : it));
+        if (deal.rehabItems && deal.rehabItems[matchingIdx]) {
+          deal.rehabItems[matchingIdx] = { ...deal.rehabItems[matchingIdx], contractors: updatedContractors };
+        }
+      }
+    }
+    return newBid;
+  };
+
   const handleSaveCon = () => {
     if (!conForm.name) return;
     if (editingConId) {
@@ -5997,8 +6036,13 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
       const newCon = { id: newId(), name: conForm.name, trade: conForm.trade, phone: conForm.phone, email: conForm.email || "", license: conForm.license || null, insuranceExpiry: conForm.insuranceExpiry || null, rating: 0, notes: conForm.notes || "", dealIds: [deal.id], bids: [], payments: [], documents: [] };
       CONTRACTORS.push(newCon);
       setConData(prev => [...prev, newCon]);
+      // If user filled in the optional first-bid fields, create the bid now
+      if (conFirstBid.rehabItem && conFirstBid.amount) {
+        pushContractorBid(newCon.id, conFirstBid.rehabItem, conFirstBid.canonicalCategory, conFirstBid.amount);
+      }
     }
     setConForm(emptyCon);
+    setConFirstBid({ rehabItem: "", canonicalCategory: null, amount: "" });
     setShowContractorModal(false);
   };
 
@@ -6012,8 +6056,13 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
       CONTRACTORS[gi] = { ...existing, dealIds: [...ids, deal.id] };
     }
     setConData(prev => prev.some(c => c.id === conId) ? prev : [...prev, CONTRACTORS[gi]]);
+    // If user filled in the optional first-bid fields, create the bid now
+    if (conFirstBid.rehabItem && conFirstBid.amount) {
+      pushContractorBid(conId, conFirstBid.rehabItem, conFirstBid.canonicalCategory, conFirstBid.amount);
+    }
     setShowContractorModal(false);
     setConForm(emptyCon);
+    setConFirstBid({ rehabItem: "", canonicalCategory: null, amount: "" });
   };
 
   const handleStageChange = (e) => {
@@ -6927,6 +6976,9 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
                           <div style={{ height: "100%", width: `${pct}%`, background: "#10b981", borderRadius: 99 }} />
                         </div>
                       </div>
+                      <button onClick={(e) => { e.stopPropagation(); setQuickBid({ contractorId: c.id, rehabItem: "", canonicalCategory: null, amount: "" }); }} style={{ background: "#fff", color: "#e95e00", border: "1px solid #fed7aa", borderRadius: 8, padding: "6px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 5, whiteSpace: "nowrap", flexShrink: 0 }}>
+                        <Plus size={12} /> Bid
+                      </button>
                       <button onClick={(e) => { e.stopPropagation(); setShowPaymentModal(c.id); setPaymentDate(new Date().toISOString().split("T")[0]); }} style={{ background: "#10b981", color: "#fff", border: "none", borderRadius: 8, padding: "6px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 5, whiteSpace: "nowrap", flexShrink: 0 }}>
                         <CreditCard size={12} /> Record Payment
                       </button>
@@ -6939,7 +6991,7 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
         </div>
       )}
       {showContractorModal && (
-        <Modal title={editingConId ? "Edit Contractor" : "Add Contractor"} onClose={() => { setShowContractorModal(false); setEditingConId(null); setConForm(emptyCon); }}>
+        <Modal title={editingConId ? "Edit Contractor" : "Add Contractor"} onClose={() => { setShowContractorModal(false); setEditingConId(null); setConForm(emptyCon); setConFirstBid({ rehabItem: "", canonicalCategory: null, amount: "" }); }}>
           {!editingConId && (() => {
             const onDealIds = new Set((conData || []).map(c => c.id));
             const existingAvailable = CONTRACTORS.filter(c => !onDealIds.has(c.id));
@@ -6976,12 +7028,156 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
             <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Notes <span style={{ color: "#94a3b8", fontWeight: 400 }}>(optional)</span></label>
             <textarea style={{ ...iS, minHeight: 70, resize: "vertical" }} placeholder="Notes about this contractor..." value={conForm.notes} onChange={sfC("notes")} />
           </div>
+          {!editingConId && (
+            <div style={{ marginBottom: 18, padding: 14, background: "#fff7ed", border: "1px dashed #fed7aa", borderRadius: 12 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 10 }}>
+                <DollarSign size={14} color="#e95e00" />
+                <label style={{ color: "#9a3412", fontSize: 13, fontWeight: 700 }}>Add a bid now <span style={{ color: "#c2410c", fontWeight: 400 }}>(optional)</span></label>
+              </div>
+              <p style={{ fontSize: 11, color: "#9a3412", marginTop: 0, marginBottom: 10 }}>Skip the extra click — if you already know what they bid, enter it here.</p>
+              <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 10 }}>
+                <div style={{ position: "relative" }}>
+                  <input value={conFirstBid.rehabItem} placeholder="Rehab item (e.g. Roof)" style={iS}
+                    onChange={e => setConFirstBid(f => ({ ...f, rehabItem: e.target.value, canonicalCategory: null }))}
+                    onFocus={() => setConFirstBidFocus(true)} onBlur={() => setTimeout(() => setConFirstBidFocus(false), 150)} />
+                  {conFirstBidFocus && (() => {
+                    const q = conFirstBid.rehabItem.toLowerCase().trim();
+                    const canonMatches = REHAB_CATEGORIES.filter(c => !q || c.label.toLowerCase().includes(q));
+                    const rehabLabels = (rehabItems || []).map(ri => ri.category).filter(Boolean);
+                    const customMatches = [...new Set(rehabLabels)].filter(c => !q || c.toLowerCase().includes(q)).filter(c => !REHAB_CATEGORIES.some(cc => cc.label === c));
+                    const exactCanon = REHAB_CATEGORIES.some(c => c.label.toLowerCase() === q);
+                    const exactCustom = customMatches.some(c => c.toLowerCase() === q);
+                    const showNew = q && !exactCanon && !exactCustom;
+                    const grouped = {};
+                    canonMatches.forEach(c => { if (!grouped[c.group]) grouped[c.group] = []; grouped[c.group].push(c); });
+                    const groupKeys = REHAB_CATEGORY_GROUPS.filter(g => grouped[g] && grouped[g].length > 0);
+                    if (groupKeys.length === 0 && customMatches.length === 0 && !showNew) return null;
+                    return (
+                      <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, background: "#fff", border: "1px solid #e2e8f0", borderRadius: 12, boxShadow: "0 8px 24px rgba(0,0,0,0.10)", zIndex: 300, overflow: "hidden", maxHeight: 240, overflowY: "auto" }}>
+                        {groupKeys.map(g => (
+                          <div key={g}>
+                            <div style={{ padding: "8px 14px 4px", fontSize: 10, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.05em", background: "#f8fafc" }}>{g}</div>
+                            {grouped[g].map(c => (
+                              <button key={c.slug} onMouseDown={() => { setConFirstBid(f => ({ ...f, rehabItem: c.label, canonicalCategory: c.slug })); setConFirstBidFocus(false); }}
+                                style={{ width: "100%", padding: "8px 14px", background: "none", border: "none", borderBottom: "1px solid #f8fafc", textAlign: "left", cursor: "pointer", fontSize: 13, color: "#041830", display: "flex", alignItems: "center", gap: 8 }}>
+                                <Wrench size={12} style={{ color: "#94a3b8", flexShrink: 0 }} />
+                                <span>{c.label}</span>
+                              </button>
+                            ))}
+                          </div>
+                        ))}
+                        {customMatches.length > 0 && (
+                          <div>
+                            <div style={{ padding: "8px 14px 4px", fontSize: 10, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.05em", background: "#f8fafc" }}>On This Deal</div>
+                            {customMatches.slice(0, 6).map(c => (
+                              <button key={c} onMouseDown={() => { setConFirstBid(f => ({ ...f, rehabItem: c, canonicalCategory: null })); setConFirstBidFocus(false); }}
+                                style={{ width: "100%", padding: "8px 14px", background: "none", border: "none", borderBottom: "1px solid #f8fafc", textAlign: "left", cursor: "pointer", fontSize: 13, color: "#041830", display: "flex", alignItems: "center", gap: 8 }}>
+                                <Wrench size={12} style={{ color: "#94a3b8", flexShrink: 0 }} />
+                                <span>{c}</span>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                        {showNew && (
+                          <button onMouseDown={() => setConFirstBidFocus(false)}
+                            style={{ width: "100%", padding: "10px 14px", display: "flex", alignItems: "center", gap: 8, background: "#fff7ed", border: "none", borderTop: "1px solid #e2e8f0", cursor: "pointer", textAlign: "left" }}>
+                            <Plus size={13} style={{ color: "#e95e00", flexShrink: 0 }} />
+                            <span style={{ fontSize: 13, color: "#e95e00", fontWeight: 600 }}>Use &ldquo;{conFirstBid.rehabItem}&rdquo;</span>
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })()}
+                </div>
+                <input value={conFirstBid.amount} onChange={e => setConFirstBid(f => ({ ...f, amount: e.target.value }))} type="number" placeholder="Bid $" style={iS} />
+              </div>
+            </div>
+          )}
           <div style={{ display: "flex", gap: 10 }}>
-            <button onClick={() => { setShowContractorModal(false); setEditingConId(null); setConForm(emptyCon); }} style={{ flex: 1, padding: "12px", border: "1px solid #e2e8f0", borderRadius: 10, background: "#fff", color: "#475569", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
+            <button onClick={() => { setShowContractorModal(false); setEditingConId(null); setConForm(emptyCon); setConFirstBid({ rehabItem: "", canonicalCategory: null, amount: "" }); }} style={{ flex: 1, padding: "12px", border: "1px solid #e2e8f0", borderRadius: 10, background: "#fff", color: "#475569", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
             <button onClick={handleSaveCon} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "#e95e00", color: "#fff", fontWeight: 600, cursor: "pointer" }}>{editingConId ? "Save Changes" : "Add Contractor"}</button>
           </div>
         </Modal>
       )}
+      {quickBid && (() => {
+        const con = conData.find(c => c.id === quickBid.contractorId) || CONTRACTORS.find(c => c.id === quickBid.contractorId);
+        if (!con) return null;
+        return (
+          <Modal title={`Add Bid — ${con.name}`} onClose={() => { setQuickBid(null); setQuickBidRehabFocus(false); }}>
+            <p style={{ fontSize: 12, color: "#64748b", marginTop: -6, marginBottom: 14 }}>For <strong style={{ color: "#041830" }}>{deal.address}</strong></p>
+            <div style={{ position: "relative", marginBottom: 14 }}>
+              <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Rehab Item *</label>
+              <input value={quickBid.rehabItem} placeholder="Start typing or pick from the list..." style={iS}
+                onChange={e => setQuickBid(q => ({ ...q, rehabItem: e.target.value, canonicalCategory: null }))}
+                onFocus={() => setQuickBidRehabFocus(true)} onBlur={() => setTimeout(() => setQuickBidRehabFocus(false), 150)} />
+              {quickBid.canonicalCategory && (
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 4, marginTop: 4, fontSize: 11, fontWeight: 600, color: "#15803d" }}><CheckCircle size={11} /> Standard category</span>
+              )}
+              {quickBidRehabFocus && (() => {
+                const q = quickBid.rehabItem.toLowerCase().trim();
+                const canonMatches = REHAB_CATEGORIES.filter(c => !q || c.label.toLowerCase().includes(q));
+                const rehabLabels = (rehabItems || []).map(ri => ri.category).filter(Boolean);
+                const customMatches = [...new Set(rehabLabels)].filter(c => !q || c.toLowerCase().includes(q)).filter(c => !REHAB_CATEGORIES.some(cc => cc.label === c));
+                const exactCanon = REHAB_CATEGORIES.some(c => c.label.toLowerCase() === q);
+                const exactCustom = customMatches.some(c => c.toLowerCase() === q);
+                const showNew = q && !exactCanon && !exactCustom;
+                const grouped = {};
+                canonMatches.forEach(c => { if (!grouped[c.group]) grouped[c.group] = []; grouped[c.group].push(c); });
+                const groupKeys = REHAB_CATEGORY_GROUPS.filter(g => grouped[g] && grouped[g].length > 0);
+                if (groupKeys.length === 0 && customMatches.length === 0 && !showNew) return null;
+                return (
+                  <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, background: "#fff", border: "1px solid #e2e8f0", borderRadius: 12, boxShadow: "0 8px 24px rgba(0,0,0,0.10)", zIndex: 300, overflow: "hidden", maxHeight: 320, overflowY: "auto" }}>
+                    {groupKeys.map(g => (
+                      <div key={g}>
+                        <div style={{ padding: "8px 14px 4px", fontSize: 10, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.05em", background: "#f8fafc" }}>{g}</div>
+                        {grouped[g].map(c => (
+                          <button key={c.slug} onMouseDown={() => { setQuickBid(qq => ({ ...qq, rehabItem: c.label, canonicalCategory: c.slug })); setQuickBidRehabFocus(false); }}
+                            style={{ width: "100%", padding: "8px 14px", background: "none", border: "none", borderBottom: "1px solid #f8fafc", textAlign: "left", cursor: "pointer", fontSize: 13, color: "#041830", display: "flex", alignItems: "center", gap: 8 }}>
+                            <Wrench size={12} style={{ color: "#94a3b8", flexShrink: 0 }} />
+                            <span>{c.label}</span>
+                          </button>
+                        ))}
+                      </div>
+                    ))}
+                    {customMatches.length > 0 && (
+                      <div>
+                        <div style={{ padding: "8px 14px 4px", fontSize: 10, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.05em", background: "#f8fafc" }}>On This Deal</div>
+                        {customMatches.slice(0, 6).map(c => (
+                          <button key={c} onMouseDown={() => { setQuickBid(qq => ({ ...qq, rehabItem: c, canonicalCategory: null })); setQuickBidRehabFocus(false); }}
+                            style={{ width: "100%", padding: "8px 14px", background: "none", border: "none", borderBottom: "1px solid #f8fafc", textAlign: "left", cursor: "pointer", fontSize: 13, color: "#041830", display: "flex", alignItems: "center", gap: 8 }}>
+                            <Wrench size={12} style={{ color: "#94a3b8", flexShrink: 0 }} />
+                            <span>{c}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    {showNew && (
+                      <button onMouseDown={() => setQuickBidRehabFocus(false)}
+                        style={{ width: "100%", padding: "10px 14px", display: "flex", alignItems: "center", gap: 8, background: "#fff7ed", border: "none", borderTop: "1px solid #e2e8f0", cursor: "pointer", textAlign: "left" }}>
+                        <Plus size={13} style={{ color: "#e95e00", flexShrink: 0 }} />
+                        <span style={{ fontSize: 13, color: "#e95e00", fontWeight: 600 }}>Use &ldquo;{quickBid.rehabItem}&rdquo;</span>
+                      </button>
+                    )}
+                  </div>
+                );
+              })()}
+            </div>
+            <div style={{ marginBottom: 18 }}>
+              <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Bid Amount *</label>
+              <input value={quickBid.amount} onChange={e => setQuickBid(q => ({ ...q, amount: e.target.value }))} type="number" placeholder="0.00" style={iS} />
+            </div>
+            <div style={{ display: "flex", gap: 10 }}>
+              <button onClick={() => { setQuickBid(null); setQuickBidRehabFocus(false); }} style={{ flex: 1, padding: "12px", border: "1px solid #e2e8f0", borderRadius: 10, background: "#fff", color: "#475569", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
+              <button disabled={!quickBid.rehabItem || !quickBid.amount} onClick={() => {
+                const canon = quickBid.canonicalCategory || getCanonicalByLabel(quickBid.rehabItem)?.slug || null;
+                pushContractorBid(quickBid.contractorId, quickBid.rehabItem, canon, quickBid.amount);
+                setQuickBid(null);
+                setQuickBidRehabFocus(false);
+              }} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "#e95e00", color: "#fff", fontWeight: 600, cursor: (quickBid.rehabItem && quickBid.amount) ? "pointer" : "not-allowed", opacity: (quickBid.rehabItem && quickBid.amount) ? 1 : 0.5 }}>Add Bid</button>
+            </div>
+          </Modal>
+        );
+      })()}
       {showPaymentModal && (() => {
         const con = conData.find(c => c.id === showPaymentModal);
         if (!con) return null;

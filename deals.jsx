@@ -2025,15 +2025,29 @@ export function ContractorDetail({ contractor, onBack, initialTab }) {
               <button onClick={() => { setShowBidModal(false); setEditingBidId(null); setBidForm({ dealId: "", rehabItem: "", amount: "" }); }} style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8" }}><X size={20} /></button>
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-              <div>
-                <p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Deal *</p>
-                {(() => {
-                  // Prefer deals this contractor is attached to; fall back to all active
-                  // deals only when the contractor has no linked deals yet.
-                  const conDealIds = new Set(con.dealIds || []);
-                  const myDeals = _DEALS.filter(f => conDealIds.has(f.id) && f.stage !== "Sold");
-                  const otherDeals = _DEALS.filter(f => !conDealIds.has(f.id) && f.stage !== "Sold");
+              {(() => {
+                // Prefer deals this contractor is attached to; fall back to all active
+                // deals only when the contractor has no linked deals yet.
+                const conDealIds = new Set(con.dealIds || []);
+                const myDeals = _DEALS.filter(f => conDealIds.has(f.id) && f.stage !== "Sold");
+                const otherDeals = _DEALS.filter(f => !conDealIds.has(f.id) && f.stage !== "Sold");
+                // When contractor has exactly 1 linked active deal (and no editing), skip the picker
+                const onlyOne = myDeals.length === 1 && !editingBidId;
+                if (onlyOne) {
+                  if (bidForm.dealId !== String(myDeals[0].id)) {
+                    // auto-seed on first render — safe because effect happens outside render
+                    setTimeout(() => setBidForm(f => f.dealId === String(myDeals[0].id) ? f : { ...f, dealId: String(myDeals[0].id) }), 0);
+                  }
                   return (
+                    <div style={{ background: "#f8fafc", border: "1px solid #f1f5f9", borderRadius: 10, padding: "10px 12px" }}>
+                      <p style={{ fontSize: 10, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 2 }}>Deal</p>
+                      <p style={{ fontSize: 14, fontWeight: 600, color: "#041830" }}>{myDeals[0].name}</p>
+                    </div>
+                  );
+                }
+                return (
+                  <div>
+                    <p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Deal *</p>
                     <select style={iS} value={bidForm.dealId} onChange={e => setBidForm(f => ({ ...f, dealId: e.target.value, rehabItem: "" }))}>
                       <option value="">Select deal...</option>
                       {myDeals.length > 0 && (
@@ -2047,44 +2061,59 @@ export function ContractorDetail({ contractor, onBack, initialTab }) {
                         </optgroup>
                       )}
                     </select>
-                  );
-                })()}
-              </div>
+                  </div>
+                );
+              })()}
               <div style={{ position: "relative" }}>
                 <p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Rehab Item *</p>
-                <input style={iS} placeholder={bidForm.dealId ? "Start typing to search or add new..." : "Select a deal first"} disabled={!bidForm.dealId}
+                <input style={iS} placeholder={bidForm.dealId ? "Start typing or pick from the list..." : "Select a deal first"} disabled={!bidForm.dealId}
                   value={bidForm.rehabItem} onChange={e => { setBidForm(f => ({ ...f, rehabItem: e.target.value })); setRehabFocus(true); }}
                   onFocus={() => setRehabFocus(true)} onBlur={() => setTimeout(() => setRehabFocus(false), 150)} />
-                {!rehabFocus && !bidForm.rehabItem && bidForm.dealId && <p style={{ fontSize: 11, color: "#94a3b8", marginTop: 4, fontStyle: "italic" }}>Type to search rehab items or add new</p>}
+                {!rehabFocus && !bidForm.rehabItem && bidForm.dealId && <p style={{ fontSize: 11, color: "#94a3b8", marginTop: 4, fontStyle: "italic" }}>Pick a standard category or type your own</p>}
                 {rehabFocus && bidForm.dealId && (() => {
-                  const q = bidForm.rehabItem.toLowerCase();
-                  // Show items from this deal first, then other known categories
-                  const dealMatches = q ? bidRehabOptions.filter(c => c.toLowerCase().includes(q)) : bidRehabOptions.slice(0, 6);
-                  const otherMatches = q ? allRehabCategories.filter(c => c.toLowerCase().includes(q) && !bidRehabOptions.includes(c)) : allRehabCategories.filter(c => !bidRehabOptions.includes(c)).slice(0, 4);
-                  const exactExists = [...bidRehabOptions, ...allRehabCategories].some(c => c.toLowerCase() === q);
-                  const showNew = q && !exactExists;
-                  if (dealMatches.length === 0 && otherMatches.length === 0 && !showNew) return null;
+                  const q = bidForm.rehabItem.toLowerCase().trim();
+                  const canonMatches = REHAB_CATEGORIES.filter(c => !q || c.label.toLowerCase().includes(q));
+                  // Items already on this deal that aren't canonical → "On This Deal"
+                  const dealLabels = bidRehabOptions.filter(c => !REHAB_CATEGORIES.some(cc => cc.label === c));
+                  const dealCustomMatches = dealLabels.filter(c => !q || c.toLowerCase().includes(q));
+                  const exactCanon = REHAB_CATEGORIES.some(c => c.label.toLowerCase() === q);
+                  const exactCustom = dealCustomMatches.some(c => c.toLowerCase() === q);
+                  const showNew = q && !exactCanon && !exactCustom;
+                  const grouped = {};
+                  canonMatches.forEach(c => { if (!grouped[c.group]) grouped[c.group] = []; grouped[c.group].push(c); });
+                  const groupKeys = REHAB_CATEGORY_GROUPS.filter(g => grouped[g] && grouped[g].length > 0);
+                  if (groupKeys.length === 0 && dealCustomMatches.length === 0 && !showNew) return null;
                   return (
-                    <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, background: "#fff", border: "1px solid #e2e8f0", borderRadius: 12, boxShadow: "0 8px 24px rgba(0,0,0,0.10)", zIndex: 200, overflow: "hidden", maxHeight: 220, overflowY: "auto" }}>
-                      {dealMatches.length > 0 && <p style={{ padding: "6px 14px 2px", fontSize: 10, fontWeight: 600, color: "#94a3b8", textTransform: "uppercase" }}>This Deal</p>}
-                      {dealMatches.slice(0, 6).map(c => (
-                        <button key={c} onMouseDown={() => { setBidForm(f => ({ ...f, rehabItem: c })); setRehabFocus(false); }}
-                          style={{ width: "100%", padding: "9px 14px", background: "none", border: "none", borderBottom: "1px solid #f8fafc", textAlign: "left", cursor: "pointer", fontSize: 13, color: "#041830", display: "flex", alignItems: "center", gap: 8 }}>
-                          <Wrench size={13} style={{ color: "#94a3b8", flexShrink: 0 }} />{c}
-                        </button>
-                      ))}
-                      {otherMatches.length > 0 && <p style={{ padding: "6px 14px 2px", fontSize: 10, fontWeight: 600, color: "#94a3b8", textTransform: "uppercase", borderTop: dealMatches.length > 0 ? "1px solid #e2e8f0" : "none" }}>Other Deals</p>}
-                      {otherMatches.slice(0, 4).map(c => (
-                        <button key={c} onMouseDown={() => { setBidForm(f => ({ ...f, rehabItem: c })); setRehabFocus(false); }}
-                          style={{ width: "100%", padding: "9px 14px", background: "none", border: "none", borderBottom: "1px solid #f8fafc", textAlign: "left", cursor: "pointer", fontSize: 13, color: "#64748b", display: "flex", alignItems: "center", gap: 8 }}>
-                          <Wrench size={13} style={{ color: "#cbd5e1", flexShrink: 0 }} />{c}
-                        </button>
+                    <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, background: "#fff", border: "1px solid #e2e8f0", borderRadius: 12, boxShadow: "0 8px 24px rgba(0,0,0,0.10)", zIndex: 200, overflow: "hidden", maxHeight: 320, overflowY: "auto" }}>
+                      {dealCustomMatches.length > 0 && (
+                        <div>
+                          <div style={{ padding: "8px 14px 4px", fontSize: 10, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.05em", background: "#f8fafc" }}>On This Deal</div>
+                          {dealCustomMatches.slice(0, 6).map(c => (
+                            <button key={c} onMouseDown={() => { setBidForm(f => ({ ...f, rehabItem: c })); setRehabFocus(false); }}
+                              style={{ width: "100%", padding: "8px 14px", background: "none", border: "none", borderBottom: "1px solid #f8fafc", textAlign: "left", cursor: "pointer", fontSize: 13, color: "#041830", display: "flex", alignItems: "center", gap: 8 }}>
+                              <Wrench size={12} style={{ color: "#94a3b8", flexShrink: 0 }} />
+                              <span>{c}</span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                      {groupKeys.map(g => (
+                        <div key={g}>
+                          <div style={{ padding: "8px 14px 4px", fontSize: 10, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.05em", background: "#f8fafc" }}>{g}</div>
+                          {grouped[g].map(c => (
+                            <button key={c.slug} onMouseDown={() => { setBidForm(f => ({ ...f, rehabItem: c.label })); setRehabFocus(false); }}
+                              style={{ width: "100%", padding: "8px 14px", background: "none", border: "none", borderBottom: "1px solid #f8fafc", textAlign: "left", cursor: "pointer", fontSize: 13, color: "#041830", display: "flex", alignItems: "center", gap: 8 }}>
+                              <Wrench size={12} style={{ color: "#94a3b8", flexShrink: 0 }} />
+                              <span>{c.label}</span>
+                            </button>
+                          ))}
+                        </div>
                       ))}
                       {showNew && (
-                        <button onMouseDown={() => { setBidForm(f => ({ ...f, rehabItem: f.rehabItem })); setRehabFocus(false); }}
-                          style={{ width: "100%", padding: "10px 14px", display: "flex", alignItems: "center", gap: 8, background: "#fff7ed", border: "none", borderTop: (dealMatches.length > 0 || otherMatches.length > 0) ? "1px solid #e2e8f0" : "none", cursor: "pointer", textAlign: "left" }}>
+                        <button onMouseDown={() => setRehabFocus(false)}
+                          style={{ width: "100%", padding: "10px 14px", display: "flex", alignItems: "center", gap: 8, background: "#fff7ed", border: "none", borderTop: "1px solid #e2e8f0", cursor: "pointer", textAlign: "left" }}>
                           <Plus size={13} style={{ color: "#e95e00", flexShrink: 0 }} />
-                          <span style={{ fontSize: 13, color: "#e95e00", fontWeight: 600 }}>Add &ldquo;{bidForm.rehabItem}&rdquo; as new rehab item</span>
+                          <span style={{ fontSize: 13, color: "#e95e00", fontWeight: 600 }}>Add &ldquo;{bidForm.rehabItem}&rdquo; as custom</span>
                         </button>
                       )}
                     </div>
