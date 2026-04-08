@@ -6899,7 +6899,7 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
                   <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Description</label>
                   <input type="text" placeholder="Brief description of what was purchased or done" value={expForm.description} onChange={sfE("description")} style={iS} />
                 </div>
-                <div>
+                <div style={{ gridColumn: "1 / -1" }}>
                   <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Category</label>
                   <select value={expForm.category} onChange={sfE("category")} style={iS}>
                     {Object.entries(FLIP_EXPENSE_GROUPS).map(([group, subs]) => (
@@ -6909,7 +6909,7 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
                     ))}
                   </select>
                 </div>
-                <div>
+                <div style={{ gridColumn: "1 / -1" }}>
                   <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Rehab Item <span style={{ color: "#94a3b8", fontWeight: 400 }}>(optional)</span></label>
                   <select value={expForm.rehabItemIdx} onChange={sfE("rehabItemIdx")} style={iS}>
                     <option value="">None — general expense</option>
@@ -6917,6 +6917,9 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
                       <option key={idx} value={idx}>{item.category} ({fmt(item.spent || 0)} / {fmt(item.budgeted || 0)})</option>
                     ))}
                   </select>
+                  {rehabItems.length === 0 && (
+                    <p style={{ fontSize: 11, color: "#94a3b8", marginTop: 4, fontStyle: "italic" }}>No rehab items on this deal yet — add them in the Rehab tab to link expenses</p>
+                  )}
                 </div>
                 <div style={{ gridColumn: "1 / -1" }}>
                   <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Status</label>
