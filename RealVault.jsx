@@ -5814,8 +5814,13 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
     }
     const item = rehabItems[itemIdx];
     if (!item) return;
+    const existing = item.contractors || [];
+    if (existing.some(c => c.id === contractorId)) {
+      setAssignTA({ rowIdx: null, query: "" });
+      return;
+    }
     const next = [...rehabItems];
-    next[itemIdx] = { ...item, contractors: [{ id: contractorId, bid: 0 }] };
+    next[itemIdx] = { ...item, contractors: [...existing, { id: contractorId, bid: 0 }] };
     setRehabItems(next);
     if (deal.rehabItems && deal.rehabItems[itemIdx]) deal.rehabItems[itemIdx].contractors = next[itemIdx].contractors;
     bumpRehab();
@@ -6094,8 +6099,9 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
         const idx = pendingAssignRowIdx;
         const item = rehabItems[idx];
         if (item) {
+          const existing = item.contractors || [];
           const next = [...rehabItems];
-          next[idx] = { ...item, contractors: [{ id: newCon.id, bid: 0 }] };
+          next[idx] = { ...item, contractors: [...existing, { id: newCon.id, bid: 0 }] };
           setRehabItems(next);
           if (deal.rehabItems && deal.rehabItems[idx]) deal.rehabItems[idx].contractors = next[idx].contractors;
           bumpRehab();
@@ -6548,26 +6554,24 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
                         </span>
                       </td>
                       <td style={{ padding: "12px 16px", minWidth: 220 }} onClick={stop}>
-                        {assigned.length > 0 ? (
-                          <div style={{ display: "flex", flexWrap: "wrap", gap: 4, alignItems: "center" }}>
-                            {assigned.map(asgn => {
-                              const con = CONTRACTORS.find(c => c.id === asgn.id);
-                              if (!con) return null;
-                              return (
-                                <div key={asgn.id} style={{ display: "flex", alignItems: "center", gap: 5, background: "#f1f5f9", borderRadius: 20, padding: "4px 8px 4px 6px" }}>
-                                  <div style={{ width: 18, height: 18, borderRadius: "50%", background: "linear-gradient(135deg, #e95e00, #041830)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                                    <Truck size={9} color="#fff" />
-                                  </div>
-                                  <span style={{ fontSize: 12, fontWeight: 600, color: "#374151" }}>{con.name}</span>
-                                  {asgn.bid > 0 && <span style={{ fontSize: 11, color: "#64748b", fontWeight: 500 }}>{fmt(asgn.bid)}</span>}
-                                  <button onClick={(e) => { e.stopPropagation(); removeContractorFromRehabItem(i, asgn.id); }} style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8", padding: 0, display: "flex", alignItems: "center" }}>
-                                    <X size={10} />
-                                  </button>
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: 4, alignItems: "center" }}>
+                          {assigned.map(asgn => {
+                            const con = CONTRACTORS.find(c => c.id === asgn.id);
+                            if (!con) return null;
+                            return (
+                              <div key={asgn.id} style={{ display: "flex", alignItems: "center", gap: 5, background: "#f1f5f9", borderRadius: 20, padding: "4px 8px 4px 6px" }}>
+                                <div style={{ width: 18, height: 18, borderRadius: "50%", background: "linear-gradient(135deg, #e95e00, #041830)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                                  <Truck size={9} color="#fff" />
                                 </div>
-                              );
-                            })}
-                          </div>
-                        ) : assignTA.rowIdx === i ? (
+                                <span style={{ fontSize: 12, fontWeight: 600, color: "#374151" }}>{con.name}</span>
+                                {asgn.bid > 0 && <span style={{ fontSize: 11, color: "#64748b", fontWeight: 500 }}>{fmt(asgn.bid)}</span>}
+                                <button onClick={(e) => { e.stopPropagation(); removeContractorFromRehabItem(i, asgn.id); }} style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8", padding: 0, display: "flex", alignItems: "center" }}>
+                                  <X size={10} />
+                                </button>
+                              </div>
+                            );
+                          })}
+                        {assignTA.rowIdx === i ? (
                           <div style={{ position: "relative" }}>
                             <input
                               autoFocus
@@ -6580,7 +6584,7 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
                             <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, background: "#fff", border: "1px solid #e2e8f0", borderRadius: 8, boxShadow: "0 4px 12px rgba(0,0,0,0.08)", zIndex: 100, minWidth: 240, maxHeight: 240, overflowY: "auto" }}>
                               {(() => {
                                 const q = assignTA.query.trim().toLowerCase();
-                                const matches = CONTRACTORS.filter(c => !q || c.name.toLowerCase().includes(q)).slice(0, 8);
+                                const matches = CONTRACTORS.filter(c => !assignedIds.includes(c.id) && (!q || c.name.toLowerCase().includes(q))).slice(0, 8);
                                 return (
                                   <>
                                     {matches.length === 0 && (
@@ -6613,9 +6617,10 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
                         ) : (
                           <button onClick={() => setAssignTA({ rowIdx: i, query: "" })}
                             style={{ border: "1.5px dashed #cbd5e1", borderRadius: 8, padding: "5px 10px", fontSize: 12, color: "#94a3b8", background: "#fafafa", cursor: "pointer" }}>
-                            + Assign contractor
+                            {assigned.length > 0 ? "+ Add" : "+ Assign contractor"}
                           </button>
                         )}
+                        </div>
                       </td>
                       <td style={{ padding: "12px 16px", fontSize: 13, color: "#475569" }}>{fmt(item.budgeted)}</td>
                       <td style={{ padding: "12px 16px", fontSize: 13, fontWeight: 600, color: "#041830" }}>{fmt(item.spent)}</td>
