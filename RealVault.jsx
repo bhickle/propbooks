@@ -6523,18 +6523,15 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
                             <select value="" onClick={stop}
                               onChange={e => { if (e.target.value) { addContractorToRehabItem(i, parseInt(e.target.value)); e.target.value = ""; } }}
                               style={{ border: "1.5px dashed #cbd5e1", borderRadius: 8, padding: "4px 8px", fontSize: 12, color: "#94a3b8", background: "#fafafa", cursor: "pointer", outline: "none" }}>
-                              <option value="">+ Assign existing</option>
+                              <option value="">+ Add</option>
                               {unassigned.map(c => (
                                 <option key={c.id} value={c.id}>{c.name} ({c.trade})</option>
                               ))}
                             </select>
                           )}
-                          <button onClick={(e) => { e.stopPropagation(); setActiveTab("contractors"); setEditingConId(null); setConForm(emptyCon); setShowContractorModal(true); }}
-                            onMouseEnter={e => { e.currentTarget.style.background = "#fff7ed"; e.currentTarget.style.borderColor = "#fdba74"; e.currentTarget.style.color = "#c2410c"; }}
-                            onMouseLeave={e => { e.currentTarget.style.background = "#fafafa"; e.currentTarget.style.borderColor = "#cbd5e1"; e.currentTarget.style.color = "#94a3b8"; }}
-                            style={{ display: "flex", alignItems: "center", gap: 4, border: "1.5px dashed #cbd5e1", borderRadius: 8, padding: "4px 10px", fontSize: 12, fontWeight: 600, color: "#94a3b8", background: "#fafafa", cursor: "pointer", transition: "all 0.15s" }}>
-                            <Plus size={12} /> New
-                          </button>
+                          {dealContractorsList.length === 0 && assigned.length === 0 && (
+                            <span style={{ fontSize: 12, color: "#cbd5e1", fontStyle: "italic" }}>No contractors</span>
+                          )}
                         </div>
                       </td>
                       <td style={{ padding: "12px 16px", fontSize: 13, color: "#475569" }}>{fmt(item.budgeted)}</td>
