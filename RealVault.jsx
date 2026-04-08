@@ -6051,6 +6051,9 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
     if (!conForm.name) return;
     if (editingConId) {
       setConData(prev => prev.map(c => c.id === editingConId ? { ...c, name: conForm.name, trade: conForm.trade, phone: conForm.phone, email: conForm.email, license: conForm.license || c.license, insuranceExpiry: conForm.insuranceExpiry || c.insuranceExpiry, notes: conForm.notes || c.notes } : c));
+      // Also update the canonical CONTRACTORS store so other deals/screens see the edit
+      const gi = CONTRACTORS.findIndex(c => c.id === editingConId);
+      if (gi !== -1) CONTRACTORS[gi] = { ...CONTRACTORS[gi], name: conForm.name, trade: conForm.trade, phone: conForm.phone, email: conForm.email, license: conForm.license || CONTRACTORS[gi].license, insuranceExpiry: conForm.insuranceExpiry || CONTRACTORS[gi].insuranceExpiry, notes: conForm.notes || CONTRACTORS[gi].notes };
       setEditingConId(null);
     } else {
       const newCon = { id: newId(), name: conForm.name, trade: conForm.trade, phone: conForm.phone, email: conForm.email || "", license: conForm.license || null, insuranceExpiry: conForm.insuranceExpiry || null, rating: 0, notes: conForm.notes || "", dealIds: [deal.id], bids: [], payments: [], documents: [] };
@@ -6059,6 +6062,20 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
     }
     setConForm(emptyCon);
     setShowContractorModal(false);
+  };
+
+  // Attach an existing contractor from the global CONTRACTORS list to this deal
+  const attachExistingContractor = (conId) => {
+    const gi = CONTRACTORS.findIndex(c => c.id === conId);
+    if (gi === -1) return;
+    const existing = CONTRACTORS[gi];
+    const ids = existing.dealIds || [];
+    if (!ids.includes(deal.id)) {
+      CONTRACTORS[gi] = { ...existing, dealIds: [...ids, deal.id] };
+    }
+    setConData(prev => prev.some(c => c.id === conId) ? prev : [...prev, CONTRACTORS[gi]]);
+    setShowContractorModal(false);
+    setConForm(emptyCon);
   };
 
   const handleStageChange = (e) => {
@@ -6985,6 +7002,26 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
       )}
       {showContractorModal && (
         <Modal title={editingConId ? "Edit Contractor" : "Add Contractor"} onClose={() => { setShowContractorModal(false); setEditingConId(null); setConForm(emptyCon); }}>
+          {!editingConId && (() => {
+            const onDealIds = new Set((conData || []).map(c => c.id));
+            const existingAvailable = CONTRACTORS.filter(c => !onDealIds.has(c.id));
+            if (existingAvailable.length === 0) return null;
+            return (
+              <div style={{ marginBottom: 18, padding: 14, background: "#f8fafc", border: "1px solid #f1f5f9", borderRadius: 12 }}>
+                <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 8 }}>Add from your existing contractors</label>
+                <select
+                  defaultValue=""
+                  onChange={e => { if (e.target.value) attachExistingContractor(parseInt(e.target.value)); }}
+                  style={iS}>
+                  <option value="">Select a contractor you've worked with before…</option>
+                  {existingAvailable.map(c => (
+                    <option key={c.id} value={c.id}>{c.name}{c.trade ? ` — ${c.trade}` : ""}</option>
+                  ))}
+                </select>
+                <p style={{ fontSize: 11, color: "#94a3b8", marginTop: 8, textAlign: "center" }}>— or create a new contractor below —</p>
+              </div>
+            );
+          })()}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14 }}>
             <div><label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Name / Company *</label><input type="text" placeholder="e.g. ABC Plumbing" value={conForm.name} onChange={sfC("name")} style={iS} /></div>
             <div><label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Trade</label><input type="text" placeholder="e.g. Plumbing, Electrical" value={conForm.trade} onChange={sfC("trade")} style={iS} /></div>
