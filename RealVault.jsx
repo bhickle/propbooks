@@ -6884,7 +6884,7 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
                 </div>
                 <div style={{ gridColumn: "1 / -1", position: "relative" }}>
                   <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Paid To</label>
-                  <input type="text" placeholder="Start typing to search or add new..." value={expForm.vendor} onChange={handleVendorChange} onFocus={() => setVendorFocus(true)} onBlur={() => setTimeout(() => setVendorFocus(false), 150)} style={iS} autoComplete="off" />
+                  <input type="text" placeholder="Who was paid?" value={expForm.vendor} onChange={handleVendorChange} onFocus={() => setVendorFocus(true)} onBlur={() => setTimeout(() => setVendorFocus(false), 150)} style={iS} autoComplete="off" />
                   {vendorFocus && <PaidToDropdown />}
                   {!vendorFocus && !expForm.vendor && <p style={{ fontSize: 11, color: "#94a3b8", marginTop: 4, fontStyle: "italic" }}>Type to search contractors and vendors or add new</p>}
                   {linkedCon && (
