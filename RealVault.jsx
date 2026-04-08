@@ -2719,7 +2719,7 @@ function PropertyDetail({ property, onBack, backLabel, onEditProperty, onGoToTra
             };
 
             return (
-              <Modal title={txEditId ? `Edit ${isIncome ? "Income" : "Expense"}` : `Log ${isIncome ? "Income" : "Expense"}`} onClose={txCloseModal}>
+              <Modal title={txEditId ? `Edit ${isIncome ? "Income" : "Expense"}` : `Add ${isIncome ? "Income" : "Expense"}`} onClose={txCloseModal}>
                 {/* Colored type badge at top */}
                 <div style={{ background: accentBg, border: `1px solid ${accentBorder}`, borderRadius: 10, padding: "8px 14px", marginBottom: 20, display: "inline-flex", alignItems: "center", gap: 8 }}>
                   <span style={{ width: 8, height: 8, borderRadius: "50%", background: accentColor, display: "inline-block" }} />
@@ -2818,7 +2818,7 @@ function PropertyDetail({ property, onBack, backLabel, onEditProperty, onGoToTra
 
                 <div style={{ display: "flex", gap: 10, marginTop: 24, justifyContent: "flex-end" }}>
                   <button onClick={txCloseModal} style={{ padding: "10px 20px", borderRadius: 10, border: "1px solid #e2e8f0", background: "#fff", fontSize: 14, fontWeight: 600, cursor: "pointer", color: "#64748b" }}>Cancel</button>
-                  <button onClick={txHandleSave} style={{ padding: "10px 24px", borderRadius: 10, border: "none", background: accentColor, color: "#fff", fontSize: 14, fontWeight: 600, cursor: "pointer" }}>{txEditId ? "Save Changes" : `Log ${isIncome ? "Income" : "Expense"}`}</button>
+                  <button onClick={txHandleSave} style={{ padding: "10px 24px", borderRadius: 10, border: "none", background: accentColor, color: "#fff", fontSize: 14, fontWeight: 600, cursor: "pointer" }}>{txEditId ? "Save Changes" : isIncome ? "Save Income" : "Save Expense"}</button>
                 </div>
               </Modal>
             );
