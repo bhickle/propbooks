@@ -1661,13 +1661,20 @@ export function DealContractors({ onSelectContractor }) {
 // ---------------------------------------------------------------------------
 // 4b. CONTRACTOR DETAIL
 // ---------------------------------------------------------------------------
-export function ContractorDetail({ contractor, onBack, initialTab }) {
+export function ContractorDetail({ contractor, onBack, initialTab, openBidForDealId }) {
   const [activeTab, setActiveTab] = useState(initialTab || "overview");
   const [, rerender] = useState(0);
   const [editMode, setEditMode] = useState(false);
   const [editForm, setEditForm] = useState({ name: contractor.name, trade: contractor.trade, phone: contractor.phone || "", email: contractor.email || "", license: contractor.license || "", insuranceExpiry: contractor.insuranceExpiry || "", notes: contractor.notes || "" });
-  const [showBidModal, setShowBidModal] = useState(false);
-  const [bidForm, setBidForm] = useState({ dealId: "", rehabItem: "", amount: "" });
+  const [showBidModal, setShowBidModal] = useState(!!openBidForDealId);
+  const [bidForm, setBidForm] = useState({ dealId: openBidForDealId ? String(openBidForDealId) : "", rehabItem: "", amount: "" });
+  // Re-open bid modal if the caller navigates here again with a different deal
+  useEffect(() => {
+    if (openBidForDealId) {
+      setBidForm({ dealId: String(openBidForDealId), rehabItem: "", amount: "" });
+      setShowBidModal(true);
+    }
+  }, [openBidForDealId]);
   const [editingBidId, setEditingBidId] = useState(null);
   const [showDocModal, setShowDocModal] = useState(false);
   const [docForm, setDocForm] = useState({ name: "", type: "contract", dealId: "" });
