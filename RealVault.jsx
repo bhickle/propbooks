@@ -3320,7 +3320,7 @@ function Transactions({ highlightTxId, onBack, onClearHighlight, backLabel }) {
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
             <tr style={{ background: "#f8fafc" }}>
-              {["Date", "Property", "Category", "Payee", "Description", "Amount", "Type", ""].map(h => (
+              {["Date", "Property", "Category", "Paid To", "Description", "Amount", "Type", ""].map(h => (
                 <th key={h} style={{ padding: "14px 20px", textAlign: "left", color: "#94a3b8", fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>{h}</th>
               ))}
             </tr>
@@ -3406,7 +3406,7 @@ function Transactions({ highlightTxId, onBack, onClearHighlight, backLabel }) {
           <Modal
             title={editId
               ? `Edit ${isIncome ? "Income" : "Expense"}`
-              : isIncome ? "Log Income" : "Log Expense"}
+              : isIncome ? "Add Income" : "Add Expense"}
             onClose={closeModal}
           >
             {/* Colored type badge at top */}
@@ -6690,7 +6690,7 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
               </p>
             </div>
             <button onClick={() => { setEditingExpId(null); setExpForm(emptyExp); setShowExpenseModal(true); }} style={{ background: "#e95e00", color: "#fff", border: "none", borderRadius: 10, padding: "10px 16px", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
-              <Plus size={15} /> Log Expense
+              <Plus size={15} /> Add Expense
             </button>
           </div>
           {/* Filter bar */}
@@ -6755,7 +6755,7 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
                 ) : (
                   <>
                     <p style={{ fontWeight: 600, marginBottom: 4 }}>No expenses logged yet</p>
-                    <p style={{ fontSize: 13 }}>Click &ldquo;Log Expense&rdquo; to start tracking spend for this deal.</p>
+                    <p style={{ fontSize: 13 }}>Click &ldquo;Add Expense&rdquo; to start tracking spend for this deal.</p>
                   </>
                 )}
               </div>
@@ -6872,7 +6872,7 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
             };
             const linkedCon = expForm.contractorId ? conData.find(c => String(c.id) === String(expForm.contractorId)) : null;
             return (
-            <Modal title={editingExpId ? "Edit Expense" : "Log Expense"} onClose={() => { setShowExpenseModal(false); setEditingExpId(null); setExpForm(emptyExp); }}>
+            <Modal title={editingExpId ? "Edit Expense" : "Add Expense"} onClose={() => { setShowExpenseModal(false); setEditingExpId(null); setExpForm(emptyExp); }}>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
                 <div>
                   <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Date</label>
