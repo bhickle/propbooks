@@ -5799,6 +5799,42 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
     if (deal.rehabItems && deal.rehabItems[itemIdx]) deal.rehabItems[itemIdx].contractors = next[itemIdx].contractors;
     bumpRehab();
   };
+  // Option 2 — single "Assigned To" per rehab line item with create-on-the-fly typeahead
+  const [assignTA, setAssignTA] = useState({ rowIdx: null, query: "" });
+  const assignContractorToRow = (itemIdx, contractorId) => {
+    // Auto-attach to this deal if not already
+    const gi = CONTRACTORS.findIndex(c => c.id === contractorId);
+    if (gi !== -1) {
+      const ids = CONTRACTORS[gi].dealIds || [];
+      if (!ids.includes(deal.id)) {
+        CONTRACTORS[gi] = { ...CONTRACTORS[gi], dealIds: [...ids, deal.id] };
+        setConData(prev => prev.some(c => c.id === contractorId) ? prev : [...prev, CONTRACTORS[gi]]);
+      }
+    }
+    const item = rehabItems[itemIdx];
+    if (!item) return;
+    const next = [...rehabItems];
+    next[itemIdx] = { ...item, contractors: [{ id: contractorId, bid: 0 }] };
+    setRehabItems(next);
+    if (deal.rehabItems && deal.rehabItems[itemIdx]) deal.rehabItems[itemIdx].contractors = next[itemIdx].contractors;
+    bumpRehab();
+    setAssignTA({ rowIdx: null, query: "" });
+  };
+  const createAndAssignContractor = (itemIdx, rawName) => {
+    const name = (rawName || "").trim();
+    if (!name) return;
+    const newCon = { id: newId(), name, trade: "", phone: "", email: "", license: null, insuranceExpiry: null, rating: 0, notes: "", dealIds: [deal.id], bids: [], payments: [], documents: [] };
+    CONTRACTORS.push(newCon);
+    setConData(prev => [...prev, newCon]);
+    const item = rehabItems[itemIdx];
+    if (!item) return;
+    const next = [...rehabItems];
+    next[itemIdx] = { ...item, contractors: [{ id: newCon.id, bid: 0 }] };
+    setRehabItems(next);
+    if (deal.rehabItems && deal.rehabItems[itemIdx]) deal.rehabItems[itemIdx].contractors = next[itemIdx].contractors;
+    bumpRehab();
+    setAssignTA({ rowIdx: null, query: "" });
+  };
   const [deleteConfirm, setDeleteConfirm] = useState(null); // { type: "expense"|"contractor"|"rehab"|"milestone", item, index? }
   const [showDeleteDeal, setShowDeleteDeal] = useState(false);
   const [stage, setStage] = useState(deal.stage);
@@ -6501,38 +6537,78 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
                           {onNavigateToRehabItem && <ChevronRight size={14} color="#cbd5e1" />}
                         </span>
                       </td>
-                      <td style={{ padding: "12px 16px", minWidth: 200 }} onClick={stop}>
-                        <div style={{ display: "flex", flexWrap: "wrap", gap: 4, alignItems: "center" }}>
-                          {assigned.map(asgn => {
-                            const con = CONTRACTORS.find(c => c.id === asgn.id);
-                            if (!con) return null;
-                            return (
-                              <div key={asgn.id} style={{ display: "flex", alignItems: "center", gap: 5, background: "#f1f5f9", borderRadius: 20, padding: "4px 8px 4px 6px" }}>
-                                <div style={{ width: 18, height: 18, borderRadius: "50%", background: "linear-gradient(135deg, #e95e00, #041830)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                                  <Truck size={9} color="#fff" />
+                      <td style={{ padding: "12px 16px", minWidth: 220 }} onClick={stop}>
+                        {assigned.length > 0 ? (
+                          <div style={{ display: "flex", flexWrap: "wrap", gap: 4, alignItems: "center" }}>
+                            {assigned.map(asgn => {
+                              const con = CONTRACTORS.find(c => c.id === asgn.id);
+                              if (!con) return null;
+                              return (
+                                <div key={asgn.id} style={{ display: "flex", alignItems: "center", gap: 5, background: "#f1f5f9", borderRadius: 20, padding: "4px 8px 4px 6px" }}>
+                                  <div style={{ width: 18, height: 18, borderRadius: "50%", background: "linear-gradient(135deg, #e95e00, #041830)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                                    <Truck size={9} color="#fff" />
+                                  </div>
+                                  <span style={{ fontSize: 12, fontWeight: 600, color: "#374151" }}>{con.name}</span>
+                                  {asgn.bid > 0 && <span style={{ fontSize: 11, color: "#64748b", fontWeight: 500 }}>{fmt(asgn.bid)}</span>}
+                                  <button onClick={(e) => { e.stopPropagation(); removeContractorFromRehabItem(i, asgn.id); }} style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8", padding: 0, display: "flex", alignItems: "center" }}>
+                                    <X size={10} />
+                                  </button>
                                 </div>
-                                <span style={{ fontSize: 12, fontWeight: 600, color: "#374151" }}>{con.name}</span>
-                                {asgn.bid > 0 && <span style={{ fontSize: 11, color: "#64748b", fontWeight: 500 }}>{fmt(asgn.bid)}</span>}
-                                <button onClick={(e) => { e.stopPropagation(); removeContractorFromRehabItem(i, asgn.id); }} style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8", padding: 0, display: "flex", alignItems: "center" }}>
-                                  <X size={10} />
-                                </button>
-                              </div>
-                            );
-                          })}
-                          {unassigned.length > 0 && (
-                            <select value="" onClick={stop}
-                              onChange={e => { if (e.target.value) { addContractorToRehabItem(i, parseInt(e.target.value)); e.target.value = ""; } }}
-                              style={{ border: "1.5px dashed #cbd5e1", borderRadius: 8, padding: "4px 8px", fontSize: 12, color: "#94a3b8", background: "#fafafa", cursor: "pointer", outline: "none" }}>
-                              <option value="">+ Add</option>
-                              {unassigned.map(c => (
-                                <option key={c.id} value={c.id}>{c.name} ({c.trade})</option>
-                              ))}
-                            </select>
-                          )}
-                          {dealContractorsList.length === 0 && assigned.length === 0 && (
-                            <span style={{ fontSize: 12, color: "#cbd5e1", fontStyle: "italic" }}>No contractors</span>
-                          )}
-                        </div>
+                              );
+                            })}
+                          </div>
+                        ) : assignTA.rowIdx === i ? (
+                          <div style={{ position: "relative" }}>
+                            <input
+                              autoFocus
+                              value={assignTA.query}
+                              onChange={e => setAssignTA({ rowIdx: i, query: e.target.value })}
+                              onBlur={() => setTimeout(() => setAssignTA(s => s.rowIdx === i ? { rowIdx: null, query: "" } : s), 180)}
+                              onKeyDown={e => { if (e.key === "Escape") setAssignTA({ rowIdx: null, query: "" }); }}
+                              placeholder="Type contractor name..."
+                              style={{ border: "1.5px solid #cbd5e1", borderRadius: 8, padding: "5px 10px", fontSize: 12, color: "#374151", background: "#fff", outline: "none", width: 200 }} />
+                            <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, background: "#fff", border: "1px solid #e2e8f0", borderRadius: 8, boxShadow: "0 4px 12px rgba(0,0,0,0.08)", zIndex: 100, minWidth: 240, maxHeight: 240, overflowY: "auto" }}>
+                              {(() => {
+                                const q = assignTA.query.trim().toLowerCase();
+                                const matches = CONTRACTORS.filter(c => !q || c.name.toLowerCase().includes(q)).slice(0, 8);
+                                const exact = q && CONTRACTORS.some(c => c.name.toLowerCase() === q);
+                                return (
+                                  <>
+                                    {matches.length === 0 && !q && (
+                                      <div style={{ padding: "8px 12px", fontSize: 12, color: "#94a3b8" }}>No contractors yet — type a name to create one</div>
+                                    )}
+                                    {matches.map(c => {
+                                      const onDeal = (c.dealIds || []).includes(deal.id);
+                                      return (
+                                        <div key={c.id}
+                                          onMouseDown={e => { e.preventDefault(); assignContractorToRow(i, c.id); }}
+                                          style={{ padding: "8px 12px", fontSize: 12, cursor: "pointer", borderBottom: "1px solid #f1f5f9", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}
+                                          onMouseEnter={e => e.currentTarget.style.background = "#f8fafc"}
+                                          onMouseLeave={e => e.currentTarget.style.background = "#fff"}>
+                                          <span style={{ color: "#374151", fontWeight: 600 }}>{c.name}</span>
+                                          <span style={{ fontSize: 11, color: "#94a3b8" }}>{c.trade || ""}{!onDeal ? " · not on deal" : ""}</span>
+                                        </div>
+                                      );
+                                    })}
+                                    {q && !exact && (
+                                      <div onMouseDown={e => { e.preventDefault(); createAndAssignContractor(i, assignTA.query); }}
+                                        style={{ padding: "8px 12px", fontSize: 12, cursor: "pointer", color: "#e95e00", fontWeight: 700, background: "#fff7ed" }}
+                                        onMouseEnter={e => e.currentTarget.style.background = "#ffedd5"}
+                                        onMouseLeave={e => e.currentTarget.style.background = "#fff7ed"}>
+                                        + Create "{assignTA.query.trim()}"
+                                      </div>
+                                    )}
+                                  </>
+                                );
+                              })()}
+                            </div>
+                          </div>
+                        ) : (
+                          <button onClick={() => setAssignTA({ rowIdx: i, query: "" })}
+                            style={{ border: "1.5px dashed #cbd5e1", borderRadius: 8, padding: "5px 10px", fontSize: 12, color: "#94a3b8", background: "#fafafa", cursor: "pointer" }}>
+                            + Assign contractor
+                          </button>
+                        )}
                       </td>
                       <td style={{ padding: "12px 16px", fontSize: 13, color: "#475569" }}>{fmt(item.budgeted)}</td>
                       <td style={{ padding: "12px 16px", fontSize: 13, fontWeight: 600, color: "#041830" }}>{fmt(item.spent)}</td>
