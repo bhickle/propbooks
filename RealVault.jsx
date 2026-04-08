@@ -5834,6 +5834,11 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
     if (deal.rehabItems && deal.rehabItems[itemIdx]) deal.rehabItems[itemIdx].contractors = next[itemIdx].contractors;
     bumpRehab();
     setAssignTA({ rowIdx: null, query: "" });
+    // Open the contractor edit modal pre-populated so the user can fill in trade/phone/etc.
+    // On close (save or cancel) they return to the Rehab tab where the row already shows the chip.
+    setConForm({ name, trade: "", phone: "", email: "", license: "", insuranceExpiry: "", notes: "", createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), userId: MOCK_USER.id });
+    setEditingConId(newCon.id);
+    setShowContractorModal(true);
   };
   const [deleteConfirm, setDeleteConfirm] = useState(null); // { type: "expense"|"contractor"|"rehab"|"milestone", item, index? }
   const [showDeleteDeal, setShowDeleteDeal] = useState(false);
