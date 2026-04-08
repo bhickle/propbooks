@@ -6290,7 +6290,7 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
             <span style={{ fontSize: 20, fontWeight: 800, color: profit >= 0 ? "#10b981" : "#ef4444" }}>{profit >= 0 ? "+" : ""}{fmt(profit)}</span>
           </div>
           <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4 }}>
-            <span style={{ fontSize: 13, color: "#94a3b8" }}>ROI on cash invested</span>
+            <span style={{ fontSize: 13, color: "#94a3b8", display: "flex", alignItems: "center" }}>ROI on cash invested<InfoTip text="Net Profit ÷ Total Cash Invested × 100. Measures return as a percentage of the actual cash you put into the deal." /></span>
             <span style={{ fontSize: 14, fontWeight: 700, color: "#3b82f6" }}>{roi}%</span>
           </div>
         </div>
@@ -6302,13 +6302,13 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
               {[
-                { label: "ARV", value: fmt(deal.arv) },
-                { label: "Rehab Budget", value: fmt(deal.rehabBudget) },
-                { label: "MAO (70% Rule)", value: fmt(mao70), color: "#3b82f6" },
-                { label: "Actual Purchase", value: fmt(deal.purchasePrice), color: deal.purchasePrice <= mao70 ? "#15803d" : "#b91c1c" },
+                { label: "ARV", value: fmt(deal.arv), tip: "After Repair Value — estimated market value once rehab is complete." },
+                { label: "Rehab Budget", value: fmt(deal.rehabBudget), tip: "Total planned renovation budget across all line items." },
+                { label: "MAO (70% Rule)", value: fmt(mao70), color: "#3b82f6", tip: "Maximum Allowable Offer = (ARV × 70%) − Rehab Budget. The 70% rule is a rule of thumb for flip offers to leave room for profit and costs." },
+                { label: "Actual Purchase", value: fmt(deal.purchasePrice), color: deal.purchasePrice <= mao70 ? "#15803d" : "#b91c1c", tip: "What you actually paid for the property. Green if at or under MAO, red if over." },
               ].map((m, i) => (
                 <div key={i} style={{ background: "#f8fafc", borderRadius: 8, padding: "10px 12px" }}>
-                  <p style={{ color: "#94a3b8", fontSize: 10, fontWeight: 600, textTransform: "uppercase", marginBottom: 2 }}>{m.label}</p>
+                  <p style={{ color: "#94a3b8", fontSize: 10, fontWeight: 600, textTransform: "uppercase", marginBottom: 2, display: "flex", alignItems: "center" }}>{m.label}<InfoTip text={m.tip} /></p>
                   <p style={{ color: m.color || "#041830", fontSize: 14, fontWeight: 700 }}>{m.value}</p>
                 </div>
               ))}
@@ -6360,19 +6360,19 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
         <RehabProgress items={rehabItems} />
         <div style={{ display: "flex", gap: 20, marginTop: 12 }}>
           <div style={{ flex: 1, background: "#f8fafc", borderRadius: 10, padding: "10px 14px", textAlign: "center" }}>
-            <p style={{ color: "#94a3b8", fontSize: 11, fontWeight: 600, textTransform: "uppercase", marginBottom: 2 }}>Budget</p>
+            <p style={{ color: "#94a3b8", fontSize: 11, fontWeight: 600, textTransform: "uppercase", marginBottom: 2, display: "flex", alignItems: "center", justifyContent: "center" }}>Budget<InfoTip text="Sum of budgeted amounts across all rehab line items for this deal." /></p>
             <p style={{ color: "#041830", fontSize: 16, fontWeight: 700 }}>{fmt(rehabTotalBudget)}</p>
           </div>
           <div style={{ flex: 1, background: "#f8fafc", borderRadius: 10, padding: "10px 14px", textAlign: "center" }}>
-            <p style={{ color: "#94a3b8", fontSize: 11, fontWeight: 600, textTransform: "uppercase", marginBottom: 2 }}>Spent</p>
+            <p style={{ color: "#94a3b8", fontSize: 11, fontWeight: 600, textTransform: "uppercase", marginBottom: 2, display: "flex", alignItems: "center", justifyContent: "center" }}>Spent<InfoTip text="Sum of amounts spent to date across all rehab line items. Red if over budget." /></p>
             <p style={{ color: rehabTotalSpent > rehabTotalBudget ? "#b91c1c" : "#041830", fontSize: 16, fontWeight: 700 }}>{fmt(rehabTotalSpent)}</p>
           </div>
           <div style={{ flex: 1, background: "#f8fafc", borderRadius: 10, padding: "10px 14px", textAlign: "center" }}>
-            <p style={{ color: "#94a3b8", fontSize: 11, fontWeight: 600, textTransform: "uppercase", marginBottom: 2 }}>Remaining</p>
+            <p style={{ color: "#94a3b8", fontSize: 11, fontWeight: 600, textTransform: "uppercase", marginBottom: 2, display: "flex", alignItems: "center", justifyContent: "center" }}>Remaining<InfoTip text="Budget − Spent. Shown as 0 if over budget (see Spent for overage)." /></p>
             <p style={{ color: "#3b82f6", fontSize: 16, fontWeight: 700 }}>{fmt(Math.max(0, rehabTotalBudget - rehabTotalSpent))}</p>
           </div>
           <div style={{ flex: 1, background: "#f8fafc", borderRadius: 10, padding: "10px 14px", textAlign: "center" }}>
-            <p style={{ color: "#94a3b8", fontSize: 11, fontWeight: 600, textTransform: "uppercase", marginBottom: 2 }}>Items</p>
+            <p style={{ color: "#94a3b8", fontSize: 11, fontWeight: 600, textTransform: "uppercase", marginBottom: 2, display: "flex", alignItems: "center", justifyContent: "center" }}>Items<InfoTip text="Rehab line items marked complete out of the total count for this deal." /></p>
             <p style={{ color: "#041830", fontSize: 16, fontWeight: 700 }}>{rehabComplete}/{rehabItems.length} done</p>
           </div>
         </div>
@@ -6407,10 +6407,23 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
 
       {activeTab === "rehab" && (
       <div>
+        {/* Stat cards — matches RehabTracker pattern */}
+        {(() => {
+          const rehabBudgetLeft = rehabTotalBudget - rehabTotalSpent;
+          const rehabInProgress = rehabItems.filter(i => i.status === "in-progress").length;
+          return (
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 24 }}>
+              <StatCard icon={Target}      label="Total Budget"  value={fmt(rehabTotalBudget)} sub="This deal"                                     color="#3b82f6" tip="Sum of budgeted amounts across all rehab line items for this deal." />
+              <StatCard icon={Receipt}     label="Total Spent"   value={fmt(rehabTotalSpent)}  sub="To date"                                       color="#e95e00" tip="Sum of amounts spent to date across all rehab line items for this deal." />
+              <StatCard icon={DollarSign}  label="Budget Left"   value={fmt(rehabBudgetLeft)}  sub={rehabBudgetLeft < 0 ? "OVER BUDGET" : "Remaining"} color={rehabBudgetLeft < 0 ? "#ef4444" : "#10b981"} tip="Total Budget − Total Spent. Negative means over budget." />
+              <StatCard icon={CheckCircle} label="Tasks Done"    value={`${rehabComplete}/${rehabItems.length}`} sub={`${rehabInProgress} in progress`} color="#8b5cf6" tip="Completed rehab line items out of the total for this deal." />
+            </div>
+          );
+        })()}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
           <div>
             <p style={{ color: "#64748b", fontSize: 14 }}>
-              {rehabItems.length} item{rehabItems.length !== 1 ? "s" : ""} . <strong style={{ color: "#041830" }}>{fmt(rehabTotalBudget)}</strong> budget . <strong style={{ color: rehabTotalSpent > rehabTotalBudget ? "#b91c1c" : "#041830" }}>{fmt(rehabTotalSpent)}</strong> spent
+              {rehabItems.length} item{rehabItems.length !== 1 ? "s" : ""}
             </p>
           </div>
           <button onClick={() => { setEditingRehabIdx(null); setRehabForm(emptyRehab); setShowAddRehab(true); }} style={{ background: "#e95e00", color: "#fff", border: "none", borderRadius: 10, padding: "10px 16px", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
@@ -6517,7 +6530,12 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
                             </select>
                           )}
                           {dealContractorsList.length === 0 && assigned.length === 0 && (
-                            <span style={{ fontSize: 12, color: "#cbd5e1", fontStyle: "italic" }}>No contractors</span>
+                            <button onClick={(e) => { e.stopPropagation(); setEditingConId(null); setConForm(emptyCon); setShowContractorModal(true); }}
+                              onMouseEnter={e => { e.currentTarget.style.background = "#fff7ed"; e.currentTarget.style.borderColor = "#fdba74"; e.currentTarget.style.color = "#c2410c"; }}
+                              onMouseLeave={e => { e.currentTarget.style.background = "#fafafa"; e.currentTarget.style.borderColor = "#cbd5e1"; e.currentTarget.style.color = "#94a3b8"; }}
+                              style={{ display: "flex", alignItems: "center", gap: 4, border: "1.5px dashed #cbd5e1", borderRadius: 8, padding: "4px 10px", fontSize: 12, fontWeight: 600, color: "#94a3b8", background: "#fafafa", cursor: "pointer", transition: "all 0.15s" }}>
+                              <Plus size={12} /> Add contractor
+                            </button>
                           )}
                         </div>
                       </td>
@@ -6736,7 +6754,7 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
               const total = flipExpenses.filter(e => subs.includes(e.category)).reduce((s, e) => s + e.amount, 0);
               return (
                 <div key={group} style={{ background: "#fff", borderRadius: 12, padding: "12px 16px", boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9", minWidth: 130, flex: "1 0 auto" }}>
-                  <p style={{ color: "#94a3b8", fontSize: 10, fontWeight: 600, textTransform: "uppercase", marginBottom: 4, whiteSpace: "nowrap" }}>{group}</p>
+                  <p style={{ color: "#94a3b8", fontSize: 10, fontWeight: 600, textTransform: "uppercase", marginBottom: 4, whiteSpace: "nowrap", display: "flex", alignItems: "center" }}>{group}<InfoTip text={`Sum of ${group} expenses for this deal. Includes categories: ${subs.join(", ")}.`} /></p>
                   <p style={{ color: total > 0 ? "#041830" : "#cbd5e1", fontSize: 16, fontWeight: 700 }}>{total > 0 ? fmt(total) : "-"}</p>
                 </div>
               );
@@ -6986,15 +7004,15 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
                     </div>
                     <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
                       <div style={{ background: "#f8fafc", borderRadius: 10, padding: "10px 12px" }}>
-                        <p style={{ color: "#94a3b8", fontSize: 10, fontWeight: 600, textTransform: "uppercase", marginBottom: 3 }}>Bids (This Deal)</p>
+                        <p style={{ color: "#94a3b8", fontSize: 10, fontWeight: 600, textTransform: "uppercase", marginBottom: 3, display: "flex", alignItems: "center" }}>Bids (This Deal)<InfoTip text="Number of bids this contractor has submitted on this deal. Pending count shown in parentheses if any are awaiting acceptance." /></p>
                         <p style={{ color: "#041830", fontSize: 13, fontWeight: 700 }}>{t.bidCount}{t.pendingBids > 0 ? ` (${t.pendingBids} pending)` : ""}</p>
                       </div>
                       <div style={{ background: "#f8fafc", borderRadius: 10, padding: "10px 12px" }}>
-                        <p style={{ color: "#94a3b8", fontSize: 10, fontWeight: 600, textTransform: "uppercase", marginBottom: 3 }}>Total Bid</p>
+                        <p style={{ color: "#94a3b8", fontSize: 10, fontWeight: 600, textTransform: "uppercase", marginBottom: 3, display: "flex", alignItems: "center" }}>Total Bid<InfoTip text="Sum of all accepted bid amounts from this contractor on this deal." /></p>
                         <p style={{ color: "#041830", fontSize: 13, fontWeight: 700 }}>{fmt(t.totalBid)}</p>
                       </div>
                       <div style={{ background: t.owed > 0 ? "#fff7ed" : t.totalBid > 0 ? "#dcfce7" : "#f8fafc", borderRadius: 10, padding: "10px 12px" }}>
-                        <p style={{ color: "#94a3b8", fontSize: 10, fontWeight: 600, textTransform: "uppercase", marginBottom: 3 }}>Balance Owed</p>
+                        <p style={{ color: "#94a3b8", fontSize: 10, fontWeight: 600, textTransform: "uppercase", marginBottom: 3, display: "flex", alignItems: "center" }}>Balance Owed<InfoTip text="Total Bid − Paid to Date. What you still owe this contractor on this deal." /></p>
                         <p style={{ color: t.owed > 0 ? "#9a3412" : "#15803d", fontSize: 13, fontWeight: 700 }}>{t.totalBid > 0 ? (t.owed > 0 ? fmt(t.owed) : "Paid in full") : "—"}</p>
                       </div>
                     </div>
