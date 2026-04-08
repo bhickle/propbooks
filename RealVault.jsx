@@ -5908,6 +5908,7 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
   // Contractor edit state
   const emptyCon = { name: "", trade: "", phone: "", email: "", license: "", insuranceExpiry: "", notes: "", createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), userId: MOCK_USER.id };
   const [conForm, setConForm] = useState(emptyCon);
+  const [highlightConId, setHighlightConId] = useState(null);
   const sfC = k => e => setConForm(f => ({ ...f, [k]: e.target.value }));
   const [editingConId, setEditingConId] = useState(null);
   const openEditCon = (c) => {
@@ -6035,11 +6036,9 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
       const newCon = { id: newId(), name: conForm.name, trade: conForm.trade, phone: conForm.phone, email: conForm.email || "", license: conForm.license || null, insuranceExpiry: conForm.insuranceExpiry || null, rating: 0, notes: conForm.notes || "", dealIds: [deal.id], bids: [], payments: [], documents: [] };
       CONTRACTORS.push(newCon);
       setConData(prev => [...prev, newCon]);
-      setConForm(emptyCon);
-      setShowContractorModal(false);
-      // Jump to the contractor screen and open the bid modal pre-scoped to this deal
-      if (onNavigateToContractor) onNavigateToContractor(newCon, "bids", deal.id);
-      return;
+      // Highlight the just-added contractor on the tile for a few seconds
+      setHighlightConId(newCon.id);
+      setTimeout(() => setHighlightConId(h => h === newCon.id ? null : h), 3500);
     }
     setConForm(emptyCon);
     setShowContractorModal(false);
@@ -6057,8 +6056,9 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
     setConData(prev => prev.some(c => c.id === conId) ? prev : [...prev, CONTRACTORS[gi]]);
     setShowContractorModal(false);
     setConForm(emptyCon);
-    // Jump to the contractor screen and open the bid modal pre-scoped to this deal
-    if (onNavigateToContractor) onNavigateToContractor(CONTRACTORS[gi], "bids", deal.id);
+    // Highlight the newly attached contractor on the tile for a few seconds
+    setHighlightConId(conId);
+    setTimeout(() => setHighlightConId(h => h === conId ? null : h), 3500);
   };
 
   const handleStageChange = (e) => {
@@ -6929,11 +6929,14 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
                 const t = conTotals(c);
                 const pct = t.totalBid > 0 ? Math.min(100, Math.round((t.totalPaid / t.totalBid) * 100)) : 0;
                 const stop = e => e.stopPropagation();
+                const isHighlighted = highlightConId === c.id;
                 return (
-                  <div key={c.id} onClick={() => onNavigateToContractor && onNavigateToContractor(c)}
-                    onMouseEnter={e => { if (onNavigateToContractor) { e.currentTarget.style.background = "#f8fafc"; e.currentTarget.style.borderColor = "#e2e8f0"; } }}
-                    onMouseLeave={e => { e.currentTarget.style.background = "#fff"; e.currentTarget.style.borderColor = "#f1f5f9"; }}
-                    style={{ background: "#fff", borderRadius: 16, padding: 20, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9", cursor: onNavigateToContractor ? "pointer" : "default", transition: "background 0.15s, border-color 0.15s" }}>
+                  <div key={c.id}
+                    ref={el => { if (el && isHighlighted) { el.scrollIntoView({ behavior: "smooth", block: "center" }); } }}
+                    onClick={() => onNavigateToContractor && onNavigateToContractor(c)}
+                    onMouseEnter={e => { if (onNavigateToContractor && !isHighlighted) { e.currentTarget.style.background = "#f8fafc"; e.currentTarget.style.borderColor = "#e2e8f0"; } }}
+                    onMouseLeave={e => { if (!isHighlighted) { e.currentTarget.style.background = "#fff"; e.currentTarget.style.borderColor = "#f1f5f9"; } }}
+                    style={{ background: isHighlighted ? "#fff7ed" : "#fff", borderRadius: 16, padding: 20, boxShadow: isHighlighted ? "0 0 0 3px #fed7aa, 0 4px 14px rgba(233,94,0,0.15)" : "0 1px 3px rgba(0,0,0,0.06)", border: isHighlighted ? "1px solid #fdba74" : "1px solid #f1f5f9", cursor: onNavigateToContractor ? "pointer" : "default", transition: "background 0.3s, border-color 0.3s, box-shadow 0.3s" }}>
                     <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 14 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                         <div style={{ width: 42, height: 42, borderRadius: 12, background: "#f1f5f9", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -10581,7 +10584,6 @@ function AppShell() {
   const [propDetailTenantHighlight, setPropDetailTenantHighlight] = useState(null); // tenant id to highlight in PropertyDetail
   const [selectedContractor, setSelectedContractor] = useState(null);
   const [contractorInitialTab, setContractorInitialTab] = useState(null);
-  const [contractorOpenBidForDealId, setContractorOpenBidForDealId] = useState(null);
   const [selectedTenant, setSelectedTenant] = useState(null);
   const [selectedRehabItem, setSelectedRehabItem] = useState(null); // { dealId, itemIdx }
   const [convertDealData, setConvertDealData] = useState(null); // deal data to pre-fill Add Property for flip-to-rental conversion
@@ -10796,7 +10798,7 @@ function AppShell() {
           {activeView === "reports" && <Reports />}
           {activeView === "dealdashboard"   && <DealDashboard onSelect={(f, tab) => handleDealSelect(f, tab, "dealdashboard")} onNavigateToNote={(noteId) => { setHighlightDealNoteId(noteId); setNavSource("dealdashboard"); setActiveView("notes"); }} onNavigateToExpense={(expId) => { setHighlightExpId(expId); setNavSource("dealdashboard"); setActiveView("dealexpenses"); }} onNavigateToMilestone={(msKey) => { setHighlightMilestoneKey(msKey); setNavSource("dealdashboard"); setActiveView("dealmilestones"); }} />}
           {activeView === "deals"           && <DealPipeline onSelect={(f, tab) => handleDealSelect(f, tab, "deals")} />}
-          {activeView === "dealDetail"      && selectedDeal && <ErrorBoundary key={"eb-" + selectedDeal.id}><DealDetail key={selectedDeal.id + "-" + (dealInitialTab || "overview")} deal={selectedDeal} onBack={() => { setActiveView(dealNavSource || "deals"); setDealNavSource(null); setPrevDealNavSource(null); setDealInitialTab(null); }} backLabel={dealNavSource === "dealdashboard" ? "Back to Dashboard" : dealNavSource === "portfolio" ? "Back to Portfolio" : "Back to Deals"} onNavigateToExpense={navigateToDealExpense} onNavigateToContractor={(con, tab, openBidForDealId) => { setSelectedContractor(con); setContractorInitialTab(tab || null); setContractorOpenBidForDealId(openBidForDealId || null); setPrevDealNavSource(dealNavSource); setNavSource("dealDetail"); setActiveView("contractorDetail"); }} onNavigateToRehabItem={(idx) => { setSelectedRehabItem({ dealId: selectedDeal.id, itemIdx: idx }); setNavSource("dealDetail"); setPrevDealNavSource(dealNavSource); setActiveView("rehabItemDetail"); }} initialTab={dealInitialTab} onConvertToRental={(flipData) => { setConvertDealData(flipData); setActiveView("properties"); }} onDealUpdated={onDealUpdated} onNavigateToDeal={(f) => handleDealSelect(f, null, dealNavSource || "deals")} /></ErrorBoundary>}
+          {activeView === "dealDetail"      && selectedDeal && <ErrorBoundary key={"eb-" + selectedDeal.id}><DealDetail key={selectedDeal.id + "-" + (dealInitialTab || "overview")} deal={selectedDeal} onBack={() => { setActiveView(dealNavSource || "deals"); setDealNavSource(null); setPrevDealNavSource(null); setDealInitialTab(null); }} backLabel={dealNavSource === "dealdashboard" ? "Back to Dashboard" : dealNavSource === "portfolio" ? "Back to Portfolio" : "Back to Deals"} onNavigateToExpense={navigateToDealExpense} onNavigateToContractor={(con, tab) => { setSelectedContractor(con); setContractorInitialTab(tab || null); setPrevDealNavSource(dealNavSource); setNavSource("dealDetail"); setActiveView("contractorDetail"); }} onNavigateToRehabItem={(idx) => { setSelectedRehabItem({ dealId: selectedDeal.id, itemIdx: idx }); setNavSource("dealDetail"); setPrevDealNavSource(dealNavSource); setActiveView("rehabItemDetail"); }} initialTab={dealInitialTab} onConvertToRental={(flipData) => { setConvertDealData(flipData); setActiveView("properties"); }} onDealUpdated={onDealUpdated} onNavigateToDeal={(f) => handleDealSelect(f, null, dealNavSource || "deals")} /></ErrorBoundary>}
           {activeView === "dealrehab"        && <RehabTracker onSelectRehabItem={(dealId, idx) => { setSelectedRehabItem({ dealId, itemIdx: idx }); setNavSource("dealrehab"); setActiveView("rehabItemDetail"); }} />}
           {activeView === "rehabItemDetail" && selectedRehabItem && (() => {
             const rDeal = DEALS.find(f => f.id === selectedRehabItem.dealId);
@@ -10826,7 +10828,7 @@ function AppShell() {
           })()}
           {activeView === "dealexpenses"    && <DealExpenses highlightExpId={highlightExpId} onBack={navSource === "dealDetail" ? () => { setActiveView("dealDetail"); setHighlightExpId(null); setNavSource(null); setDealNavSource(prevDealNavSource); setPrevDealNavSource(null); } : navSource === "dealdashboard" ? () => { setActiveView("dealdashboard"); setHighlightExpId(null); setNavSource(null); } : navSource === "portfolio" ? () => { setActiveView("portfolio"); setHighlightExpId(null); setNavSource(null); } : null} backLabel={navSource === "dealdashboard" ? "Back to Dashboard" : navSource === "portfolio" ? "Back to Portfolio" : "Back to Deal"} onClearHighlight={() => setHighlightExpId(null)} />}
           {activeView === "dealcontractors" && <DealContractors onSelectContractor={handleSelectContractor} />}
-          {activeView === "contractorDetail" && selectedContractor && <ContractorDetail contractor={selectedContractor} initialTab={contractorInitialTab} openBidForDealId={contractorOpenBidForDealId} onBack={() => { setSelectedContractor(null); setContractorInitialTab(null); setContractorOpenBidForDealId(null); if (navSource === "dealDetail" && selectedDeal) { setActiveView("dealDetail"); setDealInitialTab("contractors"); setNavSource(null); setDealNavSource(prevDealNavSource); setPrevDealNavSource(null); } else if (navSource === "rehabItemDetail" && selectedRehabItem) { setActiveView("rehabItemDetail"); setNavSource("dealDetail"); } else { setActiveView("dealcontractors"); } }} />}
+          {activeView === "contractorDetail" && selectedContractor && <ContractorDetail contractor={selectedContractor} initialTab={contractorInitialTab} onBack={() => { setSelectedContractor(null); setContractorInitialTab(null); if (navSource === "dealDetail" && selectedDeal) { setActiveView("dealDetail"); setDealInitialTab("contractors"); setNavSource(null); setDealNavSource(prevDealNavSource); setPrevDealNavSource(null); } else if (navSource === "rehabItemDetail" && selectedRehabItem) { setActiveView("rehabItemDetail"); setNavSource("dealDetail"); } else { setActiveView("dealcontractors"); } }} />}
           {activeView === "dealmilestones"  && <DealMilestones highlightMilestoneKey={highlightMilestoneKey} onBack={navSource === "dealdashboard" ? () => { setActiveView("dealdashboard"); setHighlightMilestoneKey(null); setNavSource(null); } : null} onClearHighlight={() => setHighlightMilestoneKey(null)} />}
           {activeView === "dealnotes"       && <UnifiedNotes highlightDealNoteId={highlightDealNoteId} onBack={navSource === "dealdashboard" ? () => { setActiveView("dealdashboard"); setHighlightDealNoteId(null); setNavSource(null); } : null} onClearHighlight={() => setHighlightDealNoteId(null)} />}
           {activeView === "dealanalytics"   && <DealAnalytics />}
