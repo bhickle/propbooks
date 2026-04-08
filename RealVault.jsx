@@ -23,7 +23,7 @@ import {
   getProperties, addProperty, getTransactions, addTransaction,
   getMonthlyCashFlow, getEquityGrowth, getExpenseCategories,
   getDeals, addDeal, updateDeal,
-  getDealExpenses, addDealExpense, getContractors, addContractor, CONTRACTORS,
+  getDealExpenses, addDealExpense, getContractors, addContractor, CONTRACTORS, DEAL_EXPENSES,
   CONTRACTOR_BIDS, CONTRACTOR_PAYMENTS, CONTRACTOR_DOCUMENTS,
   getDealMilestones, updateDealMilestones, DEAL_MILESTONES,
   getTenants, getMileageTrips, addMileageTrip, RENTAL_NOTES, DEAL_NOTES, GENERAL_NOTES, TEAM_MEMBERS, MOCK_USER,
@@ -419,25 +419,7 @@ const getFlipExpGroup = (cat) => {
   return "General";
 };
 
-const DEAL_EXPENSES = [
-  { id: 1, dealId: 1, date: "2026-03-18", vendor: "Home Depot", category: "Materials & Supplies", description: "Hardwood flooring - 680 sqft", amount: 2890 },
-  { id: 2, dealId: 1, date: "2026-03-15", vendor: "ABC Plumbing", category: "Subcontractor", description: "Master bath rough-in", amount: 3200 },
-  { id: 3, dealId: 1, date: "2026-03-10", vendor: "Lowe's", category: "Fixtures & Hardware", description: "Kitchen cabinet hardware + fixtures", amount: 640 },
-  { id: 4, dealId: 1, date: "2026-03-04", vendor: "City of Nashville", category: "Permits", description: "Renovation permit", amount: 380 },
-  { id: 5, dealId: 1, date: "2026-02-28", vendor: "Elite Electric", category: "Subcontractor", description: "Panel upgrade + recessed lighting", amount: 4100 },
-  { id: 6, dealId: 1, date: "2026-02-20", vendor: "Lowe's", category: "Materials & Supplies", description: "Kitchen cabinets - shaker style", amount: 5800 },
-  { id: 7, dealId: 1, date: "2026-02-14", vendor: "Budget Dumpster", category: "Dumpster / Debris Removal", description: "Demo debris removal", amount: 420 },
-  { id: 8, dealId: 2, date: "2026-01-12", vendor: "Sherwin-Williams", category: "Materials & Supplies", description: "Interior/exterior paint + supplies", amount: 1150 },
-  { id: 9, dealId: 2, date: "2026-01-08", vendor: "Pro Flooring Co.", category: "Subcontractor", description: "LVP install - 1,100 sqft", amount: 3900 },
-  { id: 10, dealId: 2, date: "2025-12-20", vendor: "Home Depot", category: "Appliances", description: "Stainless appliance package", amount: 2400 },
-  { id: 11, dealId: 2, date: "2025-12-10", vendor: "Jim's Windows", category: "Subcontractor", description: "Replace 8 windows", amount: 5400 },
-  { id: 12, dealId: 2, date: "2025-11-18", vendor: "City of Memphis", category: "Permits", description: "Electrical & structural permits", amount: 295 },
-  { id: 13, dealId: 4, date: "2025-07-02", vendor: "Summit HVAC", category: "Subcontractor", description: "Full HVAC replacement", amount: 7200 },
-  { id: 14, dealId: 4, date: "2025-06-15", vendor: "Habitat Flooring", category: "Materials & Supplies", description: "Engineered hardwood - whole house", amount: 4300 },
-  { id: 15, dealId: 4, date: "2025-06-01", vendor: "Raleigh Tile Co.", category: "Subcontractor", description: "Master bath tile work", amount: 3100 },
-];
-
-// CONTRACTORS imported from api.js below
+// DEAL_EXPENSES and CONTRACTORS imported from api.js above
 
 // DEFAULT_MILESTONES imported from api.js
 // DEAL_MILESTONES is now imported as a flat array from api.js

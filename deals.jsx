@@ -1089,10 +1089,18 @@ export function DealExpenses({ highlightExpId, onBack, onClearHighlight, backLab
         if (oldItem) oldItem.spent = Math.max(0, oldItem.spent - oldExp.amount);
       }
       setExpenses(prev => prev.map(e => e.id === editId ? { ...e, ...built } : e));
+      // Persist to shared DEAL_EXPENSES array so other screens (RehabItemDetail, etc.) see the change
+      const globalIdx = _FE.findIndex(e => e.id === editId);
+      if (globalIdx !== -1) {
+        _FE[globalIdx] = { ..._FE[globalIdx], ...built };
+      }
       dealReceipts.filter(r => !DEAL_EXPENSE_RECEIPTS.some(er => er.id === r.id)).forEach(r => addDealExpenseReceipt({ ...r, expenseId: editId }));
     } else {
       const expId = newId();
-      setExpenses(prev => [{ id: expId, ...built }, ...prev]);
+      const newExp = { id: expId, ...built };
+      setExpenses(prev => [newExp, ...prev]);
+      // Persist to shared DEAL_EXPENSES array
+      _FE.unshift(newExp);
       dealReceipts.forEach(r => addDealExpenseReceipt({ ...r, expenseId: expId }));
     }
     // Update rehab item spent
@@ -1386,7 +1394,7 @@ export function DealExpenses({ highlightExpId, onBack, onClearHighlight, backLab
             <p style={{ color: "#94a3b8", fontSize: 12, marginBottom: 18 }}>This action cannot be undone.</p>
             <div style={{ display: "flex", gap: 10 }}>
               <button onClick={() => setDeleteConfirm(null)} style={{ flex: 1, padding: "12px", border: "1px solid #e2e8f0", borderRadius: 10, background: "#fff", color: "#475569", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
-              <button onClick={() => { setExpenses(prev => prev.filter(x => x.id !== deleteConfirm.id)); setDeleteConfirm(null); }} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "#ef4444", color: "#fff", fontWeight: 700, cursor: "pointer" }}>Delete</button>
+              <button onClick={() => { setExpenses(prev => prev.filter(x => x.id !== deleteConfirm.id)); const gi = _FE.findIndex(e => e.id === deleteConfirm.id); if (gi !== -1) _FE.splice(gi, 1); setDeleteConfirm(null); }} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "#ef4444", color: "#fff", fontWeight: 700, cursor: "pointer" }}>Delete</button>
             </div>
           </div>
         </div>
