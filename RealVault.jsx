@@ -5799,8 +5799,9 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
     if (deal.rehabItems && deal.rehabItems[itemIdx]) deal.rehabItems[itemIdx].contractors = next[itemIdx].contractors;
     bumpRehab();
   };
-  // Option 2 — single "Assigned To" per rehab line item with create-on-the-fly typeahead
+  // Option 2 — single "Assigned To" per rehab line item with typeahead + Add-new button
   const [assignTA, setAssignTA] = useState({ rowIdx: null, query: "" });
+  const [pendingAssignRowIdx, setPendingAssignRowIdx] = useState(null);
   const assignContractorToRow = (itemIdx, contractorId) => {
     // Auto-attach to this deal if not already
     const gi = CONTRACTORS.findIndex(c => c.id === contractorId);
@@ -5820,24 +5821,13 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
     bumpRehab();
     setAssignTA({ rowIdx: null, query: "" });
   };
-  const createAndAssignContractor = (itemIdx, rawName) => {
-    const name = (rawName || "").trim();
-    if (!name) return;
-    const newCon = { id: newId(), name, trade: "", phone: "", email: "", license: null, insuranceExpiry: null, rating: 0, notes: "", dealIds: [deal.id], bids: [], payments: [], documents: [] };
-    CONTRACTORS.push(newCon);
-    setConData(prev => [...prev, newCon]);
-    const item = rehabItems[itemIdx];
-    if (!item) return;
-    const next = [...rehabItems];
-    next[itemIdx] = { ...item, contractors: [{ id: newCon.id, bid: 0 }] };
-    setRehabItems(next);
-    if (deal.rehabItems && deal.rehabItems[itemIdx]) deal.rehabItems[itemIdx].contractors = next[itemIdx].contractors;
-    bumpRehab();
+  // Open the Add Contractor modal from a rehab row's typeahead.
+  // Stores the originating row so handleSaveCon can auto-assign the new contractor when saved.
+  const openAddContractorForRow = (itemIdx, prefillName) => {
+    setPendingAssignRowIdx(itemIdx);
     setAssignTA({ rowIdx: null, query: "" });
-    // Open the contractor edit modal pre-populated so the user can fill in trade/phone/etc.
-    // On close (save or cancel) they return to the Rehab tab where the row already shows the chip.
-    setConForm({ name, trade: "", phone: "", email: "", license: "", insuranceExpiry: "", notes: "", createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), userId: MOCK_USER.id });
-    setEditingConId(newCon.id);
+    setConForm({ name: (prefillName || "").trim(), trade: "", phone: "", email: "", license: "", insuranceExpiry: "", notes: "", createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), userId: MOCK_USER.id });
+    setEditingConId(null);
     setShowContractorModal(true);
   };
   const [deleteConfirm, setDeleteConfirm] = useState(null); // { type: "expense"|"contractor"|"rehab"|"milestone", item, index? }
@@ -6097,6 +6087,19 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
       // Highlight the just-added contractor on the tile for a few seconds
       setHighlightConId(newCon.id);
       setTimeout(() => setHighlightConId(h => h === newCon.id ? null : h), 3500);
+      // If this Add was triggered from a rehab row's typeahead, auto-assign to that row
+      if (pendingAssignRowIdx != null) {
+        const idx = pendingAssignRowIdx;
+        const item = rehabItems[idx];
+        if (item) {
+          const next = [...rehabItems];
+          next[idx] = { ...item, contractors: [{ id: newCon.id, bid: 0 }] };
+          setRehabItems(next);
+          if (deal.rehabItems && deal.rehabItems[idx]) deal.rehabItems[idx].contractors = next[idx].contractors;
+          bumpRehab();
+        }
+        setPendingAssignRowIdx(null);
+      }
     }
     setConForm(emptyCon);
     setShowContractorModal(false);
@@ -6576,11 +6579,10 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
                               {(() => {
                                 const q = assignTA.query.trim().toLowerCase();
                                 const matches = CONTRACTORS.filter(c => !q || c.name.toLowerCase().includes(q)).slice(0, 8);
-                                const exact = q && CONTRACTORS.some(c => c.name.toLowerCase() === q);
                                 return (
                                   <>
-                                    {matches.length === 0 && !q && (
-                                      <div style={{ padding: "8px 12px", fontSize: 12, color: "#94a3b8" }}>No contractors yet — type a name to create one</div>
+                                    {matches.length === 0 && (
+                                      <div style={{ padding: "8px 12px", fontSize: 12, color: "#94a3b8" }}>{q ? "No matches" : "No contractors yet"}</div>
                                     )}
                                     {matches.map(c => {
                                       const onDeal = (c.dealIds || []).includes(deal.id);
@@ -6595,14 +6597,12 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
                                         </div>
                                       );
                                     })}
-                                    {q && !exact && (
-                                      <div onMouseDown={e => { e.preventDefault(); createAndAssignContractor(i, assignTA.query); }}
-                                        style={{ padding: "8px 12px", fontSize: 12, cursor: "pointer", color: "#e95e00", fontWeight: 700, background: "#fff7ed" }}
-                                        onMouseEnter={e => e.currentTarget.style.background = "#ffedd5"}
-                                        onMouseLeave={e => e.currentTarget.style.background = "#fff7ed"}>
-                                        + Create "{assignTA.query.trim()}"
-                                      </div>
-                                    )}
+                                    <div onMouseDown={e => { e.preventDefault(); openAddContractorForRow(i, assignTA.query); }}
+                                      style={{ padding: "10px 12px", fontSize: 12, cursor: "pointer", color: "#e95e00", fontWeight: 700, background: "#fff7ed", borderTop: "1px solid #f1f5f9", display: "flex", alignItems: "center", gap: 6 }}
+                                      onMouseEnter={e => e.currentTarget.style.background = "#ffedd5"}
+                                      onMouseLeave={e => e.currentTarget.style.background = "#fff7ed"}>
+                                      <Plus size={12} /> Add new contractor{assignTA.query.trim() ? ` "${assignTA.query.trim()}"` : ""}
+                                    </div>
                                   </>
                                 );
                               })()}
@@ -7114,7 +7114,7 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
         </div>
       )}
       {showContractorModal && (
-        <Modal title={editingConId ? "Edit Contractor" : "Add Contractor"} onClose={() => { setShowContractorModal(false); setEditingConId(null); setConForm(emptyCon); }}>
+        <Modal title={editingConId ? "Edit Contractor" : "Add Contractor"} onClose={() => { setShowContractorModal(false); setEditingConId(null); setConForm(emptyCon); setPendingAssignRowIdx(null); }}>
           {!editingConId && (() => {
             const onDealIds = new Set((conData || []).map(c => c.id));
             const existingAvailable = CONTRACTORS.filter(c => !onDealIds.has(c.id));
@@ -7152,7 +7152,7 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
             <textarea style={{ ...iS, minHeight: 70, resize: "vertical" }} placeholder="Notes about this contractor..." value={conForm.notes} onChange={sfC("notes")} />
           </div>
           <div style={{ display: "flex", gap: 10 }}>
-            <button onClick={() => { setShowContractorModal(false); setEditingConId(null); setConForm(emptyCon); }} style={{ flex: 1, padding: "12px", border: "1px solid #e2e8f0", borderRadius: 10, background: "#fff", color: "#475569", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
+            <button onClick={() => { setShowContractorModal(false); setEditingConId(null); setConForm(emptyCon); setPendingAssignRowIdx(null); }} style={{ flex: 1, padding: "12px", border: "1px solid #e2e8f0", borderRadius: 10, background: "#fff", color: "#475569", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
             <button onClick={handleSaveCon} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "#e95e00", color: "#fff", fontWeight: 600, cursor: "pointer" }}>{editingConId ? "Save Changes" : "Add Contractor"}</button>
           </div>
         </Modal>
