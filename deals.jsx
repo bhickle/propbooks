@@ -1624,8 +1624,8 @@ export function DealContractors({ onSelectContractor }) {
 // ---------------------------------------------------------------------------
 // 4b. CONTRACTOR DETAIL
 // ---------------------------------------------------------------------------
-export function ContractorDetail({ contractor, onBack }) {
-  const [activeTab, setActiveTab] = useState("overview");
+export function ContractorDetail({ contractor, onBack, initialTab }) {
+  const [activeTab, setActiveTab] = useState(initialTab || "overview");
   const [, rerender] = useState(0);
   const [editMode, setEditMode] = useState(false);
   const [editForm, setEditForm] = useState({ name: contractor.name, trade: contractor.trade, phone: contractor.phone || "", email: contractor.email || "", license: contractor.license || "", insuranceExpiry: contractor.insuranceExpiry || "", notes: contractor.notes || "" });
