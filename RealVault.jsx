@@ -6414,10 +6414,16 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
                   const unassigned = dealContractorsList.filter(c => !assignedIds.includes(c.id));
                   const stop = e => e.stopPropagation();
                   return (
-                    <tr key={i} onClick={() => onNavigateToRehabItem && onNavigateToRehabItem(i)} style={{ borderTop: "1px solid #f1f5f9", cursor: onNavigateToRehabItem ? "pointer" : "default" }}>
+                    <tr key={i} onClick={() => onNavigateToRehabItem && onNavigateToRehabItem(i)}
+                      onMouseEnter={e => { if (onNavigateToRehabItem) e.currentTarget.style.background = "#f8fafc"; }}
+                      onMouseLeave={e => { e.currentTarget.style.background = "transparent"; }}
+                      style={{ borderTop: "1px solid #f1f5f9", cursor: onNavigateToRehabItem ? "pointer" : "default", transition: "background 0.15s" }}>
                       <td style={{ padding: "12px 16px", fontSize: 14, fontWeight: 600, color: "#041830" }}>
-                        {item.category}
-                        {(item.photos || []).length > 0 && <span style={{ marginLeft: 6, color: "#3b82f6", fontSize: 11 }} title={`${item.photos.length} photo(s)`}><Image size={12} style={{ display: "inline" }} /> {item.photos.length}</span>}
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                          {item.category}
+                          {(item.photos || []).length > 0 && <span style={{ color: "#3b82f6", fontSize: 11 }} title={`${item.photos.length} photo(s)`}><Image size={12} style={{ display: "inline" }} /> {item.photos.length}</span>}
+                          {onNavigateToRehabItem && <ChevronRight size={14} color="#cbd5e1" />}
+                        </span>
                       </td>
                       <td style={{ padding: "12px 16px", minWidth: 200 }} onClick={stop}>
                         <div style={{ display: "flex", flexWrap: "wrap", gap: 4, alignItems: "center" }}>
@@ -6843,20 +6849,24 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
               {flipContractors.map(c => {
                 const t = conTotals(c);
                 const pct = t.totalBid > 0 ? Math.min(100, Math.round((t.totalPaid / t.totalBid) * 100)) : 0;
+                const stop = e => e.stopPropagation();
                 return (
-                  <div key={c.id} style={{ background: "#fff", borderRadius: 16, padding: 20, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" }}>
+                  <div key={c.id} onClick={() => onNavigateToContractor && onNavigateToContractor(c)}
+                    onMouseEnter={e => { if (onNavigateToContractor) { e.currentTarget.style.background = "#f8fafc"; e.currentTarget.style.borderColor = "#e2e8f0"; } }}
+                    onMouseLeave={e => { e.currentTarget.style.background = "#fff"; e.currentTarget.style.borderColor = "#f1f5f9"; }}
+                    style={{ background: "#fff", borderRadius: 16, padding: 20, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9", cursor: onNavigateToContractor ? "pointer" : "default", transition: "background 0.15s, border-color 0.15s" }}>
                     <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 14 }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 12, cursor: onNavigateToContractor ? "pointer" : "default" }} onClick={() => onNavigateToContractor && onNavigateToContractor(c)}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                         <div style={{ width: 42, height: 42, borderRadius: 12, background: "#f1f5f9", display: "flex", alignItems: "center", justifyContent: "center" }}>
                           <UserCheck size={20} color="#64748b" />
                         </div>
                         <div>
-                          <p style={{ fontSize: 15, fontWeight: 700, color: onNavigateToContractor ? "#2563eb" : "#041830", transition: "color 0.15s" }}>{c.name}</p>
+                          <p style={{ fontSize: 15, fontWeight: 700, color: "#041830" }}>{c.name}</p>
                           <p style={{ fontSize: 12, color: "#94a3b8" }}>{c.trade}{c.phone ? ` · ${c.phone}` : ""}</p>
                         </div>
-                        {onNavigateToContractor && <ExternalLink size={14} color="#94a3b8" style={{ marginLeft: 4, flexShrink: 0 }} />}
+                        {onNavigateToContractor && <ChevronRight size={16} color="#cbd5e1" style={{ marginLeft: 4, flexShrink: 0 }} />}
                       </div>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }} onClick={stop}>
                         {c.rating > 0 && <span style={{ fontSize: 12, color: "#e95e00" }}>{"★".repeat(c.rating)}{"☆".repeat(5 - c.rating)}</span>}
                         <button onClick={() => openEditCon(c)} style={{ background: "#f1f5f9", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "#475569", display: "flex", alignItems: "center" }} title="Edit"><Pencil size={13} /></button>
                         <button onClick={() => setDeleteConfirm({ type: "contractor", item: c })} style={{ background: "#fee2e2", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "#ef4444", display: "flex", alignItems: "center" }} title="Delete"><Trash2 size={13} /></button>
@@ -6883,7 +6893,7 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
                           <div style={{ height: "100%", width: `${pct}%`, background: "#10b981", borderRadius: 99 }} />
                         </div>
                       </div>
-                      <button onClick={() => { setShowPaymentModal(c.id); setPaymentDate(new Date().toISOString().split("T")[0]); }} style={{ background: "#10b981", color: "#fff", border: "none", borderRadius: 8, padding: "6px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 5, whiteSpace: "nowrap", flexShrink: 0 }}>
+                      <button onClick={(e) => { e.stopPropagation(); setShowPaymentModal(c.id); setPaymentDate(new Date().toISOString().split("T")[0]); }} style={{ background: "#10b981", color: "#fff", border: "none", borderRadius: 8, padding: "6px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 5, whiteSpace: "nowrap", flexShrink: 0 }}>
                         <CreditCard size={12} /> Record Payment
                       </button>
                     </div>
