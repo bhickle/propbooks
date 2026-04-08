@@ -6819,12 +6819,13 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
           {showExpenseModal && (() => {
             const PaidToDropdown = () => {
               const q = (expForm.vendor || "").toLowerCase();
-              if (!q) return null;
-              // Contractors on this project
-              const conMatches = conData.filter(c => c.name.toLowerCase().includes(q));
-              // Previous vendors (excluding contractor names to avoid duplicates)
+              // Contractors on this project — show all on empty, filter on query
+              const conMatches = q ? conData.filter(c => c.name.toLowerCase().includes(q)) : conData.slice(0, 6);
+              // Previous vendors (excluding contractor names to avoid duplicates) — show first 6 on empty
               const conNames = new Set(conData.map(c => c.name.toLowerCase()));
-              const vendorMatches = allVendors.filter(v => v.toLowerCase().includes(q) && !conNames.has(v.toLowerCase()));
+              const vendorMatches = q
+                ? allVendors.filter(v => v.toLowerCase().includes(q) && !conNames.has(v.toLowerCase()))
+                : allVendors.filter(v => !conNames.has(v.toLowerCase())).slice(0, 6);
               const exactExists = allVendors.some(v => v.toLowerCase() === q) || conData.some(c => c.name.toLowerCase() === q);
               const showNew = q && !exactExists;
               if (conMatches.length === 0 && vendorMatches.length === 0 && !showNew) return null;
