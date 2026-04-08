@@ -1900,7 +1900,13 @@ export function ContractorDetail({ contractor, onBack, initialTab }) {
         <div>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
             <h3 style={{ fontSize: 16, fontWeight: 700, color: "#041830" }}>All Bids</h3>
-            <button onClick={() => setShowBidModal(true)} style={{ background: "#e95e00", color: "#fff", border: "none", borderRadius: 10, padding: "8px 16px", fontWeight: 600, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}><Plus size={14} /> Add Bid</button>
+            <button onClick={() => {
+              // Pre-select this contractor's deal if they're on exactly one
+              const firstDealId = (con.dealIds && con.dealIds.length > 0) ? String(con.dealIds[0]) : "";
+              setBidForm({ dealId: firstDealId, rehabItem: "", amount: "" });
+              setEditingBidId(null);
+              setShowBidModal(true);
+            }} style={{ background: "#e95e00", color: "#fff", border: "none", borderRadius: 10, padding: "8px 16px", fontWeight: 600, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}><Plus size={14} /> Add Bid</button>
           </div>
           <div style={{ background: "#fff", borderRadius: 16, border: "1px solid #f1f5f9", overflow: "hidden" }}>
             {bids.length === 0 && <div style={{ padding: 40, textAlign: "center", color: "#94a3b8", fontSize: 14 }}>No bids yet. Add a bid to get started.</div>}
@@ -2021,10 +2027,28 @@ export function ContractorDetail({ contractor, onBack, initialTab }) {
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               <div>
                 <p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Deal *</p>
-                <select style={iS} value={bidForm.dealId} onChange={e => setBidForm(f => ({ ...f, dealId: e.target.value, rehabItem: "" }))}>
-                  <option value="">Select deal...</option>
-                  {_DEALS.filter(f => f.stage !== "Sold").map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
-                </select>
+                {(() => {
+                  // Prefer deals this contractor is attached to; fall back to all active
+                  // deals only when the contractor has no linked deals yet.
+                  const conDealIds = new Set(con.dealIds || []);
+                  const myDeals = _DEALS.filter(f => conDealIds.has(f.id) && f.stage !== "Sold");
+                  const otherDeals = _DEALS.filter(f => !conDealIds.has(f.id) && f.stage !== "Sold");
+                  return (
+                    <select style={iS} value={bidForm.dealId} onChange={e => setBidForm(f => ({ ...f, dealId: e.target.value, rehabItem: "" }))}>
+                      <option value="">Select deal...</option>
+                      {myDeals.length > 0 && (
+                        <optgroup label={`${con.name}'s Deals`}>
+                          {myDeals.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
+                        </optgroup>
+                      )}
+                      {otherDeals.length > 0 && (
+                        <optgroup label="Other Active Deals">
+                          {otherDeals.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
+                        </optgroup>
+                      )}
+                    </select>
+                  );
+                })()}
               </div>
               <div style={{ position: "relative" }}>
                 <p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Rehab Item *</p>
