@@ -5893,7 +5893,7 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
   };
 
   // Expense edit state
-  const emptyExp = { date: "", vendor: "", category: "Materials & Supplies", description: "", amount: "", status: "paid", contractorId: "", createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), userId: MOCK_USER.id };
+  const emptyExp = { date: "", vendor: "", category: "Materials & Supplies", description: "", amount: "", status: "paid", contractorId: "", rehabItemIdx: "", createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), userId: MOCK_USER.id };
   const [expForm, setExpForm] = useState(emptyExp);
   const sfE = k => e => setExpForm(f => ({ ...f, [k]: e.target.value }));
   const [editingExpId, setEditingExpId] = useState(null);
@@ -5901,7 +5901,7 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
   const allVendors = [...new Set(expData.map(e => e.vendor).filter(Boolean))].sort();
   const openEditExp = (e) => {
     setEditingExpId(e.id);
-    setExpForm({ date: e.date, vendor: e.vendor, category: e.category, description: e.description, amount: String(e.amount), status: e.status || "paid", contractorId: e.contractorId || "", createdAt: e.createdAt || new Date().toISOString(), updatedAt: new Date().toISOString(), userId: e.userId || MOCK_USER.id });
+    setExpForm({ date: e.date, vendor: e.vendor, category: e.category, description: e.description, amount: String(e.amount), status: e.status || "paid", contractorId: e.contractorId || "", rehabItemIdx: e.rehabItemIdx != null ? String(e.rehabItemIdx) : "", createdAt: e.createdAt || new Date().toISOString(), updatedAt: new Date().toISOString(), userId: e.userId || MOCK_USER.id });
     setShowExpenseModal(true);
   };
 
@@ -5980,12 +5980,29 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
 
   const handleSaveExp = () => {
     if (!expForm.amount) return;
-    const parsed = { date: expForm.date || new Date().toISOString().split("T")[0], vendor: expForm.vendor || "Unknown", category: expForm.category, description: expForm.description, amount: parseFloat(expForm.amount) || 0, status: expForm.status || "paid", contractorId: expForm.contractorId || null };
+    const riIdx = expForm.rehabItemIdx !== "" ? parseInt(expForm.rehabItemIdx) : null;
+    const amt = parseFloat(expForm.amount) || 0;
+    const parsed = { date: expForm.date || new Date().toISOString().split("T")[0], vendor: expForm.vendor || "Unknown", category: expForm.category, description: expForm.description, amount: amt, status: expForm.status || "paid", contractorId: expForm.contractorId || null, rehabItemIdx: riIdx };
     if (editingExpId) {
+      // If the rehab item link or amount changed, adjust spent totals accordingly
+      const oldExp = expData.find(e => e.id === editingExpId);
+      if (oldExp) {
+        const oldIdx = oldExp.rehabItemIdx != null ? oldExp.rehabItemIdx : null;
+        const oldAmt = oldExp.amount || 0;
+        if (oldIdx != null && rehabItems[oldIdx]) {
+          setRehabItems(prev => prev.map((it, i) => i === oldIdx ? { ...it, spent: Math.max(0, (it.spent || 0) - oldAmt) } : it));
+          if (deal.rehabItems && deal.rehabItems[oldIdx]) deal.rehabItems[oldIdx] = { ...deal.rehabItems[oldIdx], spent: Math.max(0, (deal.rehabItems[oldIdx].spent || 0) - oldAmt) };
+        }
+      }
       setExpData(prev => prev.map(e => e.id === editingExpId ? { ...e, ...parsed } : e));
       setEditingExpId(null);
     } else {
       setExpData(prev => [{ id: newId(), dealId: deal.id, ...parsed }, ...prev]);
+    }
+    // Bump spent on the newly-linked rehab item
+    if (riIdx != null && rehabItems[riIdx]) {
+      setRehabItems(prev => prev.map((it, i) => i === riIdx ? { ...it, spent: (it.spent || 0) + amt } : it));
+      if (deal.rehabItems && deal.rehabItems[riIdx]) deal.rehabItems[riIdx] = { ...deal.rehabItems[riIdx], spent: (deal.rehabItems[riIdx].spent || 0) + amt };
     }
     setExpForm(emptyExp);
     setShowExpenseModal(false);
@@ -6882,7 +6899,7 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
                   <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Description</label>
                   <input type="text" placeholder="Brief description of what was purchased or done" value={expForm.description} onChange={sfE("description")} style={iS} />
                 </div>
-                <div style={{ gridColumn: "1 / -1" }}>
+                <div>
                   <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Category</label>
                   <select value={expForm.category} onChange={sfE("category")} style={iS}>
                     {Object.entries(FLIP_EXPENSE_GROUPS).map(([group, subs]) => (
@@ -6893,6 +6910,15 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
                   </select>
                 </div>
                 <div>
+                  <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Rehab Item <span style={{ color: "#94a3b8", fontWeight: 400 }}>(optional)</span></label>
+                  <select value={expForm.rehabItemIdx} onChange={sfE("rehabItemIdx")} style={iS}>
+                    <option value="">None — general expense</option>
+                    {rehabItems.map((item, idx) => (
+                      <option key={idx} value={idx}>{item.category} ({fmt(item.spent || 0)} / {fmt(item.budgeted || 0)})</option>
+                    ))}
+                  </select>
+                </div>
+                <div style={{ gridColumn: "1 / -1" }}>
                   <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Status</label>
                   <select value={expForm.status} onChange={sfE("status")} style={iS}>
                     <option value="paid">Paid</option>
