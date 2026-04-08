@@ -22,7 +22,7 @@ import {
   PROP_COLORS, DEAL_COLORS, STAGE_ORDER, STAGE_COLORS, DEFAULT_MILESTONES,
   getProperties, addProperty, getTransactions, addTransaction,
   getMonthlyCashFlow, getEquityGrowth, getExpenseCategories,
-  getDeals, addDeal, updateDeal,
+  getDeals, addDeal, updateDeal, DEALS,
   getDealExpenses, addDealExpense, getContractors, addContractor, CONTRACTORS, DEAL_EXPENSES,
   CONTRACTOR_BIDS, CONTRACTOR_PAYMENTS, CONTRACTOR_DOCUMENTS,
   getDealMilestones, updateDealMilestones, DEAL_MILESTONES,
@@ -339,70 +339,8 @@ const EXPENSE_CATEGORIES = [
   { name: "Other", value: 4, color: "#6b7280" },
 ];
 
-const DEALS = [
-  {
-    id: 1, name: "Oakdale Craftsman", address: "1422 Oakdale Ave, Nashville, TN 37206",
-    stage: "Active Rehab", image: "OC", color: "#e95e00",
-    purchasePrice: 195000, arv: 310000, rehabBudget: 62000, rehabSpent: 38500,
-    holdingCostsPerMonth: 1850, acquisitionDate: "2026-01-08", rehabStartDate: "2026-01-20",
-    projectedListDate: "2026-04-15", projectedCloseDate: "2026-05-30", daysOwned: 75,
-    rehabItems: [
-      { category: "Kitchen", budgeted: 18000, spent: 16200, status: "complete" },
-      { category: "Bathrooms (2)", budgeted: 12000, spent: 11500, status: "complete" },
-      { category: "Flooring", budgeted: 8500, spent: 5200, status: "in-progress" },
-      { category: "Roof", budgeted: 9500, spent: 5600, status: "in-progress" },
-      { category: "Exterior / Paint", budgeted: 6000, spent: 0, status: "pending" },
-      { category: "HVAC", budgeted: 5500, spent: 0, status: "pending" },
-      { category: "Landscaping", budgeted: 2500, spent: 0, status: "pending" },
-    ],
-  },
-  {
-    id: 2, name: "Pine Street Ranch", address: "874 Pine Street, Memphis, TN 38104",
-    stage: "Listed", image: "PS", color: "#10b981",
-    purchasePrice: 148000, arv: 229000, listPrice: 229000, rehabBudget: 38000, rehabSpent: 39200,
-    holdingCostsPerMonth: 1420, acquisitionDate: "2025-10-14", rehabStartDate: "2025-10-28",
-    rehabEndDate: "2026-01-15", listDate: "2026-01-22", daysOwned: 161,
-    rehabItems: [
-      { category: "Kitchen", budgeted: 14000, spent: 15200, status: "complete" },
-      { category: "Bathroom", budgeted: 7000, spent: 7400, status: "complete" },
-      { category: "Flooring", budgeted: 6500, spent: 6800, status: "complete" },
-      { category: "Windows", budgeted: 5500, spent: 5400, status: "complete" },
-      { category: "Electrical", budgeted: 3000, spent: 3100, status: "complete" },
-      { category: "Exterior / Paint", budgeted: 2000, spent: 1300, status: "complete" },
-    ],
-  },
-  {
-    id: 3, name: "Hawthorne Heights", address: "3305 Hawthorne Blvd, Charlotte, NC 28205",
-    stage: "Under Contract", image: "HH", color: "#8b5cf6",
-    purchasePrice: 268000, arv: 445000, rehabBudget: 95000, rehabSpent: 0,
-    holdingCostsPerMonth: 2600, contractDate: "2026-03-10", projectedCloseDate: "2026-04-05", daysOwned: 0,
-    rehabItems: [
-      { category: "Full Kitchen Remodel", budgeted: 28000, spent: 0, status: "pending" },
-      { category: "Master Bath", budgeted: 18000, spent: 0, status: "pending" },
-      { category: "Secondary Baths (2)", budgeted: 14000, spent: 0, status: "pending" },
-      { category: "Addition / Expansion", budgeted: 22000, spent: 0, status: "pending" },
-      { category: "Flooring", budgeted: 8000, spent: 0, status: "pending" },
-      { category: "Roof & Gutters", budgeted: 5000, spent: 0, status: "pending" },
-    ],
-  },
-  {
-    id: 4, name: "Birchwood Colonial", address: "612 Birchwood Lane, Raleigh, NC 27601",
-    stage: "Sold", image: "BC", color: "#6b7280",
-    purchasePrice: 220000, arv: 358000, salePrice: 361500, rehabBudget: 55000, rehabSpent: 52800,
-    holdingCostsPerMonth: 2100, acquisitionDate: "2025-04-12", rehabStartDate: "2025-04-25",
-    rehabEndDate: "2025-07-10", listDate: "2025-07-18", closeDate: "2025-08-29",
-    daysOwned: 139, totalHoldingCosts: 9730, sellingCosts: 21690, netProfit: 61280,
-    rehabItems: [
-      { category: "Kitchen", budgeted: 16000, spent: 15600, status: "complete" },
-      { category: "Bathrooms (2)", budgeted: 13000, spent: 12400, status: "complete" },
-      { category: "Basement Finish", budgeted: 12000, spent: 11800, status: "complete" },
-      { category: "HVAC", budgeted: 7500, spent: 7200, status: "complete" },
-      { category: "Flooring", budgeted: 4500, spent: 4300, status: "complete" },
-      { category: "Exterior", budgeted: 2000, spent: 1500, status: "complete" },
-    ],
-  },
-];
-
+// DEALS imported from api.js — using the shared store so new deals created here
+// are visible to deals.jsx (ContractorDetail bid dropdown, RehabTracker, etc.)
 // STAGE_ORDER, STAGE_COLORS imported from api.js
 
 const FLIP_EXPENSE_GROUPS = {
