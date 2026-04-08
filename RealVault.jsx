@@ -8142,7 +8142,10 @@ function RehabItemDetail({ deal, itemIdx, onBack, backLabel, onNavigateToContrac
     .sort((a, b) => (b.date || "").localeCompare(a.date || ""));
   const linkedTotal = linkedExpenses.reduce((s, e) => s + (e.amount || 0), 0);
 
-  const notes = item.notes || [];
+  // Notes live in the global DEAL_NOTES store, scoped by rehabItemIdx
+  const notes = DEAL_NOTES
+    .filter(n => n.dealId === deal.id && n.rehabItemIdx === itemIdx)
+    .sort((a, b) => (b.date || "").localeCompare(a.date || ""));
 
   const openEdit = () => {
     setEditForm({
@@ -8180,15 +8183,27 @@ function RehabItemDetail({ deal, itemIdx, onBack, backLabel, onNavigateToContrac
 
   const addNote = () => {
     if (!noteText.trim()) return;
-    const newNote = { id: newId(), date: new Date().toISOString().split("T")[0], text: noteText.trim() };
-    deal.rehabItems[itemIdx] = { ...item, notes: [newNote, ...(item.notes || [])] };
+    const now = new Date().toISOString();
+    const today = now.split("T")[0];
+    DEAL_NOTES.unshift({
+      id: newId(),
+      dealId: deal.id,
+      rehabItemIdx: itemIdx,
+      date: today,
+      text: noteText.trim(),
+      createdAt: now,
+      updatedAt: now,
+      userId: "usr_001",
+      mentions: [],
+    });
     setNoteText("");
     setShowAddNote(false);
     bump();
     showToast("Note added");
   };
   const deleteNote = (id) => {
-    deal.rehabItems[itemIdx] = { ...item, notes: (item.notes || []).filter(n => n.id !== id) };
+    const gi = DEAL_NOTES.findIndex(n => n.id === id);
+    if (gi !== -1) DEAL_NOTES.splice(gi, 1);
     setDeletingNoteId(null);
     bump();
     showToast("Note deleted");
@@ -9811,7 +9826,10 @@ function UnifiedNotes({ highlightNoteId, highlightDealNoteId, onBack, onClearHig
     DEAL_NOTES.forEach(n => {
       const deal = DEALS.find(f => f.id === n.dealId);
       if (deal) {
-        list.push({ ...n, noteType: "deal", entityId: n.dealId, entityName: deal.name, entityColor: deal.color, entityImage: deal.image, mentions: n.mentions || [] });
+        const rehabCat = (typeof n.rehabItemIdx === "number" && deal.rehabItems && deal.rehabItems[n.rehabItemIdx])
+          ? deal.rehabItems[n.rehabItemIdx].category
+          : null;
+        list.push({ ...n, noteType: "deal", entityId: n.dealId, entityName: deal.name, entityColor: deal.color, entityImage: deal.image, rehabScope: rehabCat, mentions: n.mentions || [] });
       }
     });
     GENERAL_NOTES.forEach(n => {
@@ -10014,6 +10032,11 @@ function UnifiedNotes({ highlightNoteId, highlightDealNoteId, onBack, onClearHig
                       <span style={{ fontSize: 13, fontWeight: 600, color: "#041830" }}>{n.entityName}</span>
                       {n.tenantName && (
                         <span style={{ fontSize: 10, fontWeight: 600, background: "#dbeafe", color: "#1d4ed8", padding: "2px 7px", borderRadius: 5 }}>{n.tenantName}</span>
+                      )}
+                      {n.rehabScope && (
+                        <span style={{ fontSize: 10, fontWeight: 600, background: "#ffedd5", color: "#c2410c", padding: "2px 7px", borderRadius: 5, display: "inline-flex", alignItems: "center", gap: 3 }}>
+                          <Wrench size={9} /> {n.rehabScope}
+                        </span>
                       )}
                       {activeTab === "all" && (
                         <span style={{ fontSize: 10, fontWeight: 700, background: badge.bg, color: badge.color, padding: "2px 7px", borderRadius: 5 }}>{badge.label}</span>
