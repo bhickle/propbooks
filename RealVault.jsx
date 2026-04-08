@@ -5865,25 +5865,40 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
   const [expDateFrom, setExpDateFrom] = useState("");
   const [expDateTo, setExpDateTo] = useState("");
 
-  // Deal notes
-  const [dealNotes, setDealNotes] = useState(() => {
-    // Seed a couple demo notes for deal 1
-    if (deal.id === 1) return [
-      { id: newId(), date: "2026-03-28", text: "Spoke with inspector — back wall needs structural review before drywall. Getting quote from Nash Drywall." },
-      { id: newId(), date: "2026-03-15", text: "ABC Plumbing delayed 1 week on master bath rough-in. Pushed flooring start to 3/21." },
-      { id: newId(), date: "2026-02-10", text: "Demo went smooth. Dumpster picked up, ready for rough-in next week." },
-    ];
-    if (deal.id === 2) return [
-      { id: newId(), date: "2026-01-20", text: "All rehab complete. Scheduling photographer for listing photos this week." },
-    ];
-    return [];
-  });
+  // Deal notes — read/write directly to the global DEAL_NOTES store so notes
+  // persist across navigation and show up in the unified Notes screen.
+  const [notesVersion, setNotesVersion] = useState(0);
+  const bumpNotes = () => setNotesVersion(v => v + 1);
+  const dealNotes = DEAL_NOTES
+    .filter(n => n.dealId === deal.id)
+    .slice()
+    .sort((a, b) => (b.date || "").localeCompare(a.date || ""));
+  const pushDealNote = (text) => {
+    if (!text || !text.trim()) return;
+    const now = new Date().toISOString();
+    DEAL_NOTES.unshift({
+      id: newId(),
+      dealId: deal.id,
+      date: now.split("T")[0],
+      text: text.trim(),
+      createdAt: now,
+      updatedAt: now,
+      userId: "usr_001",
+      mentions: [],
+    });
+    bumpNotes();
+  };
+  const removeDealNote = (id) => {
+    const gi = DEAL_NOTES.findIndex(n => n.id === id);
+    if (gi !== -1) DEAL_NOTES.splice(gi, 1);
+    bumpNotes();
+  };
   const [showNoteInput, setShowNoteInput] = useState(false);
   const [noteText, setNoteText] = useState("");
   const [noteSearch, setNoteSearch] = useState("");
   const addNote = () => {
     if (!noteText.trim()) return;
-    setDealNotes(prev => [{ id: newId(), date: today, text: noteText.trim() }, ...prev]);
+    pushDealNote(noteText);
     setNoteText("");
     setShowNoteInput(false);
   };
@@ -5980,7 +5995,7 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
       // Also log as an expense automatically (linked to contractor)
       setExpData(prev => [{ id: newId(), dealId: deal.id, date: paymentDate, vendor: con.name, category: con.trade === "General Contractor" ? "General Contractor" : "Subcontractor", description: paymentNote || `Payment to ${con.name}`, amount: amt, status: "paid", contractorId: showPaymentModal }, ...prev]);
       // Add to activity log
-      setDealNotes(prev => [{ id: newId(), date: paymentDate, text: `Recorded ${fmt(amt)} payment to ${con.name}` }, ...prev]);
+      pushDealNote(`Recorded ${fmt(amt)} payment to ${con.name}`);
     }
     setShowPaymentModal(null);
     setPaymentAmount("");
@@ -6191,7 +6206,7 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
                       if (idx !== -1) DEALS[idx].stage = nextStage;
                       if (setAllFlips) setAllFlips(prev => prev.map(f => f.id === deal.id ? { ...f, stage: nextStage } : f));
                       if (onDealUpdated) onDealUpdated();
-                      setDealNotes(prev => [{ id: newId(), date: today, text: `Stage advanced to "${nextStage}".` }, ...prev]);
+                      pushDealNote(`Stage advanced to "${nextStage}".`);
                       showToast(`Stage advanced to "${nextStage}"`);
                     }} style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 8, padding: "6px 12px", fontSize: 12, fontWeight: 600, color: "#15803d", cursor: "pointer", display: "flex", alignItems: "center", gap: 5 }}>
                       <ArrowRight size={12} /> {nextStage}
@@ -7166,7 +7181,7 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
                       <p style={{ fontSize: 14, color: "#041830", lineHeight: 1.6 }}>{highlight(note.text)}</p>
                       <p style={{ fontSize: 12, color: "#94a3b8", marginTop: 6 }}>{note.date}</p>
                     </div>
-                    <button onClick={() => setDealNotes(prev => prev.filter(n => n.id !== note.id))} style={{ background: "#fee2e2", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "#ef4444", display: "flex", alignItems: "center", alignSelf: "flex-start" }} title="Delete"><Trash2 size={13} /></button>
+                    <button onClick={() => removeDealNote(note.id)} style={{ background: "#fee2e2", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "#ef4444", display: "flex", alignItems: "center", alignSelf: "flex-start" }} title="Delete"><Trash2 size={13} /></button>
                   </div>
                 ))}
               </div>
@@ -7343,9 +7358,9 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
                 if (setAllFlips) setAllFlips(prev => prev.map(f => f.id === deal.id ? { ...f, ...soldData } : f));
                 setStage("Sold");
                 if (closeForm.closingNotes.trim()) {
-                  setDealNotes(prev => [{ id: newId(), date: today, text: closeForm.closingNotes.trim() }, ...prev]);
+                  pushDealNote(closeForm.closingNotes);
                 }
-                setDealNotes(prev => [{ id: newId(), date: today, text: `Deal closed — sold for ${fmt(sp)} with net profit of ${fmt(netProfit)}.` }, ...prev]);
+                pushDealNote(`Deal closed — sold for ${fmt(sp)} with net profit of ${fmt(netProfit)}.`);
                 if (onDealUpdated) onDealUpdated();
                 showToast(`Deal marked as sold — ${fmt(netProfit)} net profit`);
                 setShowCloseDeal(false);
@@ -7402,7 +7417,7 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
                 setStage("Converted to Rental");
                 const idx = DEALS.findIndex(f => f.id === deal.id);
                 if (idx !== -1) DEALS[idx].stage = "Converted to Rental";
-                setDealNotes(prev => [{ id: newId(), date: today, text: "Deal converted to rental property." }, ...prev]);
+                pushDealNote("Deal converted to rental property.");
                 if (onDealUpdated) onDealUpdated();
                 showToast("Converting to rental — review the property details");
                 setShowCloseDeal(false);
