@@ -5718,6 +5718,7 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
   useEffect(() => { if (initialTab) setActiveTab(initialTab); }, [initialTab]);
   const [showExpenseModal, setShowExpenseModal] = useState(false);
   const [showContractorModal, setShowContractorModal] = useState(false);
+  const [pendingRehabAssignIdx, setPendingRehabAssignIdx] = useState(null); // rehab item idx to auto-assign new contractor to
   // Quick bid modal — opened from a contractor tile. Skips deal + contractor selection.
   const [quickBid, setQuickBid] = useState(null); // { contractorId, rehabItem, canonicalCategory, amount } | null
   const [quickBidRehabFocus, setQuickBidRehabFocus] = useState(false);
@@ -6053,6 +6054,19 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
       const newCon = { id: newId(), name: conForm.name, trade: conForm.trade, phone: conForm.phone, email: conForm.email || "", license: conForm.license || null, insuranceExpiry: conForm.insuranceExpiry || null, rating: 0, notes: conForm.notes || "", dealIds: [deal.id], bids: [], payments: [], documents: [] };
       CONTRACTORS.push(newCon);
       setConData(prev => [...prev, newCon]);
+      // If the modal was opened from a rehab row, auto-assign the new contractor to that line item
+      if (pendingRehabAssignIdx !== null) {
+        const itemIdx = pendingRehabAssignIdx;
+        const item = rehabItems[itemIdx];
+        if (item) {
+          const next = [...rehabItems];
+          next[itemIdx] = { ...item, contractors: [...(item.contractors || []), { id: newCon.id, bid: 0 }] };
+          setRehabItems(next);
+          if (deal.rehabItems && deal.rehabItems[itemIdx]) deal.rehabItems[itemIdx].contractors = next[itemIdx].contractors;
+          bumpRehab();
+        }
+        setPendingRehabAssignIdx(null);
+      }
       // Highlight the just-added contractor on the tile for a few seconds
       setHighlightConId(newCon.id);
       setTimeout(() => setHighlightConId(h => h === newCon.id ? null : h), 3500);
@@ -6523,20 +6537,18 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
                             <select value="" onClick={stop}
                               onChange={e => { if (e.target.value) { addContractorToRehabItem(i, parseInt(e.target.value)); e.target.value = ""; } }}
                               style={{ border: "1.5px dashed #cbd5e1", borderRadius: 8, padding: "4px 8px", fontSize: 12, color: "#94a3b8", background: "#fafafa", cursor: "pointer", outline: "none" }}>
-                              <option value="">+ Add</option>
+                              <option value="">+ Assign existing</option>
                               {unassigned.map(c => (
                                 <option key={c.id} value={c.id}>{c.name} ({c.trade})</option>
                               ))}
                             </select>
                           )}
-                          {dealContractorsList.length === 0 && assigned.length === 0 && (
-                            <button onClick={(e) => { e.stopPropagation(); setEditingConId(null); setConForm(emptyCon); setShowContractorModal(true); }}
-                              onMouseEnter={e => { e.currentTarget.style.background = "#fff7ed"; e.currentTarget.style.borderColor = "#fdba74"; e.currentTarget.style.color = "#c2410c"; }}
-                              onMouseLeave={e => { e.currentTarget.style.background = "#fafafa"; e.currentTarget.style.borderColor = "#cbd5e1"; e.currentTarget.style.color = "#94a3b8"; }}
-                              style={{ display: "flex", alignItems: "center", gap: 4, border: "1.5px dashed #cbd5e1", borderRadius: 8, padding: "4px 10px", fontSize: 12, fontWeight: 600, color: "#94a3b8", background: "#fafafa", cursor: "pointer", transition: "all 0.15s" }}>
-                              <Plus size={12} /> Add contractor
-                            </button>
-                          )}
+                          <button onClick={(e) => { e.stopPropagation(); setPendingRehabAssignIdx(i); setEditingConId(null); setConForm(emptyCon); setShowContractorModal(true); }}
+                            onMouseEnter={e => { e.currentTarget.style.background = "#fff7ed"; e.currentTarget.style.borderColor = "#fdba74"; e.currentTarget.style.color = "#c2410c"; }}
+                            onMouseLeave={e => { e.currentTarget.style.background = "#fafafa"; e.currentTarget.style.borderColor = "#cbd5e1"; e.currentTarget.style.color = "#94a3b8"; }}
+                            style={{ display: "flex", alignItems: "center", gap: 4, border: "1.5px dashed #cbd5e1", borderRadius: 8, padding: "4px 10px", fontSize: 12, fontWeight: 600, color: "#94a3b8", background: "#fafafa", cursor: "pointer", transition: "all 0.15s" }}>
+                            <Plus size={12} /> New
+                          </button>
                         </div>
                       </td>
                       <td style={{ padding: "12px 16px", fontSize: 13, color: "#475569" }}>{fmt(item.budgeted)}</td>
@@ -7038,7 +7050,7 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
         </div>
       )}
       {showContractorModal && (
-        <Modal title={editingConId ? "Edit Contractor" : "Add Contractor"} onClose={() => { setShowContractorModal(false); setEditingConId(null); setConForm(emptyCon); }}>
+        <Modal title={editingConId ? "Edit Contractor" : "Add Contractor"} onClose={() => { setShowContractorModal(false); setEditingConId(null); setConForm(emptyCon); setPendingRehabAssignIdx(null); }}>
           {!editingConId && (() => {
             const onDealIds = new Set((conData || []).map(c => c.id));
             const existingAvailable = CONTRACTORS.filter(c => !onDealIds.has(c.id));
@@ -7076,7 +7088,7 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
             <textarea style={{ ...iS, minHeight: 70, resize: "vertical" }} placeholder="Notes about this contractor..." value={conForm.notes} onChange={sfC("notes")} />
           </div>
           <div style={{ display: "flex", gap: 10 }}>
-            <button onClick={() => { setShowContractorModal(false); setEditingConId(null); setConForm(emptyCon); }} style={{ flex: 1, padding: "12px", border: "1px solid #e2e8f0", borderRadius: 10, background: "#fff", color: "#475569", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
+            <button onClick={() => { setShowContractorModal(false); setEditingConId(null); setConForm(emptyCon); setPendingRehabAssignIdx(null); }} style={{ flex: 1, padding: "12px", border: "1px solid #e2e8f0", borderRadius: 10, background: "#fff", color: "#475569", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
             <button onClick={handleSaveCon} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "#e95e00", color: "#fff", fontWeight: 600, cursor: "pointer" }}>{editingConId ? "Save Changes" : "Add Contractor"}</button>
           </div>
         </Modal>
