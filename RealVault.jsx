@@ -8,7 +8,7 @@ import {
 import {
   Building2, LayoutDashboard, ArrowUpDown, BarChart3, FileText,
   TrendingUp, TrendingDown, DollarSign, Home, Plus, Search, Bell,
-  ChevronRight, Settings as SettingsIcon, LogOut, Filter, Download, Eye, MoreHorizontal,
+  ChevronRight, ChevronLeft, Settings as SettingsIcon, LogOut, Filter, Download, Eye, MoreHorizontal,
   Calendar, Tag, CheckCircle, Circle, AlertCircle, X, ChevronDown, User,
   Percent, ArrowUp, ArrowDown, Star, MapPin, Wallet, PieChartIcon,
   Hammer, Clock, Target, Flag, Wrench,
@@ -5791,7 +5791,7 @@ function DealPipeline({ onSelect }) {
   );
 }
 
-function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigateToExpense, onNavigateToContractor, initialTab, onConvertToRental, onDealUpdated, onNavigateToDeal }) {
+function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigateToExpense, onNavigateToContractor, onNavigateToRehabItem, initialTab, onConvertToRental, onDealUpdated, onNavigateToDeal }) {
   const { showToast } = useToast();
   const [activeTab, setActiveTab] = useState(initialTab || "overview");
   useEffect(() => { if (initialTab) setActiveTab(initialTab); }, [initialTab]);
@@ -5843,6 +5843,31 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
     const cats = new Set(DEALS.flatMap(f => (f.rehabItems || []).map(i => i.category)));
     return [...cats].filter(Boolean).sort();
   }, []);
+  // Rehab contractor assignment helpers — mutate deal.rehabItems in place so
+  // the change is visible on the Contractors tab and Rehab Tracker too
+  const [rehabVersion, setRehabVersion] = useState(0);
+  const bumpRehab = () => setRehabVersion(v => v + 1);
+  const dealContractorsList = useMemo(() => CONTRACTORS.filter(c => (c.dealIds || []).includes(deal.id)), [deal.id, conData]);
+  const addContractorToRehabItem = (itemIdx, contractorId) => {
+    const item = rehabItems[itemIdx];
+    if (!item) return;
+    const cons = item.contractors || [];
+    if (cons.some(c => c.id === contractorId)) return;
+    const next = [...rehabItems];
+    next[itemIdx] = { ...item, contractors: [...cons, { id: contractorId, bid: 0 }] };
+    setRehabItems(next);
+    if (deal.rehabItems && deal.rehabItems[itemIdx]) deal.rehabItems[itemIdx].contractors = next[itemIdx].contractors;
+    bumpRehab();
+  };
+  const removeContractorFromRehabItem = (itemIdx, contractorId) => {
+    const item = rehabItems[itemIdx];
+    if (!item) return;
+    const next = [...rehabItems];
+    next[itemIdx] = { ...item, contractors: (item.contractors || []).filter(c => c.id !== contractorId) };
+    setRehabItems(next);
+    if (deal.rehabItems && deal.rehabItems[itemIdx]) deal.rehabItems[itemIdx].contractors = next[itemIdx].contractors;
+    bumpRehab();
+  };
   const [deleteConfirm, setDeleteConfirm] = useState(null); // { type: "expense"|"contractor"|"rehab"|"milestone", item, index? }
   const [showDeleteDeal, setShowDeleteDeal] = useState(false);
   const [stage, setStage] = useState(deal.stage);
@@ -6378,7 +6403,7 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead>
                 <tr style={{ background: "#f8fafc" }}>
-                  {["Category", "Budgeted", "Spent", "Remaining", "Status", ""].map(h => (
+                  {["Category", "Contractor", "Budgeted", "Spent", "Remaining", "Status", ""].map(h => (
                     <th key={h} style={{ padding: "10px 16px", textAlign: "left", color: "#94a3b8", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>{h}</th>
                   ))}
                 </tr>
@@ -6387,23 +6412,60 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
                 {rehabItems.map((item, i) => {
                   const remaining = item.budgeted - item.spent;
                   const over = remaining < 0;
+                  const assigned = item.contractors || [];
+                  const assignedIds = assigned.map(c => c.id);
+                  const unassigned = dealContractorsList.filter(c => !assignedIds.includes(c.id));
+                  const stop = e => e.stopPropagation();
                   return (
-                    <tr key={i} style={{ borderTop: "1px solid #f1f5f9" }}>
+                    <tr key={i} onClick={() => onNavigateToRehabItem && onNavigateToRehabItem(i)} style={{ borderTop: "1px solid #f1f5f9", cursor: onNavigateToRehabItem ? "pointer" : "default" }}>
                       <td style={{ padding: "12px 16px", fontSize: 14, fontWeight: 600, color: "#041830" }}>
                         {item.category}
                         {(item.photos || []).length > 0 && <span style={{ marginLeft: 6, color: "#3b82f6", fontSize: 11 }} title={`${item.photos.length} photo(s)`}><Image size={12} style={{ display: "inline" }} /> {item.photos.length}</span>}
+                      </td>
+                      <td style={{ padding: "12px 16px", minWidth: 200 }} onClick={stop}>
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: 4, alignItems: "center" }}>
+                          {assigned.map(asgn => {
+                            const con = CONTRACTORS.find(c => c.id === asgn.id);
+                            if (!con) return null;
+                            return (
+                              <div key={asgn.id} style={{ display: "flex", alignItems: "center", gap: 5, background: "#f1f5f9", borderRadius: 20, padding: "4px 8px 4px 6px" }}>
+                                <div style={{ width: 18, height: 18, borderRadius: "50%", background: "linear-gradient(135deg, #e95e00, #041830)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                                  <Truck size={9} color="#fff" />
+                                </div>
+                                <span style={{ fontSize: 12, fontWeight: 600, color: "#374151" }}>{con.name}</span>
+                                {asgn.bid > 0 && <span style={{ fontSize: 11, color: "#64748b", fontWeight: 500 }}>{fmt(asgn.bid)}</span>}
+                                <button onClick={(e) => { e.stopPropagation(); removeContractorFromRehabItem(i, asgn.id); }} style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8", padding: 0, display: "flex", alignItems: "center" }}>
+                                  <X size={10} />
+                                </button>
+                              </div>
+                            );
+                          })}
+                          {unassigned.length > 0 && (
+                            <select value="" onClick={stop}
+                              onChange={e => { if (e.target.value) { addContractorToRehabItem(i, parseInt(e.target.value)); e.target.value = ""; } }}
+                              style={{ border: "1.5px dashed #cbd5e1", borderRadius: 8, padding: "4px 8px", fontSize: 12, color: "#94a3b8", background: "#fafafa", cursor: "pointer", outline: "none" }}>
+                              <option value="">+ Add</option>
+                              {unassigned.map(c => (
+                                <option key={c.id} value={c.id}>{c.name} ({c.trade})</option>
+                              ))}
+                            </select>
+                          )}
+                          {dealContractorsList.length === 0 && assigned.length === 0 && (
+                            <span style={{ fontSize: 12, color: "#cbd5e1", fontStyle: "italic" }}>No contractors</span>
+                          )}
+                        </div>
                       </td>
                       <td style={{ padding: "12px 16px", fontSize: 13, color: "#475569" }}>{fmt(item.budgeted)}</td>
                       <td style={{ padding: "12px 16px", fontSize: 13, fontWeight: 600, color: "#041830" }}>{fmt(item.spent)}</td>
                       <td style={{ padding: "12px 16px", fontSize: 13, fontWeight: 700, color: over ? "#b91c1c" : "#15803d" }}>
                         {over ? `-${fmt(Math.abs(remaining))}` : fmt(remaining)}
                       </td>
-                      <td style={{ padding: "12px 16px" }}>
+                      <td style={{ padding: "12px 16px" }} onClick={stop}>
                         <button onClick={() => cycleRehabStatus(i)} title="Click to cycle status" style={{ background: statusBg[item.status], color: statusColors[item.status], borderRadius: 20, padding: "3px 10px", fontSize: 12, fontWeight: 600, border: "none", cursor: "pointer" }}>
                           {statusIcons[item.status]} {item.status}
                         </button>
                       </td>
-                      <td style={{ padding: "12px 16px" }}>
+                      <td style={{ padding: "12px 16px" }} onClick={stop}>
                         <div style={{ display: "flex", gap: 4 }}>
                           <button onClick={() => openEditRehab(item, i)} style={{ background: "#f1f5f9", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "#475569", display: "flex", alignItems: "center" }} title="Edit"><Pencil size={13} /></button>
                           <button onClick={() => setDeleteConfirm({ type: "rehab", item: item, index: i })} style={{ background: "#fee2e2", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "#ef4444", display: "flex", alignItems: "center" }} title="Delete"><Trash2 size={13} /></button>
@@ -8045,6 +8107,385 @@ function TenantManagement({ onBack, highlightTenantId, onClearHighlight, prefill
             </div>
           </div>
         </Modal>
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------
+// REHAB ITEM DETAIL
+// ---------------------------------------------
+function RehabItemDetail({ deal, itemIdx, onBack, backLabel, onNavigateToContractor, onNavigateToExpense }) {
+  const { showToast } = useToast();
+  const [version, setVersion] = useState(0);
+  const bump = () => setVersion(v => v + 1);
+  const item = deal.rehabItems && deal.rehabItems[itemIdx];
+  const [showEdit, setShowEdit] = useState(false);
+  const [editForm, setEditForm] = useState({ category: "", budgeted: "", spent: "", status: "pending" });
+  const [showAddNote, setShowAddNote] = useState(false);
+  const [noteText, setNoteText] = useState("");
+  const [deletingNoteId, setDeletingNoteId] = useState(null);
+
+  const allCategories = useMemo(() => {
+    const cats = new Set(DEALS.flatMap(f => (f.rehabItems || []).map(i => i.category)));
+    return [...cats].filter(Boolean).sort();
+  }, []);
+  const [catFocus, setCatFocus] = useState(false);
+
+  if (!item) {
+    return (
+      <div>
+        <button onClick={onBack} style={{ background: "none", border: "none", color: "#64748b", cursor: "pointer", fontSize: 13, display: "flex", alignItems: "center", gap: 6, marginBottom: 20 }}><ChevronLeft size={16} /> {backLabel || "Back"}</button>
+        <div style={{ background: "#fff", borderRadius: 16, padding: 40, textAlign: "center", color: "#94a3b8" }}>Rehab item not found.</div>
+      </div>
+    );
+  }
+
+  const remaining = (item.budgeted || 0) - (item.spent || 0);
+  const over = remaining < 0;
+  const statusBg = { "complete": "#dcfce7", "in-progress": "#fff7ed", "pending": "#f1f5f9" };
+  const statusColors = { "complete": "#15803d", "in-progress": "#9a3412", "pending": "#64748b" };
+  const statusLabel = { "complete": "Complete", "in-progress": "In Progress", "pending": "Pending" };
+
+  const assigned = item.contractors || [];
+  const assignedIds = assigned.map(c => c.id);
+  const dealContractors = CONTRACTORS.filter(c => (c.dealIds || []).includes(deal.id));
+  const unassigned = dealContractors.filter(c => !assignedIds.includes(c.id));
+
+  // Linked expenses: match by explicit rehabItemIdx OR by category
+  const linkedExpenses = DEAL_EXPENSES
+    .filter(e => e.dealId === deal.id && (e.rehabItemIdx === itemIdx || e.category === item.category))
+    .sort((a, b) => (b.date || "").localeCompare(a.date || ""));
+  const linkedTotal = linkedExpenses.reduce((s, e) => s + (e.amount || 0), 0);
+
+  const notes = item.notes || [];
+
+  const openEdit = () => {
+    setEditForm({
+      category: item.category || "",
+      budgeted: String(item.budgeted || ""),
+      spent: String(item.spent || ""),
+      status: item.status || "pending",
+    });
+    setShowEdit(true);
+  };
+  const saveEdit = () => {
+    if (!editForm.category) return;
+    deal.rehabItems[itemIdx] = {
+      ...item,
+      category: editForm.category,
+      budgeted: parseFloat(editForm.budgeted) || 0,
+      spent: parseFloat(editForm.spent) || 0,
+      status: editForm.status,
+    };
+    setShowEdit(false);
+    bump();
+    showToast("Rehab item updated");
+  };
+
+  const addContractor = (conId) => {
+    const cons = item.contractors || [];
+    if (cons.some(c => c.id === conId)) return;
+    deal.rehabItems[itemIdx] = { ...item, contractors: [...cons, { id: conId, bid: 0 }] };
+    bump();
+  };
+  const removeContractor = (conId) => {
+    deal.rehabItems[itemIdx] = { ...item, contractors: (item.contractors || []).filter(c => c.id !== conId) };
+    bump();
+  };
+  const updateBid = (conId, bid) => {
+    const cons = (item.contractors || []).map(c => c.id === conId ? { ...c, bid: parseFloat(bid) || 0 } : c);
+    deal.rehabItems[itemIdx] = { ...item, contractors: cons };
+    bump();
+  };
+
+  const addNote = () => {
+    if (!noteText.trim()) return;
+    const newNote = { id: newId(), date: new Date().toISOString().split("T")[0], text: noteText.trim() };
+    deal.rehabItems[itemIdx] = { ...item, notes: [newNote, ...(item.notes || [])] };
+    setNoteText("");
+    setShowAddNote(false);
+    bump();
+    showToast("Note added");
+  };
+  const deleteNote = (id) => {
+    deal.rehabItems[itemIdx] = { ...item, notes: (item.notes || []).filter(n => n.id !== id) };
+    setDeletingNoteId(null);
+    bump();
+    showToast("Note deleted");
+  };
+
+  const addPhoto = (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      deal.rehabItems[itemIdx] = { ...item, photos: [...(item.photos || []), ev.target.result] };
+      bump();
+      showToast("Photo added");
+    };
+    reader.readAsDataURL(file);
+  };
+  const removePhoto = (pIdx) => {
+    deal.rehabItems[itemIdx] = { ...item, photos: (item.photos || []).filter((_, i) => i !== pIdx) };
+    bump();
+  };
+
+  const sectionS = { background: "#fff", borderRadius: 16, padding: 24, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9", marginBottom: 16 };
+  const cardS = { background: "#fff", borderRadius: 16, padding: 20, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" };
+  const iS = { width: "100%", padding: "10px 12px", border: "1px solid #e2e8f0", borderRadius: 10, fontSize: 13, color: "#041830", background: "#fff", outline: "none", fontFamily: "inherit" };
+
+  return (
+    <div>
+      <button onClick={onBack} style={{ background: "none", border: "none", color: "#64748b", cursor: "pointer", fontSize: 13, display: "flex", alignItems: "center", gap: 6, marginBottom: 16 }}><ChevronLeft size={16} /> {backLabel || "Back"}</button>
+
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24 }}>
+        <div>
+          <h1 style={{ fontSize: 26, fontWeight: 700, color: "#041830", marginBottom: 4 }}>{item.category}</h1>
+          <p style={{ fontSize: 15, color: "#64748b" }}>{deal.name} · Rehab scope</p>
+        </div>
+        <div style={{ display: "flex", gap: 8 }}>
+          <span style={{ background: statusBg[item.status], color: statusColors[item.status], borderRadius: 20, padding: "6px 14px", fontSize: 13, fontWeight: 600, display: "flex", alignItems: "center" }}>{statusLabel[item.status] || item.status}</span>
+          <button onClick={openEdit} style={{ background: "#e95e00", color: "#fff", border: "none", borderRadius: 10, padding: "10px 16px", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}><Pencil size={14} /> Edit</button>
+        </div>
+      </div>
+
+      {/* Stat cards */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 20 }}>
+        <div style={cardS}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
+            <p style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.05em" }}>Budget</p>
+            <InfoTip text="The amount budgeted for this rehab scope. Edit via the Edit button." />
+          </div>
+          <p style={{ fontSize: 22, fontWeight: 700, color: "#041830" }}>{fmt(item.budgeted || 0)}</p>
+        </div>
+        <div style={cardS}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
+            <p style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.05em" }}>Spent</p>
+            <InfoTip text="Total spent on this scope. Updated manually or from linked expenses." />
+          </div>
+          <p style={{ fontSize: 22, fontWeight: 700, color: "#e95e00" }}>{fmt(item.spent || 0)}</p>
+        </div>
+        <div style={cardS}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
+            <p style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.05em" }}>{over ? "Over Budget" : "Remaining"}</p>
+            <InfoTip text="Budget minus Spent. Negative means over budget." />
+          </div>
+          <p style={{ fontSize: 22, fontWeight: 700, color: over ? "#b91c1c" : "#15803d" }}>{over ? `-${fmt(Math.abs(remaining))}` : fmt(remaining)}</p>
+        </div>
+        <div style={cardS}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
+            <p style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.05em" }}>Contractors</p>
+            <InfoTip text="Number of contractors assigned to this scope." />
+          </div>
+          <p style={{ fontSize: 22, fontWeight: 700, color: "#3b82f6" }}>{assigned.length}</p>
+        </div>
+      </div>
+
+      {/* Contractors section */}
+      <div style={sectionS}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+          <h3 style={{ fontSize: 16, fontWeight: 700, color: "#041830" }}>Assigned Contractors</h3>
+          {unassigned.length > 0 && (
+            <select value="" onChange={e => { if (e.target.value) { addContractor(parseInt(e.target.value)); e.target.value = ""; } }}
+              style={{ border: "1.5px dashed #cbd5e1", borderRadius: 10, padding: "8px 12px", fontSize: 13, color: "#64748b", background: "#fafafa", cursor: "pointer", outline: "none" }}>
+              <option value="">+ Assign contractor</option>
+              {unassigned.map(c => <option key={c.id} value={c.id}>{c.name} ({c.trade})</option>)}
+            </select>
+          )}
+        </div>
+        <p style={{ fontSize: 13, color: "#94a3b8", marginBottom: 20 }}>Contractors working on this scope and their bid amounts</p>
+        {assigned.length === 0 ? (
+          <div style={{ padding: 32, textAlign: "center", color: "#94a3b8", fontSize: 13, background: "#f8fafc", borderRadius: 12 }}>
+            {dealContractors.length === 0 ? "No contractors on this deal yet. Add contractors from the deal's Contractors tab." : "No contractors assigned to this scope yet."}
+          </div>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {assigned.map(asgn => {
+              const con = CONTRACTORS.find(c => c.id === asgn.id);
+              if (!con) return null;
+              return (
+                <div key={asgn.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 16px", background: "#f8fafc", borderRadius: 12, border: "1px solid #f1f5f9" }}>
+                  <div onClick={() => onNavigateToContractor && onNavigateToContractor(con)} style={{ display: "flex", alignItems: "center", gap: 12, cursor: onNavigateToContractor ? "pointer" : "default", flex: 1 }}>
+                    <div style={{ width: 38, height: 38, borderRadius: 10, background: "linear-gradient(135deg, #e95e00, #041830)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                      <Truck size={16} color="#fff" />
+                    </div>
+                    <div>
+                      <p style={{ fontSize: 14, fontWeight: 700, color: "#041830" }}>{con.name}</p>
+                      <p style={{ fontSize: 12, color: "#64748b" }}>{con.trade}{con.phone ? ` · ${con.phone}` : ""}</p>
+                    </div>
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                    <div>
+                      <p style={{ fontSize: 10, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", marginBottom: 2 }}>Bid</p>
+                      <input type="number" value={asgn.bid || ""} onChange={e => updateBid(asgn.id, e.target.value)} placeholder="0"
+                        style={{ width: 110, padding: "6px 10px", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 13, textAlign: "right", background: "#fff" }} />
+                    </div>
+                    <button onClick={() => removeContractor(asgn.id)} style={{ background: "#fee2e2", border: "none", borderRadius: 8, padding: "8px 10px", cursor: "pointer", color: "#ef4444", display: "flex", alignItems: "center" }} title="Remove"><X size={14} /></button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Photos section */}
+      <div style={sectionS}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+          <h3 style={{ fontSize: 16, fontWeight: 700, color: "#041830" }}>Photos</h3>
+          <label style={{ background: "#f1f5f9", color: "#475569", border: "none", borderRadius: 10, padding: "8px 14px", fontWeight: 600, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
+            <Plus size={14} /> Add Photo
+            <input type="file" accept="image/*" onChange={addPhoto} style={{ display: "none" }} />
+          </label>
+        </div>
+        <p style={{ fontSize: 13, color: "#94a3b8", marginBottom: 20 }}>Before, during, and after shots for this scope</p>
+        {(item.photos || []).length === 0 ? (
+          <div style={{ padding: 32, textAlign: "center", color: "#94a3b8", fontSize: 13, background: "#f8fafc", borderRadius: 12 }}>No photos yet.</div>
+        ) : (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: 12 }}>
+            {(item.photos || []).map((p, pi) => (
+              <div key={pi} style={{ position: "relative", aspectRatio: "1", borderRadius: 12, overflow: "hidden", border: "1px solid #e2e8f0" }}>
+                <img src={p} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                <button onClick={() => removePhoto(pi)} style={{ position: "absolute", top: 6, right: 6, background: "rgba(0,0,0,0.6)", border: "none", borderRadius: "50%", width: 24, height: 24, color: "#fff", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><X size={12} /></button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Linked Expenses */}
+      <div style={sectionS}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+          <h3 style={{ fontSize: 16, fontWeight: 700, color: "#041830" }}>Linked Expenses</h3>
+          <span style={{ fontSize: 13, fontWeight: 600, color: "#041830" }}>{fmt(linkedTotal)} total</span>
+        </div>
+        <p style={{ fontSize: 13, color: "#94a3b8", marginBottom: 20 }}>Deal expenses tagged to this rehab scope or matching category</p>
+        {linkedExpenses.length === 0 ? (
+          <div style={{ padding: 32, textAlign: "center", color: "#94a3b8", fontSize: 13, background: "#f8fafc", borderRadius: 12 }}>No expenses linked to this scope yet.</div>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {linkedExpenses.map(exp => (
+              <div key={exp.id} onClick={() => onNavigateToExpense && onNavigateToExpense(exp.id)}
+                style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 16px", background: "#f8fafc", borderRadius: 10, border: "1px solid #f1f5f9", cursor: onNavigateToExpense ? "pointer" : "default" }}>
+                <div style={{ flex: 1 }}>
+                  <p style={{ fontSize: 14, fontWeight: 600, color: "#041830" }}>{exp.description || exp.vendor}</p>
+                  <p style={{ fontSize: 12, color: "#64748b", marginTop: 2 }}>{exp.date} · {exp.vendor} · {exp.category}</p>
+                </div>
+                <p style={{ fontSize: 14, fontWeight: 700, color: "#b91c1c" }}>{fmt(exp.amount)}</p>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Notes */}
+      <div style={sectionS}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+          <h3 style={{ fontSize: 16, fontWeight: 700, color: "#041830" }}>Notes</h3>
+          <button onClick={() => setShowAddNote(true)} style={{ background: "#f1f5f9", color: "#475569", border: "none", borderRadius: 10, padding: "8px 14px", fontWeight: 600, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
+            <Plus size={14} /> Add Note
+          </button>
+        </div>
+        <p style={{ fontSize: 13, color: "#94a3b8", marginBottom: 20 }}>Scope-specific notes like change orders, delays, or permit status</p>
+        {showAddNote && (
+          <div style={{ marginBottom: 16, padding: 14, background: "#f8fafc", borderRadius: 12, border: "1px solid #e2e8f0" }}>
+            <textarea value={noteText} onChange={e => setNoteText(e.target.value)} placeholder="Type your note..."
+              style={{ ...iS, minHeight: 70, resize: "vertical", fontFamily: "inherit" }} />
+            <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+              <button onClick={addNote} style={{ background: "#e95e00", color: "#fff", border: "none", borderRadius: 8, padding: "8px 14px", fontWeight: 600, fontSize: 13, cursor: "pointer" }}>Save Note</button>
+              <button onClick={() => { setShowAddNote(false); setNoteText(""); }} style={{ background: "#fff", color: "#64748b", border: "1px solid #e2e8f0", borderRadius: 8, padding: "8px 14px", fontWeight: 600, fontSize: 13, cursor: "pointer" }}>Cancel</button>
+            </div>
+          </div>
+        )}
+        {notes.length === 0 && !showAddNote ? (
+          <div style={{ padding: 32, textAlign: "center", color: "#94a3b8", fontSize: 13, background: "#f8fafc", borderRadius: 12 }}>No notes yet.</div>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {notes.map(n => (
+              <div key={n.id} style={{ padding: 14, background: "#f8fafc", borderRadius: 12, border: "1px solid #f1f5f9" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
+                  <div style={{ flex: 1 }}>
+                    <p style={{ fontSize: 11, color: "#94a3b8", fontWeight: 600, marginBottom: 4 }}>{n.date}</p>
+                    <p style={{ fontSize: 14, color: "#041830", lineHeight: 1.5, whiteSpace: "pre-wrap" }}>{n.text}</p>
+                  </div>
+                  <button onClick={() => setDeletingNoteId(n.id)} style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8", padding: 4, display: "flex", alignItems: "center" }}><Trash2 size={14} /></button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Edit modal */}
+      {showEdit && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 500 }}>
+          <div style={{ background: "#fff", borderRadius: 20, padding: 28, width: 480, boxShadow: "0 25px 60px rgba(0,0,0,0.2)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+              <h2 style={{ color: "#041830", fontSize: 19, fontWeight: 700 }}>Edit Rehab Item</h2>
+              <button onClick={() => setShowEdit(false)} style={{ background: "#f1f5f9", border: "none", borderRadius: 8, width: 32, height: 32, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><X size={16} color="#64748b" /></button>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+              <div style={{ position: "relative" }}>
+                <label style={{ display: "block", color: "#374151", fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Category *</label>
+                <input value={editForm.category} onChange={e => { setEditForm(f => ({ ...f, category: e.target.value })); setCatFocus(true); }}
+                  onFocus={() => setCatFocus(true)} onBlur={() => setTimeout(() => setCatFocus(false), 150)} style={iS} />
+                {catFocus && (() => {
+                  const q = editForm.category.toLowerCase();
+                  const matches = q ? allCategories.filter(c => c.toLowerCase().includes(q) && c.toLowerCase() !== q) : allCategories.slice(0, 6);
+                  if (matches.length === 0) return null;
+                  return (
+                    <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, background: "#fff", border: "1px solid #e2e8f0", borderRadius: 12, boxShadow: "0 8px 24px rgba(0,0,0,0.10)", zIndex: 200, overflow: "hidden", maxHeight: 200, overflowY: "auto" }}>
+                      {matches.slice(0, 6).map(c => (
+                        <button key={c} onMouseDown={() => { setEditForm(f => ({ ...f, category: c })); setCatFocus(false); }}
+                          style={{ width: "100%", padding: "10px 14px", background: "none", border: "none", borderBottom: "1px solid #f1f5f9", textAlign: "left", cursor: "pointer", fontSize: 13, color: "#041830", display: "flex", alignItems: "center", gap: 8 }}>
+                          <Wrench size={13} style={{ color: "#94a3b8", flexShrink: 0 }} />
+                          <span>{c}</span>
+                        </button>
+                      ))}
+                    </div>
+                  );
+                })()}
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                <div>
+                  <label style={{ display: "block", color: "#374151", fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Budget *</label>
+                  <input value={editForm.budgeted} onChange={e => setEditForm(f => ({ ...f, budgeted: e.target.value }))} type="number" style={iS} />
+                </div>
+                <div>
+                  <label style={{ display: "block", color: "#374151", fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Spent</label>
+                  <input value={editForm.spent} onChange={e => setEditForm(f => ({ ...f, spent: e.target.value }))} type="number" style={iS} />
+                </div>
+              </div>
+              <div>
+                <label style={{ display: "block", color: "#374151", fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Status</label>
+                <select value={editForm.status} onChange={e => setEditForm(f => ({ ...f, status: e.target.value }))} style={iS}>
+                  <option value="pending">Pending</option>
+                  <option value="in-progress">In Progress</option>
+                  <option value="complete">Complete</option>
+                </select>
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
+              <button onClick={() => setShowEdit(false)} style={{ flex: 1, padding: "12px", border: "1px solid #e2e8f0", borderRadius: 10, background: "#fff", color: "#475569", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
+              <button onClick={saveEdit} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "#e95e00", color: "#fff", fontWeight: 600, cursor: "pointer" }}>Save Changes</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete note confirm */}
+      {deletingNoteId && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 500 }}>
+          <div style={{ background: "#fff", borderRadius: 20, padding: 28, width: 400, boxShadow: "0 25px 60px rgba(0,0,0,0.2)" }}>
+            <h2 style={{ color: "#041830", fontSize: 18, fontWeight: 700, marginBottom: 8 }}>Delete note?</h2>
+            <p style={{ fontSize: 14, color: "#64748b", marginBottom: 20 }}>This cannot be undone.</p>
+            <div style={{ display: "flex", gap: 10 }}>
+              <button onClick={() => setDeletingNoteId(null)} style={{ flex: 1, padding: "12px", border: "1px solid #e2e8f0", borderRadius: 10, background: "#fff", color: "#475569", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
+              <button onClick={() => deleteNote(deletingNoteId)} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "#ef4444", color: "#fff", fontWeight: 600, cursor: "pointer" }}>Delete</button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
@@ -9884,6 +10325,7 @@ function AppShell() {
   const [propDetailTenantHighlight, setPropDetailTenantHighlight] = useState(null); // tenant id to highlight in PropertyDetail
   const [selectedContractor, setSelectedContractor] = useState(null);
   const [selectedTenant, setSelectedTenant] = useState(null);
+  const [selectedRehabItem, setSelectedRehabItem] = useState(null); // { dealId, itemIdx }
   const [convertDealData, setConvertDealData] = useState(null); // deal data to pre-fill Add Property for flip-to-rental conversion
   const [dealVersion, setDealVersion] = useState(0); // bump to force re-render of deal-dependent views
   const onDealUpdated = useCallback(() => setDealVersion(v => v + 1), []);
@@ -10096,11 +10538,37 @@ function AppShell() {
           {activeView === "reports" && <Reports />}
           {activeView === "dealdashboard"   && <DealDashboard onSelect={(f, tab) => handleDealSelect(f, tab, "dealdashboard")} onNavigateToNote={(noteId) => { setHighlightDealNoteId(noteId); setNavSource("dealdashboard"); setActiveView("notes"); }} onNavigateToExpense={(expId) => { setHighlightExpId(expId); setNavSource("dealdashboard"); setActiveView("dealexpenses"); }} onNavigateToMilestone={(msKey) => { setHighlightMilestoneKey(msKey); setNavSource("dealdashboard"); setActiveView("dealmilestones"); }} />}
           {activeView === "deals"           && <DealPipeline onSelect={(f, tab) => handleDealSelect(f, tab, "deals")} />}
-          {activeView === "dealDetail"      && selectedDeal && <ErrorBoundary key={"eb-" + selectedDeal.id}><DealDetail key={selectedDeal.id + "-" + (dealInitialTab || "overview")} deal={selectedDeal} onBack={() => { setActiveView(dealNavSource || "deals"); setDealNavSource(null); setPrevDealNavSource(null); setDealInitialTab(null); }} backLabel={dealNavSource === "dealdashboard" ? "Back to Dashboard" : dealNavSource === "portfolio" ? "Back to Portfolio" : "Back to Deals"} onNavigateToExpense={navigateToDealExpense} onNavigateToContractor={(con) => { setSelectedContractor(con); setPrevDealNavSource(dealNavSource); setNavSource("dealDetail"); setActiveView("contractorDetail"); }} initialTab={dealInitialTab} onConvertToRental={(flipData) => { setConvertDealData(flipData); setActiveView("properties"); }} onDealUpdated={onDealUpdated} onNavigateToDeal={(f) => handleDealSelect(f, null, dealNavSource || "deals")} /></ErrorBoundary>}
-          {activeView === "dealrehab"        && <RehabTracker />}
+          {activeView === "dealDetail"      && selectedDeal && <ErrorBoundary key={"eb-" + selectedDeal.id}><DealDetail key={selectedDeal.id + "-" + (dealInitialTab || "overview")} deal={selectedDeal} onBack={() => { setActiveView(dealNavSource || "deals"); setDealNavSource(null); setPrevDealNavSource(null); setDealInitialTab(null); }} backLabel={dealNavSource === "dealdashboard" ? "Back to Dashboard" : dealNavSource === "portfolio" ? "Back to Portfolio" : "Back to Deals"} onNavigateToExpense={navigateToDealExpense} onNavigateToContractor={(con) => { setSelectedContractor(con); setPrevDealNavSource(dealNavSource); setNavSource("dealDetail"); setActiveView("contractorDetail"); }} onNavigateToRehabItem={(idx) => { setSelectedRehabItem({ dealId: selectedDeal.id, itemIdx: idx }); setNavSource("dealDetail"); setPrevDealNavSource(dealNavSource); setActiveView("rehabItemDetail"); }} initialTab={dealInitialTab} onConvertToRental={(flipData) => { setConvertDealData(flipData); setActiveView("properties"); }} onDealUpdated={onDealUpdated} onNavigateToDeal={(f) => handleDealSelect(f, null, dealNavSource || "deals")} /></ErrorBoundary>}
+          {activeView === "dealrehab"        && <RehabTracker onSelectRehabItem={(dealId, idx) => { setSelectedRehabItem({ dealId, itemIdx: idx }); setNavSource("dealrehab"); setActiveView("rehabItemDetail"); }} />}
+          {activeView === "rehabItemDetail" && selectedRehabItem && (() => {
+            const rDeal = DEALS.find(f => f.id === selectedRehabItem.dealId);
+            if (!rDeal) return null;
+            const backToDeal = navSource === "dealDetail";
+            return <RehabItemDetail
+              deal={rDeal}
+              itemIdx={selectedRehabItem.itemIdx}
+              onBack={() => {
+                if (backToDeal) {
+                  setSelectedRehabItem(null);
+                  setActiveView("dealDetail");
+                  setDealInitialTab("rehab");
+                  setNavSource(null);
+                  setDealNavSource(prevDealNavSource);
+                  setPrevDealNavSource(null);
+                } else {
+                  setSelectedRehabItem(null);
+                  setActiveView("dealrehab");
+                  setNavSource(null);
+                }
+              }}
+              backLabel={backToDeal ? `Back to ${rDeal.name}` : "Back to Rehab Tracker"}
+              onNavigateToContractor={(con) => { setSelectedContractor(con); setNavSource("rehabItemDetail"); setActiveView("contractorDetail"); }}
+              onNavigateToExpense={(expId) => { setHighlightExpId(expId); setNavSource("rehabItemDetail"); setActiveView("dealexpenses"); }}
+            />;
+          })()}
           {activeView === "dealexpenses"    && <DealExpenses highlightExpId={highlightExpId} onBack={navSource === "dealDetail" ? () => { setActiveView("dealDetail"); setHighlightExpId(null); setNavSource(null); setDealNavSource(prevDealNavSource); setPrevDealNavSource(null); } : navSource === "dealdashboard" ? () => { setActiveView("dealdashboard"); setHighlightExpId(null); setNavSource(null); } : navSource === "portfolio" ? () => { setActiveView("portfolio"); setHighlightExpId(null); setNavSource(null); } : null} backLabel={navSource === "dealdashboard" ? "Back to Dashboard" : navSource === "portfolio" ? "Back to Portfolio" : "Back to Deal"} onClearHighlight={() => setHighlightExpId(null)} />}
           {activeView === "dealcontractors" && <DealContractors onSelectContractor={handleSelectContractor} />}
-          {activeView === "contractorDetail" && selectedContractor && <ContractorDetail contractor={selectedContractor} onBack={() => { setSelectedContractor(null); if (navSource === "dealDetail" && selectedDeal) { setActiveView("dealDetail"); setDealInitialTab("contractors"); setNavSource(null); setDealNavSource(prevDealNavSource); setPrevDealNavSource(null); } else { setActiveView("dealcontractors"); } }} />}
+          {activeView === "contractorDetail" && selectedContractor && <ContractorDetail contractor={selectedContractor} onBack={() => { setSelectedContractor(null); if (navSource === "dealDetail" && selectedDeal) { setActiveView("dealDetail"); setDealInitialTab("contractors"); setNavSource(null); setDealNavSource(prevDealNavSource); setPrevDealNavSource(null); } else if (navSource === "rehabItemDetail" && selectedRehabItem) { setActiveView("rehabItemDetail"); setNavSource("dealDetail"); } else { setActiveView("dealcontractors"); } }} />}
           {activeView === "dealmilestones"  && <DealMilestones highlightMilestoneKey={highlightMilestoneKey} onBack={navSource === "dealdashboard" ? () => { setActiveView("dealdashboard"); setHighlightMilestoneKey(null); setNavSource(null); } : null} onClearHighlight={() => setHighlightMilestoneKey(null)} />}
           {activeView === "dealnotes"       && <UnifiedNotes highlightDealNoteId={highlightDealNoteId} onBack={navSource === "dealdashboard" ? () => { setActiveView("dealdashboard"); setHighlightDealNoteId(null); setNavSource(null); } : null} onClearHighlight={() => setHighlightDealNoteId(null)} />}
           {activeView === "dealanalytics"   && <DealAnalytics />}

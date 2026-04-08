@@ -418,7 +418,7 @@ export function DealDashboard({ onSelect, onNavigateToNote, onNavigateToExpense,
 // ---------------------------------------------------------------------------
 // 2. REHAB TRACKER
 // ---------------------------------------------------------------------------
-export function RehabTracker() {
+export function RehabTracker({ onSelectRehabItem } = {}) {
   const [filterDeal, setFilterDeal]     = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
   const [deleteConfirm, setDeleteConfirm] = useState(null); // { dealId, idx, category }
@@ -631,14 +631,14 @@ export function RehabTracker() {
                     const isEditing   = editingItem?.dealId === f.id && editingItem?.idx === item._idx;
 
                     return (
-                      <tr key={i} style={{ borderBottom: i < items.length - 1 ? "1px solid #f8fafc" : "none", background: isEditing ? "#fff7ed" : "transparent" }}>
+                      <tr key={i} onClick={() => onSelectRehabItem && !isEditing && onSelectRehabItem(f.id, item._idx)} style={{ borderBottom: i < items.length - 1 ? "1px solid #f8fafc" : "none", background: isEditing ? "#fff7ed" : "transparent", cursor: onSelectRehabItem && !isEditing ? "pointer" : "default" }}>
                         {/* Category */}
                         <td style={{ padding: "10px 0 10px", color: "#041830", fontSize: 13, fontWeight: 500, paddingRight: 12 }}>
                           {item.category}
                         </td>
 
                         {/* Contractor cell — supports multiple with per-item bids */}
-                        <td style={{ padding: "10px 0", paddingRight: 12, minWidth: 200 }}>
+                        <td onClick={e => e.stopPropagation()} style={{ padding: "10px 0", paddingRight: 12, minWidth: 200 }}>
                           <div style={{ display: "flex", flexWrap: "wrap", gap: 4, alignItems: "center" }}>
                             {assigned.map(asgn => {
                               const con = _CON.find(c => c.id === asgn.id);
@@ -680,7 +680,7 @@ export function RehabTracker() {
                         </td>
 
                         {/* Status — editable inline */}
-                        <td style={{ padding: "10px 0", paddingRight: 12 }}>
+                        <td onClick={e => e.stopPropagation()} style={{ padding: "10px 0", paddingRight: 12 }}>
                           {isEditing ? (
                             <select value={editVals.status} onChange={e => setEditVals(v => ({ ...v, status: e.target.value }))}
                               style={{ ...iS, padding: "4px 8px", fontSize: 12, width: 120 }}>
@@ -694,7 +694,7 @@ export function RehabTracker() {
                         </td>
 
                         {/* Budgeted — editable inline */}
-                        <td style={{ padding: "10px 0", paddingRight: 12 }}>
+                        <td onClick={e => e.stopPropagation()} style={{ padding: "10px 0", paddingRight: 12 }}>
                           {isEditing ? (
                             <input type="number" value={editVals.budgeted} onChange={e => setEditVals(v => ({ ...v, budgeted: e.target.value }))}
                               style={{ ...iS, padding: "4px 8px", fontSize: 12, width: 100 }} />
@@ -704,7 +704,7 @@ export function RehabTracker() {
                         </td>
 
                         {/* Spent — editable inline */}
-                        <td style={{ padding: "10px 0", paddingRight: 12 }}>
+                        <td onClick={e => e.stopPropagation()} style={{ padding: "10px 0", paddingRight: 12 }}>
                           {isEditing ? (
                             <input type="number" value={editVals.spent} onChange={e => setEditVals(v => ({ ...v, spent: e.target.value }))}
                               style={{ ...iS, padding: "4px 8px", fontSize: 12, width: 100 }} />
@@ -721,7 +721,7 @@ export function RehabTracker() {
                         </td>
 
                         {/* Actions */}
-                        <td style={{ padding: "10px 0", whiteSpace: "nowrap" }}>
+                        <td onClick={e => e.stopPropagation()} style={{ padding: "10px 0", whiteSpace: "nowrap" }}>
                           {isEditing ? (
                             <div style={{ display: "flex", gap: 6 }}>
                               <button onClick={saveEditItem} style={{ background: "#10b981", color: "#fff", border: "none", borderRadius: 7, padding: "4px 10px", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>Save</button>
