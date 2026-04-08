@@ -5823,10 +5823,12 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
   };
   // Open the Add Contractor modal from a rehab row's typeahead.
   // Stores the originating row so handleSaveCon can auto-assign the new contractor when saved.
+  // Pre-fills Trade with the rehab item's category so the user doesn't have to retype it.
   const openAddContractorForRow = (itemIdx, prefillName) => {
     setPendingAssignRowIdx(itemIdx);
     setAssignTA({ rowIdx: null, query: "" });
-    setConForm({ name: (prefillName || "").trim(), trade: "", phone: "", email: "", license: "", insuranceExpiry: "", notes: "", createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), userId: MOCK_USER.id });
+    const rowCategory = (rehabItems[itemIdx] && rehabItems[itemIdx].category) || "";
+    setConForm({ name: (prefillName || "").trim(), trade: rowCategory, phone: "", email: "", license: "", insuranceExpiry: "", notes: "", createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), userId: MOCK_USER.id });
     setEditingConId(null);
     setShowContractorModal(true);
   };
