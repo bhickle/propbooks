@@ -2630,7 +2630,7 @@ function PropertyDetail({ property, onBack, backLabel, onEditProperty, onGoToTra
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead>
                   <tr style={{ background: "#f8fafc" }}>
-                    {["Date", "Category", txShowModal === "income" ? "Received From" : "Paid To", "Description", "Amount", "Type", ""].map(h => (
+                    {["Date", "Category", "Paid To", "Description", "Amount", "Type", ""].map(h => (
                       <th key={h} style={{ padding: "12px 16px", textAlign: "left", color: "#94a3b8", fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>{h}</th>
                     ))}
                   </tr>
@@ -5979,7 +5979,7 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
   };
 
   const handleSaveExp = () => {
-    if (!expForm.amount) return;
+    if (!expForm.amount || !expForm.vendor || !expForm.description) return;
     const riIdx = expForm.rehabItemIdx !== "" ? parseInt(expForm.rehabItemIdx) : null;
     const amt = parseFloat(expForm.amount) || 0;
     const parsed = { date: expForm.date || new Date().toISOString().split("T")[0], vendor: expForm.vendor || "Unknown", category: expForm.category, description: expForm.description, amount: amt, status: expForm.status || "paid", contractorId: expForm.contractorId || null, rehabItemIdx: riIdx };
@@ -6883,10 +6883,10 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
                   <input type="number" placeholder="0.00" value={expForm.amount} onChange={sfE("amount")} style={iS} />
                 </div>
                 <div style={{ gridColumn: "1 / -1", position: "relative" }}>
-                  <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Paid To</label>
+                  <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Paid To *</label>
                   <input type="text" placeholder="Who was paid?" value={expForm.vendor} onChange={handleVendorChange} onFocus={() => setVendorFocus(true)} onBlur={() => setTimeout(() => setVendorFocus(false), 150)} style={iS} autoComplete="off" />
                   {vendorFocus && <PaidToDropdown />}
-                  {!vendorFocus && !expForm.vendor && <p style={{ fontSize: 11, color: "#94a3b8", marginTop: 4, fontStyle: "italic" }}>Type to search contractors and vendors or add new</p>}
+                  {!vendorFocus && !expForm.vendor && <p style={{ fontSize: 11, color: "#94a3b8", marginTop: 4, fontStyle: "italic" }}>Type to search previous entries or add new</p>}
                   {linkedCon && (
                     <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 6 }}>
                       <UserCheck size={12} color="#3b82f6" />
@@ -6896,8 +6896,8 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
                   )}
                 </div>
                 <div style={{ gridColumn: "1 / -1" }}>
-                  <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Description</label>
-                  <input type="text" placeholder="Brief description of what was purchased or done" value={expForm.description} onChange={sfE("description")} style={iS} />
+                  <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Description *</label>
+                  <input type="text" placeholder="Brief description" value={expForm.description} onChange={sfE("description")} style={iS} />
                 </div>
                 <div style={{ gridColumn: "1 / -1" }}>
                   <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Category</label>

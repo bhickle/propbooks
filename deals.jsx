@@ -1047,7 +1047,7 @@ export function DealExpenses({ highlightExpId, onBack, onClearHighlight, backLab
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [detailExp, setDetailExp]       = useState(null);
 
-  const emptyForm = { dealId: "", date: "", vendor: "", category: "Materials & Supplies", description: "", amount: "", rehabItemIdx: "" };
+  const emptyForm = { dealId: "", date: "", vendor: "", category: "Materials & Supplies", description: "", amount: "", rehabItemIdx: "", contractorId: "" };
   const [form, setForm]   = useState(emptyForm);
   const sf = k => e => setForm(f => ({ ...f, [k]: e.target.value }));
   const [vendorFocus, setVendorFocus] = useState(false);
@@ -1066,7 +1066,7 @@ export function DealExpenses({ highlightExpId, onBack, onClearHighlight, backLab
   const openAdd = () => { setEditId(null); setForm(emptyForm); setDealReceipts([]); setShowModal(true); };
   const openEdit = exp => {
     setEditId(exp.id);
-    setForm({ dealId: String(exp.dealId), date: exp.date, vendor: exp.vendor || "", category: exp.category, description: exp.description || "", amount: String(exp.amount), rehabItemIdx: exp.rehabItemIdx != null ? String(exp.rehabItemIdx) : "" });
+    setForm({ dealId: String(exp.dealId), date: exp.date, vendor: exp.vendor || "", category: exp.category, description: exp.description || "", amount: String(exp.amount), rehabItemIdx: exp.rehabItemIdx != null ? String(exp.rehabItemIdx) : "", contractorId: exp.contractorId ? String(exp.contractorId) : "" });
     setDealReceipts(DEAL_EXPENSE_RECEIPTS.filter(r => r.expenseId === exp.id));
     setShowModal(true);
   };
@@ -1112,11 +1112,11 @@ export function DealExpenses({ highlightExpId, onBack, onClearHighlight, backLab
   })).filter(c => c.total > 0).sort((a, b) => b.total - a.total);
 
   const handleSave = () => {
-    if (!form.amount || !form.dealId) return;
+    if (!form.amount || !form.dealId || !form.vendor || !form.description) return;
     const deal = _DEALS.find(f => f.id === parseInt(form.dealId));
     const amt = parseFloat(form.amount);
     const riIdx = form.rehabItemIdx !== "" ? parseInt(form.rehabItemIdx) : null;
-    const built = { dealId: parseInt(form.dealId), dealName: deal?.name, date: form.date || new Date().toISOString().split("T")[0], vendor: form.vendor || "Unknown", category: form.category, description: form.description, amount: amt, rehabItemIdx: riIdx };
+    const built = { dealId: parseInt(form.dealId), dealName: deal?.name, date: form.date || new Date().toISOString().split("T")[0], vendor: form.vendor || "Unknown", category: form.category, description: form.description, amount: amt, rehabItemIdx: riIdx, contractorId: form.contractorId ? parseInt(form.contractorId) : null };
 
     if (editId !== null) {
       // Reverse the old rehab item link before applying new one
@@ -1309,42 +1309,62 @@ export function DealExpenses({ highlightExpId, onBack, onClearHighlight, backLab
                   <input type="date" style={iS} value={form.date} onChange={sf("date")} />
                 </div>
                 <div>
-                  <p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Amount *</p>
+                  <p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Amount ($) *</p>
                   <input type="number" style={iS} placeholder="0.00" value={form.amount} onChange={sf("amount")} />
                 </div>
               </div>
-              <div style={{ position: "relative" }}>
-                <p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Paid To *</p>
-                <input style={iS} placeholder="Who was paid?" value={form.vendor}
-                  onChange={e => { setForm(f => ({ ...f, vendor: e.target.value })); setVendorFocus(true); }}
-                  onFocus={() => setVendorFocus(true)} onBlur={() => setTimeout(() => setVendorFocus(false), 150)} />
-                {!vendorFocus && !form.vendor && <p style={{ fontSize: 11, color: "#94a3b8", marginTop: 4, fontStyle: "italic" }}>Type to search previous vendors or add new</p>}
-                {vendorFocus && (() => {
-                  const q = form.vendor.toLowerCase();
-                  const matches = q ? allVendors.filter(v => v.toLowerCase().includes(q) && v.toLowerCase() !== q) : allVendors.slice(0, 6);
-                  const exactExists = allVendors.some(v => v.toLowerCase() === q);
-                  const showNew = q && !exactExists;
-                  if (matches.length === 0 && !showNew) return null;
-                  return (
-                    <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, background: "#fff", border: "1px solid #e2e8f0", borderRadius: 12, boxShadow: "0 8px 24px rgba(0,0,0,0.10)", zIndex: 200, overflow: "hidden", maxHeight: 200, overflowY: "auto" }}>
-                      {matches.slice(0, 6).map(v => (
-                        <button key={v} onMouseDown={() => { setForm(f => ({ ...f, vendor: v })); setVendorFocus(false); }}
-                          style={{ width: "100%", padding: "10px 14px", background: "none", border: "none", borderBottom: "1px solid #f1f5f9", textAlign: "left", cursor: "pointer", fontSize: 13, color: "#041830", display: "flex", alignItems: "center", gap: 8 }}>
-                          <Users size={13} style={{ color: "#94a3b8", flexShrink: 0 }} />
-                          <span>{v}</span>
-                        </button>
-                      ))}
-                      {showNew && (
-                        <button onMouseDown={() => { setForm(f => ({ ...f, vendor: f.vendor })); setVendorFocus(false); }}
-                          style={{ width: "100%", padding: "10px 14px", display: "flex", alignItems: "center", gap: 8, background: "#fff7ed", border: "none", borderTop: matches.length > 0 ? "1px solid #e2e8f0" : "none", cursor: "pointer", textAlign: "left" }}>
-                          <Plus size={13} style={{ color: "#e95e00", flexShrink: 0 }} />
-                          <span style={{ fontSize: 13, color: "#e95e00", fontWeight: 600 }}>Add &ldquo;{form.vendor}&rdquo; as new</span>
-                        </button>
-                      )}
-                    </div>
-                  );
-                })()}
-              </div>
+              {(() => {
+                const linkedCon = form.contractorId ? _CON.find(c => String(c.id) === String(form.contractorId)) : null;
+                const pickVendor = v => {
+                  const matchedCon = _CON.find(c => c.name.toLowerCase() === v.toLowerCase());
+                  setForm(f => ({ ...f, vendor: v, contractorId: matchedCon ? String(matchedCon.id) : "" }));
+                };
+                return (
+                  <div style={{ position: "relative" }}>
+                    <p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Paid To *</p>
+                    <input style={iS} placeholder="Who was paid?" value={form.vendor}
+                      onChange={e => { pickVendor(e.target.value); setVendorFocus(true); }}
+                      onFocus={() => setVendorFocus(true)} onBlur={() => setTimeout(() => setVendorFocus(false), 150)} />
+                    {!vendorFocus && !form.vendor && <p style={{ fontSize: 11, color: "#94a3b8", marginTop: 4, fontStyle: "italic" }}>Type to search previous entries or add new</p>}
+                    {linkedCon && (
+                      <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 6 }}>
+                        <UserCheck size={12} color="#3b82f6" />
+                        <span style={{ fontSize: 12, color: "#3b82f6", fontWeight: 600 }}>Linked to {linkedCon.name}{linkedCon.trade ? ` (${linkedCon.trade})` : ""}</span>
+                        <button onMouseDown={e => { e.preventDefault(); setForm(f => ({ ...f, contractorId: "" })); }} style={{ background: "none", border: "none", color: "#94a3b8", cursor: "pointer", fontSize: 11, textDecoration: "underline" }}>unlink</button>
+                      </div>
+                    )}
+                    {vendorFocus && (() => {
+                      const q = form.vendor.toLowerCase();
+                      const matches = q ? allVendors.filter(v => v.toLowerCase().includes(q) && v.toLowerCase() !== q) : allVendors.slice(0, 6);
+                      const exactExists = allVendors.some(v => v.toLowerCase() === q);
+                      const showNew = q && !exactExists;
+                      if (matches.length === 0 && !showNew) return null;
+                      return (
+                        <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, background: "#fff", border: "1px solid #e2e8f0", borderRadius: 12, boxShadow: "0 8px 24px rgba(0,0,0,0.10)", zIndex: 200, overflow: "hidden", maxHeight: 200, overflowY: "auto" }}>
+                          {matches.slice(0, 6).map(v => {
+                            const isContractor = _CON.some(c => c.name === v);
+                            return (
+                              <button key={v} onMouseDown={() => { pickVendor(v); setVendorFocus(false); }}
+                                style={{ width: "100%", padding: "10px 14px", background: "none", border: "none", borderBottom: "1px solid #f1f5f9", textAlign: "left", cursor: "pointer", fontSize: 13, color: "#041830", display: "flex", alignItems: "center", gap: 8 }}>
+                                {isContractor ? <UserCheck size={13} style={{ color: "#3b82f6", flexShrink: 0 }} /> : <Users size={13} style={{ color: "#94a3b8", flexShrink: 0 }} />}
+                                <span>{v}</span>
+                                {isContractor && <span style={{ marginLeft: "auto", fontSize: 10, color: "#3b82f6", fontWeight: 600, textTransform: "uppercase" }}>Contractor</span>}
+                              </button>
+                            );
+                          })}
+                          {showNew && (
+                            <button onMouseDown={() => { pickVendor(form.vendor); setVendorFocus(false); }}
+                              style={{ width: "100%", padding: "10px 14px", display: "flex", alignItems: "center", gap: 8, background: "#fff7ed", border: "none", borderTop: matches.length > 0 ? "1px solid #e2e8f0" : "none", cursor: "pointer", textAlign: "left" }}>
+                              <Plus size={13} style={{ color: "#e95e00", flexShrink: 0 }} />
+                              <span style={{ fontSize: 13, color: "#e95e00", fontWeight: 600 }}>Add &ldquo;{form.vendor}&rdquo; as new</span>
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })()}
+                  </div>
+                );
+              })()}
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                 <div>
                   <p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Category</p>
@@ -1367,7 +1387,7 @@ export function DealExpenses({ highlightExpId, onBack, onClearHighlight, backLab
                 </div>
               </div>
               <div>
-                <p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Description</p>
+                <p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Description *</p>
                 <input style={iS} placeholder="Brief description" value={form.description} onChange={sf("description")} />
               </div>
 
