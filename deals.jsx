@@ -22,6 +22,7 @@ import {
   DEAL_EXPENSE_RECEIPTS, addDealExpenseReceipt, deleteDealExpenseReceipt,
   DEAL_DOCUMENTS, addDealDocument, deleteDealDocument,
   mockOcrScan,
+  REHAB_CATEGORIES, REHAB_CATEGORY_GROUPS, getCanonicalBySlug, getCanonicalByLabel,
 } from "./api.js";
 
 // Shared mock data refs (passed as props or imported directly)
@@ -484,25 +485,32 @@ export function RehabTracker({ onSelectRehabItem } = {}) {
   }
 
   // Add line item modal state
-  const emptyItem = { dealId: "", category: "", budgeted: "", spent: "0", status: "pending" };
+  const emptyItem = { dealId: "", category: "", canonicalCategory: null, budgeted: "", spent: "0", status: "pending" };
   const [showAddItem, setShowAddItem] = useState(false);
   const [itemForm, setItemForm]       = useState(emptyItem);
   const sif = k => e => setItemForm(f => ({ ...f, [k]: e.target.value }));
   const [catFocus, setCatFocus] = useState(false);
+  // Canonical taxonomy + any custom categories that have been used across deals
   const allCategories = useMemo(() => {
-    const cats = new Set(_DEALS.flatMap(f => (f.rehabItems || []).map(i => i.category)));
-    return [...cats].filter(Boolean).sort();
-  }, [allItems]);
+    const canonicalLabels = new Set(REHAB_CATEGORIES.map(c => c.label.toLowerCase()));
+    const customSet = new Set();
+    _DEALS.forEach(f => (f.rehabItems || []).forEach(i => {
+      if (i.category && !canonicalLabels.has(i.category.toLowerCase())) customSet.add(i.category);
+    }));
+    return { canonical: REHAB_CATEGORIES, custom: [...customSet].sort() };
+  }, []);
 
   function saveLineItem() {
     if (!itemForm.dealId || !itemForm.category) return;
     const deal = _DEALS.find(f => f.id === parseInt(itemForm.dealId));
     if (!deal) return;
+    const canon = itemForm.canonicalCategory || getCanonicalByLabel(itemForm.category)?.slug || null;
     deal.rehabItems.push({
-      category:      itemForm.category,
-      budgeted:      parseFloat(itemForm.budgeted) || 0,
-      spent:         parseFloat(itemForm.spent) || 0,
-      status:        itemForm.status,
+      category:         itemForm.category,
+      canonicalCategory: canon,
+      budgeted:         parseFloat(itemForm.budgeted) || 0,
+      spent:            parseFloat(itemForm.spent) || 0,
+      status:           itemForm.status,
       contractors: [],
     });
     setItemForm(emptyItem);
@@ -772,29 +780,58 @@ export function RehabTracker({ onSelectRehabItem } = {}) {
               <div style={{ position: "relative" }}>
                 <p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Category *</p>
                 <input style={iS} placeholder="Start typing to search or add new..." value={itemForm.category}
-                  onChange={e => { setItemForm(f => ({ ...f, category: e.target.value })); setCatFocus(true); }}
+                  onChange={e => { setItemForm(f => ({ ...f, category: e.target.value, canonicalCategory: null })); setCatFocus(true); }}
                   onFocus={() => setCatFocus(true)} onBlur={() => setTimeout(() => setCatFocus(false), 150)} />
-                {!catFocus && !itemForm.category && <p style={{ fontSize: 11, color: "#94a3b8", marginTop: 4, fontStyle: "italic" }}>Type to search previous categories or add new</p>}
+                {!catFocus && !itemForm.category && <p style={{ fontSize: 11, color: "#94a3b8", marginTop: 4, fontStyle: "italic" }}>Pick from standard categories or add your own</p>}
                 {catFocus && (() => {
-                  const q = itemForm.category.toLowerCase();
-                  const matches = q ? allCategories.filter(c => c.toLowerCase().includes(q) && c.toLowerCase() !== q) : allCategories.slice(0, 6);
-                  const exactExists = allCategories.some(c => c.toLowerCase() === q);
+                  const q = itemForm.category.toLowerCase().trim();
+                  const canonMatches = q
+                    ? allCategories.canonical.filter(c => c.label.toLowerCase().includes(q))
+                    : allCategories.canonical;
+                  const customMatches = q
+                    ? allCategories.custom.filter(c => c.toLowerCase().includes(q))
+                    : allCategories.custom;
+                  const exactExists = [...allCategories.canonical.map(c => c.label), ...allCategories.custom]
+                    .some(c => c.toLowerCase() === q);
                   const showNew = q && !exactExists;
-                  if (matches.length === 0 && !showNew) return null;
+                  if (canonMatches.length === 0 && customMatches.length === 0 && !showNew) return null;
+                  // Group canonical matches by their group
+                  const grouped = REHAB_CATEGORY_GROUPS
+                    .map(g => ({ group: g, items: canonMatches.filter(c => c.group === g) }))
+                    .filter(g => g.items.length > 0);
                   return (
-                    <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, background: "#fff", border: "1px solid #e2e8f0", borderRadius: 12, boxShadow: "0 8px 24px rgba(0,0,0,0.10)", zIndex: 200, overflow: "hidden", maxHeight: 200, overflowY: "auto" }}>
-                      {matches.slice(0, 6).map(c => (
-                        <button key={c} onMouseDown={() => { setItemForm(f => ({ ...f, category: c })); setCatFocus(false); }}
-                          style={{ width: "100%", padding: "10px 14px", background: "none", border: "none", borderBottom: "1px solid #f1f5f9", textAlign: "left", cursor: "pointer", fontSize: 13, color: "#041830", display: "flex", alignItems: "center", gap: 8 }}>
-                          <Wrench size={13} style={{ color: "#94a3b8", flexShrink: 0 }} />
-                          <span>{c}</span>
-                        </button>
+                    <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, background: "#fff", border: "1px solid #e2e8f0", borderRadius: 12, boxShadow: "0 8px 24px rgba(0,0,0,0.10)", zIndex: 200, overflow: "hidden", maxHeight: 280, overflowY: "auto" }}>
+                      {grouped.map(({ group, items }) => (
+                        <div key={group}>
+                          <div style={{ padding: "6px 14px 4px", fontSize: 10, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.05em", background: "#f8fafc", borderBottom: "1px solid #f1f5f9" }}>{group}</div>
+                          {items.map(c => (
+                            <button key={c.slug} type="button"
+                              onMouseDown={() => { setItemForm(f => ({ ...f, category: c.label, canonicalCategory: c.slug })); setCatFocus(false); }}
+                              style={{ width: "100%", padding: "8px 14px", background: "none", border: "none", borderBottom: "1px solid #f1f5f9", textAlign: "left", cursor: "pointer", fontSize: 13, color: "#041830", display: "flex", alignItems: "center", gap: 8 }}>
+                              <Wrench size={13} style={{ color: "#94a3b8", flexShrink: 0 }} />
+                              <span>{c.label}</span>
+                            </button>
+                          ))}
+                        </div>
                       ))}
+                      {customMatches.length > 0 && (
+                        <div>
+                          <div style={{ padding: "6px 14px 4px", fontSize: 10, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.05em", background: "#f8fafc", borderBottom: "1px solid #f1f5f9" }}>Custom</div>
+                          {customMatches.map(c => (
+                            <button key={c} type="button"
+                              onMouseDown={() => { setItemForm(f => ({ ...f, category: c, canonicalCategory: null })); setCatFocus(false); }}
+                              style={{ width: "100%", padding: "8px 14px", background: "none", border: "none", borderBottom: "1px solid #f1f5f9", textAlign: "left", cursor: "pointer", fontSize: 13, color: "#041830", display: "flex", alignItems: "center", gap: 8 }}>
+                              <Wrench size={13} style={{ color: "#94a3b8", flexShrink: 0 }} />
+                              <span>{c}</span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
                       {showNew && (
-                        <button onMouseDown={() => { setItemForm(f => ({ ...f, category: f.category })); setCatFocus(false); }}
-                          style={{ width: "100%", padding: "10px 14px", display: "flex", alignItems: "center", gap: 8, background: "#fff7ed", border: "none", borderTop: matches.length > 0 ? "1px solid #e2e8f0" : "none", cursor: "pointer", textAlign: "left" }}>
+                        <button type="button" onMouseDown={() => { setCatFocus(false); }}
+                          style={{ width: "100%", padding: "10px 14px", display: "flex", alignItems: "center", gap: 8, background: "#fff7ed", border: "none", cursor: "pointer", textAlign: "left" }}>
                           <Plus size={13} style={{ color: "#e95e00", flexShrink: 0 }} />
-                          <span style={{ fontSize: 13, color: "#e95e00", fontWeight: 600 }}>Add &ldquo;{itemForm.category}&rdquo; as new</span>
+                          <span style={{ fontSize: 13, color: "#e95e00", fontWeight: 600 }}>Add &ldquo;{itemForm.category}&rdquo; as custom</span>
                         </button>
                       )}
                     </div>

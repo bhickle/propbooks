@@ -36,6 +36,193 @@ export const STAGE_COLORS = {
   "Sold":                 { bg: "#dcfce7", text: "#15803d", dot: "#10b981" },
   "Converted to Rental":  { bg: "#f0f9ff", text: "#0369a1", dot: "#0ea5e9" },
 };
+// -----------------------------------------------------------------------------
+// Rehab Categories — canonical taxonomy used by the rehab scope typeahead and
+// by cross-deal benchmarking. Each item has a slug (stable), a label (display),
+// and a group (for section headers in the dropdown). Users can still type any
+// free-text category; canonical entries just get better analytics treatment.
+// -----------------------------------------------------------------------------
+export const REHAB_CATEGORIES = [
+  // Demo & Prep
+  { slug: "demo",                 label: "Demo & Debris Removal",   group: "Demo & Prep" },
+  { slug: "dumpster",              label: "Dumpster / Haul-Off",     group: "Demo & Prep" },
+  { slug: "permits",               label: "Permits & Fees",          group: "Demo & Prep" },
+
+  // Structural
+  { slug: "foundation",            label: "Foundation / Concrete",   group: "Structural" },
+  { slug: "framing",               label: "Framing & Structural",    group: "Structural" },
+  { slug: "insulation",            label: "Insulation",              group: "Structural" },
+  { slug: "drywall",               label: "Drywall",                 group: "Structural" },
+
+  // Exterior
+  { slug: "roof",                  label: "Roof",                    group: "Exterior" },
+  { slug: "siding",                label: "Siding / Stucco",         group: "Exterior" },
+  { slug: "windows",               label: "Windows",                 group: "Exterior" },
+  { slug: "exterior-doors",        label: "Exterior Doors",          group: "Exterior" },
+  { slug: "exterior-paint",        label: "Exterior Paint",          group: "Exterior" },
+  { slug: "gutters",               label: "Gutters & Downspouts",    group: "Exterior" },
+
+  // Mechanicals
+  { slug: "plumbing",              label: "Plumbing",                group: "Mechanicals" },
+  { slug: "electrical",            label: "Electrical",              group: "Mechanicals" },
+  { slug: "hvac",                  label: "HVAC",                    group: "Mechanicals" },
+  { slug: "water-heater",          label: "Water Heater",            group: "Mechanicals" },
+
+  // Kitchen
+  { slug: "kitchen-cabinets",      label: "Kitchen Cabinets",        group: "Kitchen" },
+  { slug: "kitchen-countertops",   label: "Kitchen Countertops",     group: "Kitchen" },
+  { slug: "kitchen-appliances",    label: "Kitchen Appliances",      group: "Kitchen" },
+  { slug: "kitchen-backsplash",    label: "Kitchen Backsplash",      group: "Kitchen" },
+
+  // Bathrooms
+  { slug: "bath-vanity",           label: "Bathroom Vanity",         group: "Bathrooms" },
+  { slug: "bath-tub-shower",       label: "Tub / Shower",            group: "Bathrooms" },
+  { slug: "bath-tile",             label: "Bathroom Tile",           group: "Bathrooms" },
+  { slug: "bath-fixtures",         label: "Bathroom Fixtures",       group: "Bathrooms" },
+
+  // Interior Finishes
+  { slug: "flooring",              label: "Flooring",                group: "Interior Finishes" },
+  { slug: "interior-paint",        label: "Interior Paint",          group: "Interior Finishes" },
+  { slug: "interior-doors",        label: "Interior Doors",          group: "Interior Finishes" },
+  { slug: "trim",                  label: "Trim & Millwork",         group: "Interior Finishes" },
+  { slug: "lighting",              label: "Lighting Fixtures",       group: "Interior Finishes" },
+
+  // Exterior Site
+  { slug: "landscaping",           label: "Landscaping",             group: "Site & Exterior" },
+  { slug: "driveway",              label: "Driveway / Walkways",     group: "Site & Exterior" },
+  { slug: "fencing",               label: "Fencing",                 group: "Site & Exterior" },
+
+  // Soft Costs
+  { slug: "staging",               label: "Staging",                 group: "Soft Costs" },
+  { slug: "cleaning",              label: "Final Clean",             group: "Soft Costs" },
+  { slug: "contingency",           label: "Contingency",             group: "Soft Costs" },
+];
+
+export const REHAB_CATEGORY_GROUPS = [
+  "Demo & Prep", "Structural", "Exterior", "Mechanicals",
+  "Kitchen", "Bathrooms", "Interior Finishes", "Site & Exterior", "Soft Costs",
+];
+
+export const getCanonicalBySlug   = (slug)  => REHAB_CATEGORIES.find(c => c.slug === slug) || null;
+export const getCanonicalByLabel  = (label) => {
+  if (!label) return null;
+  const q = label.trim().toLowerCase();
+  return REHAB_CATEGORIES.find(c => c.label.toLowerCase() === q) || null;
+};
+
+// -----------------------------------------------------------------------------
+// Rehab Templates — one-click starter scopes for new deals. Each template is a
+// list of canonical slugs plus an optional suggested budget (user adjusts).
+// -----------------------------------------------------------------------------
+export const REHAB_TEMPLATES = [
+  {
+    id: "cosmetic",
+    name: "Light Cosmetic",
+    description: "Paint, flooring, fixtures, minor kitchen/bath refresh. Best for $20-40K rehabs.",
+    items: [
+      { slug: "interior-paint",     budgeted: 3500 },
+      { slug: "flooring",           budgeted: 6000 },
+      { slug: "kitchen-cabinets",   budgeted: 3500 },
+      { slug: "kitchen-countertops",budgeted: 2500 },
+      { slug: "kitchen-appliances", budgeted: 2500 },
+      { slug: "bath-vanity",        budgeted: 1200 },
+      { slug: "bath-fixtures",      budgeted: 800  },
+      { slug: "lighting",           budgeted: 1200 },
+      { slug: "cleaning",           budgeted: 500  },
+      { slug: "contingency",        budgeted: 2500 },
+    ],
+  },
+  {
+    id: "standard",
+    name: "Standard Flip",
+    description: "Full interior refresh including kitchen and bath remodels. Best for $50-90K rehabs.",
+    items: [
+      { slug: "demo",                budgeted: 3000 },
+      { slug: "dumpster",            budgeted: 1500 },
+      { slug: "permits",             budgeted: 1500 },
+      { slug: "plumbing",            budgeted: 4500 },
+      { slug: "electrical",          budgeted: 3500 },
+      { slug: "hvac",                budgeted: 4500 },
+      { slug: "drywall",             budgeted: 3500 },
+      { slug: "interior-paint",      budgeted: 4500 },
+      { slug: "flooring",            budgeted: 8500 },
+      { slug: "kitchen-cabinets",    budgeted: 6500 },
+      { slug: "kitchen-countertops", budgeted: 3500 },
+      { slug: "kitchen-appliances",  budgeted: 3000 },
+      { slug: "bath-vanity",         budgeted: 1800 },
+      { slug: "bath-tub-shower",     budgeted: 2800 },
+      { slug: "bath-tile",           budgeted: 2200 },
+      { slug: "trim",                budgeted: 2500 },
+      { slug: "lighting",            budgeted: 1500 },
+      { slug: "exterior-paint",      budgeted: 3500 },
+      { slug: "landscaping",         budgeted: 1500 },
+      { slug: "cleaning",            budgeted: 700  },
+      { slug: "contingency",         budgeted: 5000 },
+    ],
+  },
+  {
+    id: "gut",
+    name: "Full Gut Rehab",
+    description: "Down-to-studs rebuild: mechanicals, structural, full finish. Best for $100K+ rehabs.",
+    items: [
+      { slug: "demo",                budgeted: 8000 },
+      { slug: "dumpster",            budgeted: 3500 },
+      { slug: "permits",             budgeted: 3500 },
+      { slug: "foundation",          budgeted: 6000 },
+      { slug: "framing",             budgeted: 7500 },
+      { slug: "roof",                budgeted: 9500 },
+      { slug: "siding",              budgeted: 8500 },
+      { slug: "windows",             budgeted: 6500 },
+      { slug: "exterior-doors",      budgeted: 1800 },
+      { slug: "exterior-paint",      budgeted: 4500 },
+      { slug: "plumbing",            budgeted: 9500 },
+      { slug: "electrical",          budgeted: 8500 },
+      { slug: "hvac",                budgeted: 7500 },
+      { slug: "water-heater",        budgeted: 1500 },
+      { slug: "insulation",          budgeted: 2800 },
+      { slug: "drywall",             budgeted: 6500 },
+      { slug: "interior-paint",      budgeted: 5500 },
+      { slug: "flooring",            budgeted: 11000 },
+      { slug: "kitchen-cabinets",    budgeted: 9500 },
+      { slug: "kitchen-countertops", budgeted: 4500 },
+      { slug: "kitchen-appliances",  budgeted: 4000 },
+      { slug: "kitchen-backsplash",  budgeted: 1500 },
+      { slug: "bath-vanity",         budgeted: 2800 },
+      { slug: "bath-tub-shower",     budgeted: 3800 },
+      { slug: "bath-tile",           budgeted: 3500 },
+      { slug: "bath-fixtures",       budgeted: 1500 },
+      { slug: "interior-doors",      budgeted: 2500 },
+      { slug: "trim",                budgeted: 4500 },
+      { slug: "lighting",            budgeted: 2500 },
+      { slug: "landscaping",         budgeted: 3500 },
+      { slug: "driveway",            budgeted: 3500 },
+      { slug: "cleaning",            budgeted: 1200 },
+      { slug: "contingency",         budgeted: 10000 },
+    ],
+  },
+  {
+    id: "kitchen-bath",
+    name: "Kitchen + Baths Only",
+    description: "Targeted upgrade of kitchen and bathrooms. Best for properties with solid bones.",
+    items: [
+      { slug: "demo",                budgeted: 2500 },
+      { slug: "plumbing",            budgeted: 3500 },
+      { slug: "electrical",          budgeted: 1800 },
+      { slug: "kitchen-cabinets",    budgeted: 7500 },
+      { slug: "kitchen-countertops", budgeted: 3800 },
+      { slug: "kitchen-appliances",  budgeted: 3500 },
+      { slug: "kitchen-backsplash",  budgeted: 1200 },
+      { slug: "bath-vanity",         budgeted: 2200 },
+      { slug: "bath-tub-shower",     budgeted: 3200 },
+      { slug: "bath-tile",           budgeted: 2800 },
+      { slug: "bath-fixtures",       budgeted: 1200 },
+      { slug: "lighting",            budgeted: 1500 },
+      { slug: "interior-paint",      budgeted: 2500 },
+      { slug: "contingency",         budgeted: 3500 },
+    ],
+  },
+];
+
 export const DEFAULT_MILESTONES = [
   "Contract Executed","Inspection Complete","Financing Secured",
   "Purchased / Closed","Demo Complete","Rough-In (Plumbing/Electric)",
