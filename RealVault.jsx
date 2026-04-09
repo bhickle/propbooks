@@ -984,6 +984,68 @@ function generateAlerts({ properties, tenants, transactions, deals, contractors 
   return alerts.sort((a, b) => SEVERITY_RANK[a.severity] - SEVERITY_RANK[b.severity]);
 }
 
+// =============================================================================
+// SHARED RENT-PAYMENT ACTION — used by both dashboards
+// =============================================================================
+// Canonical "log a rent payment" write. The only place TRANSACTIONS is mutated
+// for a rent payment so Rental Dashboard's Rent Collection card and the
+// Needs Attention card on Portfolio Dashboard produce identical records.
+function logRentPayment(tenant, { amount, date, mode }) {
+  if (!tenant || !(amount > 0)) return null;
+  const desc = mode === "full"
+    ? `${new Date(date).toLocaleString("en-US", { month: "long" })} rent — ${tenant.unit}`
+    : `Partial rent payment — ${tenant.unit}`;
+  const tx = {
+    id: newId(), date, propertyId: tenant.propertyId, category: "Rent Income",
+    description: desc, amount: Math.abs(amount), type: "income", payee: tenant.name,
+    createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), userId: MOCK_USER.id,
+  };
+  TRANSACTIONS.unshift(tx);
+  return tx;
+}
+
+// Inline Mark-Paid form — rendered under an alert row or unpaid-tenant row.
+// Self-contained state. Parent only supplies the tenant, a todayStr default,
+// and an onConfirm callback invoked after logRentPayment writes.
+function QuickPayInline({ tenant, defaultDate, onConfirm }) {
+  const [mode, setMode] = useState("full");
+  const [amt, setAmt] = useState(String(tenant?.rent || ""));
+  const [date, setDate] = useState(defaultDate);
+  const qInput = { padding: "8px 12px", borderRadius: 8, border: "1.5px solid #e2e8f0", fontSize: 13, color: "#041830", background: "#fff", outline: "none", width: "100%" };
+  const confirm = () => {
+    const amount = mode === "full" ? (tenant?.rent || 0) : (parseFloat(amt) || 0);
+    if (amount <= 0) return;
+    logRentPayment(tenant, { amount, date, mode });
+    onConfirm && onConfirm();
+  };
+  return (
+    <div style={{ padding: "8px 10px 12px", borderTop: "1px solid #e2e8f0" }}>
+      <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
+        <button onClick={() => { setMode("full"); setAmt(String(tenant?.rent || "")); }}
+          style={{ flex: 1, padding: "7px 0", borderRadius: 8, border: mode === "full" ? "1.5px solid #10b981" : "1.5px solid #e2e8f0", background: mode === "full" ? "#dcfce7" : "#fff", color: mode === "full" ? "#15803d" : "#64748b", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
+          Full — {fmt(tenant?.rent || 0)}
+        </button>
+        <button onClick={() => { setMode("partial"); setAmt(""); }}
+          style={{ flex: 1, padding: "7px 0", borderRadius: 8, border: mode === "partial" ? "1.5px solid #e95e00" : "1.5px solid #e2e8f0", background: mode === "partial" ? "#ffedd5" : "#fff", color: mode === "partial" ? "#9a3412" : "#64748b", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
+          Partial
+        </button>
+      </div>
+      <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+        {mode === "partial" && (
+          <input type="number" placeholder="Amount" value={amt} onChange={e => setAmt(e.target.value)}
+            style={{ ...qInput, width: 100 }} />
+        )}
+        <input type="date" value={date} onChange={e => setDate(e.target.value)}
+          style={{ ...qInput, width: mode === "partial" ? 130 : "auto", flex: mode === "full" ? 1 : undefined }} />
+        <button onClick={confirm}
+          style={{ padding: "8px 16px", borderRadius: 8, border: "none", background: "#10b981", color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" }}>
+          Confirm
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ---------------------------------------------
 // VIEWS
 // ---------------------------------------------
@@ -994,6 +1056,7 @@ function PortfolioDashboard({ onNavigate, onSelectProperty, onSelectFlip, onNavi
   // Force a re-render when snooze/dismiss state changes
   const [, rerenderAlerts] = useState(0);
   const [alertMenuOpen, setAlertMenuOpen] = useState(null); // alert id whose menu is open
+  const [expandedAlert, setExpandedAlert] = useState(null); // alert id whose inline action form is open
   const bumpAlerts = () => rerenderAlerts(n => n + 1);
 
   // ── KPIs ────────────────────────────────────────────────────────────────
@@ -1379,7 +1442,15 @@ function PortfolioDashboard({ onNavigate, onSelectProperty, onSelectFlip, onNavi
             ) : attentionAlerts.map(a => {
               const sevColor = a.severity === "high" ? "#ef4444" : a.severity === "medium" ? "#f59e0b" : "#64748b";
               const Icon = a.icon;
+              const isRentOverdue = a.type === "rentOverdue";
+              const isExpanded = expandedAlert === a.id;
+              const alertTenant = isRentOverdue ? TENANTS.find(tt => tt.id === a.target.id) : null;
               const handleGo = () => {
+                // Rent overdue is handled inline via QuickPayInline — never navigate
+                if (isRentOverdue) {
+                  setExpandedAlert(isExpanded ? null : a.id);
+                  return;
+                }
                 if (a.target.type === "property" && onSelectProperty) {
                   const p = PROPERTIES.find(pp => pp.id === a.target.id);
                   if (p) onSelectProperty(p, null);
@@ -1402,46 +1473,55 @@ function PortfolioDashboard({ onNavigate, onSelectProperty, onSelectFlip, onNavi
                 }
               };
               return (
-                <div key={a.id} style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "10px 12px", borderRadius: 10, background: "#f8fafc", border: "1px solid #f1f5f9", position: "relative" }}>
-                  <div style={{ width: 32, height: 32, borderRadius: 8, background: a.bg, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                    <Icon size={15} color={a.color} />
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
-                      <span style={{ width: 6, height: 6, borderRadius: "50%", background: sevColor, flexShrink: 0 }} />
-                      <p style={{ fontSize: 13, fontWeight: 600, color: "#041830", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.title}</p>
+                <div key={a.id} style={{ borderRadius: 10, background: "#f8fafc", border: isExpanded ? "1.5px solid #dbeafe" : "1px solid #f1f5f9", position: "relative", transition: "border 0.15s" }}>
+                  <div style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "10px 12px" }}>
+                    <div style={{ width: 32, height: 32, borderRadius: 8, background: a.bg, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                      <Icon size={15} color={a.color} />
                     </div>
-                    <p style={{ fontSize: 11, color: "#64748b", margin: "0 0 6px 0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.detail}</p>
-                    <button onClick={handleGo} style={{ background: "none", border: "none", color: "#e95e00", fontSize: 12, fontWeight: 600, cursor: "pointer", padding: 0, display: "flex", alignItems: "center", gap: 4 }}>
-                      {a.action} <ArrowRight size={12} />
-                    </button>
-                  </div>
-                  <div style={{ position: "relative", flexShrink: 0 }}>
-                    <button
-                      onClick={() => setAlertMenuOpen(alertMenuOpen === a.id ? null : a.id)}
-                      style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8", padding: 4, borderRadius: 6, display: "flex", alignItems: "center" }}
-                      title="Options"
-                    >
-                      <MoreHorizontal size={16} />
-                    </button>
-                    {alertMenuOpen === a.id && (
-                      <>
-                        <div onClick={() => setAlertMenuOpen(null)} style={{ position: "fixed", inset: 0, zIndex: 900 }} />
-                        <div style={{ position: "absolute", right: 0, top: 28, background: "#fff", border: "1px solid #e2e8f0", borderRadius: 10, boxShadow: "0 10px 25px rgba(0,0,0,0.1)", minWidth: 160, zIndex: 901, padding: 4 }}>
-                          <div style={{ fontSize: 10, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.05em", padding: "8px 10px 4px" }}>Snooze</div>
-                          {[{ label: "3 days", d: 3 }, { label: "7 days", d: 7 }, { label: "30 days", d: 30 }].map(opt => (
-                            <button key={opt.d} onClick={() => { snoozeAlert(a.id, opt.d); setAlertMenuOpen(null); bumpAlerts(); }} style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", textAlign: "left", padding: "8px 10px", background: "none", border: "none", cursor: "pointer", fontSize: 13, color: "#475569", borderRadius: 6 }} onMouseEnter={e => e.currentTarget.style.background = "#f8fafc"} onMouseLeave={e => e.currentTarget.style.background = "none"}>
-                              <Clock size={13} color="#94a3b8" /> Remind in {opt.label}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
+                        <span style={{ width: 6, height: 6, borderRadius: "50%", background: sevColor, flexShrink: 0 }} />
+                        <p style={{ fontSize: 13, fontWeight: 600, color: "#041830", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.title}</p>
+                      </div>
+                      <p style={{ fontSize: 11, color: "#64748b", margin: "0 0 6px 0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.detail}</p>
+                      <button onClick={handleGo} style={{ background: "none", border: "none", color: "#e95e00", fontSize: 12, fontWeight: 600, cursor: "pointer", padding: 0, display: "flex", alignItems: "center", gap: 4 }}>
+                        {isRentOverdue && isExpanded ? "Cancel" : a.action} {!(isRentOverdue && isExpanded) && <ArrowRight size={12} />}
+                      </button>
+                    </div>
+                    <div style={{ position: "relative", flexShrink: 0 }}>
+                      <button
+                        onClick={() => setAlertMenuOpen(alertMenuOpen === a.id ? null : a.id)}
+                        style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8", padding: 4, borderRadius: 6, display: "flex", alignItems: "center" }}
+                        title="Options"
+                      >
+                        <MoreHorizontal size={16} />
+                      </button>
+                      {alertMenuOpen === a.id && (
+                        <>
+                          <div onClick={() => setAlertMenuOpen(null)} style={{ position: "fixed", inset: 0, zIndex: 900 }} />
+                          <div style={{ position: "absolute", right: 0, top: 28, background: "#fff", border: "1px solid #e2e8f0", borderRadius: 10, boxShadow: "0 10px 25px rgba(0,0,0,0.1)", minWidth: 160, zIndex: 901, padding: 4 }}>
+                            <div style={{ fontSize: 10, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.05em", padding: "8px 10px 4px" }}>Snooze</div>
+                            {[{ label: "3 days", d: 3 }, { label: "7 days", d: 7 }, { label: "30 days", d: 30 }].map(opt => (
+                              <button key={opt.d} onClick={() => { snoozeAlert(a.id, opt.d); setAlertMenuOpen(null); bumpAlerts(); }} style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", textAlign: "left", padding: "8px 10px", background: "none", border: "none", cursor: "pointer", fontSize: 13, color: "#475569", borderRadius: 6 }} onMouseEnter={e => e.currentTarget.style.background = "#f8fafc"} onMouseLeave={e => e.currentTarget.style.background = "none"}>
+                                <Clock size={13} color="#94a3b8" /> Remind in {opt.label}
+                              </button>
+                            ))}
+                            <div style={{ borderTop: "1px solid #f1f5f9", margin: "4px 0" }} />
+                            <button onClick={() => { dismissAlert(a.id); setAlertMenuOpen(null); bumpAlerts(); }} style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", textAlign: "left", padding: "8px 10px", background: "none", border: "none", cursor: "pointer", fontSize: 13, color: "#b91c1c", borderRadius: 6 }} onMouseEnter={e => e.currentTarget.style.background = "#fef2f2"} onMouseLeave={e => e.currentTarget.style.background = "none"}>
+                              <X size={13} /> Dismiss
                             </button>
-                          ))}
-                          <div style={{ borderTop: "1px solid #f1f5f9", margin: "4px 0" }} />
-                          <button onClick={() => { dismissAlert(a.id); setAlertMenuOpen(null); bumpAlerts(); }} style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", textAlign: "left", padding: "8px 10px", background: "none", border: "none", cursor: "pointer", fontSize: 13, color: "#b91c1c", borderRadius: 6 }} onMouseEnter={e => e.currentTarget.style.background = "#fef2f2"} onMouseLeave={e => e.currentTarget.style.background = "none"}>
-                            <X size={13} /> Dismiss
-                          </button>
-                        </div>
-                      </>
-                    )}
+                          </div>
+                        </>
+                      )}
+                    </div>
                   </div>
+                  {isRentOverdue && isExpanded && alertTenant && (
+                    <QuickPayInline
+                      tenant={alertTenant}
+                      defaultDate={todayStr}
+                      onConfirm={() => { setExpandedAlert(null); bumpAlerts(); }}
+                    />
+                  )}
                 </div>
               );
             })}
@@ -1499,10 +1579,9 @@ function Dashboard({ onNavigate, onNavigateToTx, onSelectProperty, onNavigateToT
   const rerender = () => forceRender(n => n + 1);
 
   // ── Quick Action State ─────────────────────────────────────────────────
-  const [quickPay, setQuickPay] = useState(null);       // tenant object being marked paid
-  const [quickPayMode, setQuickPayMode] = useState("full"); // "full" | "partial"
-  const [quickPayAmt, setQuickPayAmt] = useState("");
-  const [quickPayDate, setQuickPayDate] = useState(todayStr);
+  // quickPay holds just the tenant whose inline form is open; the form itself
+  // (mode/amount/date) lives inside <QuickPayInline/>.
+  const [quickPay, setQuickPay] = useState(null);
   const [quickRenew, setQuickRenew] = useState(null);   // lease alert being renewed
   const [renewForm, setRenewForm] = useState({ newEnd: "", newRent: "" });
 
@@ -1615,33 +1694,8 @@ function Dashboard({ onNavigate, onNavigateToTx, onSelectProperty, onNavigateToT
   });
 
   // ── Quick Action Handlers ────────────────────────────────────────────────
-  const handleMarkPaid = (tenant) => {
-    setQuickPay(tenant);
-    setQuickPayMode("full");
-    setQuickPayAmt(String(tenant.rent || ""));
-    setQuickPayDate(todayStr);
-  };
-
-  const confirmMarkPaid = () => {
-    if (!quickPay) return;
-    const amt = quickPayMode === "full" ? (quickPay.rent || 0) : (parseFloat(quickPayAmt) || 0);
-    if (amt <= 0) return;
-    const prop = PROPERTIES.find(p => p.id === quickPay.propertyId);
-    const desc = quickPayMode === "full"
-      ? `${new Date(quickPayDate).toLocaleString("en-US", { month: "long" })} rent — ${quickPay.unit}`
-      : `Partial rent payment — ${quickPay.unit}`;
-    // Add transaction to global array — this is the canonical record.
-    // Paid-status is derived from TRANSACTIONS via wasRentPaidThisMonth(),
-    // so we deliberately do NOT also write tenant.lastPayment (which caused
-    // drift between the rental dashboard and Needs Attention alerts).
-    TRANSACTIONS.unshift({
-      id: newId(), date: quickPayDate, propertyId: quickPay.propertyId, category: "Rent Income",
-      description: desc, amount: Math.abs(amt), type: "income", payee: quickPay.name,
-      createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), userId: MOCK_USER.id,
-    });
-    setQuickPay(null);
-    rerender();
-  };
+  // Rent payment write lives in shared logRentPayment() via <QuickPayInline/>.
+  const handleMarkPaid = (tenant) => { setQuickPay(tenant); };
 
   const handleQuickRenew = (alert) => {
     const t = alert.tenant;
@@ -1816,32 +1870,13 @@ function Dashboard({ onNavigate, onNavigateToTx, onSelectProperty, onNavigateToT
                           </button>
                         </div>
                       </div>
-                      {/* Quick Pay Inline Form */}
+                      {/* Quick Pay Inline Form (shared component) */}
                       {isExpanded && (
-                        <div style={{ padding: "8px 10px 12px", borderTop: "1px solid #e2e8f0" }}>
-                          <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
-                            <button onClick={() => { setQuickPayMode("full"); setQuickPayAmt(String(t.rent || "")); }}
-                              style={{ flex: 1, padding: "7px 0", borderRadius: 8, border: quickPayMode === "full" ? "1.5px solid #10b981" : "1.5px solid #e2e8f0", background: quickPayMode === "full" ? "#dcfce7" : "#fff", color: quickPayMode === "full" ? "#15803d" : "#64748b", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
-                              Full — {fmt(t.rent)}
-                            </button>
-                            <button onClick={() => { setQuickPayMode("partial"); setQuickPayAmt(""); }}
-                              style={{ flex: 1, padding: "7px 0", borderRadius: 8, border: quickPayMode === "partial" ? "1.5px solid #e95e00" : "1.5px solid #e2e8f0", background: quickPayMode === "partial" ? "#ffedd5" : "#fff", color: quickPayMode === "partial" ? "#9a3412" : "#64748b", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
-                              Partial
-                            </button>
-                          </div>
-                          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                            {quickPayMode === "partial" && (
-                              <input type="number" placeholder="Amount" value={quickPayAmt} onChange={e => setQuickPayAmt(e.target.value)}
-                                style={{ ...qInput, width: 100 }} />
-                            )}
-                            <input type="date" value={quickPayDate} onChange={e => setQuickPayDate(e.target.value)}
-                              style={{ ...qInput, width: quickPayMode === "partial" ? 130 : "auto", flex: quickPayMode === "full" ? 1 : undefined }} />
-                            <button onClick={confirmMarkPaid}
-                              style={{ padding: "8px 16px", borderRadius: 8, border: "none", background: "#10b981", color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" }}>
-                              Confirm
-                            </button>
-                          </div>
-                        </div>
+                        <QuickPayInline
+                          tenant={t}
+                          defaultDate={todayStr}
+                          onConfirm={() => { setQuickPay(null); rerender(); }}
+                        />
                       )}
                     </div>
                   );
