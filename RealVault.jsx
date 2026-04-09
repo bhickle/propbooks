@@ -748,6 +748,185 @@ function Badge({ status }) {
   );
 }
 
+// =============================================================================
+// NEEDS ATTENTION — action center alerts store and generators
+// =============================================================================
+// Module-level mutable store. Each entry is keyed by a deterministic ID of the
+// form `{alertType}:{entityId}:{period}` where period narrows the alert to a
+// specific occurrence (e.g. "rentOverdue:3:2026-04") so dismissing March's
+// alert never suppresses April's.
+//
+// Shape: { id, state: "dismissed" | "snoozed", snoozeUntil: "YYYY-MM-DD" | null, updatedAt }
+const _ALERT_STATE = {};
+
+const alertStateFor = (id) => _ALERT_STATE[id] || null;
+const dismissAlert  = (id) => { _ALERT_STATE[id] = { id, state: "dismissed", snoozeUntil: null, updatedAt: new Date().toISOString() }; };
+const snoozeAlert   = (id, days) => {
+  const d = new Date();
+  d.setDate(d.getDate() + days);
+  _ALERT_STATE[id] = { id, state: "snoozed", snoozeUntil: d.toISOString().slice(0, 10), updatedAt: new Date().toISOString() };
+};
+const clearAlertState = (id) => { delete _ALERT_STATE[id]; };
+
+// Is the alert currently suppressed by snooze/dismiss?
+function isAlertSuppressed(id) {
+  const st = _ALERT_STATE[id];
+  if (!st) return false;
+  if (st.state === "dismissed") return true;
+  if (st.state === "snoozed" && st.snoozeUntil) {
+    const today = new Date().toISOString().slice(0, 10);
+    if (today < st.snoozeUntil) return true;
+    // Snooze expired — auto-clear so the alert reappears
+    delete _ALERT_STATE[id];
+    return false;
+  }
+  return false;
+}
+
+// Severity sort order (high first)
+const SEVERITY_RANK = { high: 0, medium: 1, low: 2 };
+
+// Build the alert list from current app state. Each call is pure — no side
+// effects — so the list auto-refreshes when underlying data changes. Alerts
+// are filtered through `isAlertSuppressed` so dismissed/snoozed items don't
+// appear until the condition recurs (new period key) or the snooze expires.
+function generateAlerts({ properties, tenants, transactions, deals, contractors }) {
+  const alerts = [];
+  const now = new Date();
+  const todayStr = now.toISOString().slice(0, 10);
+  const curMonth = todayStr.slice(0, 7); // "YYYY-MM"
+  const daysBetween = (a, b) => Math.round((new Date(b) - new Date(a)) / 86400000);
+
+  // 1. Rent overdue — tenant has active lease, rent > 0, and no income txn
+  //    logged for this property in the current month (keyed to the month so
+  //    dismissing March doesn't hide April).
+  tenants.forEach(t => {
+    if (t.status !== "active-lease" && t.status !== "month-to-month") return;
+    if (!t.rent) return;
+    const prop = properties.find(p => p.id === t.propertyId);
+    if (!prop) return;
+    const paidThisMonth = transactions.some(tx =>
+      tx.propertyId === t.propertyId && tx.type === "income" &&
+      tx.date && tx.date.startsWith(curMonth)
+    );
+    if (paidThisMonth) return;
+    // Expect rent by the 5th; don't alert before then
+    if (now.getDate() < 5) return;
+    const daysLate = now.getDate() - 1;
+    const id = `rentOverdue:${t.id}:${curMonth}`;
+    if (isAlertSuppressed(id)) return;
+    alerts.push({
+      id, type: "rentOverdue", severity: daysLate > 10 ? "high" : "medium",
+      icon: DollarSign, color: "#ef4444", bg: "#fee2e2",
+      title: `Rent not received — ${t.name}`,
+      detail: `${prop.name} · ${t.unit} · ${fmt(t.rent)} due · ${daysLate} day${daysLate === 1 ? "" : "s"} late`,
+      action: "Log payment", target: { type: "tenant", id: t.id },
+    });
+  });
+
+  // 2. Lease expiring in the next 60 days
+  tenants.forEach(t => {
+    if (!t.leaseEnd || t.status === "vacant" || t.status === "past") return;
+    const days = daysBetween(todayStr, t.leaseEnd);
+    if (days < 0 || days > 60) return;
+    const prop = properties.find(p => p.id === t.propertyId);
+    if (!prop) return;
+    const id = `leaseExpiring:${t.id}:${t.leaseEnd}`;
+    if (isAlertSuppressed(id)) return;
+    alerts.push({
+      id, type: "leaseExpiring", severity: days <= 14 ? "high" : days <= 30 ? "medium" : "low",
+      icon: Calendar, color: "#f59e0b", bg: "#fef3c7",
+      title: `Lease expires in ${days} day${days === 1 ? "" : "s"} — ${t.name}`,
+      detail: `${prop.name} · ${t.unit} · Ends ${t.leaseEnd}`,
+      action: "Renew or serve notice", target: { type: "tenant", id: t.id },
+    });
+  });
+
+  // 3. Vacant units losing money
+  tenants.forEach(t => {
+    if (t.status !== "vacant") return;
+    const prop = properties.find(p => p.id === t.propertyId);
+    if (!prop) return;
+    const dailyRent = (t.rent || 0) / 30;
+    if (dailyRent === 0) return;
+    // Vacant alerts are not period-scoped — one per unit
+    const id = `vacantUnit:${t.id}`;
+    if (isAlertSuppressed(id)) return;
+    alerts.push({
+      id, type: "vacantUnit", severity: "medium",
+      icon: Home, color: "#64748b", bg: "#f1f5f9",
+      title: `Vacant — ${prop.name} · ${t.unit}`,
+      detail: `Losing ~${fmt(Math.round(dailyRent))}/day in potential rent`,
+      action: "Find a tenant", target: { type: "tenant", id: t.id },
+    });
+  });
+
+  // 4. Stale property value (90+ days since update)
+  properties.forEach(p => {
+    const valDays = p.valueUpdatedAt ? daysBetween(p.valueUpdatedAt, todayStr) : 999;
+    if (valDays < 90) return;
+    // Period-scoped to the last update date so re-alerts fire after the next refresh
+    const id = `staleValue:${p.id}:${p.valueUpdatedAt || "never"}`;
+    if (isAlertSuppressed(id)) return;
+    alerts.push({
+      id, type: "staleValue", severity: valDays > 180 ? "medium" : "low",
+      icon: TrendingUp, color: "#8b5cf6", bg: "#ede9fe",
+      title: `Property value stale — ${p.name}`,
+      detail: valDays > 900 ? "Never updated" : `Last updated ${valDays} days ago`,
+      action: "Update market value", target: { type: "property", id: p.id },
+    });
+  });
+
+  // 5. Missing loan start date (mortgage balance can't be calculated)
+  properties.forEach(p => {
+    if (!p.loanAmount || p.loanStartDate) return;
+    const id = `missingLoanStart:${p.id}`;
+    if (isAlertSuppressed(id)) return;
+    alerts.push({
+      id, type: "missingLoanStart", severity: "medium",
+      icon: AlertCircle, color: "#e95e00", bg: "#ffedd5",
+      title: `Loan start date missing — ${p.name}`,
+      detail: "Current mortgage balance cannot be estimated without it",
+      action: "Add loan start date", target: { type: "property", id: p.id },
+    });
+  });
+
+  // 6. Active deal with no rehab budget entered
+  deals.forEach(d => {
+    if (d.stage === "Sold") return;
+    const hasBudget = (d.rehabItems || []).some(i => i.budgeted > 0);
+    if (hasBudget) return;
+    const id = `noRehabBudget:${d.id}`;
+    if (isAlertSuppressed(id)) return;
+    alerts.push({
+      id, type: "noRehabBudget", severity: "medium",
+      icon: Hammer, color: "#e95e00", bg: "#ffedd5",
+      title: `No rehab budget — ${d.name}`,
+      detail: "Active deal has no line-item budget entered",
+      action: "Add rehab scope", target: { type: "deal", id: d.id },
+    });
+  });
+
+  // 7. Contractor insurance expired or expiring in 30 days
+  contractors.forEach(c => {
+    if (!c.insuranceExpiry) return;
+    const days = daysBetween(todayStr, c.insuranceExpiry);
+    if (days > 30) return;
+    const id = `insuranceExpiring:${c.id}:${c.insuranceExpiry}`;
+    if (isAlertSuppressed(id)) return;
+    const expired = days < 0;
+    alerts.push({
+      id, type: "insuranceExpiring", severity: expired ? "high" : days <= 7 ? "high" : "medium",
+      icon: Shield, color: "#ef4444", bg: "#fee2e2",
+      title: expired ? `Insurance EXPIRED — ${c.name}` : `Insurance expires in ${days} day${days === 1 ? "" : "s"} — ${c.name}`,
+      detail: `${c.trade} · Expires ${c.insuranceExpiry}`,
+      action: "Request updated COI", target: { type: "contractor", id: c.id },
+    });
+  });
+
+  return alerts.sort((a, b) => SEVERITY_RANK[a.severity] - SEVERITY_RANK[b.severity]);
+}
+
 // ---------------------------------------------
 // VIEWS
 // ---------------------------------------------
@@ -755,6 +934,10 @@ function Badge({ status }) {
 function PortfolioDashboard({ onNavigate, onSelectProperty, onSelectFlip, onNavigateToTx, onNavigateToDealExpense, onNavigateToLease }) {
   const now = new Date();
   const todayStr = now.toISOString().slice(0, 10);
+  // Force a re-render when snooze/dismiss state changes
+  const [, rerenderAlerts] = useState(0);
+  const [alertMenuOpen, setAlertMenuOpen] = useState(null); // alert id whose menu is open
+  const bumpAlerts = () => rerenderAlerts(n => n + 1);
 
   // ── KPIs ────────────────────────────────────────────────────────────────
   const rentalEquity = PROPERTIES.reduce((s, p) => s + (p.currentValue - (calcLoanBalance(p.loanAmount, p.loanRate, p.loanTermYears, p.loanStartDate) ?? p.loanAmount ?? 0)), 0);
@@ -885,6 +1068,16 @@ function PortfolioDashboard({ onNavigate, onSelectProperty, onSelectFlip, onNavi
     return items.sort((a, b) => b.amount - a.amount).slice(0, 8);
   })();
   const totalUpcoming = upcomingExpenses.reduce((s, e) => s + e.amount, 0);
+
+  // ── Needs Attention alerts ──────────────────────────────────────────────
+  const attentionAlerts = generateAlerts({
+    properties: PROPERTIES,
+    tenants: TENANTS,
+    transactions: TRANSACTIONS,
+    deals: DEALS,
+    contractors: CONTRACTORS,
+  });
+  const highCount = attentionAlerts.filter(a => a.severity === "high").length;
 
   // ── Recent Activity ──────────────────────────────────────────────────────
   const recentItems = [];
@@ -1103,39 +1296,83 @@ function PortfolioDashboard({ onNavigate, onSelectProperty, onSelectFlip, onNavi
         </div>
       </div>
 
-      {/* Row 5: Upcoming Expenses + Recent Activity */}
+      {/* Row 5: Needs Attention + Recent Activity */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 28 }}>
-        {/* Upcoming Expenses */}
+        {/* Needs Attention */}
         <div style={sectionS}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <Calendar size={18} color="#8b5cf6" />
-              <h3 style={{ fontSize: 16, fontWeight: 700, color: "#041830", margin: 0 }}>Upcoming Monthly Expenses</h3>
+              <AlertCircle size={18} color={highCount > 0 ? "#ef4444" : "#f59e0b"} />
+              <h3 style={{ fontSize: 16, fontWeight: 700, color: "#041830", margin: 0 }}>Needs Attention</h3>
+              {attentionAlerts.length > 0 && (
+                <span style={{ background: highCount > 0 ? "#fee2e2" : "#fef3c7", color: highCount > 0 ? "#b91c1c" : "#92400e", borderRadius: 20, padding: "2px 9px", fontSize: 11, fontWeight: 700 }}>{attentionAlerts.length}</span>
+              )}
             </div>
-            <InfoTip text="Estimated recurring monthly expenses based on your transaction history — mortgages, insurance, taxes, HOA." />
+            <InfoTip text="Actionable items across your portfolio — overdue rent, expiring leases, vacant units, stale data, deals missing info, and contractor insurance. Snooze or dismiss items you've handled; they auto-return if the condition recurs." />
           </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {upcomingExpenses.length === 0 ? (
-              <p style={{ fontSize: 13, color: "#94a3b8", textAlign: "center", padding: "24px 0", margin: 0 }}>No recurring expenses found</p>
-            ) : upcomingExpenses.map((e, i) => (
-              <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 10px", borderRadius: 8, background: i % 2 === 0 ? "#f8fafc" : "#fff" }}>
-                <div style={{ width: 28, height: 28, borderRadius: 8, background: e.bg, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                  <e.icon size={13} color={e.color} />
+          <div style={{ display: "flex", flexDirection: "column", gap: 8, maxHeight: 360, overflowY: "auto" }}>
+            {attentionAlerts.length === 0 ? (
+              <div style={{ textAlign: "center", padding: "32px 0" }}>
+                <div style={{ width: 48, height: 48, borderRadius: "50%", background: "#dcfce7", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 10px" }}>
+                  <CheckCircle size={24} color="#10b981" />
                 </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <p style={{ fontSize: 13, fontWeight: 600, color: "#041830", margin: 0 }}>{e.category}</p>
-                  <p style={{ fontSize: 11, color: "#94a3b8", margin: "1px 0 0 0" }}>{e.property}</p>
-                </div>
-                <span style={{ fontSize: 13, fontWeight: 600, color: "#b91c1c" }}>{fmt(e.amount)}</span>
+                <p style={{ fontSize: 13, fontWeight: 600, color: "#041830", margin: 0 }}>All caught up</p>
+                <p style={{ fontSize: 12, color: "#94a3b8", margin: "2px 0 0" }}>No action items right now</p>
               </div>
-            ))}
+            ) : attentionAlerts.map(a => {
+              const sevColor = a.severity === "high" ? "#ef4444" : a.severity === "medium" ? "#f59e0b" : "#64748b";
+              const Icon = a.icon;
+              const handleGo = () => {
+                if (a.target.type === "property" && onSelectProperty) { const p = PROPERTIES.find(pp => pp.id === a.target.id); if (p) onSelectProperty(p); }
+                else if (a.target.type === "deal" && onSelectFlip) { const d = DEALS.find(dd => dd.id === a.target.id); if (d) onSelectFlip(d); }
+                else if (a.target.type === "tenant" && onNavigateToLease) { onNavigateToLease(a.target.id); }
+                else if (a.target.type === "contractor" && onNavigate) { onNavigate("dealcontractors"); }
+              };
+              return (
+                <div key={a.id} style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "10px 12px", borderRadius: 10, background: "#f8fafc", border: "1px solid #f1f5f9", position: "relative" }}>
+                  <div style={{ width: 32, height: 32, borderRadius: 8, background: a.bg, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                    <Icon size={15} color={a.color} />
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
+                      <span style={{ width: 6, height: 6, borderRadius: "50%", background: sevColor, flexShrink: 0 }} />
+                      <p style={{ fontSize: 13, fontWeight: 600, color: "#041830", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.title}</p>
+                    </div>
+                    <p style={{ fontSize: 11, color: "#64748b", margin: "0 0 6px 0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.detail}</p>
+                    <button onClick={handleGo} style={{ background: "none", border: "none", color: "#e95e00", fontSize: 12, fontWeight: 600, cursor: "pointer", padding: 0, display: "flex", alignItems: "center", gap: 4 }}>
+                      {a.action} <ArrowRight size={12} />
+                    </button>
+                  </div>
+                  <div style={{ position: "relative", flexShrink: 0 }}>
+                    <button
+                      onClick={() => setAlertMenuOpen(alertMenuOpen === a.id ? null : a.id)}
+                      style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8", padding: 4, borderRadius: 6, display: "flex", alignItems: "center" }}
+                      title="Options"
+                    >
+                      <MoreHorizontal size={16} />
+                    </button>
+                    {alertMenuOpen === a.id && (
+                      <>
+                        <div onClick={() => setAlertMenuOpen(null)} style={{ position: "fixed", inset: 0, zIndex: 900 }} />
+                        <div style={{ position: "absolute", right: 0, top: 28, background: "#fff", border: "1px solid #e2e8f0", borderRadius: 10, boxShadow: "0 10px 25px rgba(0,0,0,0.1)", minWidth: 160, zIndex: 901, padding: 4 }}>
+                          <div style={{ fontSize: 10, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.05em", padding: "8px 10px 4px" }}>Snooze</div>
+                          {[{ label: "3 days", d: 3 }, { label: "7 days", d: 7 }, { label: "30 days", d: 30 }].map(opt => (
+                            <button key={opt.d} onClick={() => { snoozeAlert(a.id, opt.d); setAlertMenuOpen(null); bumpAlerts(); }} style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", textAlign: "left", padding: "8px 10px", background: "none", border: "none", cursor: "pointer", fontSize: 13, color: "#475569", borderRadius: 6 }} onMouseEnter={e => e.currentTarget.style.background = "#f8fafc"} onMouseLeave={e => e.currentTarget.style.background = "none"}>
+                              <Clock size={13} color="#94a3b8" /> Remind in {opt.label}
+                            </button>
+                          ))}
+                          <div style={{ borderTop: "1px solid #f1f5f9", margin: "4px 0" }} />
+                          <button onClick={() => { dismissAlert(a.id); setAlertMenuOpen(null); bumpAlerts(); }} style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", textAlign: "left", padding: "8px 10px", background: "none", border: "none", cursor: "pointer", fontSize: 13, color: "#b91c1c", borderRadius: 6 }} onMouseEnter={e => e.currentTarget.style.background = "#fef2f2"} onMouseLeave={e => e.currentTarget.style.background = "none"}>
+                            <X size={13} /> Dismiss
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
           </div>
-          {upcomingExpenses.length > 0 && (
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 13, fontWeight: 700, color: "#041830", marginTop: 12, paddingTop: 12, borderTop: "1px solid #e2e8f0" }}>
-              <span>Monthly Total</span>
-              <span style={{ color: "#b91c1c" }}>{fmt(totalUpcoming)}</span>
-            </div>
-          )}
         </div>
 
         {/* Recent Activity */}
