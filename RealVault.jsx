@@ -786,6 +786,28 @@ function isAlertSuppressed(id) {
 // Severity sort order (high first)
 const SEVERITY_RANK = { high: 0, medium: 1, low: 2 };
 
+// Canonical "did this tenant pay rent this month?" check — single source of
+// truth used by both the Needs Attention alert generator and the Rental
+// Dashboard's Rent Collection card. Reads TRANSACTIONS, not tenant.lastPayment,
+// so the two views can never drift apart.
+//
+// Match logic:
+//   1. Any income tx on the tenant's property this month where payee === tenant.name → paid
+//   2. Fallback: if every rent-income tx on the property this month has no payee set,
+//      assume the property-level rent covers its tenants (handles seed data and
+//      single-tenant properties).
+function wasRentPaidThisMonth(tenant, transactions, monthStr) {
+  const propTxns = transactions.filter(tx =>
+    tx.propertyId === tenant.propertyId &&
+    tx.type === "income" &&
+    tx.date && tx.date.startsWith(monthStr)
+  );
+  if (propTxns.length === 0) return false;
+  if (propTxns.some(tx => tx.payee === tenant.name)) return true;
+  if (propTxns.every(tx => !tx.payee)) return true;
+  return false;
+}
+
 // Build the alert list from current app state. Each call is pure — no side
 // effects — so the list auto-refreshes when underlying data changes. Alerts
 // are filtered through `isAlertSuppressed` so dismissed/snoozed items don't
@@ -805,11 +827,7 @@ function generateAlerts({ properties, tenants, transactions, deals, contractors 
     if (!t.rent) return;
     const prop = properties.find(p => p.id === t.propertyId);
     if (!prop) return;
-    const paidThisMonth = transactions.some(tx =>
-      tx.propertyId === t.propertyId && tx.type === "income" &&
-      tx.date && tx.date.startsWith(curMonth)
-    );
-    if (paidThisMonth) return;
+    if (wasRentPaidThisMonth(t, transactions, curMonth)) return;
     // Expect rent by the 5th; don't alert before then
     if (now.getDate() < 5) return;
     const daysLate = now.getDate() - 1;
@@ -839,6 +857,45 @@ function generateAlerts({ properties, tenants, transactions, deals, contractors 
       title: `Lease expires in ${days} day${days === 1 ? "" : "s"} — ${t.name}`,
       detail: `${prop.name} · ${t.unit} · Ends ${t.leaseEnd}`,
       action: "Renew or serve notice", target: { type: "tenant", id: t.id },
+    });
+  });
+
+  // 2b. Lease already expired (past leaseEnd, tenant still present)
+  tenants.forEach(t => {
+    if (!t.leaseEnd || t.status === "vacant" || t.status === "past") return;
+    const days = daysBetween(todayStr, t.leaseEnd);
+    if (days >= 0) return;
+    const prop = properties.find(p => p.id === t.propertyId);
+    if (!prop) return;
+    const id = `leaseExpired:${t.id}:${t.leaseEnd}`;
+    if (isAlertSuppressed(id)) return;
+    alerts.push({
+      id, type: "leaseExpired", severity: "high",
+      icon: AlertCircle, color: "#ef4444", bg: "#fee2e2",
+      title: `Lease expired ${Math.abs(days)} day${Math.abs(days) === 1 ? "" : "s"} ago — ${t.name}`,
+      detail: `${prop.name} · ${t.unit} · Ended ${t.leaseEnd}`,
+      action: "Renew or serve notice", target: { type: "tenant", id: t.id },
+    });
+  });
+
+  // 2c. Month-to-month tenants (no fixed end date, rolling lease)
+  tenants.forEach(t => {
+    if (t.status !== "month-to-month") return;
+    const prop = properties.find(p => p.id === t.propertyId);
+    if (!prop) return;
+    // Suppress if a leaseExpired/leaseExpiring alert already exists for this tenant
+    const alreadyListed = alerts.some(a =>
+      (a.type === "leaseExpired" || a.type === "leaseExpiring") && a.target?.id === t.id
+    );
+    if (alreadyListed) return;
+    const id = `leaseMTM:${t.id}`;
+    if (isAlertSuppressed(id)) return;
+    alerts.push({
+      id, type: "leaseMonthToMonth", severity: "low",
+      icon: Calendar, color: "#3b82f6", bg: "#dbeafe",
+      title: `Month-to-month — ${t.name}`,
+      detail: `${prop.name} · ${t.unit} · Consider converting to fixed lease`,
+      action: "Renew on fixed term", target: { type: "tenant", id: t.id },
     });
   });
 
@@ -1463,50 +1520,64 @@ function Dashboard({ onNavigate, onNavigateToTx, onSelectProperty, onNavigateToT
   const occupancyPct = totalUnits > 0 ? Math.round((occupiedUnits / totalUnits) * 100) : 0;
 
   // ── Lease Alerts ────────────────────────────────────────────────────────
+  // Derived from the single-source-of-truth generateAlerts() used by Needs
+  // Attention on the portfolio dashboard, filtered to rental-relevant types
+  // and mapped to this card's display shape. Sharing the generator means
+  // dismissing an alert from either dashboard hides it from both.
   const leaseAlerts = useMemo(() => {
-    const alerts = [];
-    allTenants.forEach(t => {
-      if (t.status === "vacant") {
-        const prop = PROPERTIES.find(p => p.id === t.propertyId);
-        alerts.push({ type: "vacant", severity: "high", icon: AlertTriangle, color: "#ef4444", bg: "#fee2e2",
-          title: `${prop?.name || "Property"} — ${t.unit}`,
-          sub: "Vacant unit — no lease", tenant: t, prop });
-      } else if (t.leaseEnd) {
-        const daysLeft = Math.round((new Date(t.leaseEnd) - now) / 86400000);
-        const prop = PROPERTIES.find(p => p.id === t.propertyId);
-        if (daysLeft < 0) {
-          alerts.push({ type: "expired", severity: "high", icon: AlertCircle, color: "#ef4444", bg: "#fee2e2",
-            title: `${t.name}`, sub: `Lease expired ${Math.abs(daysLeft)}d ago · ${prop?.name || ""} ${t.unit}`,
-            daysLeft, tenant: t, prop });
-        } else if (daysLeft <= 60) {
-          alerts.push({ type: "expiring", severity: "medium", icon: Clock, color: "#e95e00", bg: "#ffedd5",
-            title: `${t.name}`, sub: `Lease expires in ${daysLeft}d · ${prop?.name || ""} ${t.unit}`,
-            daysLeft, tenant: t, prop });
-        }
+    const LEASE_TYPES = new Set(["leaseExpired", "leaseExpiring", "vacantUnit", "leaseMonthToMonth"]);
+    const raw = generateAlerts({
+      properties: PROPERTIES, tenants: TENANTS, transactions: TRANSACTIONS,
+      deals: [], contractors: [],
+    }).filter(a => LEASE_TYPES.has(a.type));
+    return raw.map(a => {
+      const tenant = TENANTS.find(tt => tt.id === a.target?.id) || null;
+      const prop = tenant ? PROPERTIES.find(p => p.id === tenant.propertyId) : null;
+      const shortTitle = tenant?.name || `${prop?.name || "Property"} — ${tenant?.unit || ""}`;
+      let sub = a.detail;
+      let legacyType = a.type;
+      if (a.type === "vacantUnit") {
+        legacyType = "vacant";
+        sub = "Vacant unit — no lease";
+      } else if (a.type === "leaseExpired") {
+        legacyType = "expired";
+      } else if (a.type === "leaseExpiring") {
+        legacyType = "expiring";
+      } else if (a.type === "leaseMonthToMonth") {
+        legacyType = "mtm";
+        sub = `Month-to-month · ${prop?.name || ""} ${tenant?.unit || ""}`;
       }
-      if (t.status === "month-to-month") {
-        const prop = PROPERTIES.find(p => p.id === t.propertyId);
-        const alreadyListed = alerts.some(a => a.tenant?.id === t.id);
-        if (!alreadyListed) {
-          alerts.push({ type: "mtm", severity: "low", icon: ArrowUpDown, color: "#3b82f6", bg: "#dbeafe",
-            title: `${t.name}`, sub: `Month-to-month · ${prop?.name || ""} ${t.unit}`,
-            tenant: t, prop });
-        }
-      }
+      return {
+        id: a.id,
+        type: legacyType,
+        severity: a.severity,
+        icon: a.icon,
+        color: a.color,
+        bg: a.bg,
+        title: a.type === "vacantUnit"
+          ? `${prop?.name || "Property"} — ${tenant?.unit || ""}`
+          : shortTitle,
+        sub,
+        tenant,
+        prop,
+      };
     });
-    // Sort: high severity first
-    const order = { high: 0, medium: 1, low: 2 };
-    return alerts.sort((a, b) => order[a.severity] - order[b.severity]);
   }, [renderKey]);
 
   // ── Rent Collection (this month) ────────────────────────────────────────
+  // Paid status is derived from TRANSACTIONS (the source of truth), not from
+  // tenant.lastPayment, so this card can never drift from the Needs Attention
+  // rentOverdue alert on the portfolio dashboard. Uses the shared
+  // wasRentPaidThisMonth helper — see generateAlerts.
   const thisMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
   const activeTenants = allTenants.filter(t => t.status !== "vacant");
   const expectedRent = activeTenants.reduce((s, t) => s + (t.rent || 0), 0);
-  const paidThisMonth = activeTenants.filter(t => t.lastPayment && t.lastPayment.startsWith(thisMonthStr));
+  // eslint-disable-next-line no-unused-vars
+  const _rkForRent = renderKey; // force recompute after confirmMarkPaid rerender
+  const paidThisMonth = activeTenants.filter(t => wasRentPaidThisMonth(t, TRANSACTIONS, thisMonthStr));
   const collectedRent = paidThisMonth.reduce((s, t) => s + (t.rent || 0), 0);
   const collectionPct = expectedRent > 0 ? Math.round((collectedRent / expectedRent) * 100) : 0;
-  const unpaidTenants = activeTenants.filter(t => !t.lastPayment || !t.lastPayment.startsWith(thisMonthStr));
+  const unpaidTenants = activeTenants.filter(t => !wasRentPaidThisMonth(t, TRANSACTIONS, thisMonthStr));
 
   // ── Recent Activity (transactions + notes) ──────────────────────────────
   const recentActivity = useMemo(() => {
@@ -1559,15 +1630,15 @@ function Dashboard({ onNavigate, onNavigateToTx, onSelectProperty, onNavigateToT
     const desc = quickPayMode === "full"
       ? `${new Date(quickPayDate).toLocaleString("en-US", { month: "long" })} rent — ${quickPay.unit}`
       : `Partial rent payment — ${quickPay.unit}`;
-    // Add transaction to global array
+    // Add transaction to global array — this is the canonical record.
+    // Paid-status is derived from TRANSACTIONS via wasRentPaidThisMonth(),
+    // so we deliberately do NOT also write tenant.lastPayment (which caused
+    // drift between the rental dashboard and Needs Attention alerts).
     TRANSACTIONS.unshift({
       id: newId(), date: quickPayDate, propertyId: quickPay.propertyId, category: "Rent Income",
       description: desc, amount: Math.abs(amt), type: "income", payee: quickPay.name,
       createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), userId: MOCK_USER.id,
     });
-    // Update tenant's lastPayment
-    const ti = TENANTS.findIndex(t => t.id === quickPay.id);
-    if (ti !== -1) TENANTS[ti].lastPayment = quickPayDate;
     setQuickPay(null);
     rerender();
   };
