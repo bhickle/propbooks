@@ -7096,7 +7096,6 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
                         {onNavigateToContractor && <ChevronRight size={16} color="#cbd5e1" style={{ marginLeft: 4, flexShrink: 0 }} />}
                       </div>
                       <div style={{ display: "flex", alignItems: "center", gap: 8 }} onClick={stop}>
-                        {c.rating > 0 && <span style={{ fontSize: 12, color: "#e95e00" }}>{"★".repeat(c.rating)}{"☆".repeat(5 - c.rating)}</span>}
                         <button onClick={() => openEditCon(c)} style={{ background: "#f1f5f9", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "#475569", display: "flex", alignItems: "center" }} title="Edit"><Pencil size={13} /></button>
                         <button onClick={() => setDeleteConfirm({ type: "contractor", item: c })} style={{ background: "#fee2e2", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "#ef4444", display: "flex", alignItems: "center" }} title="Delete"><Trash2 size={13} /></button>
                       </div>
