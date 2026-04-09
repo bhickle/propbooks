@@ -427,6 +427,13 @@ export function RehabTracker({ onSelectRehabItem } = {}) {
   // seeded from mock data, mutated in place so DealContractors stays in sync
   const [, forceUpdate] = useState(0);
   const rerender = () => forceUpdate(n => n + 1);
+  // Typeahead + Add-new-contractor flow (mirrors DealDetail's Rehab tab)
+  const [assignTA, setAssignTA] = useState({ dealId: null, itemIdx: null, query: "" });
+  const [pendingAssign, setPendingAssign] = useState(null); // { dealId, itemIdx } | null
+  const [showConModal, setShowConModal] = useState(false);
+  const emptyConForm = { name: "", trade: "", phone: "", email: "", license: "", insuranceExpiry: "", notes: "" };
+  const [conForm, setConForm] = useState(emptyConForm);
+  const sfC = k => e => setConForm(f => ({ ...f, [k]: e.target.value }));
 
   const deals = _DEALS.filter(f => f.stage !== "Sold");
 
@@ -482,6 +489,57 @@ export function RehabTracker({ onSelectRehabItem } = {}) {
       const entry = cons.find(c => c.id === contractorId);
       if (entry) { entry.bid = bid; rerender(); }
     }
+  }
+
+  // Assign an existing global contractor to a row (auto-attaching to the deal first)
+  function assignContractorToRowGlobal(dealId, itemIdx, contractorId) {
+    const gi = _CON.findIndex(c => c.id === contractorId);
+    if (gi !== -1) {
+      const ids = _CON[gi].dealIds || [];
+      if (!ids.includes(dealId)) {
+        _CON[gi] = { ..._CON[gi], dealIds: [...ids, dealId] };
+      }
+    }
+    addContractorToItem(dealId, itemIdx, contractorId);
+    setAssignTA({ dealId: null, itemIdx: null, query: "" });
+  }
+
+  // Open Add Contractor modal from a rehab row's typeahead, pre-filling Trade with the row's category
+  function openAddContractorForRow(dealId, itemIdx, prefillName) {
+    const deal = _DEALS.find(f => f.id === dealId);
+    const cat = (deal && deal.rehabItems && deal.rehabItems[itemIdx] && deal.rehabItems[itemIdx].category) || "";
+    setPendingAssign({ dealId, itemIdx });
+    setAssignTA({ dealId: null, itemIdx: null, query: "" });
+    setConForm({ name: (prefillName || "").trim(), trade: cat, phone: "", email: "", license: "", insuranceExpiry: "", notes: "" });
+    setShowConModal(true);
+  }
+
+  function handleSaveConTracker() {
+    if (!conForm.name) return;
+    const dealId = pendingAssign?.dealId;
+    const newCon = { id: newId(), name: conForm.name, trade: conForm.trade, phone: conForm.phone, email: conForm.email || "", license: conForm.license || null, insuranceExpiry: conForm.insuranceExpiry || null, rating: 0, notes: conForm.notes || "", dealIds: dealId ? [dealId] : [], bids: [], payments: [], documents: [] };
+    _CON.push(newCon);
+    if (pendingAssign) {
+      addContractorToItem(pendingAssign.dealId, pendingAssign.itemIdx, newCon.id);
+    }
+    setShowConModal(false);
+    setPendingAssign(null);
+    setConForm(emptyConForm);
+    rerender();
+  }
+
+  function attachExistingFromTracker(conId) {
+    if (!pendingAssign) { setShowConModal(false); return; }
+    const gi = _CON.findIndex(c => c.id === conId);
+    if (gi === -1) return;
+    const ids = _CON[gi].dealIds || [];
+    if (!ids.includes(pendingAssign.dealId)) {
+      _CON[gi] = { ..._CON[gi], dealIds: [...ids, pendingAssign.dealId] };
+    }
+    addContractorToItem(pendingAssign.dealId, pendingAssign.itemIdx, conId);
+    setShowConModal(false);
+    setPendingAssign(null);
+    setConForm(emptyConForm);
   }
 
   // Add line item modal state
@@ -670,19 +728,54 @@ export function RehabTracker({ onSelectRehabItem } = {}) {
                                 </div>
                               );
                             })}
-                            {unassigned.length > 0 && (
-                              <select
-                                value=""
-                                onChange={e => { if (e.target.value) addContractorToItem(f.id, item._idx, parseInt(e.target.value)); }}
-                                style={{ border: "1.5px dashed #cbd5e1", borderRadius: 8, padding: "4px 8px", fontSize: 12, color: "#94a3b8", background: "#fafafa", cursor: "pointer", outline: "none" }}>
-                                <option value="">+ Add</option>
-                                {unassigned.map(c => (
-                                  <option key={c.id} value={c.id}>{c.name} ({c.trade})</option>
-                                ))}
-                              </select>
-                            )}
-                            {dealContractors.length === 0 && assigned.length === 0 && (
-                              <span style={{ fontSize: 12, color: "#cbd5e1", fontStyle: "italic" }}>No contractors</span>
+                            {assignTA.dealId === f.id && assignTA.itemIdx === item._idx ? (
+                              <div style={{ position: "relative" }}>
+                                <input
+                                  autoFocus
+                                  value={assignTA.query}
+                                  onChange={e => setAssignTA({ dealId: f.id, itemIdx: item._idx, query: e.target.value })}
+                                  onBlur={() => setTimeout(() => setAssignTA(s => (s.dealId === f.id && s.itemIdx === item._idx) ? { dealId: null, itemIdx: null, query: "" } : s), 180)}
+                                  onKeyDown={e => { if (e.key === "Escape") setAssignTA({ dealId: null, itemIdx: null, query: "" }); }}
+                                  placeholder="Type contractor name..."
+                                  style={{ border: "1.5px solid #cbd5e1", borderRadius: 8, padding: "5px 10px", fontSize: 12, color: "#374151", background: "#fff", outline: "none", width: 200 }} />
+                                <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, background: "#fff", border: "1px solid #e2e8f0", borderRadius: 8, boxShadow: "0 4px 12px rgba(0,0,0,0.08)", zIndex: 100, minWidth: 240, maxHeight: 240, overflowY: "auto" }}>
+                                  {(() => {
+                                    const q = assignTA.query.trim().toLowerCase();
+                                    const matches = _CON.filter(c => !assignedIds.includes(c.id) && (!q || c.name.toLowerCase().includes(q))).slice(0, 8);
+                                    return (
+                                      <>
+                                        {matches.length === 0 && (
+                                          <div style={{ padding: "8px 12px", fontSize: 12, color: "#94a3b8" }}>{q ? "No matches" : "No contractors yet"}</div>
+                                        )}
+                                        {matches.map(c => {
+                                          const onDeal = (c.dealIds || []).includes(f.id);
+                                          return (
+                                            <div key={c.id}
+                                              onMouseDown={e => { e.preventDefault(); assignContractorToRowGlobal(f.id, item._idx, c.id); }}
+                                              style={{ padding: "8px 12px", fontSize: 12, cursor: "pointer", borderBottom: "1px solid #f1f5f9", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}
+                                              onMouseEnter={e => e.currentTarget.style.background = "#f8fafc"}
+                                              onMouseLeave={e => e.currentTarget.style.background = "#fff"}>
+                                              <span style={{ color: "#374151", fontWeight: 600 }}>{c.name}</span>
+                                              <span style={{ fontSize: 11, color: "#94a3b8" }}>{c.trade || ""}{!onDeal ? " · not on deal" : ""}</span>
+                                            </div>
+                                          );
+                                        })}
+                                        <div onMouseDown={e => { e.preventDefault(); openAddContractorForRow(f.id, item._idx, assignTA.query); }}
+                                          style={{ padding: "10px 12px", fontSize: 12, cursor: "pointer", color: "#e95e00", fontWeight: 700, background: "#fff7ed", borderTop: "1px solid #f1f5f9", display: "flex", alignItems: "center", gap: 6 }}
+                                          onMouseEnter={e => e.currentTarget.style.background = "#ffedd5"}
+                                          onMouseLeave={e => e.currentTarget.style.background = "#fff7ed"}>
+                                          <Plus size={12} /> Add new contractor{assignTA.query.trim() ? ` "${assignTA.query.trim()}"` : ""}
+                                        </div>
+                                      </>
+                                    );
+                                  })()}
+                                </div>
+                              </div>
+                            ) : (
+                              <button onClick={() => setAssignTA({ dealId: f.id, itemIdx: item._idx, query: "" })}
+                                style={{ border: "1.5px dashed #cbd5e1", borderRadius: 8, padding: "5px 10px", fontSize: 12, color: "#94a3b8", background: "#fafafa", cursor: "pointer" }}>
+                                {assigned.length > 0 ? "+ Add" : "+ Assign contractor"}
+                              </button>
                             )}
                           </div>
                         </td>
@@ -881,6 +974,52 @@ export function RehabTracker({ onSelectRehabItem } = {}) {
           </div>
         </div>
       )}
+      {showConModal && (() => {
+        const dealOnIds = new Set((pendingAssign ? _CON.filter(c => (c.dealIds || []).includes(pendingAssign.dealId)) : []).map(c => c.id));
+        const existingAvailable = _CON.filter(c => !dealOnIds.has(c.id));
+        return (
+          <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
+            <div style={{ background: "#fff", borderRadius: 20, padding: 32, width: 540, maxHeight: "90vh", overflowY: "auto", boxShadow: "0 20px 60px rgba(0,0,0,0.18)" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 20 }}>
+                <h2 style={{ color: "#041830", fontSize: 20, fontWeight: 700 }}>Add Contractor</h2>
+                <button onClick={() => { setShowConModal(false); setPendingAssign(null); setConForm(emptyConForm); }} style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8" }}><X size={20} /></button>
+              </div>
+              {existingAvailable.length > 0 && (
+                <div style={{ marginBottom: 18, padding: 14, background: "#f8fafc", border: "1px solid #f1f5f9", borderRadius: 12 }}>
+                  <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 8 }}>Add from your existing contractors</label>
+                  <select defaultValue="" onChange={e => { if (e.target.value) attachExistingFromTracker(parseInt(e.target.value)); }} style={iS}>
+                    <option value="">Select a contractor you've worked with before…</option>
+                    {existingAvailable.map(c => (
+                      <option key={c.id} value={c.id}>{c.name}{c.trade ? ` — ${c.trade}` : ""}</option>
+                    ))}
+                  </select>
+                  <p style={{ fontSize: 11, color: "#94a3b8", marginTop: 8, textAlign: "center" }}>— or create a new contractor below —</p>
+                </div>
+              )}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14 }}>
+                <div><label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Company / Name *</label><input type="text" placeholder="e.g. ABC Plumbing" value={conForm.name} onChange={sfC("name")} style={iS} /></div>
+                <div><label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Trade</label><input type="text" placeholder="e.g. Plumbing, Electrical" value={conForm.trade} onChange={sfC("trade")} style={iS} /></div>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14 }}>
+                <div><label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Phone <span style={{ color: "#94a3b8", fontWeight: 400 }}>(optional)</span></label><input type="tel" placeholder="555-000-0000" value={conForm.phone} onChange={sfC("phone")} style={iS} /></div>
+                <div><label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Email <span style={{ color: "#94a3b8", fontWeight: 400 }}>(optional)</span></label><input type="email" placeholder="info@contractor.com" value={conForm.email} onChange={sfC("email")} style={iS} /></div>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14 }}>
+                <div><label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>License # <span style={{ color: "#94a3b8", fontWeight: 400 }}>(optional)</span></label><input type="text" placeholder="e.g. PL-2024-1847" value={conForm.license} onChange={sfC("license")} style={iS} /></div>
+                <div><label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Insurance Expiry <span style={{ color: "#94a3b8", fontWeight: 400 }}>(optional)</span></label><input type="date" value={conForm.insuranceExpiry} onChange={sfC("insuranceExpiry")} style={iS} /></div>
+              </div>
+              <div style={{ marginBottom: 14 }}>
+                <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Notes <span style={{ color: "#94a3b8", fontWeight: 400 }}>(optional)</span></label>
+                <textarea style={{ ...iS, minHeight: 70, resize: "vertical" }} placeholder="Notes about this contractor..." value={conForm.notes} onChange={sfC("notes")} />
+              </div>
+              <div style={{ display: "flex", gap: 10 }}>
+                <button onClick={() => { setShowConModal(false); setPendingAssign(null); setConForm(emptyConForm); }} style={{ flex: 1, padding: "12px", border: "1px solid #e2e8f0", borderRadius: 10, background: "#fff", color: "#475569", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
+                <button onClick={handleSaveConTracker} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "#e95e00", color: "#fff", fontWeight: 600, cursor: "pointer" }}>Add Contractor</button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }

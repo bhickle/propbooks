@@ -6123,6 +6123,22 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
       CONTRACTORS[gi] = { ...existing, dealIds: [...ids, deal.id] };
     }
     setConData(prev => prev.some(c => c.id === conId) ? prev : [...prev, CONTRACTORS[gi]]);
+    // If this Add was opened from a rehab row's typeahead, also assign to that row
+    if (pendingAssignRowIdx != null) {
+      const idx = pendingAssignRowIdx;
+      const item = rehabItems[idx];
+      if (item) {
+        const existingCons = item.contractors || [];
+        if (!existingCons.some(c => c.id === conId)) {
+          const next = [...rehabItems];
+          next[idx] = { ...item, contractors: [...existingCons, { id: conId, bid: 0 }] };
+          setRehabItems(next);
+          if (deal.rehabItems && deal.rehabItems[idx]) deal.rehabItems[idx].contractors = next[idx].contractors;
+          bumpRehab();
+        }
+      }
+      setPendingAssignRowIdx(null);
+    }
     setShowContractorModal(false);
     setConForm(emptyCon);
     // Highlight the newly attached contractor on the tile for a few seconds
