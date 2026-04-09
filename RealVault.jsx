@@ -1297,10 +1297,10 @@ function PortfolioDashboard({ onNavigate, onSelectProperty, onSelectFlip, onNavi
       </div>
 
       {/* Row 5: Needs Attention + Recent Activity */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 28 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 28, alignItems: "stretch" }}>
         {/* Needs Attention */}
-        <div style={sectionS}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+        <div style={{ ...sectionS, display: "flex", flexDirection: "column", minHeight: 0 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexShrink: 0 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <AlertCircle size={18} color={highCount > 0 ? "#ef4444" : "#f59e0b"} />
               <h3 style={{ fontSize: 16, fontWeight: 700, color: "#041830", margin: 0 }}>Needs Attention</h3>
@@ -1310,7 +1310,7 @@ function PortfolioDashboard({ onNavigate, onSelectProperty, onSelectFlip, onNavi
             </div>
             <InfoTip text="Actionable items across your portfolio — overdue rent, expiring leases, vacant units, stale data, deals missing info, and contractor insurance. Snooze or dismiss items you've handled; they auto-return if the condition recurs." />
           </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8, maxHeight: 360, overflowY: "auto" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8, flex: 1, minHeight: 0, overflowY: "auto" }}>
             {attentionAlerts.length === 0 ? (
               <div style={{ textAlign: "center", padding: "32px 0" }}>
                 <div style={{ width: 48, height: 48, borderRadius: "50%", background: "#dcfce7", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 10px" }}>
@@ -1325,7 +1325,11 @@ function PortfolioDashboard({ onNavigate, onSelectProperty, onSelectFlip, onNavi
               const handleGo = () => {
                 if (a.target.type === "property" && onSelectProperty) { const p = PROPERTIES.find(pp => pp.id === a.target.id); if (p) onSelectProperty(p); }
                 else if (a.target.type === "deal" && onSelectFlip) { const d = DEALS.find(dd => dd.id === a.target.id); if (d) onSelectFlip(d); }
-                else if (a.target.type === "tenant" && onNavigateToLease) { onNavigateToLease(a.target.id); }
+                else if (a.target.type === "tenant" && onNavigateToLease) {
+                  const t = TENANTS.find(tt => tt.id === a.target.id);
+                  const p = t && PROPERTIES.find(pp => pp.id === t.propertyId);
+                  if (p) onNavigateToLease(p, a.target.id);
+                }
                 else if (a.target.type === "contractor" && onNavigate) { onNavigate("dealcontractors"); }
               };
               return (
