@@ -330,12 +330,7 @@ export function AuthScreen() {
 
         {/* Trust signal */}
         <div style={{ marginTop: 32, paddingTop: 20, borderTop: "1px solid #f1f5f9" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <div style={{ display: "flex", gap: 3 }}>
-              {[1,2,3,4,5].map(i => <span key={i} style={{ color: "#e95e00", fontSize: 14 }}>&#9733;</span>)}
-            </div>
-            <span style={{ color: "#94a3b8", fontSize: 12 }}>Trusted by real estate investors nationwide</span>
-          </div>
+          <span style={{ color: "#94a3b8", fontSize: 12 }}>Trusted by real estate investors nationwide</span>
         </div>
       </div>
 

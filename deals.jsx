@@ -1688,7 +1688,6 @@ export function DealContractors({ onSelectContractor }) {
           const totalConBids = _BIDS.filter(b => b.contractorId === c.id && b.status === "accepted").reduce((s, b) => s + b.amount, 0);
           const totalConPaid = _PAYMENTS.filter(p => p.contractorId === c.id).reduce((s, p) => s + p.amount, 0);
           const pct = totalConBids > 0 ? Math.min((totalConPaid / totalConBids) * 100, 100) : 0;
-          const stars = c.rating || 0;
           const conBids = _BIDS.filter(b => b.contractorId === c.id);
           const conDocs = _DOCS.filter(d => d.contractorId === c.id);
           return (
@@ -1707,7 +1706,6 @@ export function DealContractors({ onSelectContractor }) {
                   </div>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                  {stars > 0 && <div style={{ display: "flex", gap: 1 }}>{Array.from({ length: 5 }, (_, i) => <Star key={i} size={12} fill={i < stars ? "#e95e00" : "none"} color={i < stars ? "#e95e00" : "#e2e8f0"} />)}</div>}
                   <ChevronRight size={16} color="#94a3b8" />
                 </div>
               </div>
@@ -1832,7 +1830,6 @@ export function ContractorDetail({ contractor, onBack, initialTab }) {
   const [docForm, setDocForm] = useState({ name: "", type: "contract", dealId: "" });
   const [editingDocId, setEditingDocId] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
-  const [ratingHover, setRatingHover] = useState(0);
   const [rehabFocus, setRehabFocus] = useState(false);
 
   const con = _CON.find(c => c.id === contractor.id) || contractor;
@@ -1850,8 +1847,6 @@ export function ContractorDetail({ contractor, onBack, initialTab }) {
     setEditMode(false);
     rerender(n => n + 1);
   };
-
-  const setRating = (r) => { con.rating = r; rerender(n => n + 1); };
 
   const openEditBid = (b) => {
     setEditingBidId(b.id);
@@ -1977,12 +1972,6 @@ export function ContractorDetail({ contractor, onBack, initialTab }) {
             </div>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={{ display: "flex", gap: 2 }}>
-              {Array.from({ length: 5 }, (_, i) => (
-                <Star key={i} size={18} fill={i < (ratingHover || con.rating || 0) ? "#e95e00" : "none"} color={i < (ratingHover || con.rating || 0) ? "#e95e00" : "#e2e8f0"}
-                  style={{ cursor: "pointer" }} onMouseEnter={() => setRatingHover(i + 1)} onMouseLeave={() => setRatingHover(0)} onClick={() => setRating(i + 1)} />
-              ))}
-            </div>
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
               {deals.map(fl => (
                 <span key={fl.id} style={{ display: "flex", alignItems: "center", gap: 4, background: "#f8fafc", border: "1px solid #f1f5f9", borderRadius: 20, padding: "3px 10px", fontSize: 11, color: "#64748b" }}>
@@ -2159,13 +2148,27 @@ export function ContractorDetail({ contractor, onBack, initialTab }) {
                     <div><span style={{ color: "#94a3b8" }}>Docs: </span><span style={{ fontWeight: 600, color: "#041830" }}>{dealDocs.length}</span></div>
                   </div>
                   {dealPayments.length > 0 && (
-                    <div style={{ marginTop: 10, paddingTop: 10, borderTop: "1px solid #f8fafc" }}>
-                      {dealPayments.map(p => (
-                        <div key={p.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "4px 0", fontSize: 12 }}>
-                          <span style={{ color: "#64748b" }}>{p.date} — {p.note}</span>
-                          <span style={{ fontWeight: 600, color: "#10b981" }}>{fmt(p.amount)}</span>
-                        </div>
-                      ))}
+                    <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid #f1f5f9" }}>
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.05em" }}>Payments ({dealPayments.length})</span>
+                        <span style={{ fontSize: 11, color: "#94a3b8" }}>Total <span style={{ fontWeight: 700, color: "#10b981" }}>{fmt(dealPaidTotal)}</span></span>
+                      </div>
+                      <div style={{ background: "#f8fafc", borderRadius: 10, border: "1px solid #f1f5f9", padding: "4px 12px" }}>
+                        {dealPayments.map((p, i) => (
+                          <div key={p.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", fontSize: 13, borderBottom: i < dealPayments.length - 1 ? "1px solid #f1f5f9" : "none" }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                              <div style={{ width: 28, height: 28, borderRadius: 8, background: "#dcfce7", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                                <DollarSign size={14} color="#10b981" />
+                              </div>
+                              <div>
+                                <p style={{ color: "#041830", fontWeight: 600, fontSize: 13 }}>{p.note || "Payment"}</p>
+                                <p style={{ color: "#94a3b8", fontSize: 11 }}>{p.date}</p>
+                              </div>
+                            </div>
+                            <span style={{ fontWeight: 700, color: "#10b981", fontSize: 14 }}>{fmt(p.amount)}</span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   )}
                 </div>
