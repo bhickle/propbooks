@@ -1094,38 +1094,6 @@ function PortfolioDashboard({ onNavigate, onSelectProperty, onSelectFlip, onNavi
   });
   const flipSummary = `${dealSnapshots.length} active · ${fmt(dealSnapshots.reduce((s, f) => s + f.rehabBudget, 0))} total budget`;
 
-  // ── Lease Alerts ─────────────────────────────────────────────────────────
-  const leaseAlerts = (() => {
-    const alerts = [];
-    allTenants.forEach(t => {
-      if (t.status === "vacant") {
-        const prop = PROPERTIES.find(p => p.id === t.propertyId);
-        alerts.push({ type: "vacant", severity: "high", icon: AlertTriangle, color: "#ef4444", bg: "#fee2e2",
-          title: `${prop?.name || "Property"} — ${t.unit}`, sub: "Vacant unit — no lease", tenant: t, prop });
-      } else if (t.leaseEnd) {
-        const daysLeft = Math.round((new Date(t.leaseEnd) - now) / 86400000);
-        const prop = PROPERTIES.find(p => p.id === t.propertyId);
-        if (daysLeft < 0) {
-          alerts.push({ type: "expired", severity: "high", icon: AlertCircle, color: "#ef4444", bg: "#fee2e2",
-            title: `${t.name}`, sub: `Lease expired ${Math.abs(daysLeft)}d ago · ${prop?.name || ""} ${t.unit}`, daysLeft, tenant: t, prop });
-        } else if (daysLeft <= 60) {
-          alerts.push({ type: "expiring", severity: "medium", icon: Clock, color: "#e95e00", bg: "#ffedd5",
-            title: `${t.name}`, sub: `Lease expires in ${daysLeft}d · ${prop?.name || ""} ${t.unit}`, daysLeft, tenant: t, prop });
-        }
-      }
-      if (t.status === "month-to-month") {
-        const prop = PROPERTIES.find(p => p.id === t.propertyId);
-        const alreadyListed = alerts.some(a => a.tenant?.id === t.id);
-        if (!alreadyListed) {
-          alerts.push({ type: "mtm", severity: "low", icon: ArrowUpDown, color: "#3b82f6", bg: "#dbeafe",
-            title: `${t.name}`, sub: `Month-to-month · ${prop?.name || ""} ${t.unit}`, tenant: t, prop });
-        }
-      }
-    });
-    const order = { high: 0, medium: 1, low: 2 };
-    return alerts.sort((a, b) => order[a.severity] - order[b.severity]);
-  })();
-
   // ── Deal Stage Summary with overdue milestones ───────────────────────────
   const dealStageData = dealSnapshots.map(f => {
     const ms = DEAL_MILESTONES.filter(m => m.dealId === f.id);
@@ -1150,44 +1118,6 @@ function PortfolioDashboard({ onNavigate, onSelectProperty, onSelectFlip, onNavi
     }
     return data;
   })();
-
-  // ── Upcoming Expenses (recurring obligations) ────────────────────────────
-  const upcomingExpenses = (() => {
-    const items = [];
-    const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-    const nextMonthLabel = nextMonth.toLocaleString("default", { month: "long" });
-    // Mortgage payments
-    PROPERTIES.forEach(p => {
-      if (p.loanAmount && p.loanAmount > 0) {
-        const monthlyMortgage = p.loanAmount && p.loanRate && p.loanTermYears
-          ? (p.loanAmount * (p.loanRate / 100 / 12)) / (1 - Math.pow(1 + p.loanRate / 100 / 12, -p.loanTermYears * 12))
-          : 0;
-        if (monthlyMortgage > 0) {
-          items.push({ category: "Mortgage", property: p.name, amount: monthlyMortgage, icon: Home, color: "#3b82f6", bg: "#eff6ff", recurring: true });
-        }
-      }
-      // Insurance (estimated from transactions)
-      const insExp = TRANSACTIONS.filter(t => t.propertyId === p.id && t.type === "expense" && t.category === "Property Insurance");
-      if (insExp.length > 0) {
-        const avg = insExp.reduce((s, t) => s + Math.abs(t.amount), 0) / insExp.length;
-        items.push({ category: "Insurance", property: p.name, amount: avg, icon: FileText, color: "#8b5cf6", bg: "#ede9fe", recurring: true });
-      }
-      // Property Tax (estimated from transactions)
-      const taxExp = TRANSACTIONS.filter(t => t.propertyId === p.id && t.type === "expense" && t.category === "Property Tax");
-      if (taxExp.length > 0) {
-        const avg = taxExp.reduce((s, t) => s + Math.abs(t.amount), 0) / taxExp.length;
-        items.push({ category: "Property Tax", property: p.name, amount: avg, icon: DollarSign, color: "#ef4444", bg: "#fee2e2", recurring: true });
-      }
-      // HOA
-      const hoaExp = TRANSACTIONS.filter(t => t.propertyId === p.id && t.type === "expense" && t.category === "HOA Dues");
-      if (hoaExp.length > 0) {
-        const avg = hoaExp.reduce((s, t) => s + Math.abs(t.amount), 0) / hoaExp.length;
-        items.push({ category: "HOA Dues", property: p.name, amount: avg, icon: Building2, color: "#e95e00", bg: "#ffedd5", recurring: true });
-      }
-    });
-    return items.sort((a, b) => b.amount - a.amount).slice(0, 8);
-  })();
-  const totalUpcoming = upcomingExpenses.reduce((s, e) => s + e.amount, 0);
 
   // ── Needs Attention alerts ──────────────────────────────────────────────
   const attentionAlerts = generateAlerts({
@@ -1258,47 +1188,8 @@ function PortfolioDashboard({ onNavigate, onSelectProperty, onSelectFlip, onNavi
         ))}
       </div>
 
-      {/* Row 3: Lease Alerts + Cash Flow Trend */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 28 }}>
-        {/* Lease Alerts */}
-        <div style={sectionS}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <AlertCircle size={18} color="#ef4444" />
-              <h3 style={{ fontSize: 16, fontWeight: 700, color: "#041830", margin: 0 }}>Lease Alerts</h3>
-              {leaseAlerts.length > 0 && <span style={{ fontSize: 11, fontWeight: 700, color: "#fff", background: "#ef4444", borderRadius: 10, padding: "2px 8px", minWidth: 20, textAlign: "center" }}>{leaseAlerts.length}</span>}
-            </div>
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {leaseAlerts.length === 0 ? (
-              <div style={{ textAlign: "center", padding: "24px 0" }}>
-                <CheckCircle size={24} color="#10b981" style={{ marginBottom: 6 }} />
-                <p style={{ fontSize: 13, color: "#94a3b8", margin: 0 }}>All leases in good standing</p>
-              </div>
-            ) : leaseAlerts.slice(0, 5).map((a, i) => (
-              <div key={i} onClick={() => a.prop && onNavigateToLease && onNavigateToLease(a.prop, a.tenant?.id)}
-                style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 10, background: "#f8fafc", border: "1px solid #e2e8f0", cursor: "pointer", transition: "background 0.15s" }}
-                onMouseEnter={e => e.currentTarget.style.background = "#f1f5f9"}
-                onMouseLeave={e => e.currentTarget.style.background = "#f8fafc"}>
-                <div style={{ width: 32, height: 32, borderRadius: 8, background: a.bg, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                  <a.icon size={14} color={a.color} />
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <p style={{ fontSize: 13, fontWeight: 600, color: "#041830", margin: 0 }}>{a.title}</p>
-                  <p style={{ fontSize: 12, color: "#94a3b8", margin: "2px 0 0 0" }}>{a.sub}</p>
-                </div>
-                <ChevronRight size={14} color="#cbd5e1" />
-              </div>
-            ))}
-            {leaseAlerts.length > 5 && (
-              <button onClick={() => onNavigate("dashboard")} style={{ background: "none", border: "none", color: "#3b82f6", fontSize: 12, fontWeight: 600, cursor: "pointer", padding: "6px 0", textAlign: "center" }}>
-                View all {leaseAlerts.length} alerts
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* Cash Flow Trend */}
+      {/* Row 3: Cash Flow Trend (full width — Lease Alerts moved to Needs Attention) */}
+      <div style={{ marginBottom: 28 }}>
         <div style={sectionS}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -1307,7 +1198,7 @@ function PortfolioDashboard({ onNavigate, onSelectProperty, onSelectFlip, onNavi
             </div>
             <p style={{ fontSize: 13, color: "#94a3b8", margin: 0 }}>Last 6 months</p>
           </div>
-          <ResponsiveContainer width="100%" height={180}>
+          <ResponsiveContainer width="100%" height={200}>
             <BarChart data={cashFlowTrend} barGap={2}>
               <XAxis dataKey="month" tick={{ fontSize: 11, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fontSize: 10, fill: "#94a3b8" }} axisLine={false} tickLine={false} tickFormatter={v => v >= 1000 ? `$${(v / 1000).toFixed(0)}k` : `$${v}`} width={45} />
@@ -1582,8 +1473,6 @@ function Dashboard({ onNavigate, onNavigateToTx, onSelectProperty, onNavigateToT
   // quickPay holds just the tenant whose inline form is open; the form itself
   // (mode/amount/date) lives inside <QuickPayInline/>.
   const [quickPay, setQuickPay] = useState(null);
-  const [quickRenew, setQuickRenew] = useState(null);   // lease alert being renewed
-  const [renewForm, setRenewForm] = useState({ newEnd: "", newRent: "" });
 
   // ── KPIs ────────────────────────────────────────────────────────────────
   const totalValue = PROPERTIES.reduce((s, p) => s + p.currentValue, 0);
@@ -1597,51 +1486,6 @@ function Dashboard({ onNavigate, onNavigateToTx, onSelectProperty, onNavigateToT
   const totalUnits = allTenants.length;
   const occupiedUnits = allTenants.filter(t => t.status !== "vacant").length;
   const occupancyPct = totalUnits > 0 ? Math.round((occupiedUnits / totalUnits) * 100) : 0;
-
-  // ── Lease Alerts ────────────────────────────────────────────────────────
-  // Derived from the single-source-of-truth generateAlerts() used by Needs
-  // Attention on the portfolio dashboard, filtered to rental-relevant types
-  // and mapped to this card's display shape. Sharing the generator means
-  // dismissing an alert from either dashboard hides it from both.
-  const leaseAlerts = useMemo(() => {
-    const LEASE_TYPES = new Set(["leaseExpired", "leaseExpiring", "vacantUnit", "leaseMonthToMonth"]);
-    const raw = generateAlerts({
-      properties: PROPERTIES, tenants: TENANTS, transactions: TRANSACTIONS,
-      deals: [], contractors: [],
-    }).filter(a => LEASE_TYPES.has(a.type));
-    return raw.map(a => {
-      const tenant = TENANTS.find(tt => tt.id === a.target?.id) || null;
-      const prop = tenant ? PROPERTIES.find(p => p.id === tenant.propertyId) : null;
-      const shortTitle = tenant?.name || `${prop?.name || "Property"} — ${tenant?.unit || ""}`;
-      let sub = a.detail;
-      let legacyType = a.type;
-      if (a.type === "vacantUnit") {
-        legacyType = "vacant";
-        sub = "Vacant unit — no lease";
-      } else if (a.type === "leaseExpired") {
-        legacyType = "expired";
-      } else if (a.type === "leaseExpiring") {
-        legacyType = "expiring";
-      } else if (a.type === "leaseMonthToMonth") {
-        legacyType = "mtm";
-        sub = `Month-to-month · ${prop?.name || ""} ${tenant?.unit || ""}`;
-      }
-      return {
-        id: a.id,
-        type: legacyType,
-        severity: a.severity,
-        icon: a.icon,
-        color: a.color,
-        bg: a.bg,
-        title: a.type === "vacantUnit"
-          ? `${prop?.name || "Property"} — ${tenant?.unit || ""}`
-          : shortTitle,
-        sub,
-        tenant,
-        prop,
-      };
-    });
-  }, [renderKey]);
 
   // ── Rent Collection (this month) ────────────────────────────────────────
   // Paid status is derived from TRANSACTIONS (the source of truth), not from
@@ -1697,33 +1541,7 @@ function Dashboard({ onNavigate, onNavigateToTx, onSelectProperty, onNavigateToT
   // Rent payment write lives in shared logRentPayment() via <QuickPayInline/>.
   const handleMarkPaid = (tenant) => { setQuickPay(tenant); };
 
-  const handleQuickRenew = (alert) => {
-    const t = alert.tenant;
-    // Default: extend 1 year from today (or current end if still in the future), keep same rent
-    const curEnd = t.leaseEnd ? new Date(t.leaseEnd) : new Date();
-    const base = curEnd > now ? curEnd : now; // if expired, start from today
-    const newEnd = new Date(base);
-    newEnd.setFullYear(newEnd.getFullYear() + 1);
-    setRenewForm({ newEnd: newEnd.toISOString().slice(0, 10), newRent: String(t.rent || "") });
-    setQuickRenew(alert);
-  };
-
-  const confirmRenew = () => {
-    if (!quickRenew) return;
-    const t = quickRenew.tenant;
-    const ti = TENANTS.findIndex(tn => tn.id === t.id);
-    if (ti !== -1) {
-      TENANTS[ti].leaseEnd = renewForm.newEnd;
-      TENANTS[ti].rent = parseFloat(renewForm.newRent) || TENANTS[ti].rent;
-      TENANTS[ti].status = "active-lease";
-      TENANTS[ti].leaseStart = todayStr;
-    }
-    setQuickRenew(null);
-    rerender();
-  };
-
   const sectionS = { background: "#fff", borderRadius: 16, padding: 24, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" };
-  const qInput = { padding: "8px 12px", borderRadius: 8, border: "1.5px solid #e2e8f0", fontSize: 13, color: "#041830", background: "#fff", outline: "none", width: "100%" };
 
   return (
     <div>
@@ -1741,88 +1559,70 @@ function Dashboard({ onNavigate, onNavigateToTx, onSelectProperty, onNavigateToT
         <StatCard icon={CheckCircle} label="Rent Collected" value={`${collectionPct}%`} sub={`${fmt(collectedRent)} of ${fmt(expectedRent)} this month`} color={collectionPct >= 100 ? "#10b981" : collectionPct >= 75 ? "#e95e00" : "#ef4444"} tip="Rent received this month ÷ total expected rent from active tenants." />
       </div>
 
-      {/* Alerts + Rent Collection Row */}
+      {/* Rent Roll + Rent Collection Row */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 28 }}>
-        {/* Lease Alerts */}
+        {/* Rent Roll */}
         <div style={sectionS}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
             <div>
-              <h3 style={{ color: "#041830", fontSize: 16, fontWeight: 700 }}>Lease Alerts</h3>
-              <p style={{ color: "#94a3b8", fontSize: 13, marginTop: 2 }}>Expirations, vacancies, and renewals</p>
+              <h3 style={{ color: "#041830", fontSize: 16, fontWeight: 700 }}>Rent Roll</h3>
+              <p style={{ color: "#94a3b8", fontSize: 13, marginTop: 2 }}>{activeTenants.length} active tenants · {fmt(expectedRent)}/mo</p>
             </div>
-            {leaseAlerts.length > 0 && (
-              <span style={{ background: "#fee2e2", color: "#b91c1c", fontSize: 12, fontWeight: 700, padding: "3px 10px", borderRadius: 20 }}>{leaseAlerts.length} alert{leaseAlerts.length !== 1 ? "s" : ""}</span>
-            )}
+            <InfoTip text="Summary of every active tenant: unit, monthly rent, lease status, and lease end date. Click a row to view the tenant's property detail." />
           </div>
-          {leaseAlerts.length === 0 ? (
+          {activeTenants.length === 0 ? (
             <div style={{ textAlign: "center", padding: "24px 0" }}>
-              <CheckCircle size={28} color="#10b981" style={{ marginBottom: 8 }} />
-              <p style={{ color: "#10b981", fontSize: 14, fontWeight: 600 }}>All clear</p>
-              <p style={{ color: "#94a3b8", fontSize: 12, marginTop: 2 }}>No lease alerts right now.</p>
+              <Users size={28} color="#94a3b8" style={{ marginBottom: 8 }} />
+              <p style={{ color: "#64748b", fontSize: 14, fontWeight: 600 }}>No active tenants</p>
+              <p style={{ color: "#94a3b8", fontSize: 12, marginTop: 2 }}>Add tenants to your properties to see the rent roll.</p>
             </div>
           ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-              {leaseAlerts.slice(0, 5).map((a, i) => {
-                const isRenewing = quickRenew?.tenant?.id === a.tenant?.id;
-                return (
-                  <div key={i} style={{ borderRadius: 10, border: isRenewing ? "1.5px solid #dbeafe" : "1px solid transparent", background: isRenewing ? "#f8fafc" : "transparent", transition: "all 0.15s" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 10px", borderRadius: 10, cursor: "pointer", transition: "background 0.15s" }}
-                      onClick={() => !isRenewing && a.prop && onNavigateToLease && onNavigateToLease(a.prop, a.tenant?.id)}
-                      onMouseEnter={e => { if (!isRenewing) e.currentTarget.style.background = "#f8fafc"; }}
-                      onMouseLeave={e => { if (!isRenewing) e.currentTarget.style.background = "transparent"; }}>
-                      <div style={{ width: 32, height: 32, borderRadius: 8, background: a.bg, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                        <a.icon size={14} color={a.color} />
+            <div>
+              {/* Column headers */}
+              <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr", gap: 8, padding: "0 6px 8px", borderBottom: "1px solid #f1f5f9" }}>
+                <span style={{ fontSize: 10, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.05em" }}>Tenant / Unit</span>
+                <span style={{ fontSize: 10, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.05em", textAlign: "right" }}>Rent</span>
+                <span style={{ fontSize: 10, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.05em", textAlign: "right" }}>Lease</span>
+              </div>
+              {/* Rows */}
+              <div style={{ maxHeight: 260, overflowY: "auto" }}>
+                {activeTenants.map(t => {
+                  const prop = PROPERTIES.find(p => p.id === t.propertyId);
+                  const daysLeft = t.leaseEnd ? Math.round((new Date(t.leaseEnd) - now) / 86400000) : null;
+                  const statusColor = t.status === "month-to-month" ? "#3b82f6"
+                    : daysLeft !== null && daysLeft < 0 ? "#ef4444"
+                    : daysLeft !== null && daysLeft <= 30 ? "#f59e0b"
+                    : "#10b981";
+                  const statusLabel = t.status === "month-to-month" ? "MTM"
+                    : daysLeft !== null && daysLeft < 0 ? `Expired ${Math.abs(daysLeft)}d`
+                    : daysLeft !== null && daysLeft <= 60 ? `${daysLeft}d left`
+                    : t.leaseEnd || "—";
+                  return (
+                    <div key={t.id}
+                      onClick={() => prop && onNavigateToLease && onNavigateToLease(prop, t.id)}
+                      style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr", gap: 8, padding: "9px 6px", borderBottom: "1px solid #f8fafc", cursor: "pointer", borderRadius: 6, transition: "background 0.12s" }}
+                      onMouseEnter={e => e.currentTarget.style.background = "#f8fafc"}
+                      onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                      <div style={{ minWidth: 0 }}>
+                        <p style={{ fontSize: 13, fontWeight: 600, color: "#041830", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.name}</p>
+                        <p style={{ fontSize: 11, color: "#94a3b8", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{prop?.name?.split(" ").slice(0, 3).join(" ") || ""} · {t.unit}</p>
                       </div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <p style={{ fontSize: 13, fontWeight: 600, color: "#041830", marginBottom: 1 }}>{a.title}</p>
-                        <p style={{ fontSize: 12, color: "#94a3b8" }}>{a.sub}</p>
+                      <div style={{ textAlign: "right", alignSelf: "center" }}>
+                        <span style={{ fontSize: 13, fontWeight: 700, color: "#041830" }}>{fmt(t.rent)}</span>
                       </div>
-                      {/* Quick action buttons */}
-                      {(a.type === "expired" || a.type === "expiring" || a.type === "mtm") && (
-                        <button onClick={e => { e.stopPropagation(); isRenewing ? setQuickRenew(null) : handleQuickRenew(a); }}
-                          style={{ padding: "4px 10px", borderRadius: 7, border: "1px solid #e2e8f0", background: isRenewing ? "#e2e8f0" : "#fff", color: isRenewing ? "#475569" : "#3b82f6", fontSize: 11, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap" }}>
-                          {isRenewing ? "Cancel" : "Renew"}
-                        </button>
-                      )}
-                      {a.type === "vacant" && onNavigateToTenantAdd && (
-                        <button onClick={e => { e.stopPropagation(); onNavigateToTenantAdd(a.tenant.propertyId, a.tenant.unit); }}
-                          style={{ padding: "4px 10px", borderRadius: 7, border: "1px solid #e2e8f0", background: "#fff", color: "#10b981", fontSize: 11, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap" }}>
-                          List Unit
-                        </button>
-                      )}
-                      {!(a.type === "expired" || a.type === "expiring" || a.type === "mtm" || a.type === "vacant") && (
-                        <ChevronRight size={14} color="#cbd5e1" />
-                      )}
+                      <div style={{ textAlign: "right", alignSelf: "center" }}>
+                        <span style={{ fontSize: 11, fontWeight: 600, color: statusColor, background: statusColor + "18", padding: "2px 8px", borderRadius: 6, whiteSpace: "nowrap" }}>{statusLabel}</span>
+                      </div>
                     </div>
-                    {/* Quick Renew Inline Form */}
-                    {isRenewing && (
-                      <div style={{ padding: "8px 10px 12px", borderTop: "1px solid #e2e8f0" }}>
-                        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                          <div style={{ flex: 1 }}>
-                            <p style={{ fontSize: 11, color: "#64748b", fontWeight: 600, marginBottom: 3 }}>New Lease End</p>
-                            <input type="date" value={renewForm.newEnd} onChange={e => setRenewForm(f => ({ ...f, newEnd: e.target.value }))}
-                              style={qInput} />
-                          </div>
-                          <div style={{ flex: 1 }}>
-                            <p style={{ fontSize: 11, color: "#64748b", fontWeight: 600, marginBottom: 3 }}>New Rent</p>
-                            <input type="number" value={renewForm.newRent} onChange={e => setRenewForm(f => ({ ...f, newRent: e.target.value }))}
-                              style={qInput} placeholder={String(a.tenant?.rent || "")} />
-                          </div>
-                          <button onClick={confirmRenew}
-                            style={{ padding: "8px 16px", borderRadius: 8, border: "none", background: "#e95e00", color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap", marginTop: 16 }}>
-                            Confirm
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-              {leaseAlerts.length > 5 && (
-                <button onClick={() => onNavigate && onNavigate("tenants")} style={{ background: "none", border: "none", color: "#3b82f6", fontSize: 13, fontWeight: 600, cursor: "pointer", padding: "8px 0", textAlign: "center" }}>
-                  View all {leaseAlerts.length} alerts
-                </button>
-              )}
+                  );
+                })}
+              </div>
+              {/* Footer total */}
+              <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr", gap: 8, padding: "10px 6px 0", borderTop: "1px solid #f1f5f9", marginTop: 4 }}>
+                <span style={{ fontSize: 12, fontWeight: 700, color: "#64748b" }}>Total ({activeTenants.length})</span>
+                <span style={{ fontSize: 13, fontWeight: 700, color: "#041830", textAlign: "right" }}>{fmt(expectedRent)}</span>
+                <span />
+              </div>
             </div>
           )}
         </div>
@@ -1975,7 +1775,12 @@ function Dashboard({ onNavigate, onNavigateToTx, onSelectProperty, onNavigateToT
 
 function Properties({ onSelect, editPropertyId, onClearEditId, convertDealData, onClearConvertFlip }) {
   const { showToast } = useToast();
-  const [propData, setPropData] = useState(PROPERTIES);
+  // Read/write the global PROPERTIES store directly — same pattern DEALS and
+  // TRANSACTIONS use. A local React state copy here caused add/edit/delete
+  // (and the deal→rental conversion flow) to mutate only the local copy,
+  // leaving the rest of the app unaware of the change.
+  const [, forceRender] = useState(0);
+  const rerender = () => forceRender(n => n + 1);
   const [view, setView] = useState("grid");
   const [search, setSearch] = useState("");
   const [showModal, setShowModal] = useState(false);
@@ -1988,7 +1793,7 @@ function Properties({ onSelect, editPropertyId, onClearEditId, convertDealData, 
   // Auto-open edit modal when navigated from PropertyDetail health banner
   useEffect(() => {
     if (editPropertyId) {
-      const p = propData.find(pr => pr.id === editPropertyId);
+      const p = PROPERTIES.find(pr => pr.id === editPropertyId);
       if (p) {
         setEditId(p.id);
         setForm({ name: p.name, address: p.address, type: p.type, units: String(p.units), purchasePrice: String(p.purchasePrice), currentValue: String(p.currentValue), closingCosts: String(p.closingCosts || ""), landValue: String(p.landValue || ""), loanAmount: String(p.loanAmount || ""), loanRate: String(p.loanRate || ""), loanTermYears: String(p.loanTermYears || "30"), loanStartDate: p.loanStartDate || "", monthlyRent: String(p.monthlyRent), monthlyExpenses: String(p.monthlyExpenses), status: p.status, purchaseDate: p.purchaseDate || "", photo: p.photo || null });
@@ -2048,38 +1853,42 @@ function Properties({ onSelect, editPropertyId, onClearEditId, convertDealData, 
     const today = new Date().toISOString().slice(0, 10);
 
     if (editId !== null) {
-      setPropData(prev => prev.map(p => {
-        if (p.id !== editId) return p;
+      const idx = PROPERTIES.findIndex(p => p.id === editId);
+      if (idx !== -1) {
+        const p = PROPERTIES[idx];
         const valChanged = val !== p.currentValue;
         const land = parseFloat(form.landValue) || null;
-        return { ...p, name: form.name, address: form.address, type: form.type, units: parseInt(form.units) || 1, purchasePrice: parseFloat(form.purchasePrice) || 0, currentValue: val, valueUpdatedAt: valChanged ? today : (p.valueUpdatedAt || today), loanAmount: loanAmt, loanRate, loanTermYears: loanTerm, loanStartDate: loanStart, closingCosts: cc, landValue: land, monthlyRent: rent, monthlyExpenses: exp, purchaseDate: form.purchaseDate, status: form.status, photo: form.photo ?? p.photo };
-      }));
+        PROPERTIES[idx] = { ...p, name: form.name, address: form.address, type: form.type, units: parseInt(form.units) || 1, purchasePrice: parseFloat(form.purchasePrice) || 0, currentValue: val, valueUpdatedAt: valChanged ? today : (p.valueUpdatedAt || today), loanAmount: loanAmt, loanRate, loanTermYears: loanTerm, loanStartDate: loanStart, closingCosts: cc, landValue: land, monthlyRent: rent, monthlyExpenses: exp, purchaseDate: form.purchaseDate, status: form.status, photo: form.photo ?? p.photo };
+      }
     } else {
-      const usedColors = propData.map(p => p.color);
-      const color = PROP_COLORS.find(c => !usedColors.includes(c)) || PROP_COLORS[propData.length % PROP_COLORS.length];
+      const usedColors = PROPERTIES.map(p => p.color);
+      const color = PROP_COLORS.find(c => !usedColors.includes(c)) || PROP_COLORS[PROPERTIES.length % PROP_COLORS.length];
       const land = parseFloat(form.landValue) || null;
-      setPropData(prev => [...prev, { id: newId(), name: form.name, address: form.address, type: form.type, units: parseInt(form.units) || 1, purchasePrice: parseFloat(form.purchasePrice) || 0, currentValue: val, valueUpdatedAt: today, loanAmount: loanAmt, loanRate, loanTermYears: loanTerm, loanStartDate: loanStart, closingCosts: cc, landValue: land, monthlyRent: rent, monthlyExpenses: exp, purchaseDate: form.purchaseDate, status: form.status, image: form.name.slice(0, 2).toUpperCase(), color, photo: form.photo || null }]);
+      PROPERTIES.push({ id: newId(), name: form.name, address: form.address, type: form.type, units: parseInt(form.units) || 1, purchasePrice: parseFloat(form.purchasePrice) || 0, currentValue: val, valueUpdatedAt: today, loanAmount: loanAmt, loanRate, loanTermYears: loanTerm, loanStartDate: loanStart, closingCosts: cc, landValue: land, monthlyRent: rent, monthlyExpenses: exp, purchaseDate: form.purchaseDate, status: form.status, image: form.name.slice(0, 2).toUpperCase(), color, photo: form.photo || null });
     }
     const wasEdit = editId !== null;
     setForm(emptyP);
     setShowModal(false);
+    rerender();
     showToast(wasEdit ? "Property updated" : "Property added to portfolio");
   };
 
   const handleDeleteProp = () => {
     if (!deleteConfirm) return;
-    setPropData(prev => prev.filter(p => p.id !== deleteConfirm.id));
+    const idx = PROPERTIES.findIndex(p => p.id === deleteConfirm.id);
+    if (idx !== -1) PROPERTIES.splice(idx, 1);
     setDeleteConfirm(null);
+    rerender();
   };
 
-  const filtered = propData.filter(p => p.name.toLowerCase().includes(search.toLowerCase()) || p.type.toLowerCase().includes(search.toLowerCase()));
+  const filtered = PROPERTIES.filter(p => p.name.toLowerCase().includes(search.toLowerCase()) || p.type.toLowerCase().includes(search.toLowerCase()));
 
   return (
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
         <div>
           <h1 style={{ color: "#041830", fontSize: 26, fontWeight: 700, marginBottom: 4 }}>Properties</h1>
-          <p style={{ color: "#64748b", fontSize: 15 }}>{propData.length} properties in your portfolio</p>
+          <p style={{ color: "#64748b", fontSize: 15 }}>{PROPERTIES.length} properties in your portfolio</p>
         </div>
         <button onClick={openAdd} style={{ background: "#e95e00", color: "#fff", border: "none", borderRadius: 10, padding: "10px 18px", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
           <Plus size={16} /> Add Property
@@ -2171,7 +1980,7 @@ function Properties({ onSelect, editPropertyId, onClearEditId, convertDealData, 
           })}
           {filtered.length === 0 && (
             <div style={{ gridColumn: "1 / -1" }}>
-              {propData.length === 0
+              {PROPERTIES.length === 0
                 ? <EmptyState icon={Home} title="No properties yet" subtitle="Add your first rental property to start tracking your portfolio." actionLabel="Add Property" onAction={openAdd} />
                 : <EmptyState icon={Search} title="No properties found" subtitle="Try adjusting your search or filters." />
               }
@@ -2245,7 +2054,7 @@ function Properties({ onSelect, editPropertyId, onClearEditId, convertDealData, 
               })}
               {filtered.length === 0 && (
                 <tr><td colSpan={9}>
-                  {propData.length === 0
+                  {PROPERTIES.length === 0
                     ? <EmptyState icon={Home} title="No properties yet" subtitle="Add your first rental property to start tracking your portfolio." actionLabel="Add Property" onAction={openAdd} />
                     : <EmptyState icon={Search} title="No properties found" subtitle="Try adjusting your search or filters." />
                   }
