@@ -1550,86 +1550,140 @@ function FlipWizard({ onComplete, onExit }) {
       {step === 2 && (
         <div style={{ background: "#fff", borderRadius: 16, padding: 28, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" }}>
           <h2 style={{ fontSize: 18, fontWeight: 700, color: "#041830", marginBottom: 4 }}>Rehab Scope</h2>
-          <p style={{ fontSize: 13, color: "#94a3b8", marginBottom: 24 }}>Add line items for your rehab. Pick from standard categories or type a custom one.</p>
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {rehabItems.map((item, i) => (
-              <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
-                <div style={{ position: "relative", flex: 2 }}>
-                  <input value={item.label}
-                    onChange={e => { setRehab(i, "label", e.target.value); setRehab(i, "canonicalCategory", null); setCatFocusIdx(i); }}
-                    onFocus={() => setCatFocusIdx(i)}
-                    onBlur={() => setTimeout(() => setCatFocusIdx(-1), 150)}
-                    style={wizardInput} placeholder="Start typing to search categories..." autoFocus={item.label === ""} />
-                  {catFocusIdx === i && (() => {
-                    const q = item.label.toLowerCase().trim();
-                    const canonMatches = q ? allCategories.canonical.filter(c => c.label.toLowerCase().includes(q)) : allCategories.canonical;
-                    const customMatches = q ? allCategories.custom.filter(c => c.toLowerCase().includes(q)) : allCategories.custom;
-                    const alreadyUsed = new Set(rehabItems.map((r, j) => j !== i ? r.label.toLowerCase() : null).filter(Boolean));
-                    const filteredCanon = canonMatches.filter(c => !alreadyUsed.has(c.label.toLowerCase()));
-                    const filteredCustom = customMatches.filter(c => !alreadyUsed.has(c.toLowerCase()));
-                    const exactExists = [...allCategories.canonical.map(c => c.label), ...allCategories.custom].some(c => c.toLowerCase() === q);
-                    const showNew = q && !exactExists;
-                    if (filteredCanon.length === 0 && filteredCustom.length === 0 && !showNew) return null;
-                    const grouped = REHAB_CATEGORY_GROUPS.map(g => ({ group: g, items: filteredCanon.filter(c => c.group === g) })).filter(g => g.items.length > 0);
-                    return (
-                      <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, background: "#fff", border: "1px solid #e2e8f0", borderRadius: 12, boxShadow: "0 8px 24px rgba(0,0,0,0.10)", zIndex: 200, overflow: "hidden", maxHeight: 280, overflowY: "auto" }}>
-                        {grouped.map(({ group, items }) => (
-                          <div key={group}>
-                            <div style={{ padding: "6px 14px 4px", fontSize: 10, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.05em", background: "#f8fafc", borderBottom: "1px solid #f1f5f9" }}>{group}</div>
-                            {items.map(c => (
-                              <button key={c.slug} type="button"
-                                onMouseDown={() => { setRehab(i, "label", c.label); setRehab(i, "canonicalCategory", c.slug); setCatFocusIdx(-1); }}
-                                style={{ width: "100%", padding: "8px 14px", background: "none", border: "none", borderBottom: "1px solid #f1f5f9", textAlign: "left", cursor: "pointer", fontSize: 13, color: "#041830", display: "flex", alignItems: "center", gap: 8 }}>
-                                <Wrench size={13} style={{ color: "#94a3b8", flexShrink: 0 }} />
-                                <span>{c.label}</span>
-                              </button>
-                            ))}
-                          </div>
-                        ))}
-                        {filteredCustom.length > 0 && (
-                          <div>
-                            <div style={{ padding: "6px 14px 4px", fontSize: 10, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.05em", background: "#f8fafc", borderBottom: "1px solid #f1f5f9" }}>Custom</div>
-                            {filteredCustom.map(c => (
-                              <button key={c} type="button"
-                                onMouseDown={() => { setRehab(i, "label", c); setRehab(i, "canonicalCategory", null); setCatFocusIdx(-1); }}
-                                style={{ width: "100%", padding: "8px 14px", background: "none", border: "none", borderBottom: "1px solid #f1f5f9", textAlign: "left", cursor: "pointer", fontSize: 13, color: "#041830", display: "flex", alignItems: "center", gap: 8 }}>
-                                <Wrench size={13} style={{ color: "#94a3b8", flexShrink: 0 }} />
-                                <span>{c}</span>
-                              </button>
-                            ))}
-                          </div>
-                        )}
-                        {showNew && (
-                          <button type="button" onMouseDown={() => setCatFocusIdx(-1)}
-                            style={{ width: "100%", padding: "10px 14px", display: "flex", alignItems: "center", gap: 8, background: "#fff7ed", border: "none", cursor: "pointer", textAlign: "left" }}>
-                            <Plus size={13} style={{ color: "#e95e00", flexShrink: 0 }} />
-                            <span style={{ fontSize: 13, color: "#e95e00", fontWeight: 600 }}>Add &ldquo;{item.label}&rdquo; as custom</span>
-                          </button>
-                        )}
+          <p style={{ fontSize: 13, color: "#94a3b8", marginBottom: 24 }}>
+            {rehabItems.length === 0
+              ? "Pick a template to pre-populate standard scopes with suggested budgets, or build your own from scratch."
+              : "Adjust budgets, remove items you don't need, or add custom line items."}
+          </p>
+
+          {/* Template picker — shown when no items yet (mirrors RehabTracker empty state) */}
+          {rehabItems.length === 0 && (
+            <div>
+              <div style={{ textAlign: "center", marginBottom: 20 }}>
+                <div style={{ width: 56, height: 56, borderRadius: 14, background: "#fff7ed", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 12px" }}>
+                  <Wrench size={24} color="#e95e00" />
+                </div>
+                <h3 style={{ fontSize: 17, fontWeight: 700, color: "#041830", marginBottom: 6 }}>Start your rehab scope</h3>
+                <p style={{ fontSize: 13, color: "#64748b", maxWidth: 460, margin: "0 auto" }}>Pick a template to pre-populate standard scopes with suggested budgets, or build your own from scratch.</p>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(230px, 1fr))", gap: 12, marginBottom: 14 }}>
+                {REHAB_TEMPLATES.map(tpl => {
+                  const total = tpl.items.reduce((s, i) => s + (i.budgeted || 0), 0);
+                  return (
+                    <button key={tpl.id} onClick={() => {
+                      const seeded = tpl.items.map(i => {
+                        const canon = getCanonicalBySlug(i.slug);
+                        return { label: canon?.label || i.slug, canonicalCategory: i.slug, budgeted: String(i.budgeted || 0) };
+                      });
+                      setRehabItems(seeded);
+                    }} style={{ background: "#fff", border: "1.5px solid #e2e8f0", borderRadius: 14, padding: 18, textAlign: "left", cursor: "pointer", transition: "all 0.15s" }}
+                      onMouseEnter={e => { e.currentTarget.style.borderColor = "#e95e00"; e.currentTarget.style.background = "#fff7ed"; }}
+                      onMouseLeave={e => { e.currentTarget.style.borderColor = "#e2e8f0"; e.currentTarget.style.background = "#fff"; }}>
+                      <p style={{ fontSize: 14, fontWeight: 700, color: "#041830", marginBottom: 4 }}>{tpl.name}</p>
+                      <p style={{ fontSize: 11, color: "#64748b", lineHeight: 1.5, marginBottom: 10, minHeight: 30 }}>{tpl.description}</p>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 10, borderTop: "1px solid #f1f5f9" }}>
+                        <span style={{ fontSize: 11, color: "#94a3b8", fontWeight: 600 }}>{tpl.items.length} items</span>
+                        <span style={{ fontSize: 12, color: "#041830", fontWeight: 700 }}>{fmt(total)}</span>
                       </div>
-                    );
-                  })()}
-                </div>
-                <div style={{ position: "relative", flex: 1 }}>
-                  <span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "#94a3b8", fontSize: 14 }}>$</span>
-                  <input type="number" value={item.budgeted} onChange={e => setRehab(i, "budgeted", e.target.value)}
-                    style={{ ...wizardInput, paddingLeft: 24 }} placeholder="0" />
-                </div>
-                <button onClick={() => removeRehabItem(i)} style={{ background: "none", border: "none", color: "#cbd5e1", cursor: "pointer", padding: 6, borderRadius: 6, display: "flex", marginTop: 8 }}
-                  onMouseEnter={e => e.currentTarget.style.color = "#ef4444"}
-                  onMouseLeave={e => e.currentTarget.style.color = "#cbd5e1"}>
-                  <X size={16} />
+                    </button>
+                  );
+                })}
+              </div>
+              <div style={{ textAlign: "center" }}>
+                <button onClick={addRehabItem} style={{ background: "none", border: "none", color: "#64748b", fontSize: 13, fontWeight: 600, cursor: "pointer", textDecoration: "underline" }}>or start from scratch</button>
+              </div>
+            </div>
+          )}
+
+          {/* Rehab item list — shown after template selection or manual add */}
+          {rehabItems.length > 0 && (
+            <div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                {rehabItems.map((item, i) => (
+                  <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
+                    <div style={{ position: "relative", flex: 2 }}>
+                      <input value={item.label}
+                        onChange={e => { setRehab(i, "label", e.target.value); setRehab(i, "canonicalCategory", null); setCatFocusIdx(i); }}
+                        onFocus={() => setCatFocusIdx(i)}
+                        onBlur={() => setTimeout(() => setCatFocusIdx(-1), 150)}
+                        style={wizardInput} placeholder="Start typing to search categories..." />
+                      {catFocusIdx === i && (() => {
+                        const q = item.label.toLowerCase().trim();
+                        const canonMatches = q ? allCategories.canonical.filter(c => c.label.toLowerCase().includes(q)) : allCategories.canonical;
+                        const customMatches = q ? allCategories.custom.filter(c => c.toLowerCase().includes(q)) : allCategories.custom;
+                        const alreadyUsed = new Set(rehabItems.map((r, j) => j !== i ? r.label.toLowerCase() : null).filter(Boolean));
+                        const filteredCanon = canonMatches.filter(c => !alreadyUsed.has(c.label.toLowerCase()));
+                        const filteredCustom = customMatches.filter(c => !alreadyUsed.has(c.toLowerCase()));
+                        const exactExists = [...allCategories.canonical.map(c => c.label), ...allCategories.custom].some(c => c.toLowerCase() === q);
+                        const showNew = q && !exactExists;
+                        if (filteredCanon.length === 0 && filteredCustom.length === 0 && !showNew) return null;
+                        const grouped = REHAB_CATEGORY_GROUPS.map(g => ({ group: g, items: filteredCanon.filter(c => c.group === g) })).filter(g => g.items.length > 0);
+                        return (
+                          <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, background: "#fff", border: "1px solid #e2e8f0", borderRadius: 12, boxShadow: "0 8px 24px rgba(0,0,0,0.10)", zIndex: 200, overflow: "hidden", maxHeight: 280, overflowY: "auto" }}>
+                            {grouped.map(({ group, items }) => (
+                              <div key={group}>
+                                <div style={{ padding: "6px 14px 4px", fontSize: 10, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.05em", background: "#f8fafc", borderBottom: "1px solid #f1f5f9" }}>{group}</div>
+                                {items.map(c => (
+                                  <button key={c.slug} type="button"
+                                    onMouseDown={() => { setRehab(i, "label", c.label); setRehab(i, "canonicalCategory", c.slug); setCatFocusIdx(-1); }}
+                                    style={{ width: "100%", padding: "8px 14px", background: "none", border: "none", borderBottom: "1px solid #f1f5f9", textAlign: "left", cursor: "pointer", fontSize: 13, color: "#041830", display: "flex", alignItems: "center", gap: 8 }}>
+                                    <Wrench size={13} style={{ color: "#94a3b8", flexShrink: 0 }} />
+                                    <span>{c.label}</span>
+                                  </button>
+                                ))}
+                              </div>
+                            ))}
+                            {filteredCustom.length > 0 && (
+                              <div>
+                                <div style={{ padding: "6px 14px 4px", fontSize: 10, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.05em", background: "#f8fafc", borderBottom: "1px solid #f1f5f9" }}>Custom</div>
+                                {filteredCustom.map(c => (
+                                  <button key={c} type="button"
+                                    onMouseDown={() => { setRehab(i, "label", c); setRehab(i, "canonicalCategory", null); setCatFocusIdx(-1); }}
+                                    style={{ width: "100%", padding: "8px 14px", background: "none", border: "none", borderBottom: "1px solid #f1f5f9", textAlign: "left", cursor: "pointer", fontSize: 13, color: "#041830", display: "flex", alignItems: "center", gap: 8 }}>
+                                    <Wrench size={13} style={{ color: "#94a3b8", flexShrink: 0 }} />
+                                    <span>{c}</span>
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                            {showNew && (
+                              <button type="button" onMouseDown={() => setCatFocusIdx(-1)}
+                                style={{ width: "100%", padding: "10px 14px", display: "flex", alignItems: "center", gap: 8, background: "#fff7ed", border: "none", cursor: "pointer", textAlign: "left" }}>
+                                <Plus size={13} style={{ color: "#e95e00", flexShrink: 0 }} />
+                                <span style={{ fontSize: 13, color: "#e95e00", fontWeight: 600 }}>Add &ldquo;{item.label}&rdquo; as custom</span>
+                              </button>
+                            )}
+                          </div>
+                        );
+                      })()}
+                    </div>
+                    <div style={{ position: "relative", flex: 1 }}>
+                      <span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "#94a3b8", fontSize: 14 }}>$</span>
+                      <input type="number" value={item.budgeted} onChange={e => setRehab(i, "budgeted", e.target.value)}
+                        style={{ ...wizardInput, paddingLeft: 24 }} placeholder="0" />
+                    </div>
+                    <button onClick={() => removeRehabItem(i)} style={{ background: "none", border: "none", color: "#cbd5e1", cursor: "pointer", padding: 6, borderRadius: 6, display: "flex", marginTop: 8 }}
+                      onMouseEnter={e => e.currentTarget.style.color = "#ef4444"}
+                      onMouseLeave={e => e.currentTarget.style.color = "#cbd5e1"}>
+                      <X size={16} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 12 }}>
+                <button onClick={addRehabItem} style={{ display: "flex", alignItems: "center", gap: 6, padding: "10px 16px", borderRadius: 10, border: "none", background: "#e95e00", color: "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
+                  <Plus size={14} /> Add Rehab Item
+                </button>
+                <button onClick={() => setRehabItems([])} style={{ background: "none", border: "none", color: "#94a3b8", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
+                  <X size={12} style={{ marginRight: 4 }} />Clear all &amp; pick new template
                 </button>
               </div>
-            ))}
-          </div>
-          <button onClick={addRehabItem} style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 12, padding: "10px 16px", borderRadius: 10, border: "none", background: "#e95e00", color: "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
-            <Plus size={14} /> Add Rehab Item
-          </button>
-          {rehabTotal > 0 && (
-            <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 16, fontSize: 14 }}>
-              <span style={{ color: "#64748b" }}>Total Rehab Budget: </span>
-              <strong style={{ color: "#041830", marginLeft: 8 }}>{fmt(rehabTotal)}</strong>
+              {rehabTotal > 0 && (
+                <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 16, fontSize: 14 }}>
+                  <span style={{ color: "#64748b" }}>Total Rehab Budget: </span>
+                  <strong style={{ color: "#041830", marginLeft: 8 }}>{fmt(rehabTotal)}</strong>
+                </div>
+              )}
             </div>
           )}
           <WizardNav onBack={() => setStep(1)} onNext={() => setStep(3)} />
