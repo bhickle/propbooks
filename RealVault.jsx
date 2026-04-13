@@ -15,7 +15,7 @@ import {
   Users, Route, Calculator, FileCheck, UserCheck, Truck, Layers, Car,
   CheckSquare, Square, PlusCircle, Receipt, UploadCloud, Trash2, Pencil, Info, List,
   CreditCard, MessageSquare, Copy, Camera, Image, AlertTriangle, ArrowRight, ArrowLeft, ExternalLink,
-  Paperclip, ScanLine, FileImage, FilePlus, Loader, Phone, Mail, Shield
+  Paperclip, ScanLine, FileImage, FilePlus, Loader, Phone, Mail, Shield, Sparkles
 } from "lucide-react";
 import {
   newId, fmt, fmtK,
@@ -1046,6 +1046,661 @@ function QuickPayInline({ tenant, defaultDate, onConfirm }) {
   );
 }
 
+// =============================================================================
+// ONBOARDING WIZARDS — full-screen guided flows for adding rentals and flips
+// =============================================================================
+
+// Shared wizard shell: progress bar + step navigation + layout
+function WizardShell({ steps, currentStep, onStepClick, title, subtitle, onExit, children }) {
+  const sectionS = { background: "#fff", borderRadius: 16, padding: 24, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" };
+  return (
+    <div style={{ minHeight: "100vh", background: "#f8fafc" }}>
+      {/* Top bar */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "20px 32px", background: "#fff", borderBottom: "1px solid #f1f5f9" }}>
+        <div>
+          <h1 style={{ fontSize: 22, fontWeight: 700, color: "#041830", margin: 0 }}>{title}</h1>
+          {subtitle && <p style={{ fontSize: 13, color: "#64748b", margin: "2px 0 0" }}>{subtitle}</p>}
+        </div>
+        <button onClick={onExit} style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 8, border: "1px solid #e2e8f0", background: "#fff", color: "#64748b", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
+          <X size={14} /> Exit
+        </button>
+      </div>
+
+      {/* Progress bar */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 0, padding: "24px 32px 0" }}>
+        {steps.map((step, i) => {
+          const done = i < currentStep;
+          const active = i === currentStep;
+          return (
+            <React.Fragment key={i}>
+              <div onClick={() => i < currentStep && onStepClick(i)} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, cursor: i < currentStep ? "pointer" : "default", minWidth: 100 }}>
+                <div style={{ width: 36, height: 36, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", background: done ? "#10b981" : active ? "#e95e00" : "#f1f5f9", color: done || active ? "#fff" : "#94a3b8", fontSize: 14, fontWeight: 700, transition: "all 0.2s" }}>
+                  {done ? <CheckCircle size={18} /> : i + 1}
+                </div>
+                <span style={{ fontSize: 12, fontWeight: active ? 700 : 500, color: active ? "#041830" : done ? "#10b981" : "#94a3b8", textAlign: "center" }}>{step}</span>
+              </div>
+              {i < steps.length - 1 && (
+                <div style={{ height: 2, width: 60, background: done ? "#10b981" : "#e2e8f0", marginBottom: 20, transition: "background 0.2s" }} />
+              )}
+            </React.Fragment>
+          );
+        })}
+      </div>
+
+      {/* Step content */}
+      <div style={{ maxWidth: 700, margin: "28px auto 0", padding: "0 32px 60px" }}>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+// Shared wizard step navigation buttons
+function WizardNav({ onBack, onNext, nextLabel, backLabel, nextDisabled }) {
+  return (
+    <div style={{ display: "flex", justifyContent: "space-between", marginTop: 32, paddingTop: 20, borderTop: "1px solid #f1f5f9" }}>
+      {onBack ? (
+        <button onClick={onBack} style={{ display: "flex", alignItems: "center", gap: 6, padding: "10px 20px", borderRadius: 10, border: "1px solid #e2e8f0", background: "#fff", color: "#475569", fontSize: 14, fontWeight: 600, cursor: "pointer" }}>
+          <ArrowLeft size={16} /> {backLabel || "Back"}
+        </button>
+      ) : <div />}
+      <button onClick={onNext} disabled={nextDisabled}
+        style={{ display: "flex", alignItems: "center", gap: 6, padding: "10px 24px", borderRadius: 10, border: "none", background: nextDisabled ? "#cbd5e1" : "#e95e00", color: "#fff", fontSize: 14, fontWeight: 700, cursor: nextDisabled ? "not-allowed" : "pointer", transition: "background 0.15s" }}>
+        {nextLabel || "Continue"} {nextLabel !== "Add to Portfolio" && nextLabel !== "Add to Pipeline" && <ArrowRight size={16} />}
+      </button>
+    </div>
+  );
+}
+
+// Shared form field component for wizard steps
+function WizardField({ label, hint, required, children }) {
+  return (
+    <div style={{ marginBottom: 20 }}>
+      <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#041830", marginBottom: 6 }}>
+        {label} {required && <span style={{ color: "#ef4444" }}>*</span>}
+      </label>
+      {children}
+      {hint && <p style={{ fontSize: 11, color: "#94a3b8", margin: "4px 0 0" }}>{hint}</p>}
+    </div>
+  );
+}
+
+const wizardInput = { padding: "10px 14px", borderRadius: 10, border: "1.5px solid #e2e8f0", fontSize: 14, color: "#041830", background: "#fff", outline: "none", width: "100%", boxSizing: "border-box" };
+const wizardSelect = { ...wizardInput, appearance: "none", backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E\")", backgroundRepeat: "no-repeat", backgroundPosition: "right 12px center" };
+
+// ── RENTAL WIZARD ─────────────────────────────────────────────────────────
+function RentalWizard({ onComplete, onExit }) {
+  const { showToast } = useToast();
+  const steps = ["Property", "Financials", "Tenants", "Review"];
+  const [step, setStep] = useState(0);
+  const todayStr = new Date().toISOString().slice(0, 10);
+
+  // Step 1: Property basics
+  const [basics, setBasics] = useState({ name: "", address: "", type: "Single Family", units: "1", status: "Occupied", purchaseDate: "" });
+  const sb = k => e => setBasics(f => ({ ...f, [k]: e.target.value }));
+
+  // Step 2: Financials
+  const [fin, setFin] = useState({ purchasePrice: "", currentValue: "", closingCosts: "", loanAmount: "", loanRate: "", loanTermYears: "30", loanStartDate: "", monthlyRent: "", monthlyExpenses: "" });
+  const sf = k => e => setFin(f => ({ ...f, [k]: e.target.value }));
+
+  // Mortgage calc
+  const loanAmt = parseFloat(fin.loanAmount) || 0;
+  const loanRate = parseFloat(fin.loanRate) || 0;
+  const loanTerm = parseFloat(fin.loanTermYears) || 30;
+  const monthlyMortgage = loanAmt > 0 && loanRate > 0
+    ? (loanAmt * (loanRate / 100 / 12)) / (1 - Math.pow(1 + loanRate / 100 / 12, -loanTerm * 12))
+    : 0;
+
+  // Step 3: Tenants
+  const unitCount = parseInt(basics.units) || 1;
+  const [tenants, setTenants] = useState([]);
+  useEffect(() => {
+    setTenants(prev => {
+      const arr = [];
+      for (let i = 0; i < unitCount; i++) {
+        arr.push(prev[i] || { name: "", unit: unitCount === 1 ? "Main" : `Unit ${i + 1}`, rent: fin.monthlyRent && unitCount === 1 ? fin.monthlyRent : "", leaseStart: "", leaseEnd: "", status: "active-lease", vacant: false });
+      }
+      return arr;
+    });
+  }, [unitCount]);
+  const setTenant = (i, k, v) => setTenants(prev => prev.map((t, j) => j === i ? { ...t, [k]: v } : t));
+
+  const canProceed = [
+    basics.name.trim().length > 0,  // step 0
+    true,  // step 1 — financials are optional
+    true,  // step 2 — tenants optional
+    true,  // step 3 — review, always submittable
+  ];
+
+  const handleSave = () => {
+    const val = parseFloat(fin.currentValue) || parseFloat(fin.purchasePrice) || 0;
+    const usedColors = PROPERTIES.map(p => p.color);
+    const color = PROP_COLORS.find(c => !usedColors.includes(c)) || PROP_COLORS[PROPERTIES.length % PROP_COLORS.length];
+    const propId = newId();
+    PROPERTIES.push({
+      id: propId, name: basics.name, address: basics.address, type: basics.type,
+      units: unitCount, purchasePrice: parseFloat(fin.purchasePrice) || 0,
+      currentValue: val, valueUpdatedAt: todayStr,
+      loanAmount: loanAmt, loanRate, loanTermYears: loanTerm,
+      loanStartDate: fin.loanStartDate || "",
+      closingCosts: parseFloat(fin.closingCosts) || 0, landValue: null,
+      monthlyRent: parseFloat(fin.monthlyRent) || 0,
+      monthlyExpenses: parseFloat(fin.monthlyExpenses) || 0,
+      purchaseDate: basics.purchaseDate || "",
+      status: basics.status,
+      image: basics.name.slice(0, 2).toUpperCase(), color, photo: null,
+    });
+    // Create tenants
+    tenants.forEach(t => {
+      if (t.vacant) {
+        TENANTS.push({ id: newId(), propertyId: propId, name: "", unit: t.unit, rent: parseFloat(t.rent) || 0, leaseStart: "", leaseEnd: "", status: "vacant", lastPayment: null, phone: "", email: "" });
+      } else if (t.name.trim()) {
+        TENANTS.push({ id: newId(), propertyId: propId, name: t.name, unit: t.unit, rent: parseFloat(t.rent) || 0, leaseStart: t.leaseStart || "", leaseEnd: t.leaseEnd || "", status: t.status || "active-lease", lastPayment: null, phone: "", email: "" });
+      }
+    });
+    showToast(`"${basics.name}" added to portfolio with ${tenants.filter(t => !t.vacant && t.name.trim()).length} tenant(s)`);
+    onComplete && onComplete();
+  };
+
+  return (
+    <WizardShell steps={steps} currentStep={step} onStepClick={setStep} title="Add Rental Property" subtitle="We'll walk you through setting up your property, financials, and tenants." onExit={onExit}>
+
+      {step === 0 && (
+        <div style={{ background: "#fff", borderRadius: 16, padding: 28, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" }}>
+          <h2 style={{ fontSize: 18, fontWeight: 700, color: "#041830", marginBottom: 4 }}>Property Details</h2>
+          <p style={{ fontSize: 13, color: "#94a3b8", marginBottom: 24 }}>Basic info about the property — you can always edit this later.</p>
+          <WizardField label="Property Name" required hint="e.g. 'Maple Street Duplex' or '123 Main St'">
+            <input value={basics.name} onChange={sb("name")} style={wizardInput} placeholder="Enter property name" autoFocus />
+          </WizardField>
+          <WizardField label="Address" hint="Full street address">
+            <input value={basics.address} onChange={sb("address")} style={wizardInput} placeholder="123 Main St, City, State ZIP" />
+          </WizardField>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+            <WizardField label="Property Type">
+              <select value={basics.type} onChange={sb("type")} style={wizardSelect}>
+                {["Single Family", "Duplex", "Triplex", "Fourplex", "Apartment", "Condo", "Townhouse", "Commercial", "Mixed Use"].map(t => <option key={t}>{t}</option>)}
+              </select>
+            </WizardField>
+            <WizardField label="Units" hint="Total rentable units">
+              <input type="number" min="1" value={basics.units} onChange={sb("units")} style={wizardInput} />
+            </WizardField>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+            <WizardField label="Purchase Date">
+              <input type="date" value={basics.purchaseDate} onChange={sb("purchaseDate")} style={wizardInput} />
+            </WizardField>
+            <WizardField label="Status">
+              <select value={basics.status} onChange={sb("status")} style={wizardSelect}>
+                {["Occupied", "Partially Vacant", "Vacant", "Renovating"].map(s => <option key={s}>{s}</option>)}
+              </select>
+            </WizardField>
+          </div>
+          <WizardNav onNext={() => setStep(1)} nextDisabled={!canProceed[0]} />
+        </div>
+      )}
+
+      {step === 1 && (
+        <div style={{ background: "#fff", borderRadius: 16, padding: 28, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" }}>
+          <h2 style={{ fontSize: 18, fontWeight: 700, color: "#041830", marginBottom: 4 }}>Financials</h2>
+          <p style={{ fontSize: 13, color: "#94a3b8", marginBottom: 24 }}>Purchase details and loan info. Skip anything you don't have yet.</p>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+            <WizardField label="Purchase Price">
+              <input type="number" value={fin.purchasePrice} onChange={sf("purchasePrice")} style={wizardInput} placeholder="$0" />
+            </WizardField>
+            <WizardField label="Current Market Value" hint="Zillow, appraisal, or your best estimate">
+              <input type="number" value={fin.currentValue} onChange={sf("currentValue")} style={wizardInput} placeholder="$0" />
+            </WizardField>
+          </div>
+          <WizardField label="Closing Costs">
+            <input type="number" value={fin.closingCosts} onChange={sf("closingCosts")} style={wizardInput} placeholder="$0" />
+          </WizardField>
+
+          <div style={{ borderTop: "1px solid #f1f5f9", margin: "20px 0", paddingTop: 20 }}>
+            <h3 style={{ fontSize: 15, fontWeight: 700, color: "#041830", marginBottom: 16 }}>Loan Details</h3>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+              <WizardField label="Loan Amount">
+                <input type="number" value={fin.loanAmount} onChange={sf("loanAmount")} style={wizardInput} placeholder="$0" />
+              </WizardField>
+              <WizardField label="Interest Rate (%)">
+                <input type="number" step="0.01" value={fin.loanRate} onChange={sf("loanRate")} style={wizardInput} placeholder="0.00" />
+              </WizardField>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+              <WizardField label="Loan Term (years)">
+                <input type="number" value={fin.loanTermYears} onChange={sf("loanTermYears")} style={wizardInput} placeholder="30" />
+              </WizardField>
+              <WizardField label="Loan Start Date">
+                <input type="date" value={fin.loanStartDate} onChange={sf("loanStartDate")} style={wizardInput} />
+              </WizardField>
+            </div>
+            {monthlyMortgage > 0 && (
+              <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 10, padding: "12px 16px", display: "flex", alignItems: "center", gap: 10, marginTop: 8 }}>
+                <DollarSign size={16} color="#10b981" />
+                <span style={{ fontSize: 13, color: "#15803d" }}>Estimated monthly payment: <strong>{fmt(Math.round(monthlyMortgage))}</strong></span>
+              </div>
+            )}
+          </div>
+
+          <div style={{ borderTop: "1px solid #f1f5f9", margin: "20px 0", paddingTop: 20 }}>
+            <h3 style={{ fontSize: 15, fontWeight: 700, color: "#041830", marginBottom: 16 }}>Monthly Cash Flow</h3>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+              <WizardField label="Monthly Rent" hint="Total across all units">
+                <input type="number" value={fin.monthlyRent} onChange={sf("monthlyRent")} style={wizardInput} placeholder="$0" />
+              </WizardField>
+              <WizardField label="Monthly Expenses" hint="Taxes, insurance, maintenance, etc.">
+                <input type="number" value={fin.monthlyExpenses} onChange={sf("monthlyExpenses")} style={wizardInput} placeholder="$0" />
+              </WizardField>
+            </div>
+          </div>
+          <WizardNav onBack={() => setStep(0)} onNext={() => setStep(2)} />
+        </div>
+      )}
+
+      {step === 2 && (
+        <div style={{ background: "#fff", borderRadius: 16, padding: 28, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" }}>
+          <h2 style={{ fontSize: 18, fontWeight: 700, color: "#041830", marginBottom: 4 }}>Tenants</h2>
+          <p style={{ fontSize: 13, color: "#94a3b8", marginBottom: 24 }}>
+            {unitCount === 1 ? "Add your tenant info, or mark as vacant." : `${unitCount} units detected — add tenant info for each, or mark vacant units.`}
+          </p>
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            {tenants.slice(0, unitCount).map((t, i) => (
+              <div key={i} style={{ borderRadius: 12, border: t.vacant ? "1.5px dashed #cbd5e1" : "1px solid #e2e8f0", padding: 20, background: t.vacant ? "#f8fafc" : "#fff", transition: "all 0.15s" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: t.vacant ? 0 : 16 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <div style={{ width: 28, height: 28, borderRadius: 8, background: t.vacant ? "#f1f5f9" : "#eff6ff", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      {t.vacant ? <Home size={14} color="#94a3b8" /> : <User size={14} color="#3b82f6" />}
+                    </div>
+                    <span style={{ fontSize: 14, fontWeight: 600, color: "#041830" }}>{t.unit}</span>
+                  </div>
+                  <button onClick={() => setTenant(i, "vacant", !t.vacant)}
+                    style={{ fontSize: 12, fontWeight: 600, color: t.vacant ? "#3b82f6" : "#94a3b8", background: "none", border: "none", cursor: "pointer" }}>
+                    {t.vacant ? "Add Tenant" : "Mark Vacant"}
+                  </button>
+                </div>
+                {!t.vacant && (
+                  <div>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                      <WizardField label="Tenant Name">
+                        <input value={t.name} onChange={e => setTenant(i, "name", e.target.value)} style={wizardInput} placeholder="Full name" />
+                      </WizardField>
+                      <WizardField label="Monthly Rent">
+                        <input type="number" value={t.rent} onChange={e => setTenant(i, "rent", e.target.value)} style={wizardInput} placeholder="$0" />
+                      </WizardField>
+                    </div>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
+                      <WizardField label="Lease Start">
+                        <input type="date" value={t.leaseStart} onChange={e => setTenant(i, "leaseStart", e.target.value)} style={wizardInput} />
+                      </WizardField>
+                      <WizardField label="Lease End">
+                        <input type="date" value={t.leaseEnd} onChange={e => setTenant(i, "leaseEnd", e.target.value)} style={wizardInput} />
+                      </WizardField>
+                      <WizardField label="Status">
+                        <select value={t.status} onChange={e => setTenant(i, "status", e.target.value)} style={wizardSelect}>
+                          <option value="active-lease">Active Lease</option>
+                          <option value="month-to-month">Month-to-Month</option>
+                        </select>
+                      </WizardField>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+          <WizardNav onBack={() => setStep(1)} onNext={() => setStep(3)} />
+        </div>
+      )}
+
+      {step === 3 && (
+        <div style={{ background: "#fff", borderRadius: 16, padding: 28, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" }}>
+          <h2 style={{ fontSize: 18, fontWeight: 700, color: "#041830", marginBottom: 4 }}>Review & Save</h2>
+          <p style={{ fontSize: 13, color: "#94a3b8", marginBottom: 24 }}>Everything look right? You can always edit details later.</p>
+
+          {/* Property summary */}
+          <div style={{ borderRadius: 12, border: "1px solid #e2e8f0", overflow: "hidden", marginBottom: 20 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "#f8fafc", padding: "12px 16px", borderBottom: "1px solid #e2e8f0" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <Home size={16} color="#3b82f6" />
+                <span style={{ fontSize: 14, fontWeight: 700, color: "#041830" }}>Property</span>
+              </div>
+              <button onClick={() => setStep(0)} style={{ fontSize: 12, fontWeight: 600, color: "#3b82f6", background: "none", border: "none", cursor: "pointer" }}>Edit</button>
+            </div>
+            <div style={{ padding: 16, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, fontSize: 13 }}>
+              <div><span style={{ color: "#94a3b8" }}>Name:</span> <strong style={{ color: "#041830" }}>{basics.name || "—"}</strong></div>
+              <div><span style={{ color: "#94a3b8" }}>Type:</span> <strong style={{ color: "#041830" }}>{basics.type}</strong></div>
+              <div><span style={{ color: "#94a3b8" }}>Address:</span> <strong style={{ color: "#041830" }}>{basics.address || "—"}</strong></div>
+              <div><span style={{ color: "#94a3b8" }}>Units:</span> <strong style={{ color: "#041830" }}>{unitCount}</strong></div>
+            </div>
+          </div>
+
+          {/* Financials summary */}
+          <div style={{ borderRadius: 12, border: "1px solid #e2e8f0", overflow: "hidden", marginBottom: 20 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "#f8fafc", padding: "12px 16px", borderBottom: "1px solid #e2e8f0" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <DollarSign size={16} color="#10b981" />
+                <span style={{ fontSize: 14, fontWeight: 700, color: "#041830" }}>Financials</span>
+              </div>
+              <button onClick={() => setStep(1)} style={{ fontSize: 12, fontWeight: 600, color: "#3b82f6", background: "none", border: "none", cursor: "pointer" }}>Edit</button>
+            </div>
+            <div style={{ padding: 16, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, fontSize: 13 }}>
+              <div><span style={{ color: "#94a3b8" }}>Purchase:</span> <strong style={{ color: "#041830" }}>{fin.purchasePrice ? fmt(parseFloat(fin.purchasePrice)) : "—"}</strong></div>
+              <div><span style={{ color: "#94a3b8" }}>Value:</span> <strong style={{ color: "#041830" }}>{fin.currentValue ? fmt(parseFloat(fin.currentValue)) : "—"}</strong></div>
+              <div><span style={{ color: "#94a3b8" }}>Loan:</span> <strong style={{ color: "#041830" }}>{fin.loanAmount ? fmt(parseFloat(fin.loanAmount)) : "—"}</strong></div>
+              <div><span style={{ color: "#94a3b8" }}>Mortgage:</span> <strong style={{ color: "#041830" }}>{monthlyMortgage > 0 ? `${fmt(Math.round(monthlyMortgage))}/mo` : "—"}</strong></div>
+              <div><span style={{ color: "#94a3b8" }}>Rent:</span> <strong style={{ color: "#10b981" }}>{fin.monthlyRent ? `${fmt(parseFloat(fin.monthlyRent))}/mo` : "—"}</strong></div>
+              <div><span style={{ color: "#94a3b8" }}>Expenses:</span> <strong style={{ color: "#ef4444" }}>{fin.monthlyExpenses ? `${fmt(parseFloat(fin.monthlyExpenses))}/mo` : "—"}</strong></div>
+            </div>
+          </div>
+
+          {/* Tenants summary */}
+          <div style={{ borderRadius: 12, border: "1px solid #e2e8f0", overflow: "hidden", marginBottom: 20 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "#f8fafc", padding: "12px 16px", borderBottom: "1px solid #e2e8f0" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <Users size={16} color="#8b5cf6" />
+                <span style={{ fontSize: 14, fontWeight: 700, color: "#041830" }}>Tenants ({tenants.filter(t => !t.vacant && t.name.trim()).length})</span>
+              </div>
+              <button onClick={() => setStep(2)} style={{ fontSize: 12, fontWeight: 600, color: "#3b82f6", background: "none", border: "none", cursor: "pointer" }}>Edit</button>
+            </div>
+            <div style={{ padding: 16 }}>
+              {tenants.slice(0, unitCount).map((t, i) => (
+                <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 0", borderBottom: i < unitCount - 1 ? "1px solid #f1f5f9" : "none", fontSize: 13 }}>
+                  <div>
+                    <span style={{ fontWeight: 600, color: "#041830" }}>{t.unit}</span>
+                    <span style={{ color: "#64748b", marginLeft: 8 }}>{t.vacant ? "Vacant" : t.name || "No tenant"}</span>
+                  </div>
+                  {!t.vacant && t.rent && <span style={{ fontWeight: 600, color: "#10b981" }}>{fmt(parseFloat(t.rent))}/mo</span>}
+                </div>
+              ))}
+            </div>
+          </div>
+          <WizardNav onBack={() => setStep(2)} onNext={handleSave} nextLabel="Add to Portfolio" nextDisabled={!basics.name.trim()} />
+        </div>
+      )}
+    </WizardShell>
+  );
+}
+
+// ── FLIP WIZARD ───────────────────────────────────────────────────────────
+function FlipWizard({ onComplete, onExit }) {
+  const { showToast } = useToast();
+  const steps = ["Deal Info", "Financials", "Rehab Scope", "Review"];
+  const [step, setStep] = useState(0);
+  const todayStr = new Date().toISOString().slice(0, 10);
+
+  // Step 1: Deal basics
+  const [basics, setBasics] = useState({ name: "", address: "", stage: "Under Contract", acquisitionDate: "", projectedCloseDate: "" });
+  const sb = k => e => setBasics(f => ({ ...f, [k]: e.target.value }));
+
+  // Step 2: Financials
+  const [fin, setFin] = useState({ purchasePrice: "", arv: "", rehabBudget: "", holdingCostsPerMonth: "" });
+  const sf = k => e => setFin(f => ({ ...f, [k]: e.target.value }));
+
+  // Projected profit calc
+  const pp = parseFloat(fin.purchasePrice) || 0;
+  const arv = parseFloat(fin.arv) || 0;
+  const rb = parseFloat(fin.rehabBudget) || 0;
+  const hc = parseFloat(fin.holdingCostsPerMonth) || 0;
+  const sellingCostPct = 6;
+  const projectedProfit = arv > 0 ? arv - pp - rb - (hc * 6) - (arv * sellingCostPct / 100) : 0;
+
+  // Step 3: Rehab scope
+  const commonItems = [
+    { label: "Kitchen", budgeted: "" },
+    { label: "Bathrooms", budgeted: "" },
+    { label: "Flooring", budgeted: "" },
+    { label: "Interior Paint", budgeted: "" },
+    { label: "Exterior Paint", budgeted: "" },
+    { label: "Roof", budgeted: "" },
+    { label: "HVAC", budgeted: "" },
+    { label: "Plumbing", budgeted: "" },
+    { label: "Electrical", budgeted: "" },
+    { label: "Windows", budgeted: "" },
+    { label: "Landscaping", budgeted: "" },
+    { label: "Demo & Debris Removal", budgeted: "" },
+  ];
+  const [rehabItems, setRehabItems] = useState(commonItems);
+  const setRehab = (i, k, v) => setRehabItems(prev => prev.map((item, j) => j === i ? { ...item, [k]: v } : item));
+  const addRehabItem = () => setRehabItems(prev => [...prev, { label: "", budgeted: "" }]);
+  const removeRehabItem = (i) => setRehabItems(prev => prev.filter((_, j) => j !== i));
+  const rehabTotal = rehabItems.reduce((s, item) => s + (parseFloat(item.budgeted) || 0), 0);
+
+  const handleSave = () => {
+    const initials = basics.name.split(/\s+/).map(w => w[0]).join("").toUpperCase().slice(0, 2);
+    const colors = ["#e95e00", "#3b82f6", "#10b981", "#8b5cf6", "#ef4444", "#ec4899"];
+    const color = colors[DEALS.length % colors.length];
+    const rehabBudgetTotal = rehabTotal || rb;
+    const newDeal = {
+      id: newId(), name: basics.name, address: basics.address || "",
+      stage: basics.stage, image: initials, color,
+      purchasePrice: pp, arv, rehabBudget: rehabBudgetTotal, rehabSpent: 0,
+      holdingCostsPerMonth: hc,
+      acquisitionDate: basics.acquisitionDate || "",
+      projectedCloseDate: basics.projectedCloseDate || "",
+      daysOwned: 0,
+      rehabItems: rehabItems.filter(item => item.label.trim() && (parseFloat(item.budgeted) || 0) > 0).map(item => ({
+        id: newId(), label: item.label, budgeted: parseFloat(item.budgeted) || 0, spent: 0, status: "Not Started", notes: ""
+      })),
+    };
+    DEALS.push(newDeal);
+    if (typeof _LOCAL_FLIP_MILESTONES !== "undefined") {
+      _LOCAL_FLIP_MILESTONES[newDeal.id] = DEFAULT_MILESTONES.map(label => ({ label, done: false, date: null, targetDate: null }));
+    }
+    showToast(`"${basics.name}" added to pipeline with ${newDeal.rehabItems.length} rehab line items`);
+    onComplete && onComplete();
+  };
+
+  return (
+    <WizardShell steps={steps} currentStep={step} onStepClick={setStep} title="Add Fix & Flip Deal" subtitle="We'll walk you through the deal details, financials, and rehab scope." onExit={onExit}>
+
+      {step === 0 && (
+        <div style={{ background: "#fff", borderRadius: 16, padding: 28, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" }}>
+          <h2 style={{ fontSize: 18, fontWeight: 700, color: "#041830", marginBottom: 4 }}>Deal Information</h2>
+          <p style={{ fontSize: 13, color: "#94a3b8", marginBottom: 24 }}>Basic info about the deal — name it something memorable.</p>
+          <WizardField label="Deal Name" required hint="e.g. '42 Oak Ave Flip' or 'The Blue House'">
+            <input value={basics.name} onChange={sb("name")} style={wizardInput} placeholder="Enter deal name" autoFocus />
+          </WizardField>
+          <WizardField label="Address">
+            <input value={basics.address} onChange={sb("address")} style={wizardInput} placeholder="123 Main St, City, State ZIP" />
+          </WizardField>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16 }}>
+            <WizardField label="Stage">
+              <select value={basics.stage} onChange={sb("stage")} style={wizardSelect}>
+                {STAGE_ORDER.filter(s => s !== "Sold" && s !== "Converted to Rental").map(s => <option key={s}>{s}</option>)}
+              </select>
+            </WizardField>
+            <WizardField label="Acquisition Date">
+              <input type="date" value={basics.acquisitionDate} onChange={sb("acquisitionDate")} style={wizardInput} />
+            </WizardField>
+            <WizardField label="Projected Close">
+              <input type="date" value={basics.projectedCloseDate} onChange={sb("projectedCloseDate")} style={wizardInput} />
+            </WizardField>
+          </div>
+          <WizardNav onNext={() => setStep(1)} nextDisabled={!basics.name.trim()} />
+        </div>
+      )}
+
+      {step === 1 && (
+        <div style={{ background: "#fff", borderRadius: 16, padding: 28, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" }}>
+          <h2 style={{ fontSize: 18, fontWeight: 700, color: "#041830", marginBottom: 4 }}>Financials</h2>
+          <p style={{ fontSize: 13, color: "#94a3b8", marginBottom: 24 }}>Purchase price, ARV, and budget. You'll add detailed rehab line items in the next step.</p>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+            <WizardField label="Purchase Price" required>
+              <input type="number" value={fin.purchasePrice} onChange={sf("purchasePrice")} style={wizardInput} placeholder="$0" />
+            </WizardField>
+            <WizardField label="After Repair Value (ARV)" hint="What you expect to sell for">
+              <input type="number" value={fin.arv} onChange={sf("arv")} style={wizardInput} placeholder="$0" />
+            </WizardField>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+            <WizardField label="Estimated Rehab Budget" hint="Rough total — you'll itemize in the next step">
+              <input type="number" value={fin.rehabBudget} onChange={sf("rehabBudget")} style={wizardInput} placeholder="$0" />
+            </WizardField>
+            <WizardField label="Monthly Holding Costs" hint="Taxes, insurance, utilities, loan payments">
+              <input type="number" value={fin.holdingCostsPerMonth} onChange={sf("holdingCostsPerMonth")} style={wizardInput} placeholder="$0" />
+            </WizardField>
+          </div>
+          {projectedProfit !== 0 && (
+            <div style={{ background: projectedProfit > 0 ? "#f0fdf4" : "#fef2f2", border: `1px solid ${projectedProfit > 0 ? "#bbf7d0" : "#fecaca"}`, borderRadius: 10, padding: "12px 16px", display: "flex", alignItems: "center", gap: 10, marginTop: 12 }}>
+              <TrendingUp size={16} color={projectedProfit > 0 ? "#10b981" : "#ef4444"} />
+              <span style={{ fontSize: 13, color: projectedProfit > 0 ? "#15803d" : "#b91c1c" }}>
+                Projected profit: <strong>{fmt(Math.round(projectedProfit))}</strong>
+                <span style={{ color: "#94a3b8", marginLeft: 8, fontSize: 11 }}>(assumes 6% selling costs, 6 month hold)</span>
+              </span>
+            </div>
+          )}
+          <WizardNav onBack={() => setStep(0)} onNext={() => setStep(2)} />
+        </div>
+      )}
+
+      {step === 2 && (
+        <div style={{ background: "#fff", borderRadius: 16, padding: 28, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" }}>
+          <h2 style={{ fontSize: 18, fontWeight: 700, color: "#041830", marginBottom: 4 }}>Rehab Scope</h2>
+          <p style={{ fontSize: 13, color: "#94a3b8", marginBottom: 24 }}>Enter budgets for each line item. Remove anything that doesn't apply, add custom items at the bottom.</p>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {rehabItems.map((item, i) => (
+              <div key={i} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <input value={item.label} onChange={e => setRehab(i, "label", e.target.value)}
+                  style={{ ...wizardInput, flex: 2 }} placeholder="Line item name" />
+                <div style={{ position: "relative", flex: 1 }}>
+                  <span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "#94a3b8", fontSize: 14 }}>$</span>
+                  <input type="number" value={item.budgeted} onChange={e => setRehab(i, "budgeted", e.target.value)}
+                    style={{ ...wizardInput, paddingLeft: 24 }} placeholder="0" />
+                </div>
+                <button onClick={() => removeRehabItem(i)} style={{ background: "none", border: "none", color: "#cbd5e1", cursor: "pointer", padding: 4, borderRadius: 6, display: "flex" }}
+                  onMouseEnter={e => e.currentTarget.style.color = "#ef4444"}
+                  onMouseLeave={e => e.currentTarget.style.color = "#cbd5e1"}>
+                  <X size={16} />
+                </button>
+              </div>
+            ))}
+          </div>
+          <button onClick={addRehabItem} style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 12, padding: "8px 14px", borderRadius: 8, border: "1px dashed #cbd5e1", background: "#f8fafc", color: "#64748b", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
+            <Plus size={14} /> Add Line Item
+          </button>
+          {rehabTotal > 0 && (
+            <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 16, fontSize: 14 }}>
+              <span style={{ color: "#64748b" }}>Total Rehab Budget: </span>
+              <strong style={{ color: "#041830", marginLeft: 8 }}>{fmt(rehabTotal)}</strong>
+            </div>
+          )}
+          <WizardNav onBack={() => setStep(1)} onNext={() => setStep(3)} />
+        </div>
+      )}
+
+      {step === 3 && (
+        <div style={{ background: "#fff", borderRadius: 16, padding: 28, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" }}>
+          <h2 style={{ fontSize: 18, fontWeight: 700, color: "#041830", marginBottom: 4 }}>Review & Save</h2>
+          <p style={{ fontSize: 13, color: "#94a3b8", marginBottom: 24 }}>Everything look right? You can always edit details later.</p>
+
+          {/* Deal summary */}
+          <div style={{ borderRadius: 12, border: "1px solid #e2e8f0", overflow: "hidden", marginBottom: 20 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "#f8fafc", padding: "12px 16px", borderBottom: "1px solid #e2e8f0" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <Hammer size={16} color="#e95e00" />
+                <span style={{ fontSize: 14, fontWeight: 700, color: "#041830" }}>Deal Info</span>
+              </div>
+              <button onClick={() => setStep(0)} style={{ fontSize: 12, fontWeight: 600, color: "#3b82f6", background: "none", border: "none", cursor: "pointer" }}>Edit</button>
+            </div>
+            <div style={{ padding: 16, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, fontSize: 13 }}>
+              <div><span style={{ color: "#94a3b8" }}>Name:</span> <strong style={{ color: "#041830" }}>{basics.name || "—"}</strong></div>
+              <div><span style={{ color: "#94a3b8" }}>Stage:</span> <strong style={{ color: "#041830" }}>{basics.stage}</strong></div>
+              <div><span style={{ color: "#94a3b8" }}>Address:</span> <strong style={{ color: "#041830" }}>{basics.address || "—"}</strong></div>
+              <div><span style={{ color: "#94a3b8" }}>Close:</span> <strong style={{ color: "#041830" }}>{basics.projectedCloseDate || "—"}</strong></div>
+            </div>
+          </div>
+
+          {/* Financials summary */}
+          <div style={{ borderRadius: 12, border: "1px solid #e2e8f0", overflow: "hidden", marginBottom: 20 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "#f8fafc", padding: "12px 16px", borderBottom: "1px solid #e2e8f0" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <DollarSign size={16} color="#10b981" />
+                <span style={{ fontSize: 14, fontWeight: 700, color: "#041830" }}>Financials</span>
+              </div>
+              <button onClick={() => setStep(1)} style={{ fontSize: 12, fontWeight: 600, color: "#3b82f6", background: "none", border: "none", cursor: "pointer" }}>Edit</button>
+            </div>
+            <div style={{ padding: 16, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, fontSize: 13 }}>
+              <div><span style={{ color: "#94a3b8" }}>Purchase:</span> <strong style={{ color: "#041830" }}>{pp > 0 ? fmt(pp) : "—"}</strong></div>
+              <div><span style={{ color: "#94a3b8" }}>ARV:</span> <strong style={{ color: "#041830" }}>{arv > 0 ? fmt(arv) : "—"}</strong></div>
+              <div><span style={{ color: "#94a3b8" }}>Rehab Budget:</span> <strong style={{ color: "#041830" }}>{(rehabTotal || rb) > 0 ? fmt(rehabTotal || rb) : "—"}</strong></div>
+              <div><span style={{ color: "#94a3b8" }}>Holding:</span> <strong style={{ color: "#041830" }}>{hc > 0 ? `${fmt(hc)}/mo` : "—"}</strong></div>
+              {projectedProfit !== 0 && (
+                <div style={{ gridColumn: "1 / -1" }}><span style={{ color: "#94a3b8" }}>Projected Profit:</span> <strong style={{ color: projectedProfit > 0 ? "#10b981" : "#ef4444" }}>{fmt(Math.round(projectedProfit))}</strong></div>
+              )}
+            </div>
+          </div>
+
+          {/* Rehab scope summary */}
+          <div style={{ borderRadius: 12, border: "1px solid #e2e8f0", overflow: "hidden", marginBottom: 20 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "#f8fafc", padding: "12px 16px", borderBottom: "1px solid #e2e8f0" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <Wrench size={16} color="#8b5cf6" />
+                <span style={{ fontSize: 14, fontWeight: 700, color: "#041830" }}>Rehab Scope ({rehabItems.filter(i => i.label.trim() && (parseFloat(i.budgeted) || 0) > 0).length} items)</span>
+              </div>
+              <button onClick={() => setStep(2)} style={{ fontSize: 12, fontWeight: 600, color: "#3b82f6", background: "none", border: "none", cursor: "pointer" }}>Edit</button>
+            </div>
+            <div style={{ padding: 16 }}>
+              {rehabItems.filter(i => i.label.trim() && (parseFloat(i.budgeted) || 0) > 0).length === 0 ? (
+                <p style={{ fontSize: 13, color: "#94a3b8", margin: 0 }}>No line items budgeted</p>
+              ) : rehabItems.filter(i => i.label.trim() && (parseFloat(i.budgeted) || 0) > 0).map((item, i) => (
+                <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: "1px solid #f8fafc", fontSize: 13 }}>
+                  <span style={{ color: "#041830" }}>{item.label}</span>
+                  <strong style={{ color: "#041830" }}>{fmt(parseFloat(item.budgeted))}</strong>
+                </div>
+              ))}
+              {rehabTotal > 0 && (
+                <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 0 0", borderTop: "1px solid #e2e8f0", marginTop: 8, fontSize: 13 }}>
+                  <strong style={{ color: "#64748b" }}>Total</strong>
+                  <strong style={{ color: "#041830" }}>{fmt(rehabTotal)}</strong>
+                </div>
+              )}
+            </div>
+          </div>
+          <WizardNav onBack={() => setStep(2)} onNext={handleSave} nextLabel="Add to Pipeline" nextDisabled={!basics.name.trim()} />
+        </div>
+      )}
+    </WizardShell>
+  );
+}
+
+// ── WELCOME SCREEN ────────────────────────────────────────────────────────
+// Shown when the user has no properties and no deals — the app is empty.
+function WelcomeScreen({ onStartRental, onStartFlip }) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "70vh", padding: 40 }}>
+      <div style={{ textAlign: "center", marginBottom: 40 }}>
+        <div style={{ width: 64, height: 64, borderRadius: 16, background: "linear-gradient(135deg, #e95e00 0%, #f59e0b 100%)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 20px", boxShadow: "0 4px 12px rgba(233,94,0,0.25)" }}>
+          <Building2 size={32} color="#fff" />
+        </div>
+        <h1 style={{ fontSize: 28, fontWeight: 700, color: "#041830", margin: "0 0 8px" }}>Welcome to PropBooks</h1>
+        <p style={{ fontSize: 16, color: "#64748b", maxWidth: 500, margin: "0 auto", lineHeight: 1.6 }}>
+          Let's get your first property or deal set up. The guided setup will walk you through everything step by step.
+        </p>
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24, maxWidth: 600, width: "100%" }}>
+        <button onClick={onStartRental}
+          style={{ background: "#fff", border: "2px solid #e2e8f0", borderRadius: 16, padding: "32px 24px", cursor: "pointer", textAlign: "center", transition: "all 0.2s" }}
+          onMouseEnter={e => { e.currentTarget.style.borderColor = "#3b82f6"; e.currentTarget.style.boxShadow = "0 4px 16px rgba(59,130,246,0.12)"; }}
+          onMouseLeave={e => { e.currentTarget.style.borderColor = "#e2e8f0"; e.currentTarget.style.boxShadow = "none"; }}>
+          <div style={{ width: 48, height: 48, borderRadius: 12, background: "#eff6ff", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
+            <Home size={24} color="#3b82f6" />
+          </div>
+          <h3 style={{ fontSize: 17, fontWeight: 700, color: "#041830", margin: "0 0 6px" }}>Add Rental Property</h3>
+          <p style={{ fontSize: 13, color: "#64748b", margin: 0, lineHeight: 1.5 }}>Buy & hold — track rent, tenants, leases, and cash flow.</p>
+        </button>
+        <button onClick={onStartFlip}
+          style={{ background: "#fff", border: "2px solid #e2e8f0", borderRadius: 16, padding: "32px 24px", cursor: "pointer", textAlign: "center", transition: "all 0.2s" }}
+          onMouseEnter={e => { e.currentTarget.style.borderColor = "#e95e00"; e.currentTarget.style.boxShadow = "0 4px 16px rgba(233,94,0,0.12)"; }}
+          onMouseLeave={e => { e.currentTarget.style.borderColor = "#e2e8f0"; e.currentTarget.style.boxShadow = "none"; }}>
+          <div style={{ width: 48, height: 48, borderRadius: 12, background: "#fff7ed", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
+            <Hammer size={24} color="#e95e00" />
+          </div>
+          <h3 style={{ fontSize: 17, fontWeight: 700, color: "#041830", margin: "0 0 6px" }}>Add Fix & Flip Deal</h3>
+          <p style={{ fontSize: 13, color: "#64748b", margin: 0, lineHeight: 1.5 }}>Track rehab budget, contractors, milestones, and profit.</p>
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ---------------------------------------------
 // VIEWS
 // ---------------------------------------------
@@ -1175,6 +1830,8 @@ function PortfolioDashboard({ onNavigate, onSelectProperty, onSelectFlip, onNavi
           { label: "Log Deal Expense", icon: Hammer, color: "#e95e00", bg: "#ffedd5", action: () => onNavigate("dealexpenses") },
           { label: "Add Property", icon: Building2, color: "#e95e00", bg: "#fff7ed", action: () => onNavigate("properties") },
           { label: "Add Deal", icon: Target, color: "#8b5cf6", bg: "#ede9fe", action: () => onNavigate("deals") },
+          { label: "Rental Wizard", icon: Sparkles, color: "#3b82f6", bg: "#eff6ff", action: () => onNavigate("rentalWizard") },
+          { label: "Flip Wizard", icon: Sparkles, color: "#f59e0b", bg: "#fefce8", action: () => onNavigate("flipWizard") },
           { label: "Add Note", icon: MessageSquare, color: "#6366f1", bg: "#eef2ff", action: () => onNavigate("notes-add") },
         ].map((qa, i) => (
           <button key={i} onClick={qa.action} style={qaBtnS(qa.color, qa.bg)}
@@ -1773,7 +2430,7 @@ function Dashboard({ onNavigate, onNavigateToTx, onSelectProperty, onNavigateToT
   );
 }
 
-function Properties({ onSelect, editPropertyId, onClearEditId, convertDealData, onClearConvertFlip }) {
+function Properties({ onSelect, editPropertyId, onClearEditId, convertDealData, onClearConvertFlip, onGuidedSetup }) {
   const { showToast } = useToast();
   // Read/write the global PROPERTIES store directly — same pattern DEALS and
   // TRANSACTIONS use. A local React state copy here caused add/edit/delete
@@ -1890,9 +2547,14 @@ function Properties({ onSelect, editPropertyId, onClearEditId, convertDealData, 
           <h1 style={{ color: "#041830", fontSize: 26, fontWeight: 700, marginBottom: 4 }}>Properties</h1>
           <p style={{ color: "#64748b", fontSize: 15 }}>{PROPERTIES.length} properties in your portfolio</p>
         </div>
-        <button onClick={openAdd} style={{ background: "#e95e00", color: "#fff", border: "none", borderRadius: 10, padding: "10px 18px", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
-          <Plus size={16} /> Add Property
-        </button>
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <button onClick={openAdd} style={{ background: "#e95e00", color: "#fff", border: "none", borderRadius: 10, padding: "10px 18px", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
+            <Plus size={16} /> Add Property
+          </button>
+          {typeof onGuidedSetup === "function" && <button onClick={onGuidedSetup} style={{ background: "#fff", color: "#e95e00", border: "1px solid #e95e00", borderRadius: 10, padding: "10px 18px", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
+            <Sparkles size={16} /> Guided Setup
+          </button>}
+        </div>
       </div>
       <div style={{ display: "flex", gap: 12, marginBottom: 24 }}>
         <div style={{ position: "relative", flex: 1 }}>
@@ -5706,7 +6368,7 @@ function DealCard({ deal, onSelect }) {
   );
 }
 
-function DealPipeline({ onSelect }) {
+function DealPipeline({ onSelect, onGuidedSetup }) {
   const { showToast } = useToast();
   const [activeStage, setActiveStage] = useState("all");
   const [showAddDeal, setShowAddDeal] = useState(false);
@@ -5760,9 +6422,14 @@ function DealPipeline({ onSelect }) {
           <h1 style={{ color: "#041830", fontSize: 26, fontWeight: 700, marginBottom: 4 }}>Deals</h1>
           <p style={{ color: "#64748b", fontSize: 15 }}>Track every deal from contract to close</p>
         </div>
-        <button onClick={() => setShowAddDeal(true)} style={{ background: "#e95e00", color: "#fff", border: "none", borderRadius: 10, padding: "10px 18px", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
-          <Plus size={16} /> Add Deal
-        </button>
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <button onClick={() => setShowAddDeal(true)} style={{ background: "#e95e00", color: "#fff", border: "none", borderRadius: 10, padding: "10px 18px", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
+            <Plus size={16} /> Add Deal
+          </button>
+          {typeof onGuidedSetup === "function" && <button onClick={onGuidedSetup} style={{ background: "#fff", color: "#e95e00", border: "1px solid #e95e00", borderRadius: 10, padding: "10px 18px", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
+            <Sparkles size={16} /> Guided Setup
+          </button>}
+        </div>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 24 }}>
         {[
@@ -10904,6 +11571,13 @@ function AppShell() {
   const [dealVersion, setDealVersion] = useState(0); // bump to force re-render of deal-dependent views
   const onDealUpdated = useCallback(() => setDealVersion(v => v + 1), []);
 
+  // Auto-show welcome screen when app is empty
+  useEffect(() => {
+    if (PROPERTIES.length === 0 && DEALS.length === 0 && activeView === "portfolio") {
+      setActiveView("welcome");
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   const handleSelectContractor = (contractor) => {
     setSelectedContractor(contractor);
     setNavSource("dealcontractors");
@@ -11104,14 +11778,14 @@ function AppShell() {
         <div style={{ flex: 1, padding: 32, maxWidth: 1400, width: "100%" }}>
           {activeView === "portfolio" && <PortfolioDashboard onNavigate={(view) => { if (view === "notes-add") { setNotesAutoAdd(true); setActiveView("notes"); } else { setActiveView(view); } }} onSelectProperty={(p, tab) => { setNavSource("portfolio"); setPropDetailTab(tab || null); setPropDetailTenantHighlight(null); handlePropertySelect(p); }} onSelectFlip={(f, tab) => { setNavSource("portfolio"); handleDealSelect(f, tab || null, "portfolio"); }} onNavigateToTx={(txId) => { setHighlightTxId(txId); setNavSource("portfolio"); setActiveView("transactions"); }} onNavigateToDealExpense={(expId) => { setHighlightExpId(expId); setNavSource("portfolio"); setActiveView("dealexpenses"); }} onNavigateToLease={(prop, tenantId) => { setSelectedProperty(prop); setPropDetailTab("tenants"); setPropDetailTenantHighlight(tenantId); setNavSource("portfolio"); setActiveView("propertyDetail"); }} onSelectContractor={(c) => { setSelectedContractor(c); setContractorInitialTab(null); setNavSource("portfolio"); setActiveView("contractorDetail"); }} />}
           {activeView === "dashboard" && <Dashboard onNavigate={setActiveView} onNavigateToTx={navigateToTransaction} onSelectProperty={handlePropertySelect} onNavigateToTenantAdd={(propId, unit) => { setPrefillTenant({ propertyId: propId, unit }); setActiveView("tenants"); }} onNavigateToNote={(noteId) => { setHighlightNoteId(noteId); setNavSource("dashboard"); setActiveView("notes"); }} onNavigateToLease={(prop, tenantId) => { setSelectedProperty(prop); setPropDetailTab("tenants"); setPropDetailTenantHighlight(tenantId); setNavSource("dashboard"); setActiveView("propertyDetail"); }} />}
-          {activeView === "properties" && <Properties onSelect={handlePropertySelect} editPropertyId={editPropertyId} onClearEditId={() => setEditPropertyId(null)} convertDealData={convertDealData} onClearConvertFlip={() => setConvertDealData(null)} />}
+          {activeView === "properties" && <Properties onSelect={handlePropertySelect} editPropertyId={editPropertyId} onClearEditId={() => setEditPropertyId(null)} convertDealData={convertDealData} onClearConvertFlip={() => setConvertDealData(null)} onGuidedSetup={() => setActiveView("rentalWizard")} />}
           {activeView === "propertyDetail" && selectedProperty && <PropertyDetail key={selectedProperty.id + "-" + (propDetailTab || "overview") + "-" + (propDetailTenantHighlight || "")} property={selectedProperty} onBack={() => { setActiveView(navSource === "dashboard" ? "dashboard" : navSource === "portfolio" ? "portfolio" : "properties"); setPropDetailTab(null); setPropDetailTenantHighlight(null); setPrevNavSource(null); setNavSource(null); }} backLabel={navSource === "dashboard" ? "Back to Dashboard" : navSource === "portfolio" ? "Back to Portfolio" : "Back to Properties"} onEditProperty={(p) => { setEditPropertyId(p.id); setActiveView("properties"); }} onGoToTransactions={() => setActiveView("transactions")} onNavigateToTransaction={(txId) => { if (txId) { setHighlightTxId(txId); } setPrevNavSource(navSource); setNavSource("propertyDetail"); setActiveView("transactions"); }} onNavigateToTenant={(tenantId) => { const t = TENANTS.find(x => x.id === tenantId); if (t) { handleTenantSelect(t, "propertyDetail"); } }} initialTab={propDetailTab} highlightTenantId={propDetailTenantHighlight} onClearHighlightTenant={() => setPropDetailTenantHighlight(null)} />}
           {activeView === "transactions" && <Transactions highlightTxId={highlightTxId} backLabel={navSource === "propertyDetail" ? "Back to Property" : navSource === "portfolio" ? "Back to Portfolio" : "Back to Dashboard"} onBack={navSource === "dashboard" ? () => { setActiveView("dashboard"); setHighlightTxId(null); setNavSource(null); setPrevNavSource(null); } : navSource === "portfolio" ? () => { setActiveView("portfolio"); setHighlightTxId(null); setNavSource(null); setPrevNavSource(null); } : navSource === "propertyDetail" ? () => { setActiveView("propertyDetail"); setHighlightTxId(null); setNavSource(prevNavSource); setPrevNavSource(null); } : null} onClearHighlight={() => setHighlightTxId(null)} />}
           {activeView === "analytics" && <Analytics />}
           {activeView === "notes" && <UnifiedNotes highlightNoteId={highlightNoteId} highlightDealNoteId={highlightDealNoteId} autoOpenAdd={notesAutoAdd} onBack={navSource === "dashboard" ? () => { setActiveView("dashboard"); setHighlightNoteId(null); setNavSource(null); setNotesAutoAdd(false); } : navSource === "dealdashboard" ? () => { setActiveView("dealdashboard"); setHighlightDealNoteId(null); setNavSource(null); setNotesAutoAdd(false); } : null} onClearHighlight={() => { setHighlightNoteId(null); setHighlightDealNoteId(null); setNotesAutoAdd(false); }} />}
           {activeView === "reports" && <Reports />}
           {activeView === "dealdashboard"   && <DealDashboard onSelect={(f, tab) => handleDealSelect(f, tab, "dealdashboard")} onNavigateToNote={(noteId) => { setHighlightDealNoteId(noteId); setNavSource("dealdashboard"); setActiveView("notes"); }} onNavigateToExpense={(expId) => { setHighlightExpId(expId); setNavSource("dealdashboard"); setActiveView("dealexpenses"); }} onNavigateToMilestone={(msKey) => { setHighlightMilestoneKey(msKey); setNavSource("dealdashboard"); setActiveView("dealmilestones"); }} />}
-          {activeView === "deals"           && <DealPipeline onSelect={(f, tab) => handleDealSelect(f, tab, "deals")} />}
+          {activeView === "deals"           && <DealPipeline onSelect={(f, tab) => handleDealSelect(f, tab, "deals")} onGuidedSetup={() => setActiveView("flipWizard")} />}
           {activeView === "dealDetail"      && selectedDeal && <ErrorBoundary key={"eb-" + selectedDeal.id}><DealDetail key={selectedDeal.id + "-" + (dealInitialTab || "overview")} deal={selectedDeal} onBack={() => { setActiveView(dealNavSource || "deals"); setDealNavSource(null); setPrevDealNavSource(null); setDealInitialTab(null); }} backLabel={dealNavSource === "dealdashboard" ? "Back to Dashboard" : dealNavSource === "portfolio" ? "Back to Portfolio" : "Back to Deals"} onNavigateToExpense={navigateToDealExpense} onNavigateToContractor={(con, tab) => { setSelectedContractor(con); setContractorInitialTab(tab || null); setPrevDealNavSource(dealNavSource); setNavSource("dealDetail"); setActiveView("contractorDetail"); }} onNavigateToRehabItem={(idx) => { setSelectedRehabItem({ dealId: selectedDeal.id, itemIdx: idx }); setNavSource("dealDetail"); setPrevDealNavSource(dealNavSource); setActiveView("rehabItemDetail"); }} initialTab={dealInitialTab} onConvertToRental={(flipData) => { setConvertDealData(flipData); setActiveView("properties"); }} onDealUpdated={onDealUpdated} onNavigateToDeal={(f) => handleDealSelect(f, null, dealNavSource || "deals")} /></ErrorBoundary>}
           {activeView === "dealrehab"        && <RehabTracker onSelectRehabItem={(dealId, idx) => { setSelectedRehabItem({ dealId, itemIdx: idx }); setNavSource("dealrehab"); setActiveView("rehabItemDetail"); }} />}
           {activeView === "rehabItemDetail" && selectedRehabItem && (() => {
@@ -11151,6 +11825,9 @@ function AppShell() {
           {activeView === "tenantDetail" && selectedTenant && <TenantDetail tenant={selectedTenant} onBack={() => { setSelectedTenant(null); setActiveView(navSource || "tenants"); setNavSource(null); }} backLabel={navSource === "propertyDetail" ? "Back to Property" : "Back to Tenants"} onTenantUpdated={handleTenantUpdated} />}
           {activeView === "mileage" && <MileageTracker />}
           {activeView === "dealanalyzer" && <DealAnalyzer />}
+          {activeView === "rentalWizard" && <RentalWizard onComplete={() => setActiveView("properties")} onExit={() => setActiveView("portfolio")} />}
+          {activeView === "flipWizard" && <FlipWizard onComplete={() => setActiveView("deals")} onExit={() => setActiveView("portfolio")} />}
+          {activeView === "welcome" && <WelcomeScreen onStartRental={() => setActiveView("rentalWizard")} onStartFlip={() => setActiveView("flipWizard")} />}
         </div>
       </div>
 
