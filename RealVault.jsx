@@ -1442,25 +1442,20 @@ function FlipWizard({ onComplete, onExit }) {
   const sellingCostPct = 6;
   const projectedProfit = arv > 0 ? arv - pp - rb - (hc * 6) - (arv * sellingCostPct / 100) : 0;
 
-  // Step 3: Rehab scope
-  const commonItems = [
-    { label: "Kitchen", budgeted: "" },
-    { label: "Bathrooms", budgeted: "" },
-    { label: "Flooring", budgeted: "" },
-    { label: "Interior Paint", budgeted: "" },
-    { label: "Exterior Paint", budgeted: "" },
-    { label: "Roof", budgeted: "" },
-    { label: "HVAC", budgeted: "" },
-    { label: "Plumbing", budgeted: "" },
-    { label: "Electrical", budgeted: "" },
-    { label: "Windows", budgeted: "" },
-    { label: "Landscaping", budgeted: "" },
-    { label: "Demo & Debris Removal", budgeted: "" },
-  ];
-  const [rehabItems, setRehabItems] = useState(commonItems);
+  // Step 3: Rehab scope — uses same canonical category taxonomy as RehabTracker
+  const allCategories = useMemo(() => {
+    const canonicalLabels = new Set(REHAB_CATEGORIES.map(c => c.label.toLowerCase()));
+    const customSet = new Set();
+    DEALS.forEach(f => (f.rehabItems || []).forEach(i => {
+      if (i.category && !canonicalLabels.has(i.category.toLowerCase())) customSet.add(i.category);
+    }));
+    return { canonical: REHAB_CATEGORIES, custom: [...customSet].sort() };
+  }, []);
+  const [rehabItems, setRehabItems] = useState([]);
+  const [catFocusIdx, setCatFocusIdx] = useState(-1);
   const setRehab = (i, k, v) => setRehabItems(prev => prev.map((item, j) => j === i ? { ...item, [k]: v } : item));
-  const addRehabItem = () => setRehabItems(prev => [...prev, { label: "", budgeted: "" }]);
-  const removeRehabItem = (i) => setRehabItems(prev => prev.filter((_, j) => j !== i));
+  const addRehabItem = () => setRehabItems(prev => [...prev, { label: "", budgeted: "", canonicalCategory: null }]);
+  const removeRehabItem = (i) => { setRehabItems(prev => prev.filter((_, j) => j !== i)); if (catFocusIdx === i) setCatFocusIdx(-1); };
   const rehabTotal = rehabItems.reduce((s, item) => s + (parseFloat(item.budgeted) || 0), 0);
 
   const handleSave = () => {
@@ -1476,9 +1471,10 @@ function FlipWizard({ onComplete, onExit }) {
       acquisitionDate: basics.acquisitionDate || "",
       projectedCloseDate: basics.projectedCloseDate || "",
       daysOwned: 0,
-      rehabItems: rehabItems.filter(item => item.label.trim() && (parseFloat(item.budgeted) || 0) > 0).map(item => ({
-        id: newId(), label: item.label, budgeted: parseFloat(item.budgeted) || 0, spent: 0, status: "Not Started", notes: ""
-      })),
+      rehabItems: rehabItems.filter(item => item.label.trim() && (parseFloat(item.budgeted) || 0) > 0).map(item => {
+        const canon = item.canonicalCategory || getCanonicalByLabel(item.label)?.slug || null;
+        return { id: newId(), category: item.label, canonicalCategory: canon, budgeted: parseFloat(item.budgeted) || 0, spent: 0, status: "pending", notes: "" };
+      }),
     };
     DEALS.push(newDeal);
     if (typeof _LOCAL_FLIP_MILESTONES !== "undefined") {
@@ -1554,18 +1550,72 @@ function FlipWizard({ onComplete, onExit }) {
       {step === 2 && (
         <div style={{ background: "#fff", borderRadius: 16, padding: 28, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" }}>
           <h2 style={{ fontSize: 18, fontWeight: 700, color: "#041830", marginBottom: 4 }}>Rehab Scope</h2>
-          <p style={{ fontSize: 13, color: "#94a3b8", marginBottom: 24 }}>Enter budgets for each line item. Remove anything that doesn't apply, add custom items at the bottom.</p>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <p style={{ fontSize: 13, color: "#94a3b8", marginBottom: 24 }}>Add line items for your rehab. Pick from standard categories or type a custom one.</p>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {rehabItems.map((item, i) => (
-              <div key={i} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <input value={item.label} onChange={e => setRehab(i, "label", e.target.value)}
-                  style={{ ...wizardInput, flex: 2 }} placeholder="Line item name" />
+              <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
+                <div style={{ position: "relative", flex: 2 }}>
+                  <input value={item.label}
+                    onChange={e => { setRehab(i, "label", e.target.value); setRehab(i, "canonicalCategory", null); setCatFocusIdx(i); }}
+                    onFocus={() => setCatFocusIdx(i)}
+                    onBlur={() => setTimeout(() => setCatFocusIdx(-1), 150)}
+                    style={wizardInput} placeholder="Start typing to search categories..." autoFocus={item.label === ""} />
+                  {catFocusIdx === i && (() => {
+                    const q = item.label.toLowerCase().trim();
+                    const canonMatches = q ? allCategories.canonical.filter(c => c.label.toLowerCase().includes(q)) : allCategories.canonical;
+                    const customMatches = q ? allCategories.custom.filter(c => c.toLowerCase().includes(q)) : allCategories.custom;
+                    const alreadyUsed = new Set(rehabItems.map((r, j) => j !== i ? r.label.toLowerCase() : null).filter(Boolean));
+                    const filteredCanon = canonMatches.filter(c => !alreadyUsed.has(c.label.toLowerCase()));
+                    const filteredCustom = customMatches.filter(c => !alreadyUsed.has(c.toLowerCase()));
+                    const exactExists = [...allCategories.canonical.map(c => c.label), ...allCategories.custom].some(c => c.toLowerCase() === q);
+                    const showNew = q && !exactExists;
+                    if (filteredCanon.length === 0 && filteredCustom.length === 0 && !showNew) return null;
+                    const grouped = REHAB_CATEGORY_GROUPS.map(g => ({ group: g, items: filteredCanon.filter(c => c.group === g) })).filter(g => g.items.length > 0);
+                    return (
+                      <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, background: "#fff", border: "1px solid #e2e8f0", borderRadius: 12, boxShadow: "0 8px 24px rgba(0,0,0,0.10)", zIndex: 200, overflow: "hidden", maxHeight: 280, overflowY: "auto" }}>
+                        {grouped.map(({ group, items }) => (
+                          <div key={group}>
+                            <div style={{ padding: "6px 14px 4px", fontSize: 10, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.05em", background: "#f8fafc", borderBottom: "1px solid #f1f5f9" }}>{group}</div>
+                            {items.map(c => (
+                              <button key={c.slug} type="button"
+                                onMouseDown={() => { setRehab(i, "label", c.label); setRehab(i, "canonicalCategory", c.slug); setCatFocusIdx(-1); }}
+                                style={{ width: "100%", padding: "8px 14px", background: "none", border: "none", borderBottom: "1px solid #f1f5f9", textAlign: "left", cursor: "pointer", fontSize: 13, color: "#041830", display: "flex", alignItems: "center", gap: 8 }}>
+                                <Wrench size={13} style={{ color: "#94a3b8", flexShrink: 0 }} />
+                                <span>{c.label}</span>
+                              </button>
+                            ))}
+                          </div>
+                        ))}
+                        {filteredCustom.length > 0 && (
+                          <div>
+                            <div style={{ padding: "6px 14px 4px", fontSize: 10, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.05em", background: "#f8fafc", borderBottom: "1px solid #f1f5f9" }}>Custom</div>
+                            {filteredCustom.map(c => (
+                              <button key={c} type="button"
+                                onMouseDown={() => { setRehab(i, "label", c); setRehab(i, "canonicalCategory", null); setCatFocusIdx(-1); }}
+                                style={{ width: "100%", padding: "8px 14px", background: "none", border: "none", borderBottom: "1px solid #f1f5f9", textAlign: "left", cursor: "pointer", fontSize: 13, color: "#041830", display: "flex", alignItems: "center", gap: 8 }}>
+                                <Wrench size={13} style={{ color: "#94a3b8", flexShrink: 0 }} />
+                                <span>{c}</span>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                        {showNew && (
+                          <button type="button" onMouseDown={() => setCatFocusIdx(-1)}
+                            style={{ width: "100%", padding: "10px 14px", display: "flex", alignItems: "center", gap: 8, background: "#fff7ed", border: "none", cursor: "pointer", textAlign: "left" }}>
+                            <Plus size={13} style={{ color: "#e95e00", flexShrink: 0 }} />
+                            <span style={{ fontSize: 13, color: "#e95e00", fontWeight: 600 }}>Add &ldquo;{item.label}&rdquo; as custom</span>
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })()}
+                </div>
                 <div style={{ position: "relative", flex: 1 }}>
                   <span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "#94a3b8", fontSize: 14 }}>$</span>
                   <input type="number" value={item.budgeted} onChange={e => setRehab(i, "budgeted", e.target.value)}
                     style={{ ...wizardInput, paddingLeft: 24 }} placeholder="0" />
                 </div>
-                <button onClick={() => removeRehabItem(i)} style={{ background: "none", border: "none", color: "#cbd5e1", cursor: "pointer", padding: 4, borderRadius: 6, display: "flex" }}
+                <button onClick={() => removeRehabItem(i)} style={{ background: "none", border: "none", color: "#cbd5e1", cursor: "pointer", padding: 6, borderRadius: 6, display: "flex", marginTop: 8 }}
                   onMouseEnter={e => e.currentTarget.style.color = "#ef4444"}
                   onMouseLeave={e => e.currentTarget.style.color = "#cbd5e1"}>
                   <X size={16} />
@@ -1573,8 +1623,8 @@ function FlipWizard({ onComplete, onExit }) {
               </div>
             ))}
           </div>
-          <button onClick={addRehabItem} style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 12, padding: "8px 14px", borderRadius: 8, border: "1px dashed #cbd5e1", background: "#f8fafc", color: "#64748b", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
-            <Plus size={14} /> Add Line Item
+          <button onClick={addRehabItem} style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 12, padding: "10px 16px", borderRadius: 10, border: "none", background: "#e95e00", color: "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
+            <Plus size={14} /> Add Rehab Item
           </button>
           {rehabTotal > 0 && (
             <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 16, fontSize: 14 }}>
