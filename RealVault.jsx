@@ -15,7 +15,7 @@ import {
   Users, Route, Calculator, FileCheck, UserCheck, Truck, Layers, Car,
   CheckSquare, Square, PlusCircle, Receipt, UploadCloud, Trash2, Pencil, Info, List,
   CreditCard, MessageSquare, Copy, Camera, Image, AlertTriangle, ArrowRight, ArrowLeft, ExternalLink,
-  Paperclip, ScanLine, FileImage, FilePlus, Loader, Phone, Mail, Shield, Sparkles
+  Paperclip, ScanLine, FileImage, FilePlus, Loader, Phone, Mail, Shield, Sparkles, Sun, Moon
 } from "lucide-react";
 import {
   newId, fmt, fmtK,
@@ -71,7 +71,7 @@ function getDeprBasis(p) {
 }
 // ────────────────────────────────────────────────────────────────────
 
-const iS = { width: "100%", padding: "10px 12px", border: "1px solid #e2e8f0", borderRadius: 10, fontSize: 14, color: "#041830", background: "#fff", outline: "none", boxSizing: "border-box" };
+const iS = { width: "100%", padding: "10px 12px", border: "1px solid var(--border)", borderRadius: 10, fontSize: 14, color: "var(--text-primary)", background: "var(--surface)", outline: "none", boxSizing: "border-box" };
 
 // Error Boundary — catches runtime errors and displays them instead of white screen
 class ErrorBoundary extends React.Component {
@@ -82,8 +82,8 @@ class ErrorBoundary extends React.Component {
     if (this.state.hasError) {
       return React.createElement("div", { style: { padding: 32, maxWidth: 700, margin: "40px auto", background: "#fef2f2", borderRadius: 16, border: "1px solid #fecaca" } },
         React.createElement("h2", { style: { color: "#991b1b", fontSize: 20, fontWeight: 700, marginBottom: 12 } }, "Something went wrong"),
-        React.createElement("pre", { style: { color: "#b91c1c", fontSize: 13, whiteSpace: "pre-wrap", wordBreak: "break-word", background: "#fff", padding: 16, borderRadius: 10, border: "1px solid #fecaca", marginBottom: 12 } }, String(this.state.error)),
-        this.state.errorInfo && React.createElement("pre", { style: { color: "#64748b", fontSize: 11, whiteSpace: "pre-wrap", wordBreak: "break-word", maxHeight: 200, overflow: "auto", background: "#f8fafc", padding: 12, borderRadius: 8 } }, this.state.errorInfo.componentStack),
+        React.createElement("pre", { style: { color: "#b91c1c", fontSize: 13, whiteSpace: "pre-wrap", wordBreak: "break-word", background: "var(--surface)", padding: 16, borderRadius: 10, border: "1px solid #fecaca", marginBottom: 12 } }, String(this.state.error)),
+        this.state.errorInfo && React.createElement("pre", { style: { color: "var(--text-secondary)", fontSize: 11, whiteSpace: "pre-wrap", wordBreak: "break-word", maxHeight: 200, overflow: "auto", background: "var(--surface-alt)", padding: 12, borderRadius: 8 } }, this.state.errorInfo.componentStack),
         React.createElement("button", { onClick: () => this.setState({ hasError: false, error: null, errorInfo: null }), style: { marginTop: 12, background: "#ef4444", color: "#fff", border: "none", borderRadius: 10, padding: "10px 20px", fontWeight: 600, cursor: "pointer" } }, "Try Again")
       );
     }
@@ -94,10 +94,10 @@ class ErrorBoundary extends React.Component {
 function Modal({ title, onClose, children, width = 500 }) {
   return (
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
-      <div style={{ background: "#fff", borderRadius: 20, padding: 32, width, maxHeight: "90vh", overflowY: "auto", boxShadow: "0 20px 60px rgba(0,0,0,0.18)" }}>
+      <div style={{ background: "var(--surface)", borderRadius: 20, padding: 32, width, maxHeight: "90vh", overflowY: "auto", boxShadow: "0 20px 60px rgba(0,0,0,0.18)" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
-          <h2 style={{ color: "#041830", fontSize: 20, fontWeight: 700 }}>{title}</h2>
-          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8" }}><X size={20} /></button>
+          <h2 style={{ color: "var(--text-primary)", fontSize: 20, fontWeight: 700 }}>{title}</h2>
+          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)" }}><X size={20} /></button>
         </div>
         {children}
       </div>
@@ -135,13 +135,94 @@ function ToastProvider({ children }) {
   );
 }
 
+// ─── THEME CONTEXT (Light / Dark mode) ────────────────────────────────────
+// All neutral colors in the app reference CSS custom properties. The
+// `data-theme` attribute on the document root swaps the palette globally.
+// Brand (#e95e00) and semantic (#10b981, #ef4444, #3b82f6, #f59e0b) colors
+// stay consistent in both themes — only neutrals and surfaces flip.
+const ThemeContext = React.createContext({ theme: "light", toggleTheme: () => {} });
+function useTheme() { return React.useContext(ThemeContext); }
+function ThemeProvider({ children }) {
+  const [theme, setTheme] = useState(() => {
+    if (typeof window !== "undefined") {
+      return window.__pb_theme || "light";
+    }
+    return "light";
+  });
+  useEffect(() => {
+    if (typeof document !== "undefined") {
+      document.documentElement.setAttribute("data-theme", theme);
+      window.__pb_theme = theme;
+    }
+  }, [theme]);
+  const toggleTheme = useCallback(() => setTheme(t => t === "light" ? "dark" : "light"), []);
+  return (
+    <ThemeContext.Provider value={{ theme, toggleTheme }}>
+      <style>{`
+        :root {
+          --surface: #ffffff;
+          --surface-alt: #f8fafc;
+          --surface-muted: #f1f5f9;
+          --page-bg: #f8fafc;
+          --sidebar-bg: #041830;
+          --text-primary: #041830;
+          --text-secondary: #64748b;
+          --text-muted: #94a3b8;
+          --text-label: #475569;
+          --text-dim: #374151;
+          --border: #e2e8f0;
+          --border-subtle: #f1f5f9;
+          --border-strong: #cbd5e1;
+          --hover-surface: #f8fafc;
+          --chart-axis: #94a3b8;
+          --chart-grid: #f1f5f9;
+          --tooltip-bg: #ffffff;
+          --tooltip-border: #e2e8f0;
+          --tooltip-text: #041830;
+        }
+        :root[data-theme="dark"] {
+          --surface: #1e293b;
+          --surface-alt: #0f172a;
+          --surface-muted: #334155;
+          --page-bg: #020617;
+          --sidebar-bg: #020617;
+          --text-primary: #f1f5f9;
+          --text-secondary: #cbd5e1;
+          --text-muted: #94a3b8;
+          --text-label: #cbd5e1;
+          --text-dim: #e2e8f0;
+          --border: #334155;
+          --border-subtle: #1e293b;
+          --border-strong: #475569;
+          --hover-surface: #334155;
+          --chart-axis: #64748b;
+          --chart-grid: #1e293b;
+          --tooltip-bg: #1e293b;
+          --tooltip-border: #334155;
+          --tooltip-text: #f1f5f9;
+        }
+        :root[data-theme="dark"] body { background: var(--page-bg); }
+        :root[data-theme="dark"] input, :root[data-theme="dark"] select, :root[data-theme="dark"] textarea {
+          background: var(--surface-alt) !important;
+          color: var(--text-primary) !important;
+          border-color: var(--border) !important;
+        }
+        :root[data-theme="dark"] input::placeholder, :root[data-theme="dark"] textarea::placeholder { color: var(--text-muted) !important; }
+        :root[data-theme="dark"] ::-webkit-scrollbar-track { background: var(--surface-alt); }
+        :root[data-theme="dark"] ::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 6px; }
+      `}</style>
+      {children}
+    </ThemeContext.Provider>
+  );
+}
+
 // Empty state component for list views
 function EmptyState({ icon: Icon, title, subtitle, actionLabel, onAction }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "60px 24px", textAlign: "center" }}>
-      {Icon && <div style={{ width: 64, height: 64, borderRadius: 20, background: "#f8fafc", border: "1px solid #e2e8f0", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 16 }}><Icon size={28} color="#94a3b8" /></div>}
-      <h3 style={{ color: "#041830", fontSize: 18, fontWeight: 700, marginBottom: 6 }}>{title}</h3>
-      {subtitle && <p style={{ color: "#94a3b8", fontSize: 14, maxWidth: 340, marginBottom: onAction ? 20 : 0 }}>{subtitle}</p>}
+      {Icon && <div style={{ width: 64, height: 64, borderRadius: 20, background: "var(--surface-alt)", border: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 16 }}><Icon size={28} color="#94a3b8" /></div>}
+      <h3 style={{ color: "var(--text-primary)", fontSize: 18, fontWeight: 700, marginBottom: 6 }}>{title}</h3>
+      {subtitle && <p style={{ color: "var(--text-muted)", fontSize: 14, maxWidth: 340, marginBottom: onAction ? 20 : 0 }}>{subtitle}</p>}
       {onAction && actionLabel && <button onClick={onAction} style={{ background: "#e95e00", color: "#fff", border: "none", borderRadius: 10, padding: "10px 20px", fontSize: 14, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}><Plus size={16} /> {actionLabel}</button>}
     </div>
   );
@@ -406,7 +487,7 @@ function InfoTip({ text }) {
           position: "absolute", bottom: "calc(100% + 8px)", left: "50%", transform: "translateX(-50%)",
           background: "#041830", color: "#f8fafc", fontSize: 12, lineHeight: 1.5, fontWeight: 400,
           padding: "10px 14px", borderRadius: 10, width: 240, zIndex: 50,
-          boxShadow: "0 8px 24px rgba(0,0,0,0.2)", pointerEvents: "none", whiteSpace: "normal", border: "1px solid #e2e8f0",
+          boxShadow: "0 8px 24px rgba(0,0,0,0.2)", pointerEvents: "none", whiteSpace: "normal", border: "1px solid var(--border)",
         }}>
           {text}
           <span style={{
@@ -438,10 +519,10 @@ function AttachmentZone({ onFiles, accept = "image/*,.pdf", label = "Drop file h
     <div
       onDragOver={e => { e.preventDefault(); setDragOver(true); }} onDragLeave={() => setDragOver(false)} onDrop={handleDrop}
       onClick={() => inputRef.current?.click()}
-      style={{ border: `2px dashed ${dragOver ? "#e95e00" : "#e2e8f0"}`, borderRadius: 12, padding: compact ? "12px 16px" : "20px 24px", textAlign: "center", cursor: "pointer", background: dragOver ? "#fff7ed" : "#f8fafc", transition: "all 0.15s", display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }}>
+      style={{ border: `2px dashed ${dragOver ? "#e95e00" : "var(--border)"}`, borderRadius: 12, padding: compact ? "12px 16px" : "20px 24px", textAlign: "center", cursor: "pointer", background: dragOver ? "#fff7ed" : "var(--surface-alt)", transition: "all 0.15s", display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }}>
       <input ref={inputRef} type="file" accept={accept} multiple onChange={handleChange} style={{ display: "none" }} />
       <UploadCloud size={compact ? 16 : 20} color="#94a3b8" />
-      <span style={{ fontSize: compact ? 12 : 13, color: "#64748b" }}>{label}</span>
+      <span style={{ fontSize: compact ? 12 : 13, color: "var(--text-secondary)" }}>{label}</span>
     </div>
   );
 }
@@ -460,18 +541,18 @@ function AttachmentList({ items, onRemove, compact = false }) {
       {items.map(item => {
         const Icon = iconForType(item.mimeType);
         return (
-          <div key={item.id} style={{ display: "flex", alignItems: "center", gap: 10, background: "#f8fafc", borderRadius: 10, padding: compact ? "6px 10px" : "8px 12px", border: "1px solid #f1f5f9" }}>
+          <div key={item.id} style={{ display: "flex", alignItems: "center", gap: 10, background: "var(--surface-alt)", borderRadius: 10, padding: compact ? "6px 10px" : "8px 12px", border: "1px solid var(--border-subtle)" }}>
             <Icon size={16} color="#64748b" style={{ flexShrink: 0 }} />
             <div style={{ flex: 1, minWidth: 0 }}>
-              <p style={{ fontSize: 12, fontWeight: 600, color: "#041830", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.name}</p>
-              {item.size && <p style={{ fontSize: 11, color: "#94a3b8" }}>{item.size}</p>}
+              <p style={{ fontSize: 12, fontWeight: 600, color: "var(--text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.name}</p>
+              {item.size && <p style={{ fontSize: 11, color: "var(--text-muted)" }}>{item.size}</p>}
             </div>
             {item.ocrData && (
               <span style={{ fontSize: 10, fontWeight: 600, color: "#15803d", background: "#dcfce7", borderRadius: 6, padding: "2px 6px", flexShrink: 0 }}>OCR</span>
             )}
             {onRemove && (
               <button onClick={e => { e.stopPropagation(); onRemove(item.id); }}
-                style={{ background: "none", border: "none", cursor: "pointer", padding: 4, borderRadius: 6, display: "flex", color: "#94a3b8" }}
+                style={{ background: "none", border: "none", cursor: "pointer", padding: 4, borderRadius: 6, display: "flex", color: "var(--text-muted)" }}
                 onMouseEnter={e => e.currentTarget.style.color = "#ef4444"} onMouseLeave={e => e.currentTarget.style.color = "#94a3b8"}>
                 <X size={14} />
               </button>
@@ -525,7 +606,7 @@ function OcrPrompt({ attachment, onResult, onDismiss }) {
         <Star size={12} /> Auto-fill
       </button>
       <button onClick={() => { setDismissed(true); if (onDismiss) onDismiss(); }}
-        style={{ background: "none", border: "none", cursor: "pointer", padding: 2, color: "#94a3b8", display: "flex" }}>
+        style={{ background: "none", border: "none", cursor: "pointer", padding: 2, color: "var(--text-muted)", display: "flex" }}>
         <X size={14} />
       </button>
     </div>
@@ -595,14 +676,14 @@ function DocumentsPanel({ documents, onAdd, onDelete, entityLabel = "item" }) {
   return (
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-        <h3 style={{ fontSize: 16, fontWeight: 700, color: "#041830" }}>Documents</h3>
+        <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--text-primary)" }}>Documents</h3>
         <button onClick={() => setShowModal(true)} style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 10, border: "none", background: "#e95e00", color: "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
           <FilePlus size={14} /> Add Document
         </button>
       </div>
 
       {documents.length === 0 && (
-        <div style={{ padding: 40, textAlign: "center", color: "#94a3b8", fontSize: 14, background: "#f8fafc", borderRadius: 12, border: "1px dashed #e2e8f0" }}>
+        <div style={{ padding: 40, textAlign: "center", color: "var(--text-muted)", fontSize: 14, background: "var(--surface-alt)", borderRadius: 12, border: "1px dashed var(--border)" }}>
           <FileText size={32} color="#cbd5e1" style={{ marginBottom: 8 }} />
           <p>No documents yet</p>
           <p style={{ fontSize: 12, marginTop: 4 }}>Upload leases, inspections, receipts, and more</p>
@@ -612,22 +693,22 @@ function DocumentsPanel({ documents, onAdd, onDelete, entityLabel = "item" }) {
       {documents.length > 0 && (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 12 }}>
           {documents.map(doc => (
-            <div key={doc.id} style={{ background: "#fff", borderRadius: 12, padding: 16, border: "1px solid #f1f5f9", boxShadow: "0 1px 3px rgba(0,0,0,0.04)", display: "flex", flexDirection: "column", gap: 8 }}>
+            <div key={doc.id} style={{ background: "var(--surface)", borderRadius: 12, padding: 16, border: "1px solid var(--border-subtle)", boxShadow: "0 1px 3px rgba(0,0,0,0.04)", display: "flex", flexDirection: "column", gap: 8 }}>
               <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
                 <div style={{ background: typeColor(doc.type) + "18", borderRadius: 8, padding: 8, flexShrink: 0 }}>
                   {doc.mimeType?.startsWith("image/") ? <FileImage size={18} color={typeColor(doc.type)} /> : <FileText size={18} color={typeColor(doc.type)} />}
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <p style={{ fontSize: 13, fontWeight: 600, color: "#041830", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{doc.name}</p>
+                  <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{doc.name}</p>
                   <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4 }}>
                     <span style={{ fontSize: 10, fontWeight: 600, color: typeColor(doc.type), background: typeColor(doc.type) + "18", borderRadius: 6, padding: "2px 8px", textTransform: "uppercase" }}>{typeLabel(doc.type)}</span>
-                    {doc.size && <span style={{ fontSize: 11, color: "#94a3b8" }}>{doc.size}</span>}
+                    {doc.size && <span style={{ fontSize: 11, color: "var(--text-muted)" }}>{doc.size}</span>}
                   </div>
                 </div>
               </div>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <span style={{ fontSize: 11, color: "#94a3b8" }}>{doc.date}</span>
-                <button onClick={() => setDeleteConfirm(doc)} style={{ background: "none", border: "none", cursor: "pointer", padding: 4, color: "#94a3b8", borderRadius: 6 }}
+                <span style={{ fontSize: 11, color: "var(--text-muted)" }}>{doc.date}</span>
+                <button onClick={() => setDeleteConfirm(doc)} style={{ background: "none", border: "none", cursor: "pointer", padding: 4, color: "var(--text-muted)", borderRadius: 6 }}
                   onMouseEnter={e => e.currentTarget.style.color = "#ef4444"} onMouseLeave={e => e.currentTarget.style.color = "#94a3b8"}>
                   <Trash2 size={14} />
                 </button>
@@ -641,25 +722,25 @@ function DocumentsPanel({ documents, onAdd, onDelete, entityLabel = "item" }) {
       {showModal && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.35)", zIndex: 100, display: "flex", alignItems: "center", justifyContent: "center" }}
           onClick={() => { setShowModal(false); setPendingFiles([]); setDocForm({ name: "", type: "other" }); }}>
-          <div onClick={e => e.stopPropagation()} style={{ background: "#fff", borderRadius: 16, padding: 28, width: 440, maxHeight: "80vh", overflow: "auto", boxShadow: "0 20px 60px rgba(0,0,0,0.15)" }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: "var(--surface)", borderRadius: 16, padding: 28, width: 440, maxHeight: "80vh", overflow: "auto", boxShadow: "0 20px 60px rgba(0,0,0,0.15)" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-              <h3 style={{ fontSize: 18, fontWeight: 700, color: "#041830" }}>Add Document</h3>
+              <h3 style={{ fontSize: 18, fontWeight: 700, color: "var(--text-primary)" }}>Add Document</h3>
               <button onClick={() => { setShowModal(false); setPendingFiles([]); setDocForm({ name: "", type: "other" }); }}
-                style={{ background: "#f1f5f9", border: "none", borderRadius: 8, padding: 6, cursor: "pointer", display: "flex" }}><X size={16} color="#64748b" /></button>
+                style={{ background: "var(--surface-muted)", border: "none", borderRadius: 8, padding: 6, cursor: "pointer", display: "flex" }}><X size={16} color="#64748b" /></button>
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
               <div>
-                <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Document Name *</label>
+                <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Document Name *</label>
                 <input type="text" value={docForm.name} onChange={dsf("name")} placeholder="e.g. Lease Agreement" style={iS} />
               </div>
               <div>
-                <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Type</label>
+                <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Type</label>
                 <select value={docForm.type} onChange={dsf("type")} style={iS}>
                   {DOC_TYPE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                 </select>
               </div>
               <div>
-                <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>File</label>
+                <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>File</label>
                 <AttachmentZone onFiles={handleFilesSelected} accept="image/*,.pdf,.doc,.docx" label="Drop file here or click to browse" />
                 {pendingFiles.length > 0 && (
                   <div style={{ marginTop: 8 }}>
@@ -674,7 +755,7 @@ function DocumentsPanel({ documents, onAdd, onDelete, entityLabel = "item" }) {
                 Save Document
               </button>
               <button onClick={() => { setShowModal(false); setPendingFiles([]); setDocForm({ name: "", type: "other" }); }}
-                style={{ padding: "10px 20px", borderRadius: 10, border: "1px solid #e2e8f0", background: "#fff", color: "#64748b", fontSize: 14, fontWeight: 600, cursor: "pointer" }}>
+                style={{ padding: "10px 20px", borderRadius: 10, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text-secondary)", fontSize: 14, fontWeight: 600, cursor: "pointer" }}>
                 Cancel
               </button>
             </div>
@@ -686,16 +767,16 @@ function DocumentsPanel({ documents, onAdd, onDelete, entityLabel = "item" }) {
       {deleteConfirm && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.35)", zIndex: 100, display: "flex", alignItems: "center", justifyContent: "center" }}
           onClick={() => setDeleteConfirm(null)}>
-          <div onClick={e => e.stopPropagation()} style={{ background: "#fff", borderRadius: 16, padding: 28, width: 380, boxShadow: "0 20px 60px rgba(0,0,0,0.15)" }}>
-            <h3 style={{ fontSize: 16, fontWeight: 700, color: "#041830", marginBottom: 8 }}>Delete Document?</h3>
-            <p style={{ color: "#475569", fontSize: 14, marginBottom: 20 }}>Remove <strong>{deleteConfirm.name}</strong>? This cannot be undone.</p>
+          <div onClick={e => e.stopPropagation()} style={{ background: "var(--surface)", borderRadius: 16, padding: 28, width: 380, boxShadow: "0 20px 60px rgba(0,0,0,0.15)" }}>
+            <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--text-primary)", marginBottom: 8 }}>Delete Document?</h3>
+            <p style={{ color: "var(--text-label)", fontSize: 14, marginBottom: 20 }}>Remove <strong>{deleteConfirm.name}</strong>? This cannot be undone.</p>
             <div style={{ display: "flex", gap: 10 }}>
               <button onClick={() => { onDelete(deleteConfirm.id); setDeleteConfirm(null); }}
                 style={{ flex: 1, padding: "10px 0", borderRadius: 10, border: "none", background: "#ef4444", color: "#fff", fontSize: 14, fontWeight: 600, cursor: "pointer" }}>
                 Delete
               </button>
               <button onClick={() => setDeleteConfirm(null)}
-                style={{ padding: "10px 20px", borderRadius: 10, border: "1px solid #e2e8f0", background: "#fff", color: "#64748b", fontSize: 14, fontWeight: 600, cursor: "pointer" }}>
+                style={{ padding: "10px 20px", borderRadius: 10, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text-secondary)", fontSize: 14, fontWeight: 600, cursor: "pointer" }}>
                 Cancel
               </button>
             </div>
@@ -709,25 +790,25 @@ function DocumentsPanel({ documents, onAdd, onDelete, entityLabel = "item" }) {
 function StatCard({ icon: Icon, label, value, sub, trend, trendVal, color = "#3b82f6", tip }) {
   const up = trend === "up";
   return (
-    <div style={{ background: "#fff", borderRadius: 16, padding: "24px", boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)", border: "1px solid #f1f5f9" }}>
+    <div style={{ background: "var(--surface)", borderRadius: 16, padding: "24px", boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)", border: "1px solid var(--border-subtle)" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
         <div>
           <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 8 }}>
-            <p style={{ color: "#94a3b8", fontSize: 13, fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.05em" }}>{label}</p>
+            <p style={{ color: "var(--text-muted)", fontSize: 13, fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.05em" }}>{label}</p>
             {tip && <InfoTip text={tip} />}
           </div>
-          <p style={{ color: "#041830", fontSize: 28, fontWeight: 700, lineHeight: 1 }}>{value}</p>
-          {sub && <p style={{ color: "#64748b", fontSize: 13, marginTop: 6 }}>{sub}</p>}
+          <p style={{ color: "var(--text-primary)", fontSize: 28, fontWeight: 700, lineHeight: 1 }}>{value}</p>
+          {sub && <p style={{ color: "var(--text-secondary)", fontSize: 13, marginTop: 6 }}>{sub}</p>}
         </div>
         <div style={{ background: color + "18", borderRadius: 12, padding: 12 }}>
           <Icon size={22} color={color} />
         </div>
       </div>
       {trendVal && (
-        <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 16, paddingTop: 16, borderTop: "1px solid #f1f5f9" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 16, paddingTop: 16, borderTop: "1px solid var(--border-subtle)" }}>
           {up ? <ArrowUp size={14} color="#10b981" /> : <ArrowDown size={14} color="#ef4444" />}
           <span style={{ fontSize: 13, fontWeight: 600, color: up ? "#10b981" : "#ef4444" }}>{trendVal}</span>
-          <span style={{ fontSize: 13, color: "#94a3b8" }}>vs last month</span>
+          <span style={{ fontSize: 13, color: "var(--text-muted)" }}>vs last month</span>
         </div>
       )}
     </div>
@@ -911,7 +992,7 @@ function generateAlerts({ properties, tenants, transactions, deals, contractors 
     if (isAlertSuppressed(id)) return;
     alerts.push({
       id, type: "vacantUnit", severity: "medium",
-      icon: Home, color: "#64748b", bg: "#f1f5f9",
+      icon: Home, color: "var(--text-secondary)", bg: "#f1f5f9",
       title: `Vacant — ${prop.name} · ${t.unit}`,
       detail: `Losing ~${fmt(Math.round(dailyRent))}/day in potential rent`,
       action: "Find a tenant", target: { type: "tenant", id: t.id },
@@ -1011,7 +1092,7 @@ function QuickPayInline({ tenant, defaultDate, onConfirm }) {
   const [mode, setMode] = useState("full");
   const [amt, setAmt] = useState(String(tenant?.rent || ""));
   const [date, setDate] = useState(defaultDate);
-  const qInput = { padding: "8px 12px", borderRadius: 8, border: "1.5px solid #e2e8f0", fontSize: 13, color: "#041830", background: "#fff", outline: "none", width: "100%" };
+  const qInput = { padding: "8px 12px", borderRadius: 8, border: "1.5px solid var(--border)", fontSize: 13, color: "var(--text-primary)", background: "var(--surface)", outline: "none", width: "100%" };
   const confirm = () => {
     const amount = mode === "full" ? (tenant?.rent || 0) : (parseFloat(amt) || 0);
     if (amount <= 0) return;
@@ -1019,14 +1100,14 @@ function QuickPayInline({ tenant, defaultDate, onConfirm }) {
     onConfirm && onConfirm();
   };
   return (
-    <div style={{ padding: "8px 10px 12px", borderTop: "1px solid #e2e8f0" }}>
+    <div style={{ padding: "8px 10px 12px", borderTop: "1px solid var(--border)" }}>
       <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
         <button onClick={() => { setMode("full"); setAmt(String(tenant?.rent || "")); }}
-          style={{ flex: 1, padding: "7px 0", borderRadius: 8, border: mode === "full" ? "1.5px solid #10b981" : "1.5px solid #e2e8f0", background: mode === "full" ? "#dcfce7" : "#fff", color: mode === "full" ? "#15803d" : "#64748b", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
+          style={{ flex: 1, padding: "7px 0", borderRadius: 8, border: mode === "full" ? "1.5px solid #10b981" : "1.5px solid var(--border)", background: mode === "full" ? "#dcfce7" : "#fff", color: mode === "full" ? "#15803d" : "#64748b", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
           Full — {fmt(tenant?.rent || 0)}
         </button>
         <button onClick={() => { setMode("partial"); setAmt(""); }}
-          style={{ flex: 1, padding: "7px 0", borderRadius: 8, border: mode === "partial" ? "1.5px solid #e95e00" : "1.5px solid #e2e8f0", background: mode === "partial" ? "#ffedd5" : "#fff", color: mode === "partial" ? "#9a3412" : "#64748b", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
+          style={{ flex: 1, padding: "7px 0", borderRadius: 8, border: mode === "partial" ? "1.5px solid #e95e00" : "1.5px solid var(--border)", background: mode === "partial" ? "#ffedd5" : "#fff", color: mode === "partial" ? "#9a3412" : "#64748b", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
           Partial
         </button>
       </div>
@@ -1052,16 +1133,16 @@ function QuickPayInline({ tenant, defaultDate, onConfirm }) {
 
 // Shared wizard shell: progress bar + step navigation + layout
 function WizardShell({ steps, currentStep, onStepClick, title, subtitle, onExit, children }) {
-  const sectionS = { background: "#fff", borderRadius: 16, padding: 24, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" };
+  const sectionS = { background: "var(--surface)", borderRadius: 16, padding: 24, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)" };
   return (
-    <div style={{ minHeight: "100vh", background: "#f8fafc" }}>
+    <div style={{ minHeight: "100vh", background: "var(--surface-alt)" }}>
       {/* Top bar */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "20px 32px", background: "#fff", borderBottom: "1px solid #f1f5f9" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "20px 32px", background: "var(--surface)", borderBottom: "1px solid var(--border-subtle)" }}>
         <div>
-          <h1 style={{ fontSize: 22, fontWeight: 700, color: "#041830", margin: 0 }}>{title}</h1>
-          {subtitle && <p style={{ fontSize: 13, color: "#64748b", margin: "2px 0 0" }}>{subtitle}</p>}
+          <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>{title}</h1>
+          {subtitle && <p style={{ fontSize: 13, color: "var(--text-secondary)", margin: "2px 0 0" }}>{subtitle}</p>}
         </div>
-        <button onClick={onExit} style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 8, border: "1px solid #e2e8f0", background: "#fff", color: "#64748b", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
+        <button onClick={onExit} style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text-secondary)", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
           <X size={14} /> Exit
         </button>
       </div>
@@ -1098,9 +1179,9 @@ function WizardShell({ steps, currentStep, onStepClick, title, subtitle, onExit,
 // Shared wizard step navigation buttons
 function WizardNav({ onBack, onNext, nextLabel, backLabel, nextDisabled }) {
   return (
-    <div style={{ display: "flex", justifyContent: "space-between", marginTop: 32, paddingTop: 20, borderTop: "1px solid #f1f5f9" }}>
+    <div style={{ display: "flex", justifyContent: "space-between", marginTop: 32, paddingTop: 20, borderTop: "1px solid var(--border-subtle)" }}>
       {onBack ? (
-        <button onClick={onBack} style={{ display: "flex", alignItems: "center", gap: 6, padding: "10px 20px", borderRadius: 10, border: "1px solid #e2e8f0", background: "#fff", color: "#475569", fontSize: 14, fontWeight: 600, cursor: "pointer" }}>
+        <button onClick={onBack} style={{ display: "flex", alignItems: "center", gap: 6, padding: "10px 20px", borderRadius: 10, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text-label)", fontSize: 14, fontWeight: 600, cursor: "pointer" }}>
           <ArrowLeft size={16} /> {backLabel || "Back"}
         </button>
       ) : <div />}
@@ -1116,16 +1197,16 @@ function WizardNav({ onBack, onNext, nextLabel, backLabel, nextDisabled }) {
 function WizardField({ label, hint, required, children }) {
   return (
     <div style={{ marginBottom: 20 }}>
-      <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#041830", marginBottom: 6 }}>
+      <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "var(--text-primary)", marginBottom: 6 }}>
         {label} {required && <span style={{ color: "#ef4444" }}>*</span>}
       </label>
       {children}
-      {hint && <p style={{ fontSize: 11, color: "#94a3b8", margin: "4px 0 0" }}>{hint}</p>}
+      {hint && <p style={{ fontSize: 11, color: "var(--text-muted)", margin: "4px 0 0" }}>{hint}</p>}
     </div>
   );
 }
 
-const wizardInput = { padding: "10px 14px", borderRadius: 10, border: "1.5px solid #e2e8f0", fontSize: 14, color: "#041830", background: "#fff", outline: "none", width: "100%", boxSizing: "border-box" };
+const wizardInput = { padding: "10px 14px", borderRadius: 10, border: "1.5px solid var(--border)", fontSize: 14, color: "var(--text-primary)", background: "var(--surface)", outline: "none", width: "100%", boxSizing: "border-box" };
 const wizardSelect = { ...wizardInput, appearance: "none", backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E\")", backgroundRepeat: "no-repeat", backgroundPosition: "right 12px center" };
 
 // ── RENTAL WIZARD ─────────────────────────────────────────────────────────
@@ -1206,9 +1287,9 @@ function RentalWizard({ onComplete, onExit }) {
     <WizardShell steps={steps} currentStep={step} onStepClick={setStep} title="Add Rental Property" subtitle="We'll walk you through setting up your property, financials, and tenants." onExit={onExit}>
 
       {step === 0 && (
-        <div style={{ background: "#fff", borderRadius: 16, padding: 28, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" }}>
-          <h2 style={{ fontSize: 18, fontWeight: 700, color: "#041830", marginBottom: 4 }}>Property Details</h2>
-          <p style={{ fontSize: 13, color: "#94a3b8", marginBottom: 24 }}>Basic info about the property — you can always edit this later.</p>
+        <div style={{ background: "var(--surface)", borderRadius: 16, padding: 28, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)" }}>
+          <h2 style={{ fontSize: 18, fontWeight: 700, color: "var(--text-primary)", marginBottom: 4 }}>Property Details</h2>
+          <p style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 24 }}>Basic info about the property — you can always edit this later.</p>
           <WizardField label="Property Name" required hint="e.g. 'Maple Street Duplex' or '123 Main St'">
             <input value={basics.name} onChange={sb("name")} style={wizardInput} placeholder="Enter property name" autoFocus />
           </WizardField>
@@ -1240,9 +1321,9 @@ function RentalWizard({ onComplete, onExit }) {
       )}
 
       {step === 1 && (
-        <div style={{ background: "#fff", borderRadius: 16, padding: 28, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" }}>
-          <h2 style={{ fontSize: 18, fontWeight: 700, color: "#041830", marginBottom: 4 }}>Financials</h2>
-          <p style={{ fontSize: 13, color: "#94a3b8", marginBottom: 24 }}>Purchase details and loan info. Skip anything you don't have yet.</p>
+        <div style={{ background: "var(--surface)", borderRadius: 16, padding: 28, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)" }}>
+          <h2 style={{ fontSize: 18, fontWeight: 700, color: "var(--text-primary)", marginBottom: 4 }}>Financials</h2>
+          <p style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 24 }}>Purchase details and loan info. Skip anything you don't have yet.</p>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
             <WizardField label="Purchase Price">
               <input type="number" value={fin.purchasePrice} onChange={sf("purchasePrice")} style={wizardInput} placeholder="$0" />
@@ -1255,8 +1336,8 @@ function RentalWizard({ onComplete, onExit }) {
             <input type="number" value={fin.closingCosts} onChange={sf("closingCosts")} style={wizardInput} placeholder="$0" />
           </WizardField>
 
-          <div style={{ borderTop: "1px solid #f1f5f9", margin: "20px 0", paddingTop: 20 }}>
-            <h3 style={{ fontSize: 15, fontWeight: 700, color: "#041830", marginBottom: 16 }}>Loan Details</h3>
+          <div style={{ borderTop: "1px solid var(--border-subtle)", margin: "20px 0", paddingTop: 20 }}>
+            <h3 style={{ fontSize: 15, fontWeight: 700, color: "var(--text-primary)", marginBottom: 16 }}>Loan Details</h3>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
               <WizardField label="Loan Amount">
                 <input type="number" value={fin.loanAmount} onChange={sf("loanAmount")} style={wizardInput} placeholder="$0" />
@@ -1281,8 +1362,8 @@ function RentalWizard({ onComplete, onExit }) {
             )}
           </div>
 
-          <div style={{ borderTop: "1px solid #f1f5f9", margin: "20px 0", paddingTop: 20 }}>
-            <h3 style={{ fontSize: 15, fontWeight: 700, color: "#041830", marginBottom: 16 }}>Monthly Cash Flow</h3>
+          <div style={{ borderTop: "1px solid var(--border-subtle)", margin: "20px 0", paddingTop: 20 }}>
+            <h3 style={{ fontSize: 15, fontWeight: 700, color: "var(--text-primary)", marginBottom: 16 }}>Monthly Cash Flow</h3>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
               <WizardField label="Monthly Rent" hint="Total across all units">
                 <input type="number" value={fin.monthlyRent} onChange={sf("monthlyRent")} style={wizardInput} placeholder="$0" />
@@ -1297,20 +1378,20 @@ function RentalWizard({ onComplete, onExit }) {
       )}
 
       {step === 2 && (
-        <div style={{ background: "#fff", borderRadius: 16, padding: 28, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" }}>
-          <h2 style={{ fontSize: 18, fontWeight: 700, color: "#041830", marginBottom: 4 }}>Tenants</h2>
-          <p style={{ fontSize: 13, color: "#94a3b8", marginBottom: 24 }}>
+        <div style={{ background: "var(--surface)", borderRadius: 16, padding: 28, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)" }}>
+          <h2 style={{ fontSize: 18, fontWeight: 700, color: "var(--text-primary)", marginBottom: 4 }}>Tenants</h2>
+          <p style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 24 }}>
             {unitCount === 1 ? "Add your tenant info, or mark as vacant." : `${unitCount} units detected — add tenant info for each, or mark vacant units.`}
           </p>
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             {tenants.slice(0, unitCount).map((t, i) => (
-              <div key={i} style={{ borderRadius: 12, border: t.vacant ? "1.5px dashed #cbd5e1" : "1px solid #e2e8f0", padding: 20, background: t.vacant ? "#f8fafc" : "#fff", transition: "all 0.15s" }}>
+              <div key={i} style={{ borderRadius: 12, border: t.vacant ? "1.5px dashed #cbd5e1" : "1px solid var(--border)", padding: 20, background: t.vacant ? "#f8fafc" : "#fff", transition: "all 0.15s" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: t.vacant ? 0 : 16 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                     <div style={{ width: 28, height: 28, borderRadius: 8, background: t.vacant ? "#f1f5f9" : "#eff6ff", display: "flex", alignItems: "center", justifyContent: "center" }}>
                       {t.vacant ? <Home size={14} color="#94a3b8" /> : <User size={14} color="#3b82f6" />}
                     </div>
-                    <span style={{ fontSize: 14, fontWeight: 600, color: "#041830" }}>{t.unit}</span>
+                    <span style={{ fontSize: 14, fontWeight: 600, color: "var(--text-primary)" }}>{t.unit}</span>
                   </div>
                   <button onClick={() => setTenant(i, "vacant", !t.vacant)}
                     style={{ fontSize: 12, fontWeight: 600, color: t.vacant ? "#3b82f6" : "#94a3b8", background: "none", border: "none", cursor: "pointer" }}>
@@ -1351,61 +1432,61 @@ function RentalWizard({ onComplete, onExit }) {
       )}
 
       {step === 3 && (
-        <div style={{ background: "#fff", borderRadius: 16, padding: 28, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" }}>
-          <h2 style={{ fontSize: 18, fontWeight: 700, color: "#041830", marginBottom: 4 }}>Review & Save</h2>
-          <p style={{ fontSize: 13, color: "#94a3b8", marginBottom: 24 }}>Everything look right? You can always edit details later.</p>
+        <div style={{ background: "var(--surface)", borderRadius: 16, padding: 28, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)" }}>
+          <h2 style={{ fontSize: 18, fontWeight: 700, color: "var(--text-primary)", marginBottom: 4 }}>Review & Save</h2>
+          <p style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 24 }}>Everything look right? You can always edit details later.</p>
 
           {/* Property summary */}
-          <div style={{ borderRadius: 12, border: "1px solid #e2e8f0", overflow: "hidden", marginBottom: 20 }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "#f8fafc", padding: "12px 16px", borderBottom: "1px solid #e2e8f0" }}>
+          <div style={{ borderRadius: 12, border: "1px solid var(--border)", overflow: "hidden", marginBottom: 20 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "var(--surface-alt)", padding: "12px 16px", borderBottom: "1px solid var(--border)" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <Home size={16} color="#3b82f6" />
-                <span style={{ fontSize: 14, fontWeight: 700, color: "#041830" }}>Property</span>
+                <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)" }}>Property</span>
               </div>
               <button onClick={() => setStep(0)} style={{ fontSize: 12, fontWeight: 600, color: "#3b82f6", background: "none", border: "none", cursor: "pointer" }}>Edit</button>
             </div>
             <div style={{ padding: 16, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, fontSize: 13 }}>
-              <div><span style={{ color: "#94a3b8" }}>Name:</span> <strong style={{ color: "#041830" }}>{basics.name || "—"}</strong></div>
-              <div><span style={{ color: "#94a3b8" }}>Type:</span> <strong style={{ color: "#041830" }}>{basics.type}</strong></div>
-              <div><span style={{ color: "#94a3b8" }}>Address:</span> <strong style={{ color: "#041830" }}>{basics.address || "—"}</strong></div>
-              <div><span style={{ color: "#94a3b8" }}>Units:</span> <strong style={{ color: "#041830" }}>{unitCount}</strong></div>
+              <div><span style={{ color: "var(--text-muted)" }}>Name:</span> <strong style={{ color: "var(--text-primary)" }}>{basics.name || "—"}</strong></div>
+              <div><span style={{ color: "var(--text-muted)" }}>Type:</span> <strong style={{ color: "var(--text-primary)" }}>{basics.type}</strong></div>
+              <div><span style={{ color: "var(--text-muted)" }}>Address:</span> <strong style={{ color: "var(--text-primary)" }}>{basics.address || "—"}</strong></div>
+              <div><span style={{ color: "var(--text-muted)" }}>Units:</span> <strong style={{ color: "var(--text-primary)" }}>{unitCount}</strong></div>
             </div>
           </div>
 
           {/* Financials summary */}
-          <div style={{ borderRadius: 12, border: "1px solid #e2e8f0", overflow: "hidden", marginBottom: 20 }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "#f8fafc", padding: "12px 16px", borderBottom: "1px solid #e2e8f0" }}>
+          <div style={{ borderRadius: 12, border: "1px solid var(--border)", overflow: "hidden", marginBottom: 20 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "var(--surface-alt)", padding: "12px 16px", borderBottom: "1px solid var(--border)" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <DollarSign size={16} color="#10b981" />
-                <span style={{ fontSize: 14, fontWeight: 700, color: "#041830" }}>Financials</span>
+                <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)" }}>Financials</span>
               </div>
               <button onClick={() => setStep(1)} style={{ fontSize: 12, fontWeight: 600, color: "#3b82f6", background: "none", border: "none", cursor: "pointer" }}>Edit</button>
             </div>
             <div style={{ padding: 16, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, fontSize: 13 }}>
-              <div><span style={{ color: "#94a3b8" }}>Purchase:</span> <strong style={{ color: "#041830" }}>{fin.purchasePrice ? fmt(parseFloat(fin.purchasePrice)) : "—"}</strong></div>
-              <div><span style={{ color: "#94a3b8" }}>Value:</span> <strong style={{ color: "#041830" }}>{fin.currentValue ? fmt(parseFloat(fin.currentValue)) : "—"}</strong></div>
-              <div><span style={{ color: "#94a3b8" }}>Loan:</span> <strong style={{ color: "#041830" }}>{fin.loanAmount ? fmt(parseFloat(fin.loanAmount)) : "—"}</strong></div>
-              <div><span style={{ color: "#94a3b8" }}>Mortgage:</span> <strong style={{ color: "#041830" }}>{monthlyMortgage > 0 ? `${fmt(Math.round(monthlyMortgage))}/mo` : "—"}</strong></div>
-              <div><span style={{ color: "#94a3b8" }}>Rent:</span> <strong style={{ color: "#10b981" }}>{fin.monthlyRent ? `${fmt(parseFloat(fin.monthlyRent))}/mo` : "—"}</strong></div>
-              <div><span style={{ color: "#94a3b8" }}>Expenses:</span> <strong style={{ color: "#ef4444" }}>{fin.monthlyExpenses ? `${fmt(parseFloat(fin.monthlyExpenses))}/mo` : "—"}</strong></div>
+              <div><span style={{ color: "var(--text-muted)" }}>Purchase:</span> <strong style={{ color: "var(--text-primary)" }}>{fin.purchasePrice ? fmt(parseFloat(fin.purchasePrice)) : "—"}</strong></div>
+              <div><span style={{ color: "var(--text-muted)" }}>Value:</span> <strong style={{ color: "var(--text-primary)" }}>{fin.currentValue ? fmt(parseFloat(fin.currentValue)) : "—"}</strong></div>
+              <div><span style={{ color: "var(--text-muted)" }}>Loan:</span> <strong style={{ color: "var(--text-primary)" }}>{fin.loanAmount ? fmt(parseFloat(fin.loanAmount)) : "—"}</strong></div>
+              <div><span style={{ color: "var(--text-muted)" }}>Mortgage:</span> <strong style={{ color: "var(--text-primary)" }}>{monthlyMortgage > 0 ? `${fmt(Math.round(monthlyMortgage))}/mo` : "—"}</strong></div>
+              <div><span style={{ color: "var(--text-muted)" }}>Rent:</span> <strong style={{ color: "#10b981" }}>{fin.monthlyRent ? `${fmt(parseFloat(fin.monthlyRent))}/mo` : "—"}</strong></div>
+              <div><span style={{ color: "var(--text-muted)" }}>Expenses:</span> <strong style={{ color: "#ef4444" }}>{fin.monthlyExpenses ? `${fmt(parseFloat(fin.monthlyExpenses))}/mo` : "—"}</strong></div>
             </div>
           </div>
 
           {/* Tenants summary */}
-          <div style={{ borderRadius: 12, border: "1px solid #e2e8f0", overflow: "hidden", marginBottom: 20 }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "#f8fafc", padding: "12px 16px", borderBottom: "1px solid #e2e8f0" }}>
+          <div style={{ borderRadius: 12, border: "1px solid var(--border)", overflow: "hidden", marginBottom: 20 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "var(--surface-alt)", padding: "12px 16px", borderBottom: "1px solid var(--border)" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <Users size={16} color="#8b5cf6" />
-                <span style={{ fontSize: 14, fontWeight: 700, color: "#041830" }}>Tenants ({tenants.filter(t => !t.vacant && t.name.trim()).length})</span>
+                <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)" }}>Tenants ({tenants.filter(t => !t.vacant && t.name.trim()).length})</span>
               </div>
               <button onClick={() => setStep(2)} style={{ fontSize: 12, fontWeight: 600, color: "#3b82f6", background: "none", border: "none", cursor: "pointer" }}>Edit</button>
             </div>
             <div style={{ padding: 16 }}>
               {tenants.slice(0, unitCount).map((t, i) => (
-                <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 0", borderBottom: i < unitCount - 1 ? "1px solid #f1f5f9" : "none", fontSize: 13 }}>
+                <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 0", borderBottom: i < unitCount - 1 ? "1px solid var(--border-subtle)" : "none", fontSize: 13 }}>
                   <div>
-                    <span style={{ fontWeight: 600, color: "#041830" }}>{t.unit}</span>
-                    <span style={{ color: "#64748b", marginLeft: 8 }}>{t.vacant ? "Vacant" : t.name || "No tenant"}</span>
+                    <span style={{ fontWeight: 600, color: "var(--text-primary)" }}>{t.unit}</span>
+                    <span style={{ color: "var(--text-secondary)", marginLeft: 8 }}>{t.vacant ? "Vacant" : t.name || "No tenant"}</span>
                   </div>
                   {!t.vacant && t.rent && <span style={{ fontWeight: 600, color: "#10b981" }}>{fmt(parseFloat(t.rent))}/mo</span>}
                 </div>
@@ -1488,9 +1569,9 @@ function FlipWizard({ onComplete, onExit }) {
     <WizardShell steps={steps} currentStep={step} onStepClick={setStep} title="Add Fix & Flip Deal" subtitle="We'll walk you through the deal details, financials, and rehab scope." onExit={onExit}>
 
       {step === 0 && (
-        <div style={{ background: "#fff", borderRadius: 16, padding: 28, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" }}>
-          <h2 style={{ fontSize: 18, fontWeight: 700, color: "#041830", marginBottom: 4 }}>Deal Information</h2>
-          <p style={{ fontSize: 13, color: "#94a3b8", marginBottom: 24 }}>Basic info about the deal — name it something memorable.</p>
+        <div style={{ background: "var(--surface)", borderRadius: 16, padding: 28, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)" }}>
+          <h2 style={{ fontSize: 18, fontWeight: 700, color: "var(--text-primary)", marginBottom: 4 }}>Deal Information</h2>
+          <p style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 24 }}>Basic info about the deal — name it something memorable.</p>
           <WizardField label="Deal Name" required hint="e.g. '42 Oak Ave Flip' or 'The Blue House'">
             <input value={basics.name} onChange={sb("name")} style={wizardInput} placeholder="Enter deal name" autoFocus />
           </WizardField>
@@ -1515,9 +1596,9 @@ function FlipWizard({ onComplete, onExit }) {
       )}
 
       {step === 1 && (
-        <div style={{ background: "#fff", borderRadius: 16, padding: 28, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" }}>
-          <h2 style={{ fontSize: 18, fontWeight: 700, color: "#041830", marginBottom: 4 }}>Financials</h2>
-          <p style={{ fontSize: 13, color: "#94a3b8", marginBottom: 24 }}>Purchase price, ARV, and budget. You'll add detailed rehab line items in the next step.</p>
+        <div style={{ background: "var(--surface)", borderRadius: 16, padding: 28, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)" }}>
+          <h2 style={{ fontSize: 18, fontWeight: 700, color: "var(--text-primary)", marginBottom: 4 }}>Financials</h2>
+          <p style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 24 }}>Purchase price, ARV, and budget. You'll add detailed rehab line items in the next step.</p>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
             <WizardField label="Purchase Price" required>
               <input type="number" value={fin.purchasePrice} onChange={sf("purchasePrice")} style={wizardInput} placeholder="$0" />
@@ -1539,7 +1620,7 @@ function FlipWizard({ onComplete, onExit }) {
               <TrendingUp size={16} color={projectedProfit > 0 ? "#10b981" : "#ef4444"} />
               <span style={{ fontSize: 13, color: projectedProfit > 0 ? "#15803d" : "#b91c1c" }}>
                 Projected profit: <strong>{fmt(Math.round(projectedProfit))}</strong>
-                <span style={{ color: "#94a3b8", marginLeft: 8, fontSize: 11 }}>(assumes 6% selling costs, 6 month hold)</span>
+                <span style={{ color: "var(--text-muted)", marginLeft: 8, fontSize: 11 }}>(assumes 6% selling costs, 6 month hold)</span>
               </span>
             </div>
           )}
@@ -1548,9 +1629,9 @@ function FlipWizard({ onComplete, onExit }) {
       )}
 
       {step === 2 && (
-        <div style={{ background: "#fff", borderRadius: 16, padding: 28, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" }}>
-          <h2 style={{ fontSize: 18, fontWeight: 700, color: "#041830", marginBottom: 4 }}>Rehab Scope</h2>
-          <p style={{ fontSize: 13, color: "#94a3b8", marginBottom: 24 }}>
+        <div style={{ background: "var(--surface)", borderRadius: 16, padding: 28, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)" }}>
+          <h2 style={{ fontSize: 18, fontWeight: 700, color: "var(--text-primary)", marginBottom: 4 }}>Rehab Scope</h2>
+          <p style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 24 }}>
             {rehabItems.length === 0
               ? "Pick a template to pre-populate standard scopes with suggested budgets, or build your own from scratch."
               : "Adjust budgets, remove items you don't need, or add custom line items."}
@@ -1563,8 +1644,8 @@ function FlipWizard({ onComplete, onExit }) {
                 <div style={{ width: 56, height: 56, borderRadius: 14, background: "#fff7ed", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 12px" }}>
                   <Wrench size={24} color="#e95e00" />
                 </div>
-                <h3 style={{ fontSize: 17, fontWeight: 700, color: "#041830", marginBottom: 6 }}>Start your rehab scope</h3>
-                <p style={{ fontSize: 13, color: "#64748b", maxWidth: 460, margin: "0 auto" }}>Pick a template to pre-populate standard scopes with suggested budgets, or build your own from scratch.</p>
+                <h3 style={{ fontSize: 17, fontWeight: 700, color: "var(--text-primary)", marginBottom: 6 }}>Start your rehab scope</h3>
+                <p style={{ fontSize: 13, color: "var(--text-secondary)", maxWidth: 460, margin: "0 auto" }}>Pick a template to pre-populate standard scopes with suggested budgets, or build your own from scratch.</p>
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(230px, 1fr))", gap: 12, marginBottom: 14 }}>
                 {REHAB_TEMPLATES.map(tpl => {
@@ -1576,21 +1657,21 @@ function FlipWizard({ onComplete, onExit }) {
                         return { label: canon?.label || i.slug, canonicalCategory: i.slug, budgeted: String(i.budgeted || 0) };
                       });
                       setRehabItems(seeded);
-                    }} style={{ background: "#fff", border: "1.5px solid #e2e8f0", borderRadius: 14, padding: 18, textAlign: "left", cursor: "pointer", transition: "all 0.15s" }}
+                    }} style={{ background: "var(--surface)", border: "1.5px solid var(--border)", borderRadius: 14, padding: 18, textAlign: "left", cursor: "pointer", transition: "all 0.15s" }}
                       onMouseEnter={e => { e.currentTarget.style.borderColor = "#e95e00"; e.currentTarget.style.background = "#fff7ed"; }}
-                      onMouseLeave={e => { e.currentTarget.style.borderColor = "#e2e8f0"; e.currentTarget.style.background = "#fff"; }}>
-                      <p style={{ fontSize: 14, fontWeight: 700, color: "#041830", marginBottom: 4 }}>{tpl.name}</p>
-                      <p style={{ fontSize: 11, color: "#64748b", lineHeight: 1.5, marginBottom: 10, minHeight: 30 }}>{tpl.description}</p>
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 10, borderTop: "1px solid #f1f5f9" }}>
-                        <span style={{ fontSize: 11, color: "#94a3b8", fontWeight: 600 }}>{tpl.items.length} items</span>
-                        <span style={{ fontSize: 12, color: "#041830", fontWeight: 700 }}>{fmt(total)}</span>
+                      onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.background = "var(--surface)"; }}>
+                      <p style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)", marginBottom: 4 }}>{tpl.name}</p>
+                      <p style={{ fontSize: 11, color: "var(--text-secondary)", lineHeight: 1.5, marginBottom: 10, minHeight: 30 }}>{tpl.description}</p>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 10, borderTop: "1px solid var(--border-subtle)" }}>
+                        <span style={{ fontSize: 11, color: "var(--text-muted)", fontWeight: 600 }}>{tpl.items.length} items</span>
+                        <span style={{ fontSize: 12, color: "var(--text-primary)", fontWeight: 700 }}>{fmt(total)}</span>
                       </div>
                     </button>
                   );
                 })}
               </div>
               <div style={{ textAlign: "center" }}>
-                <button onClick={addRehabItem} style={{ background: "none", border: "none", color: "#64748b", fontSize: 13, fontWeight: 600, cursor: "pointer", textDecoration: "underline" }}>or start from scratch</button>
+                <button onClick={addRehabItem} style={{ background: "none", border: "none", color: "var(--text-secondary)", fontSize: 13, fontWeight: 600, cursor: "pointer", textDecoration: "underline" }}>or start from scratch</button>
               </div>
             </div>
           )}
@@ -1619,15 +1700,15 @@ function FlipWizard({ onComplete, onExit }) {
                         if (filteredCanon.length === 0 && filteredCustom.length === 0 && !showNew) return null;
                         const grouped = REHAB_CATEGORY_GROUPS.map(g => ({ group: g, items: filteredCanon.filter(c => c.group === g) })).filter(g => g.items.length > 0);
                         return (
-                          <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, background: "#fff", border: "1px solid #e2e8f0", borderRadius: 12, boxShadow: "0 8px 24px rgba(0,0,0,0.10)", zIndex: 200, overflow: "hidden", maxHeight: 280, overflowY: "auto" }}>
+                          <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, boxShadow: "0 8px 24px rgba(0,0,0,0.10)", zIndex: 200, overflow: "hidden", maxHeight: 280, overflowY: "auto" }}>
                             {grouped.map(({ group, items }) => (
                               <div key={group}>
-                                <div style={{ padding: "6px 14px 4px", fontSize: 10, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.05em", background: "#f8fafc", borderBottom: "1px solid #f1f5f9" }}>{group}</div>
+                                <div style={{ padding: "6px 14px 4px", fontSize: 10, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em", background: "var(--surface-alt)", borderBottom: "1px solid var(--border-subtle)" }}>{group}</div>
                                 {items.map(c => (
                                   <button key={c.slug} type="button"
                                     onMouseDown={() => { setRehab(i, "label", c.label); setRehab(i, "canonicalCategory", c.slug); setCatFocusIdx(-1); }}
-                                    style={{ width: "100%", padding: "8px 14px", background: "none", border: "none", borderBottom: "1px solid #f1f5f9", textAlign: "left", cursor: "pointer", fontSize: 13, color: "#041830", display: "flex", alignItems: "center", gap: 8 }}>
-                                    <Wrench size={13} style={{ color: "#94a3b8", flexShrink: 0 }} />
+                                    style={{ width: "100%", padding: "8px 14px", background: "none", border: "none", borderBottom: "1px solid var(--border-subtle)", textAlign: "left", cursor: "pointer", fontSize: 13, color: "var(--text-primary)", display: "flex", alignItems: "center", gap: 8 }}>
+                                    <Wrench size={13} style={{ color: "var(--text-muted)", flexShrink: 0 }} />
                                     <span>{c.label}</span>
                                   </button>
                                 ))}
@@ -1635,12 +1716,12 @@ function FlipWizard({ onComplete, onExit }) {
                             ))}
                             {filteredCustom.length > 0 && (
                               <div>
-                                <div style={{ padding: "6px 14px 4px", fontSize: 10, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.05em", background: "#f8fafc", borderBottom: "1px solid #f1f5f9" }}>Custom</div>
+                                <div style={{ padding: "6px 14px 4px", fontSize: 10, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em", background: "var(--surface-alt)", borderBottom: "1px solid var(--border-subtle)" }}>Custom</div>
                                 {filteredCustom.map(c => (
                                   <button key={c} type="button"
                                     onMouseDown={() => { setRehab(i, "label", c); setRehab(i, "canonicalCategory", null); setCatFocusIdx(-1); }}
-                                    style={{ width: "100%", padding: "8px 14px", background: "none", border: "none", borderBottom: "1px solid #f1f5f9", textAlign: "left", cursor: "pointer", fontSize: 13, color: "#041830", display: "flex", alignItems: "center", gap: 8 }}>
-                                    <Wrench size={13} style={{ color: "#94a3b8", flexShrink: 0 }} />
+                                    style={{ width: "100%", padding: "8px 14px", background: "none", border: "none", borderBottom: "1px solid var(--border-subtle)", textAlign: "left", cursor: "pointer", fontSize: 13, color: "var(--text-primary)", display: "flex", alignItems: "center", gap: 8 }}>
+                                    <Wrench size={13} style={{ color: "var(--text-muted)", flexShrink: 0 }} />
                                     <span>{c}</span>
                                   </button>
                                 ))}
@@ -1658,7 +1739,7 @@ function FlipWizard({ onComplete, onExit }) {
                       })()}
                     </div>
                     <div style={{ position: "relative", flex: 1 }}>
-                      <span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "#94a3b8", fontSize: 14 }}>$</span>
+                      <span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "var(--text-muted)", fontSize: 14 }}>$</span>
                       <input type="number" value={item.budgeted} onChange={e => setRehab(i, "budgeted", e.target.value)}
                         style={{ ...wizardInput, paddingLeft: 24 }} placeholder="0" />
                     </div>
@@ -1674,14 +1755,14 @@ function FlipWizard({ onComplete, onExit }) {
                 <button onClick={addRehabItem} style={{ display: "flex", alignItems: "center", gap: 6, padding: "10px 16px", borderRadius: 10, border: "none", background: "#e95e00", color: "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
                   <Plus size={14} /> Add Rehab Item
                 </button>
-                <button onClick={() => setRehabItems([])} style={{ background: "none", border: "none", color: "#94a3b8", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
+                <button onClick={() => setRehabItems([])} style={{ background: "none", border: "none", color: "var(--text-muted)", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
                   <X size={12} style={{ marginRight: 4 }} />Clear all &amp; pick new template
                 </button>
               </div>
               {rehabTotal > 0 && (
                 <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 16, fontSize: 14 }}>
-                  <span style={{ color: "#64748b" }}>Total Rehab Budget: </span>
-                  <strong style={{ color: "#041830", marginLeft: 8 }}>{fmt(rehabTotal)}</strong>
+                  <span style={{ color: "var(--text-secondary)" }}>Total Rehab Budget: </span>
+                  <strong style={{ color: "var(--text-primary)", marginLeft: 8 }}>{fmt(rehabTotal)}</strong>
                 </div>
               )}
             </div>
@@ -1691,69 +1772,69 @@ function FlipWizard({ onComplete, onExit }) {
       )}
 
       {step === 3 && (
-        <div style={{ background: "#fff", borderRadius: 16, padding: 28, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" }}>
-          <h2 style={{ fontSize: 18, fontWeight: 700, color: "#041830", marginBottom: 4 }}>Review & Save</h2>
-          <p style={{ fontSize: 13, color: "#94a3b8", marginBottom: 24 }}>Everything look right? You can always edit details later.</p>
+        <div style={{ background: "var(--surface)", borderRadius: 16, padding: 28, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)" }}>
+          <h2 style={{ fontSize: 18, fontWeight: 700, color: "var(--text-primary)", marginBottom: 4 }}>Review & Save</h2>
+          <p style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 24 }}>Everything look right? You can always edit details later.</p>
 
           {/* Deal summary */}
-          <div style={{ borderRadius: 12, border: "1px solid #e2e8f0", overflow: "hidden", marginBottom: 20 }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "#f8fafc", padding: "12px 16px", borderBottom: "1px solid #e2e8f0" }}>
+          <div style={{ borderRadius: 12, border: "1px solid var(--border)", overflow: "hidden", marginBottom: 20 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "var(--surface-alt)", padding: "12px 16px", borderBottom: "1px solid var(--border)" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <Hammer size={16} color="#e95e00" />
-                <span style={{ fontSize: 14, fontWeight: 700, color: "#041830" }}>Deal Info</span>
+                <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)" }}>Deal Info</span>
               </div>
               <button onClick={() => setStep(0)} style={{ fontSize: 12, fontWeight: 600, color: "#3b82f6", background: "none", border: "none", cursor: "pointer" }}>Edit</button>
             </div>
             <div style={{ padding: 16, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, fontSize: 13 }}>
-              <div><span style={{ color: "#94a3b8" }}>Name:</span> <strong style={{ color: "#041830" }}>{basics.name || "—"}</strong></div>
-              <div><span style={{ color: "#94a3b8" }}>Stage:</span> <strong style={{ color: "#041830" }}>{basics.stage}</strong></div>
-              <div><span style={{ color: "#94a3b8" }}>Address:</span> <strong style={{ color: "#041830" }}>{basics.address || "—"}</strong></div>
-              <div><span style={{ color: "#94a3b8" }}>Close:</span> <strong style={{ color: "#041830" }}>{basics.projectedCloseDate || "—"}</strong></div>
+              <div><span style={{ color: "var(--text-muted)" }}>Name:</span> <strong style={{ color: "var(--text-primary)" }}>{basics.name || "—"}</strong></div>
+              <div><span style={{ color: "var(--text-muted)" }}>Stage:</span> <strong style={{ color: "var(--text-primary)" }}>{basics.stage}</strong></div>
+              <div><span style={{ color: "var(--text-muted)" }}>Address:</span> <strong style={{ color: "var(--text-primary)" }}>{basics.address || "—"}</strong></div>
+              <div><span style={{ color: "var(--text-muted)" }}>Close:</span> <strong style={{ color: "var(--text-primary)" }}>{basics.projectedCloseDate || "—"}</strong></div>
             </div>
           </div>
 
           {/* Financials summary */}
-          <div style={{ borderRadius: 12, border: "1px solid #e2e8f0", overflow: "hidden", marginBottom: 20 }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "#f8fafc", padding: "12px 16px", borderBottom: "1px solid #e2e8f0" }}>
+          <div style={{ borderRadius: 12, border: "1px solid var(--border)", overflow: "hidden", marginBottom: 20 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "var(--surface-alt)", padding: "12px 16px", borderBottom: "1px solid var(--border)" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <DollarSign size={16} color="#10b981" />
-                <span style={{ fontSize: 14, fontWeight: 700, color: "#041830" }}>Financials</span>
+                <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)" }}>Financials</span>
               </div>
               <button onClick={() => setStep(1)} style={{ fontSize: 12, fontWeight: 600, color: "#3b82f6", background: "none", border: "none", cursor: "pointer" }}>Edit</button>
             </div>
             <div style={{ padding: 16, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, fontSize: 13 }}>
-              <div><span style={{ color: "#94a3b8" }}>Purchase:</span> <strong style={{ color: "#041830" }}>{pp > 0 ? fmt(pp) : "—"}</strong></div>
-              <div><span style={{ color: "#94a3b8" }}>ARV:</span> <strong style={{ color: "#041830" }}>{arv > 0 ? fmt(arv) : "—"}</strong></div>
-              <div><span style={{ color: "#94a3b8" }}>Rehab Budget:</span> <strong style={{ color: "#041830" }}>{(rehabTotal || rb) > 0 ? fmt(rehabTotal || rb) : "—"}</strong></div>
-              <div><span style={{ color: "#94a3b8" }}>Holding:</span> <strong style={{ color: "#041830" }}>{hc > 0 ? `${fmt(hc)}/mo` : "—"}</strong></div>
+              <div><span style={{ color: "var(--text-muted)" }}>Purchase:</span> <strong style={{ color: "var(--text-primary)" }}>{pp > 0 ? fmt(pp) : "—"}</strong></div>
+              <div><span style={{ color: "var(--text-muted)" }}>ARV:</span> <strong style={{ color: "var(--text-primary)" }}>{arv > 0 ? fmt(arv) : "—"}</strong></div>
+              <div><span style={{ color: "var(--text-muted)" }}>Rehab Budget:</span> <strong style={{ color: "var(--text-primary)" }}>{(rehabTotal || rb) > 0 ? fmt(rehabTotal || rb) : "—"}</strong></div>
+              <div><span style={{ color: "var(--text-muted)" }}>Holding:</span> <strong style={{ color: "var(--text-primary)" }}>{hc > 0 ? `${fmt(hc)}/mo` : "—"}</strong></div>
               {projectedProfit !== 0 && (
-                <div style={{ gridColumn: "1 / -1" }}><span style={{ color: "#94a3b8" }}>Projected Profit:</span> <strong style={{ color: projectedProfit > 0 ? "#10b981" : "#ef4444" }}>{fmt(Math.round(projectedProfit))}</strong></div>
+                <div style={{ gridColumn: "1 / -1" }}><span style={{ color: "var(--text-muted)" }}>Projected Profit:</span> <strong style={{ color: projectedProfit > 0 ? "#10b981" : "#ef4444" }}>{fmt(Math.round(projectedProfit))}</strong></div>
               )}
             </div>
           </div>
 
           {/* Rehab scope summary */}
-          <div style={{ borderRadius: 12, border: "1px solid #e2e8f0", overflow: "hidden", marginBottom: 20 }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "#f8fafc", padding: "12px 16px", borderBottom: "1px solid #e2e8f0" }}>
+          <div style={{ borderRadius: 12, border: "1px solid var(--border)", overflow: "hidden", marginBottom: 20 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "var(--surface-alt)", padding: "12px 16px", borderBottom: "1px solid var(--border)" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <Wrench size={16} color="#8b5cf6" />
-                <span style={{ fontSize: 14, fontWeight: 700, color: "#041830" }}>Rehab Scope ({rehabItems.filter(i => i.label.trim() && (parseFloat(i.budgeted) || 0) > 0).length} items)</span>
+                <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)" }}>Rehab Scope ({rehabItems.filter(i => i.label.trim() && (parseFloat(i.budgeted) || 0) > 0).length} items)</span>
               </div>
               <button onClick={() => setStep(2)} style={{ fontSize: 12, fontWeight: 600, color: "#3b82f6", background: "none", border: "none", cursor: "pointer" }}>Edit</button>
             </div>
             <div style={{ padding: 16 }}>
               {rehabItems.filter(i => i.label.trim() && (parseFloat(i.budgeted) || 0) > 0).length === 0 ? (
-                <p style={{ fontSize: 13, color: "#94a3b8", margin: 0 }}>No line items budgeted</p>
+                <p style={{ fontSize: 13, color: "var(--text-muted)", margin: 0 }}>No line items budgeted</p>
               ) : rehabItems.filter(i => i.label.trim() && (parseFloat(i.budgeted) || 0) > 0).map((item, i) => (
                 <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: "1px solid #f8fafc", fontSize: 13 }}>
-                  <span style={{ color: "#041830" }}>{item.label}</span>
-                  <strong style={{ color: "#041830" }}>{fmt(parseFloat(item.budgeted))}</strong>
+                  <span style={{ color: "var(--text-primary)" }}>{item.label}</span>
+                  <strong style={{ color: "var(--text-primary)" }}>{fmt(parseFloat(item.budgeted))}</strong>
                 </div>
               ))}
               {rehabTotal > 0 && (
-                <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 0 0", borderTop: "1px solid #e2e8f0", marginTop: 8, fontSize: 13 }}>
-                  <strong style={{ color: "#64748b" }}>Total</strong>
-                  <strong style={{ color: "#041830" }}>{fmt(rehabTotal)}</strong>
+                <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 0 0", borderTop: "1px solid var(--border)", marginTop: 8, fontSize: 13 }}>
+                  <strong style={{ color: "var(--text-secondary)" }}>Total</strong>
+                  <strong style={{ color: "var(--text-primary)" }}>{fmt(rehabTotal)}</strong>
                 </div>
               )}
             </div>
@@ -1774,31 +1855,31 @@ function WelcomeScreen({ onStartRental, onStartFlip }) {
         <div style={{ width: 64, height: 64, borderRadius: 16, background: "linear-gradient(135deg, #e95e00 0%, #f59e0b 100%)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 20px", boxShadow: "0 4px 12px rgba(233,94,0,0.25)" }}>
           <Building2 size={32} color="#fff" />
         </div>
-        <h1 style={{ fontSize: 28, fontWeight: 700, color: "#041830", margin: "0 0 8px" }}>Welcome to PropBooks</h1>
-        <p style={{ fontSize: 16, color: "#64748b", maxWidth: 500, margin: "0 auto", lineHeight: 1.6 }}>
+        <h1 style={{ fontSize: 28, fontWeight: 700, color: "var(--text-primary)", margin: "0 0 8px" }}>Welcome to PropBooks</h1>
+        <p style={{ fontSize: 16, color: "var(--text-secondary)", maxWidth: 500, margin: "0 auto", lineHeight: 1.6 }}>
           Let's get your first property or deal set up. The guided setup will walk you through everything step by step.
         </p>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24, maxWidth: 600, width: "100%" }}>
         <button onClick={onStartRental}
-          style={{ background: "#fff", border: "2px solid #e2e8f0", borderRadius: 16, padding: "32px 24px", cursor: "pointer", textAlign: "center", transition: "all 0.2s" }}
+          style={{ background: "var(--surface)", border: "2px solid var(--border)", borderRadius: 16, padding: "32px 24px", cursor: "pointer", textAlign: "center", transition: "all 0.2s" }}
           onMouseEnter={e => { e.currentTarget.style.borderColor = "#3b82f6"; e.currentTarget.style.boxShadow = "0 4px 16px rgba(59,130,246,0.12)"; }}
-          onMouseLeave={e => { e.currentTarget.style.borderColor = "#e2e8f0"; e.currentTarget.style.boxShadow = "none"; }}>
+          onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.boxShadow = "none"; }}>
           <div style={{ width: 48, height: 48, borderRadius: 12, background: "#eff6ff", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
             <Home size={24} color="#3b82f6" />
           </div>
-          <h3 style={{ fontSize: 17, fontWeight: 700, color: "#041830", margin: "0 0 6px" }}>Add Rental Property</h3>
-          <p style={{ fontSize: 13, color: "#64748b", margin: 0, lineHeight: 1.5 }}>Buy & hold — track rent, tenants, leases, and cash flow.</p>
+          <h3 style={{ fontSize: 17, fontWeight: 700, color: "var(--text-primary)", margin: "0 0 6px" }}>Add Rental Property</h3>
+          <p style={{ fontSize: 13, color: "var(--text-secondary)", margin: 0, lineHeight: 1.5 }}>Buy & hold — track rent, tenants, leases, and cash flow.</p>
         </button>
         <button onClick={onStartFlip}
-          style={{ background: "#fff", border: "2px solid #e2e8f0", borderRadius: 16, padding: "32px 24px", cursor: "pointer", textAlign: "center", transition: "all 0.2s" }}
+          style={{ background: "var(--surface)", border: "2px solid var(--border)", borderRadius: 16, padding: "32px 24px", cursor: "pointer", textAlign: "center", transition: "all 0.2s" }}
           onMouseEnter={e => { e.currentTarget.style.borderColor = "#e95e00"; e.currentTarget.style.boxShadow = "0 4px 16px rgba(233,94,0,0.12)"; }}
-          onMouseLeave={e => { e.currentTarget.style.borderColor = "#e2e8f0"; e.currentTarget.style.boxShadow = "none"; }}>
+          onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.boxShadow = "none"; }}>
           <div style={{ width: 48, height: 48, borderRadius: 12, background: "#fff7ed", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
             <Hammer size={24} color="#e95e00" />
           </div>
-          <h3 style={{ fontSize: 17, fontWeight: 700, color: "#041830", margin: "0 0 6px" }}>Add Fix & Flip Deal</h3>
-          <p style={{ fontSize: 13, color: "#64748b", margin: 0, lineHeight: 1.5 }}>Track rehab budget, contractors, milestones, and profit.</p>
+          <h3 style={{ fontSize: 17, fontWeight: 700, color: "var(--text-primary)", margin: "0 0 6px" }}>Add Fix & Flip Deal</h3>
+          <p style={{ fontSize: 13, color: "var(--text-secondary)", margin: 0, lineHeight: 1.5 }}>Track rehab budget, contractors, milestones, and profit.</p>
         </button>
       </div>
     </div>
@@ -1908,15 +1989,15 @@ function PortfolioDashboard({ onNavigate, onSelectProperty, onSelectFlip, onNavi
   });
   const recentActivity = recentItems.sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 10);
 
-  const sectionS = { background: "#fff", borderRadius: 16, padding: 24, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" };
-  const qaBtnS = (color, bg) => ({ display: "flex", flexDirection: "column", alignItems: "center", gap: 8, padding: "16px 12px", borderRadius: 12, border: "1px solid #e2e8f0", background: "#fff", cursor: "pointer", transition: "all 0.15s", flex: 1 });
+  const sectionS = { background: "var(--surface)", borderRadius: 16, padding: 24, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)" };
+  const qaBtnS = (color, bg) => ({ display: "flex", flexDirection: "column", alignItems: "center", gap: 8, padding: "16px 12px", borderRadius: 12, border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", transition: "all 0.15s", flex: 1 });
 
   return (
     <div>
       {/* Header */}
       <div style={{ marginBottom: 28 }}>
-        <h1 style={{ fontSize: 26, fontWeight: 700, color: "#041830", margin: "0 0 8px 0" }}>Portfolio Overview</h1>
-        <p style={{ fontSize: 15, color: "#64748b", margin: 0 }}>Your complete real estate snapshot — rentals and deals combined.</p>
+        <h1 style={{ fontSize: 26, fontWeight: 700, color: "var(--text-primary)", margin: "0 0 8px 0" }}>Portfolio Overview</h1>
+        <p style={{ fontSize: 15, color: "var(--text-secondary)", margin: 0 }}>Your complete real estate snapshot — rentals and deals combined.</p>
       </div>
 
       {/* Row 1: KPI Cards */}
@@ -1940,11 +2021,11 @@ function PortfolioDashboard({ onNavigate, onSelectProperty, onSelectFlip, onNavi
         ].map((qa, i) => (
           <button key={i} onClick={qa.action} style={qaBtnS(qa.color, qa.bg)}
             onMouseEnter={e => { e.currentTarget.style.background = qa.bg; e.currentTarget.style.borderColor = qa.color + "40"; }}
-            onMouseLeave={e => { e.currentTarget.style.background = "#fff"; e.currentTarget.style.borderColor = "#e2e8f0"; }}>
+            onMouseLeave={e => { e.currentTarget.style.background = "var(--surface)"; e.currentTarget.style.borderColor = "var(--border)"; }}>
             <div style={{ width: 40, height: 40, borderRadius: 12, background: qa.bg, display: "flex", alignItems: "center", justifyContent: "center" }}>
               <qa.icon size={18} color={qa.color} />
             </div>
-            <span style={{ fontSize: 12, fontWeight: 600, color: "#475569" }}>{qa.label}</span>
+            <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-label)" }}>{qa.label}</span>
           </button>
         ))}
       </div>
@@ -1955,24 +2036,24 @@ function PortfolioDashboard({ onNavigate, onSelectProperty, onSelectFlip, onNavi
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <TrendingUp size={18} color="#10b981" />
-              <h3 style={{ fontSize: 16, fontWeight: 700, color: "#041830", margin: 0 }}>Cash Flow Trend</h3>
+              <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>Cash Flow Trend</h3>
             </div>
-            <p style={{ fontSize: 13, color: "#94a3b8", margin: 0 }}>Last 6 months</p>
+            <p style={{ fontSize: 13, color: "var(--text-muted)", margin: 0 }}>Last 6 months</p>
           </div>
           <ResponsiveContainer width="100%" height={200}>
             <BarChart data={cashFlowTrend} barGap={2}>
-              <XAxis dataKey="month" tick={{ fontSize: 11, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fontSize: 10, fill: "#94a3b8" }} axisLine={false} tickLine={false} tickFormatter={v => v >= 1000 ? `$${(v / 1000).toFixed(0)}k` : `$${v}`} width={45} />
-              <Tooltip contentStyle={{ borderRadius: 10, border: "1px solid #e2e8f0", fontSize: 12 }} formatter={(v) => [fmt(v)]} />
+              <XAxis dataKey="month" tick={{ fontSize: 11, fill: "var(--chart-axis)" }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fontSize: 10, fill: "var(--chart-axis)" }} axisLine={false} tickLine={false} tickFormatter={v => v >= 1000 ? `$${(v / 1000).toFixed(0)}k` : `$${v}`} width={45} />
+              <Tooltip contentStyle={{ borderRadius: 10, border: "1px solid var(--tooltip-border)", fontSize: 12, background: "var(--tooltip-bg)", color: "var(--tooltip-text)" }} formatter={(v) => [fmt(v)]} />
               <Bar dataKey="income" fill="#10b981" radius={[6, 6, 0, 0]} name="Income" />
               <Bar dataKey="expenses" fill="#ef4444" radius={[6, 6, 0, 0]} name="Expenses" />
             </BarChart>
           </ResponsiveContainer>
           <div style={{ display: "flex", justifyContent: "center", gap: 20, marginTop: 8 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: "#64748b" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: "var(--text-secondary)" }}>
               <div style={{ width: 8, height: 8, borderRadius: 2, background: "#10b981" }} /> Income
             </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: "#64748b" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: "var(--text-secondary)" }}>
               <div style={{ width: 8, height: 8, borderRadius: 2, background: "#ef4444" }} /> Expenses
             </div>
           </div>
@@ -1986,8 +2067,8 @@ function PortfolioDashboard({ onNavigate, onSelectProperty, onSelectFlip, onNavi
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <Building2 size={18} color="#3b82f6" />
-              <h3 style={{ fontSize: 16, fontWeight: 700, color: "#041830", margin: 0 }}>Rentals</h3>
-              <span style={{ fontSize: 13, color: "#94a3b8", fontWeight: 500 }}>({rentalSnapshots.length})</span>
+              <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>Rentals</h3>
+              <span style={{ fontSize: 13, color: "var(--text-muted)", fontWeight: 500 }}>({rentalSnapshots.length})</span>
             </div>
             <button onClick={() => onNavigate("dashboard")} style={{ background: "none", border: "none", color: "#3b82f6", cursor: "pointer", fontSize: 13, fontWeight: 600, display: "flex", alignItems: "center", gap: 4 }}>
               View all <ArrowRight size={14} />
@@ -1996,26 +2077,26 @@ function PortfolioDashboard({ onNavigate, onSelectProperty, onSelectFlip, onNavi
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             {rentalSnapshots.map(p => (
               <div key={p.id} onClick={() => onSelectProperty(p)}
-                style={{ display: "flex", alignItems: "center", gap: 12, padding: 12, borderRadius: 10, background: "#f8fafc", border: "1px solid #e2e8f0", cursor: "pointer", transition: "all 0.15s" }}
-                onMouseEnter={e => { e.currentTarget.style.background = "#f1f5f9"; e.currentTarget.style.borderColor = "#cbd5e1"; }}
-                onMouseLeave={e => { e.currentTarget.style.background = "#f8fafc"; e.currentTarget.style.borderColor = "#e2e8f0"; }}>
+                style={{ display: "flex", alignItems: "center", gap: 12, padding: 12, borderRadius: 10, background: "var(--surface-alt)", border: "1px solid var(--border)", cursor: "pointer", transition: "all 0.15s" }}
+                onMouseEnter={e => { e.currentTarget.style.background = "var(--surface-muted)"; e.currentTarget.style.borderColor = "#cbd5e1"; }}
+                onMouseLeave={e => { e.currentTarget.style.background = "var(--surface-alt)"; e.currentTarget.style.borderColor = "var(--border)"; }}>
                 <div style={{ width: 32, height: 32, borderRadius: 10, background: PROP_COLORS[p.color] || p.color, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 600, fontSize: 12, flexShrink: 0 }}>
                   {p.image?.slice(0, 1) || "P"}
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <p style={{ fontSize: 13, fontWeight: 600, color: "#041830", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</p>
-                  <p style={{ fontSize: 12, color: "#94a3b8", margin: "2px 0 0 0" }}>{fmt(p.monthlyNet)}/mo</p>
+                  <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</p>
+                  <p style={{ fontSize: 12, color: "var(--text-muted)", margin: "2px 0 0 0" }}>{fmt(p.monthlyNet)}/mo</p>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
-                  <div style={{ width: 40, height: 6, borderRadius: 3, background: "#e2e8f0", overflow: "hidden" }}>
+                  <div style={{ width: 40, height: 6, borderRadius: 3, background: "var(--border)", overflow: "hidden" }}>
                     <div style={{ height: "100%", width: `${p.occPct}%`, background: p.occPct === 100 ? "#10b981" : p.occPct >= 75 ? "#e95e00" : "#ef4444", borderRadius: 3 }} />
                   </div>
-                  <span style={{ fontSize: 11, color: "#64748b", fontWeight: 500, minWidth: 40 }}>{p.occPct}%</span>
+                  <span style={{ fontSize: 11, color: "var(--text-secondary)", fontWeight: 500, minWidth: 40 }}>{p.occPct}%</span>
                 </div>
               </div>
             ))}
           </div>
-          <div style={{ fontSize: 12, color: "#94a3b8", marginTop: 16, paddingTop: 12, borderTop: "1px solid #e2e8f0" }}>{rentalSummary}</div>
+          <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 16, paddingTop: 12, borderTop: "1px solid var(--border)" }}>{rentalSummary}</div>
         </div>
 
         {/* Flips — Stage Summary with milestone progress */}
@@ -2023,8 +2104,8 @@ function PortfolioDashboard({ onNavigate, onSelectProperty, onSelectFlip, onNavi
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <Hammer size={18} color="#e95e00" />
-              <h3 style={{ fontSize: 16, fontWeight: 700, color: "#041830", margin: 0 }}>Active Deals</h3>
-              <span style={{ fontSize: 13, color: "#94a3b8", fontWeight: 500 }}>({dealSnapshots.length})</span>
+              <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>Active Deals</h3>
+              <span style={{ fontSize: 13, color: "var(--text-muted)", fontWeight: 500 }}>({dealSnapshots.length})</span>
             </div>
             <button onClick={() => onNavigate("dealdashboard")} style={{ background: "none", border: "none", color: "#e95e00", cursor: "pointer", fontSize: 13, fontWeight: 600, display: "flex", alignItems: "center", gap: 4 }}>
               View all <ArrowRight size={14} />
@@ -2033,15 +2114,15 @@ function PortfolioDashboard({ onNavigate, onSelectProperty, onSelectFlip, onNavi
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             {dealStageData.map(f => (
               <div key={f.id} onClick={() => onSelectFlip(f)}
-                style={{ display: "flex", alignItems: "center", gap: 12, padding: 12, borderRadius: 10, background: "#f8fafc", border: "1px solid #e2e8f0", cursor: "pointer", transition: "all 0.15s" }}
-                onMouseEnter={e => { e.currentTarget.style.background = "#f1f5f9"; e.currentTarget.style.borderColor = "#cbd5e1"; }}
-                onMouseLeave={e => { e.currentTarget.style.background = "#f8fafc"; e.currentTarget.style.borderColor = "#e2e8f0"; }}>
+                style={{ display: "flex", alignItems: "center", gap: 12, padding: 12, borderRadius: 10, background: "var(--surface-alt)", border: "1px solid var(--border)", cursor: "pointer", transition: "all 0.15s" }}
+                onMouseEnter={e => { e.currentTarget.style.background = "var(--surface-muted)"; e.currentTarget.style.borderColor = "#cbd5e1"; }}
+                onMouseLeave={e => { e.currentTarget.style.background = "var(--surface-alt)"; e.currentTarget.style.borderColor = "var(--border)"; }}>
                 <div style={{ width: 32, height: 32, borderRadius: 10, background: DEAL_COLORS[f.color] || f.color, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 600, fontSize: 12, flexShrink: 0 }}>
                   {f.image?.slice(0, 1) || "F"}
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
-                    <p style={{ fontSize: 13, fontWeight: 600, color: "#041830", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{f.name}</p>
+                    <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{f.name}</p>
                     <span style={{ fontSize: 11, fontWeight: 600, color: STAGE_COLORS[f.stage], background: STAGE_COLORS[f.stage] + "1a", borderRadius: 4, padding: "2px 6px" }}>{f.stage}</span>
                     {f.overdueMs > 0 && (
                       <span style={{ fontSize: 10, fontWeight: 700, color: "#ef4444", background: "#fee2e2", borderRadius: 4, padding: "2px 6px" }}>
@@ -2050,13 +2131,13 @@ function PortfolioDashboard({ onNavigate, onSelectProperty, onSelectFlip, onNavi
                     )}
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <div style={{ flex: 1, height: 5, borderRadius: 3, background: "#e2e8f0", overflow: "hidden" }}>
+                    <div style={{ flex: 1, height: 5, borderRadius: 3, background: "var(--border)", overflow: "hidden" }}>
                       <div style={{ height: "100%", width: `${f.pct}%`, background: f.overdueMs > 0 ? "#e95e00" : "#10b981", borderRadius: 3, transition: "width 0.3s" }} />
                     </div>
-                    <span style={{ fontSize: 11, color: "#64748b", fontWeight: 500, whiteSpace: "nowrap" }}>{f.doneMs}/{f.totalMs}</span>
+                    <span style={{ fontSize: 11, color: "var(--text-secondary)", fontWeight: 500, whiteSpace: "nowrap" }}>{f.doneMs}/{f.totalMs}</span>
                   </div>
                   {f.nextMs && (
-                    <p style={{ fontSize: 11, color: "#94a3b8", margin: "4px 0 0 0" }}>
+                    <p style={{ fontSize: 11, color: "var(--text-muted)", margin: "4px 0 0 0" }}>
                       Next: {f.nextMs.label}{f.nextMs.targetDate ? ` · due ${f.nextMs.targetDate}` : ""}
                     </p>
                   )}
@@ -2064,7 +2145,7 @@ function PortfolioDashboard({ onNavigate, onSelectProperty, onSelectFlip, onNavi
               </div>
             ))}
           </div>
-          <div style={{ fontSize: 12, color: "#94a3b8", marginTop: 16, paddingTop: 12, borderTop: "1px solid #e2e8f0" }}>{flipSummary}</div>
+          <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 16, paddingTop: 12, borderTop: "1px solid var(--border)" }}>{flipSummary}</div>
         </div>
       </div>
 
@@ -2075,7 +2156,7 @@ function PortfolioDashboard({ onNavigate, onSelectProperty, onSelectFlip, onNavi
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexShrink: 0 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <AlertCircle size={18} color={highCount > 0 ? "#ef4444" : "#f59e0b"} />
-              <h3 style={{ fontSize: 16, fontWeight: 700, color: "#041830", margin: 0 }}>Needs Attention</h3>
+              <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>Needs Attention</h3>
               {attentionAlerts.length > 0 && (
                 <span style={{ background: highCount > 0 ? "#fee2e2" : "#fef3c7", color: highCount > 0 ? "#b91c1c" : "#92400e", borderRadius: 20, padding: "2px 9px", fontSize: 11, fontWeight: 700 }}>{attentionAlerts.length}</span>
               )}
@@ -2088,8 +2169,8 @@ function PortfolioDashboard({ onNavigate, onSelectProperty, onSelectFlip, onNavi
                 <div style={{ width: 48, height: 48, borderRadius: "50%", background: "#dcfce7", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 10px" }}>
                   <CheckCircle size={24} color="#10b981" />
                 </div>
-                <p style={{ fontSize: 13, fontWeight: 600, color: "#041830", margin: 0 }}>All caught up</p>
-                <p style={{ fontSize: 12, color: "#94a3b8", margin: "2px 0 0" }}>No action items right now</p>
+                <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)", margin: 0 }}>All caught up</p>
+                <p style={{ fontSize: 12, color: "var(--text-muted)", margin: "2px 0 0" }}>No action items right now</p>
               </div>
             ) : attentionAlerts.map(a => {
               const sevColor = a.severity === "high" ? "#ef4444" : a.severity === "medium" ? "#f59e0b" : "#64748b";
@@ -2125,7 +2206,7 @@ function PortfolioDashboard({ onNavigate, onSelectProperty, onSelectFlip, onNavi
                 }
               };
               return (
-                <div key={a.id} style={{ borderRadius: 10, background: "#f8fafc", border: isExpanded ? "1.5px solid #dbeafe" : "1px solid #f1f5f9", position: "relative", transition: "border 0.15s" }}>
+                <div key={a.id} style={{ borderRadius: 10, background: "var(--surface-alt)", border: isExpanded ? "1.5px solid #dbeafe" : "1px solid var(--border-subtle)", position: "relative", transition: "border 0.15s" }}>
                   <div style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "10px 12px" }}>
                     <div style={{ width: 32, height: 32, borderRadius: 8, background: a.bg, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                       <Icon size={15} color={a.color} />
@@ -2133,9 +2214,9 @@ function PortfolioDashboard({ onNavigate, onSelectProperty, onSelectFlip, onNavi
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
                         <span style={{ width: 6, height: 6, borderRadius: "50%", background: sevColor, flexShrink: 0 }} />
-                        <p style={{ fontSize: 13, fontWeight: 600, color: "#041830", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.title}</p>
+                        <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.title}</p>
                       </div>
-                      <p style={{ fontSize: 11, color: "#64748b", margin: "0 0 6px 0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.detail}</p>
+                      <p style={{ fontSize: 11, color: "var(--text-secondary)", margin: "0 0 6px 0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.detail}</p>
                       <button onClick={handleGo} style={{ background: "none", border: "none", color: "#e95e00", fontSize: 12, fontWeight: 600, cursor: "pointer", padding: 0, display: "flex", alignItems: "center", gap: 4 }}>
                         {isRentOverdue && isExpanded ? "Cancel" : a.action} {!(isRentOverdue && isExpanded) && <ArrowRight size={12} />}
                       </button>
@@ -2143,7 +2224,7 @@ function PortfolioDashboard({ onNavigate, onSelectProperty, onSelectFlip, onNavi
                     <div style={{ position: "relative", flexShrink: 0 }}>
                       <button
                         onClick={() => setAlertMenuOpen(alertMenuOpen === a.id ? null : a.id)}
-                        style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8", padding: 4, borderRadius: 6, display: "flex", alignItems: "center" }}
+                        style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)", padding: 4, borderRadius: 6, display: "flex", alignItems: "center" }}
                         title="Options"
                       >
                         <MoreHorizontal size={16} />
@@ -2151,14 +2232,14 @@ function PortfolioDashboard({ onNavigate, onSelectProperty, onSelectFlip, onNavi
                       {alertMenuOpen === a.id && (
                         <>
                           <div onClick={() => setAlertMenuOpen(null)} style={{ position: "fixed", inset: 0, zIndex: 900 }} />
-                          <div style={{ position: "absolute", right: 0, top: 28, background: "#fff", border: "1px solid #e2e8f0", borderRadius: 10, boxShadow: "0 10px 25px rgba(0,0,0,0.1)", minWidth: 160, zIndex: 901, padding: 4 }}>
-                            <div style={{ fontSize: 10, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.05em", padding: "8px 10px 4px" }}>Snooze</div>
+                          <div style={{ position: "absolute", right: 0, top: 28, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, boxShadow: "0 10px 25px rgba(0,0,0,0.1)", minWidth: 160, zIndex: 901, padding: 4 }}>
+                            <div style={{ fontSize: 10, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em", padding: "8px 10px 4px" }}>Snooze</div>
                             {[{ label: "3 days", d: 3 }, { label: "7 days", d: 7 }, { label: "30 days", d: 30 }].map(opt => (
-                              <button key={opt.d} onClick={() => { snoozeAlert(a.id, opt.d); setAlertMenuOpen(null); bumpAlerts(); }} style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", textAlign: "left", padding: "8px 10px", background: "none", border: "none", cursor: "pointer", fontSize: 13, color: "#475569", borderRadius: 6 }} onMouseEnter={e => e.currentTarget.style.background = "#f8fafc"} onMouseLeave={e => e.currentTarget.style.background = "none"}>
+                              <button key={opt.d} onClick={() => { snoozeAlert(a.id, opt.d); setAlertMenuOpen(null); bumpAlerts(); }} style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", textAlign: "left", padding: "8px 10px", background: "none", border: "none", cursor: "pointer", fontSize: 13, color: "var(--text-label)", borderRadius: 6 }} onMouseEnter={e => e.currentTarget.style.background = "var(--surface-alt)"} onMouseLeave={e => e.currentTarget.style.background = "none"}>
                                 <Clock size={13} color="#94a3b8" /> Remind in {opt.label}
                               </button>
                             ))}
-                            <div style={{ borderTop: "1px solid #f1f5f9", margin: "4px 0" }} />
+                            <div style={{ borderTop: "1px solid var(--border-subtle)", margin: "4px 0" }} />
                             <button onClick={() => { dismissAlert(a.id); setAlertMenuOpen(null); bumpAlerts(); }} style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", textAlign: "left", padding: "8px 10px", background: "none", border: "none", cursor: "pointer", fontSize: 13, color: "#b91c1c", borderRadius: 6 }} onMouseEnter={e => e.currentTarget.style.background = "#fef2f2"} onMouseLeave={e => e.currentTarget.style.background = "none"}>
                               <X size={13} /> Dismiss
                             </button>
@@ -2182,7 +2263,7 @@ function PortfolioDashboard({ onNavigate, onSelectProperty, onSelectFlip, onNavi
 
         {/* Recent Activity */}
         <div style={sectionS}>
-          <h3 style={{ fontSize: 16, fontWeight: 700, color: "#041830", margin: "0 0 16px 0" }}>Recent Activity</h3>
+          <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--text-primary)", margin: "0 0 16px 0" }}>Recent Activity</h3>
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {recentActivity.length > 0 ? (
               recentActivity.map((item, idx) => (
@@ -2192,14 +2273,14 @@ function PortfolioDashboard({ onNavigate, onSelectProperty, onSelectFlip, onNavi
                     else if (item.source === "deal" && item.expId && onNavigateToDealExpense) onNavigateToDealExpense(item.expId);
                   }}
                   style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 10px", borderRadius: 10, cursor: "pointer", transition: "background 0.15s" }}
-                  onMouseEnter={e => e.currentTarget.style.background = "#f8fafc"}
+                  onMouseEnter={e => e.currentTarget.style.background = "var(--surface-alt)"}
                   onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
                   <div style={{ width: 32, height: 32, borderRadius: 8, background: item.bg, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                     <item.icon size={14} color={item.color} />
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ fontSize: 13, fontWeight: 600, color: "#041830", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.title}</p>
-                    <p style={{ fontSize: 12, color: "#94a3b8", margin: "2px 0 0 0" }}>
+                    <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.title}</p>
+                    <p style={{ fontSize: 12, color: "var(--text-muted)", margin: "2px 0 0 0" }}>
                       <span style={{ display: "inline-block", padding: "1px 5px", borderRadius: 3, fontSize: 10, fontWeight: 600, letterSpacing: "0.03em", marginRight: 5, background: item.source === "rental" ? "#eff6ff" : "#ffedd5", color: item.source === "rental" ? "#3b82f6" : "#d97706" }}>
                         {item.source === "rental" ? "RENTAL" : "DEAL"}
                       </span>
@@ -2215,7 +2296,7 @@ function PortfolioDashboard({ onNavigate, onSelectProperty, onSelectFlip, onNavi
                 </div>
               ))
             ) : (
-              <p style={{ fontSize: 13, color: "#94a3b8", textAlign: "center", padding: "24px 0", margin: 0 }}>No activity yet</p>
+              <p style={{ fontSize: 13, color: "var(--text-muted)", textAlign: "center", padding: "24px 0", margin: 0 }}>No activity yet</p>
             )}
           </div>
         </div>
@@ -2302,14 +2383,14 @@ function Dashboard({ onNavigate, onNavigateToTx, onSelectProperty, onNavigateToT
   // Rent payment write lives in shared logRentPayment() via <QuickPayInline/>.
   const handleMarkPaid = (tenant) => { setQuickPay(tenant); };
 
-  const sectionS = { background: "#fff", borderRadius: 16, padding: 24, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" };
+  const sectionS = { background: "var(--surface)", borderRadius: 16, padding: 24, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)" };
 
   return (
     <div>
       {/* Header */}
       <div style={{ marginBottom: 28 }}>
-        <h1 style={{ color: "#041830", fontSize: 26, fontWeight: 700, marginBottom: 4 }}>Dashboard</h1>
-        <p style={{ color: "#64748b", fontSize: 15 }}>Welcome back, Brandon — here's what needs your attention.</p>
+        <h1 style={{ color: "var(--text-primary)", fontSize: 26, fontWeight: 700, marginBottom: 4 }}>Dashboard</h1>
+        <p style={{ color: "var(--text-secondary)", fontSize: 15 }}>Welcome back, Brandon — here's what needs your attention.</p>
       </div>
 
       {/* KPI Row */}
@@ -2326,24 +2407,24 @@ function Dashboard({ onNavigate, onNavigateToTx, onSelectProperty, onNavigateToT
         <div style={sectionS}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
             <div>
-              <h3 style={{ color: "#041830", fontSize: 16, fontWeight: 700 }}>Rent Roll</h3>
-              <p style={{ color: "#94a3b8", fontSize: 13, marginTop: 2 }}>{activeTenants.length} active tenants · {fmt(expectedRent)}/mo</p>
+              <h3 style={{ color: "var(--text-primary)", fontSize: 16, fontWeight: 700 }}>Rent Roll</h3>
+              <p style={{ color: "var(--text-muted)", fontSize: 13, marginTop: 2 }}>{activeTenants.length} active tenants · {fmt(expectedRent)}/mo</p>
             </div>
             <InfoTip text="Summary of every active tenant: unit, monthly rent, lease status, and lease end date. Click a row to view the tenant's property detail." />
           </div>
           {activeTenants.length === 0 ? (
             <div style={{ textAlign: "center", padding: "24px 0" }}>
               <Users size={28} color="#94a3b8" style={{ marginBottom: 8 }} />
-              <p style={{ color: "#64748b", fontSize: 14, fontWeight: 600 }}>No active tenants</p>
-              <p style={{ color: "#94a3b8", fontSize: 12, marginTop: 2 }}>Add tenants to your properties to see the rent roll.</p>
+              <p style={{ color: "var(--text-secondary)", fontSize: 14, fontWeight: 600 }}>No active tenants</p>
+              <p style={{ color: "var(--text-muted)", fontSize: 12, marginTop: 2 }}>Add tenants to your properties to see the rent roll.</p>
             </div>
           ) : (
             <div>
               {/* Column headers */}
-              <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr", gap: 8, padding: "0 6px 8px", borderBottom: "1px solid #f1f5f9" }}>
-                <span style={{ fontSize: 10, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.05em" }}>Tenant / Unit</span>
-                <span style={{ fontSize: 10, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.05em", textAlign: "right" }}>Rent</span>
-                <span style={{ fontSize: 10, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.05em", textAlign: "right" }}>Lease</span>
+              <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr", gap: 8, padding: "0 6px 8px", borderBottom: "1px solid var(--border-subtle)" }}>
+                <span style={{ fontSize: 10, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em" }}>Tenant / Unit</span>
+                <span style={{ fontSize: 10, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em", textAlign: "right" }}>Rent</span>
+                <span style={{ fontSize: 10, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em", textAlign: "right" }}>Lease</span>
               </div>
               {/* Rows */}
               <div style={{ maxHeight: 260, overflowY: "auto" }}>
@@ -2362,14 +2443,14 @@ function Dashboard({ onNavigate, onNavigateToTx, onSelectProperty, onNavigateToT
                     <div key={t.id}
                       onClick={() => prop && onNavigateToLease && onNavigateToLease(prop, t.id)}
                       style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr", gap: 8, padding: "9px 6px", borderBottom: "1px solid #f8fafc", cursor: "pointer", borderRadius: 6, transition: "background 0.12s" }}
-                      onMouseEnter={e => e.currentTarget.style.background = "#f8fafc"}
+                      onMouseEnter={e => e.currentTarget.style.background = "var(--surface-alt)"}
                       onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
                       <div style={{ minWidth: 0 }}>
-                        <p style={{ fontSize: 13, fontWeight: 600, color: "#041830", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.name}</p>
-                        <p style={{ fontSize: 11, color: "#94a3b8", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{prop?.name?.split(" ").slice(0, 3).join(" ") || ""} · {t.unit}</p>
+                        <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.name}</p>
+                        <p style={{ fontSize: 11, color: "var(--text-muted)", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{prop?.name?.split(" ").slice(0, 3).join(" ") || ""} · {t.unit}</p>
                       </div>
                       <div style={{ textAlign: "right", alignSelf: "center" }}>
-                        <span style={{ fontSize: 13, fontWeight: 700, color: "#041830" }}>{fmt(t.rent)}</span>
+                        <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)" }}>{fmt(t.rent)}</span>
                       </div>
                       <div style={{ textAlign: "right", alignSelf: "center" }}>
                         <span style={{ fontSize: 11, fontWeight: 600, color: statusColor, background: statusColor + "18", padding: "2px 8px", borderRadius: 6, whiteSpace: "nowrap" }}>{statusLabel}</span>
@@ -2379,9 +2460,9 @@ function Dashboard({ onNavigate, onNavigateToTx, onSelectProperty, onNavigateToT
                 })}
               </div>
               {/* Footer total */}
-              <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr", gap: 8, padding: "10px 6px 0", borderTop: "1px solid #f1f5f9", marginTop: 4 }}>
-                <span style={{ fontSize: 12, fontWeight: 700, color: "#64748b" }}>Total ({activeTenants.length})</span>
-                <span style={{ fontSize: 13, fontWeight: 700, color: "#041830", textAlign: "right" }}>{fmt(expectedRent)}</span>
+              <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr", gap: 8, padding: "10px 6px 0", borderTop: "1px solid var(--border-subtle)", marginTop: 4 }}>
+                <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text-secondary)" }}>Total ({activeTenants.length})</span>
+                <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)", textAlign: "right" }}>{fmt(expectedRent)}</span>
                 <span />
               </div>
             </div>
@@ -2392,26 +2473,26 @@ function Dashboard({ onNavigate, onNavigateToTx, onSelectProperty, onNavigateToT
         <div style={sectionS}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
             <div>
-              <h3 style={{ color: "#041830", fontSize: 16, fontWeight: 700 }}>Rent Collection</h3>
-              <p style={{ color: "#94a3b8", fontSize: 13, marginTop: 2 }}>{new Date().toLocaleString("en-US", { month: "long", year: "numeric" })}</p>
+              <h3 style={{ color: "var(--text-primary)", fontSize: 16, fontWeight: 700 }}>Rent Collection</h3>
+              <p style={{ color: "var(--text-muted)", fontSize: 13, marginTop: 2 }}>{new Date().toLocaleString("en-US", { month: "long", year: "numeric" })}</p>
             </div>
             {onNavigate && <button onClick={() => onNavigate("transactions")} style={{ color: "#3b82f6", fontSize: 13, fontWeight: 600, background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>View all <ChevronRight size={14} /></button>}
           </div>
           {/* Collection progress bar */}
           <div style={{ marginBottom: 20 }}>
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-              <span style={{ fontSize: 13, fontWeight: 600, color: "#041830" }}>{fmt(collectedRent)} collected</span>
-              <span style={{ fontSize: 13, color: "#94a3b8" }}>{fmt(expectedRent)} expected</span>
+              <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>{fmt(collectedRent)} collected</span>
+              <span style={{ fontSize: 13, color: "var(--text-muted)" }}>{fmt(expectedRent)} expected</span>
             </div>
-            <div style={{ height: 10, background: "#f1f5f9", borderRadius: 5, overflow: "hidden" }}>
+            <div style={{ height: 10, background: "var(--surface-muted)", borderRadius: 5, overflow: "hidden" }}>
               <div style={{ height: "100%", width: `${Math.min(collectionPct, 100)}%`, background: collectionPct >= 100 ? "#10b981" : collectionPct >= 75 ? "#e95e00" : "#ef4444", borderRadius: 5, transition: "width 0.5s ease" }} />
             </div>
-            <p style={{ fontSize: 12, color: "#94a3b8", marginTop: 4 }}>{paidThisMonth.length} of {activeTenants.length} tenants paid</p>
+            <p style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 4 }}>{paidThisMonth.length} of {activeTenants.length} tenants paid</p>
           </div>
           {/* Unpaid tenants */}
           {unpaidTenants.length > 0 ? (
             <div>
-              <p style={{ fontSize: 12, fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 8 }}>Outstanding</p>
+              <p style={{ fontSize: 12, fontWeight: 700, color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 8 }}>Outstanding</p>
               <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                 {unpaidTenants.slice(0, 4).map(t => {
                   const prop = PROPERTIES.find(p => p.id === t.propertyId);
@@ -2420,8 +2501,8 @@ function Dashboard({ onNavigate, onNavigateToTx, onSelectProperty, onNavigateToT
                     <div key={t.id} style={{ borderRadius: 10, border: isExpanded ? "1.5px solid #dbeafe" : "1px solid transparent", background: isExpanded ? "#f8fafc" : "transparent", transition: "all 0.15s" }}>
                       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 10px" }}>
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <p style={{ fontSize: 13, fontWeight: 600, color: "#041830" }}>{t.name}</p>
-                          <p style={{ fontSize: 12, color: "#94a3b8" }}>{prop?.name?.split(" ").slice(0, 2).join(" ") || ""} · {t.unit}</p>
+                          <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>{t.name}</p>
+                          <p style={{ fontSize: 12, color: "var(--text-muted)" }}>{prop?.name?.split(" ").slice(0, 2).join(" ") || ""} · {t.unit}</p>
                         </div>
                         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                           <span style={{ fontSize: 14, fontWeight: 700, color: "#b91c1c" }}>{fmt(t.rent)}</span>
@@ -2459,31 +2540,31 @@ function Dashboard({ onNavigate, onNavigateToTx, onSelectProperty, onNavigateToT
         <div style={sectionS}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
             <div>
-              <h3 style={{ color: "#041830", fontSize: 16, fontWeight: 700 }}>Properties</h3>
-              <p style={{ color: "#94a3b8", fontSize: 13, marginTop: 2 }}>{PROPERTIES.length} properties · {occupiedUnits}/{totalUnits} units occupied</p>
+              <h3 style={{ color: "var(--text-primary)", fontSize: 16, fontWeight: 700 }}>Properties</h3>
+              <p style={{ color: "var(--text-muted)", fontSize: 13, marginTop: 2 }}>{PROPERTIES.length} properties · {occupiedUnits}/{totalUnits} units occupied</p>
             </div>
             {onNavigate && <button onClick={() => onNavigate("properties")} style={{ color: "#3b82f6", fontSize: 13, fontWeight: 600, background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>View all <ChevronRight size={14} /></button>}
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {propSnapshots.map(p => (
-              <div key={p.id} onClick={() => onSelectProperty && onSelectProperty(p)} style={{ display: "flex", alignItems: "center", gap: 14, padding: "14px 12px", borderRadius: 12, border: "1px solid #f1f5f9", cursor: "pointer", transition: "all 0.15s" }}
-                onMouseEnter={e => { e.currentTarget.style.background = "#f8fafc"; e.currentTarget.style.borderColor = "#e2e8f0"; }}
+              <div key={p.id} onClick={() => onSelectProperty && onSelectProperty(p)} style={{ display: "flex", alignItems: "center", gap: 14, padding: "14px 12px", borderRadius: 12, border: "1px solid var(--border-subtle)", cursor: "pointer", transition: "all 0.15s" }}
+                onMouseEnter={e => { e.currentTarget.style.background = "var(--surface-alt)"; e.currentTarget.style.borderColor = "var(--border)"; }}
                 onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.borderColor = "#f1f5f9"; }}>
                 <div style={{ width: 40, height: 40, borderRadius: 10, background: p.color + "18", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                   <Building2 size={18} color={p.color} />
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
-                    <p style={{ fontSize: 14, fontWeight: 600, color: "#041830" }}>{p.name}</p>
-                    <span style={{ fontSize: 14, fontWeight: 700, color: p.monthlyNet >= 0 ? "#15803d" : "#b91c1c" }}>{p.monthlyNet >= 0 ? "+" : ""}{fmt(p.monthlyNet)}<span style={{ fontSize: 11, fontWeight: 500, color: "#94a3b8" }}>/mo</span></span>
+                    <p style={{ fontSize: 14, fontWeight: 600, color: "var(--text-primary)" }}>{p.name}</p>
+                    <span style={{ fontSize: 14, fontWeight: 700, color: p.monthlyNet >= 0 ? "#15803d" : "#b91c1c" }}>{p.monthlyNet >= 0 ? "+" : ""}{fmt(p.monthlyNet)}<span style={{ fontSize: 11, fontWeight: 500, color: "var(--text-muted)" }}>/mo</span></span>
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                     {/* Occupancy mini-bar */}
                     <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
-                      <div style={{ width: 60, height: 5, background: "#f1f5f9", borderRadius: 3, overflow: "hidden" }}>
+                      <div style={{ width: 60, height: 5, background: "var(--surface-muted)", borderRadius: 3, overflow: "hidden" }}>
                         <div style={{ height: "100%", width: `${p.occPct}%`, background: p.occPct >= 90 ? "#10b981" : p.occPct >= 70 ? "#e95e00" : "#ef4444", borderRadius: 3 }} />
                       </div>
-                      <span style={{ fontSize: 11, color: "#64748b", whiteSpace: "nowrap" }}>{p.occupied}/{p.total}</span>
+                      <span style={{ fontSize: 11, color: "var(--text-secondary)", whiteSpace: "nowrap" }}>{p.occupied}/{p.total}</span>
                     </div>
                     {/* Next lease expiry */}
                     {p.nextExpiry && p.nextExpiry.daysLeft <= 60 && (
@@ -2491,7 +2572,7 @@ function Dashboard({ onNavigate, onNavigateToTx, onSelectProperty, onNavigateToT
                         {p.nextExpiry.daysLeft < 0 ? "Expired" : `${p.nextExpiry.daysLeft}d`} — {p.nextExpiry.unit}
                       </span>
                     )}
-                    <span style={{ fontSize: 11, color: "#94a3b8", whiteSpace: "nowrap" }}>{p.type} · {p.units} unit{p.units !== 1 ? "s" : ""}</span>
+                    <span style={{ fontSize: 11, color: "var(--text-muted)", whiteSpace: "nowrap" }}>{p.type} · {p.units} unit{p.units !== 1 ? "s" : ""}</span>
                   </div>
                 </div>
                 <ChevronRight size={14} color="#cbd5e1" />
@@ -2503,22 +2584,22 @@ function Dashboard({ onNavigate, onNavigateToTx, onSelectProperty, onNavigateToT
         {/* Recent Activity */}
         <div style={sectionS}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-            <h3 style={{ color: "#041830", fontSize: 16, fontWeight: 700 }}>Recent Activity</h3>
+            <h3 style={{ color: "var(--text-primary)", fontSize: 16, fontWeight: 700 }}>Recent Activity</h3>
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
             {recentActivity.length === 0 ? (
-              <p style={{ color: "#94a3b8", fontSize: 13, textAlign: "center", padding: 24 }}>No recent activity.</p>
+              <p style={{ color: "var(--text-muted)", fontSize: 13, textAlign: "center", padding: 24 }}>No recent activity.</p>
             ) : recentActivity.map((a, i) => (
               <div key={i} onClick={() => { if (a.txId && onNavigateToTx) onNavigateToTx(a.txId); else if (a.type === "note" && a.noteId && onNavigateToNote) onNavigateToNote(a.noteId); else if (a.propId && onSelectProperty) { const prop = PROPERTIES.find(p => p.id === a.propId); if (prop) onSelectProperty(prop); } }}
                 style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 8px", borderRadius: 10, cursor: "pointer", transition: "background 0.15s" }}
-                onMouseEnter={e => e.currentTarget.style.background = "#f8fafc"}
+                onMouseEnter={e => e.currentTarget.style.background = "var(--surface-alt)"}
                 onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
                 <div style={{ width: 32, height: 32, borderRadius: 8, background: a.bg, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                   <a.icon size={13} color={a.color} />
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <p style={{ fontSize: 13, fontWeight: 600, color: "#041830", marginBottom: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.title}</p>
-                  <p style={{ fontSize: 12, color: "#94a3b8" }}>{a.sub}</p>
+                  <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)", marginBottom: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.title}</p>
+                  <p style={{ fontSize: 12, color: "var(--text-muted)" }}>{a.sub}</p>
                 </div>
                 {a.amount !== undefined && (
                   <span style={{ fontWeight: 700, fontSize: 13, color: a.txType === "income" ? "#15803d" : "#b91c1c", whiteSpace: "nowrap" }}>
@@ -2648,27 +2729,27 @@ function Properties({ onSelect, editPropertyId, onClearEditId, convertDealData, 
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
         <div>
-          <h1 style={{ color: "#041830", fontSize: 26, fontWeight: 700, marginBottom: 4 }}>Properties</h1>
-          <p style={{ color: "#64748b", fontSize: 15 }}>{PROPERTIES.length} properties in your portfolio</p>
+          <h1 style={{ color: "var(--text-primary)", fontSize: 26, fontWeight: 700, marginBottom: 4 }}>Properties</h1>
+          <p style={{ color: "var(--text-secondary)", fontSize: 15 }}>{PROPERTIES.length} properties in your portfolio</p>
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
           <button onClick={openAdd} style={{ background: "#e95e00", color: "#fff", border: "none", borderRadius: 10, padding: "10px 18px", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
             <Plus size={16} /> Add Property
           </button>
-          {typeof onGuidedSetup === "function" && <button onClick={onGuidedSetup} style={{ background: "#fff", color: "#e95e00", border: "1px solid #e95e00", borderRadius: 10, padding: "10px 18px", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
+          {typeof onGuidedSetup === "function" && <button onClick={onGuidedSetup} style={{ background: "var(--surface)", color: "#e95e00", border: "1px solid #e95e00", borderRadius: 10, padding: "10px 18px", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
             <Sparkles size={16} /> Guided Setup
           </button>}
         </div>
       </div>
       <div style={{ display: "flex", gap: 12, marginBottom: 24 }}>
         <div style={{ position: "relative", flex: 1 }}>
-          <Search size={16} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "#94a3b8" }} />
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search properties..." style={{ width: "100%", paddingLeft: 38, paddingRight: 16, paddingTop: 10, paddingBottom: 10, border: "1px solid #e2e8f0", borderRadius: 10, fontSize: 14, color: "#041830", background: "#fff", outline: "none", boxSizing: "border-box" }} />
+          <Search size={16} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "var(--text-muted)" }} />
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search properties..." style={{ width: "100%", paddingLeft: 38, paddingRight: 16, paddingTop: 10, paddingBottom: 10, border: "1px solid var(--border)", borderRadius: 10, fontSize: 14, color: "var(--text-primary)", background: "var(--surface)", outline: "none", boxSizing: "border-box" }} />
         </div>
-        <button style={{ border: "1px solid #e2e8f0", borderRadius: 10, padding: "10px 16px", background: "#fff", color: "#475569", fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
+        <button style={{ border: "1px solid var(--border)", borderRadius: 10, padding: "10px 16px", background: "var(--surface)", color: "var(--text-label)", fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
           <Filter size={15} /> Filter
         </button>
-        <div style={{ display: "flex", background: "#f1f5f9", borderRadius: 10, padding: 3 }}>
+        <div style={{ display: "flex", background: "var(--surface-muted)", borderRadius: 10, padding: 3 }}>
           {["grid", "list"].map(v => (
             <button key={v} onClick={() => setView(v)} style={{ padding: "7px 14px", borderRadius: 8, border: "none", background: view === v ? "#fff" : "transparent", color: view === v ? "#041830" : "#64748b", fontWeight: 600, fontSize: 13, cursor: "pointer", boxShadow: view === v ? "0 1px 3px rgba(0,0,0,0.1)" : "none" }}>
               {v === "grid" ? "#" : "="}
@@ -2688,7 +2769,7 @@ function Properties({ onSelect, editPropertyId, onClearEditId, convertDealData, 
             const pHealth = getPropertyHealth(p, TRANSACTIONS);
             const pBadge = healthBadge(pHealth);
             return (
-              <div key={p.id} onClick={() => onSelect(p)} style={{ background: "#fff", borderRadius: 16, overflow: "hidden", boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9", cursor: "pointer", transition: "transform 0.15s, box-shadow 0.15s" }}
+              <div key={p.id} onClick={() => onSelect(p)} style={{ background: "var(--surface)", borderRadius: 16, overflow: "hidden", boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)", cursor: "pointer", transition: "transform 0.15s, box-shadow 0.15s" }}
                 onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-3px)"; e.currentTarget.style.boxShadow = "0 8px 24px rgba(0,0,0,0.1)"; }}
                 onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "0 1px 3px rgba(0,0,0,0.06)"; }}>
                 <div style={{ height: 130, background: p.photo ? "transparent" : `linear-gradient(135deg, ${p.color}22, ${p.color}44)`, display: "flex", alignItems: "center", justifyContent: "center", position: "relative", overflow: "hidden" }}>
@@ -2712,31 +2793,31 @@ function Properties({ onSelect, editPropertyId, onClearEditId, convertDealData, 
                   </div>
                 </div>
                 <div style={{ padding: 18 }}>
-                  <h3 style={{ color: "#041830", fontSize: 15, fontWeight: 700, marginBottom: 3 }}>{p.name}</h3>
-                  <p style={{ color: "#94a3b8", fontSize: 12, marginBottom: 14, display: "flex", alignItems: "center", gap: 4 }}>
+                  <h3 style={{ color: "var(--text-primary)", fontSize: 15, fontWeight: 700, marginBottom: 3 }}>{p.name}</h3>
+                  <p style={{ color: "var(--text-muted)", fontSize: 12, marginBottom: 14, display: "flex", alignItems: "center", gap: 4 }}>
                     <MapPin size={11} /> {p.address.split(",")[1]?.trim()} . {p.type}
                   </p>
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-                    <div style={{ background: "#f8fafc", borderRadius: 10, padding: "10px 12px" }}>
-                      <p style={{ color: "#94a3b8", fontSize: 11, fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.04em" }}>Value</p>
-                      <p style={{ color: "#041830", fontSize: 15, fontWeight: 700 }}>{fmtK(p.currentValue)}</p>
+                    <div style={{ background: "var(--surface-alt)", borderRadius: 10, padding: "10px 12px" }}>
+                      <p style={{ color: "var(--text-muted)", fontSize: 11, fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.04em" }}>Value</p>
+                      <p style={{ color: "var(--text-primary)", fontSize: 15, fontWeight: 700 }}>{fmtK(p.currentValue)}</p>
                       {p.valueUpdatedAt && (() => {
                         const staleD = Math.round((new Date() - new Date(p.valueUpdatedAt)) / 86400000);
                         const staleV = staleD > 90;
                         return <p style={{ color: staleV ? "#c2410c" : "#cbd5e1", fontSize: 10, marginTop: 1 }}>{staleV ? "⚠ Value may be outdated" : `Value as of ${daysAgo(p.valueUpdatedAt)}`}</p>;
                       })()}
                     </div>
-                    <div style={{ background: "#f8fafc", borderRadius: 10, padding: "10px 12px" }}>
-                      <p style={{ color: "#94a3b8", fontSize: 11, fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.04em" }}>Equity</p>
+                    <div style={{ background: "var(--surface-alt)", borderRadius: 10, padding: "10px 12px" }}>
+                      <p style={{ color: "var(--text-muted)", fontSize: 11, fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.04em" }}>Equity</p>
                       <p style={{ color: "#10b981", fontSize: 15, fontWeight: 700 }}>{fmtK(equity)}</p>
                       {calcBal !== null && <p style={{ color: "#cbd5e1", fontSize: 10, marginTop: 1 }}>Balance {fmtK(effectiveMortgage)}</p>}
                     </div>
-                    <div style={{ background: "#f8fafc", borderRadius: 10, padding: "10px 12px" }}>
-                      <p style={{ color: "#94a3b8", fontSize: 11, fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.04em" }}>Monthly CF</p>
-                      <p style={{ color: "#041830", fontSize: 15, fontWeight: 700 }}>{fmt(monthlyNet)}</p>
+                    <div style={{ background: "var(--surface-alt)", borderRadius: 10, padding: "10px 12px" }}>
+                      <p style={{ color: "var(--text-muted)", fontSize: 11, fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.04em" }}>Monthly CF</p>
+                      <p style={{ color: "var(--text-primary)", fontSize: 15, fontWeight: 700 }}>{fmt(monthlyNet)}</p>
                     </div>
-                    <div style={{ background: "#f8fafc", borderRadius: 10, padding: "10px 12px" }}>
-                      <p style={{ color: "#94a3b8", fontSize: 11, fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.04em" }}>Cap Rate</p>
+                    <div style={{ background: "var(--surface-alt)", borderRadius: 10, padding: "10px 12px" }}>
+                      <p style={{ color: "var(--text-muted)", fontSize: 11, fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.04em" }}>Cap Rate</p>
                       <p style={{ color: "#e95e00", fontSize: 15, fontWeight: 700 }}>{calcCapRate(p)}%</p>
                     </div>
                   </div>
@@ -2755,12 +2836,12 @@ function Properties({ onSelect, editPropertyId, onClearEditId, convertDealData, 
         </div>
       ) : (
         /* List View */
-        <div style={{ background: "#fff", borderRadius: 16, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9", overflow: "hidden" }}>
+        <div style={{ background: "var(--surface)", borderRadius: 16, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)", overflow: "hidden" }}>
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
-              <tr style={{ background: "#f8fafc" }}>
+              <tr style={{ background: "var(--surface-alt)" }}>
                 {["Property", "Type", "Value", "Equity", "Monthly Income", "Net Cash Flow", "Cap Rate", "Status", ""].map(h => (
-                  <th key={h} style={{ padding: "14px 20px", textAlign: "left", color: "#94a3b8", fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>{h}</th>
+                  <th key={h} style={{ padding: "14px 20px", textAlign: "left", color: "var(--text-muted)", fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>{h}</th>
                 ))}
               </tr>
             </thead>
@@ -2771,7 +2852,7 @@ function Properties({ onSelect, editPropertyId, onClearEditId, convertDealData, 
                 const tHealth = getPropertyHealth(p, TRANSACTIONS);
                 const tBadge = healthBadge(tHealth);
                 return (
-                <tr key={p.id} onClick={() => onSelect(p)} style={{ borderTop: "1px solid #f1f5f9", cursor: "pointer", background: i % 2 === 0 ? "#fff" : "#fafafa" }}
+                <tr key={p.id} onClick={() => onSelect(p)} style={{ borderTop: "1px solid var(--border-subtle)", cursor: "pointer", background: i % 2 === 0 ? "#fff" : "#fafafa" }}
                   onMouseEnter={e => e.currentTarget.style.background = "#f0f9ff"}
                   onMouseLeave={e => e.currentTarget.style.background = i % 2 === 0 ? "#fff" : "#fafafa"}>
                   <td style={{ padding: "16px 20px" }}>
@@ -2781,14 +2862,14 @@ function Properties({ onSelect, editPropertyId, onClearEditId, convertDealData, 
                         {tHealth.length > 0 && <span style={{ position: "absolute", top: -3, right: -3, width: 10, height: 10, borderRadius: "50%", background: tBadge.color, border: "2px solid #fff" }} />}
                       </div>
                       <div>
-                        <p style={{ fontSize: 14, fontWeight: 600, color: "#041830" }}>{p.name}</p>
-                        <p style={{ fontSize: 12, color: "#94a3b8" }}>{p.units} unit{p.units > 1 ? "s" : ""}</p>
+                        <p style={{ fontSize: 14, fontWeight: 600, color: "var(--text-primary)" }}>{p.name}</p>
+                        <p style={{ fontSize: 12, color: "var(--text-muted)" }}>{p.units} unit{p.units > 1 ? "s" : ""}</p>
                       </div>
                     </div>
                   </td>
-                  <td style={{ padding: "16px 20px", fontSize: 13, color: "#475569" }}>{p.type}</td>
+                  <td style={{ padding: "16px 20px", fontSize: 13, color: "var(--text-label)" }}>{p.type}</td>
                   <td style={{ padding: "16px 20px" }}>
-                    <p style={{ fontSize: 14, fontWeight: 600, color: "#041830" }}>{fmtK(p.currentValue)}</p>
+                    <p style={{ fontSize: 14, fontWeight: 600, color: "var(--text-primary)" }}>{fmtK(p.currentValue)}</p>
                     {p.valueUpdatedAt && (() => {
                       const staleD = Math.round((new Date() - new Date(p.valueUpdatedAt)) / 86400000);
                       const staleV = staleD > 90;
@@ -2799,15 +2880,15 @@ function Properties({ onSelect, editPropertyId, onClearEditId, convertDealData, 
                     <p style={{ fontSize: 14, fontWeight: 600, color: "#10b981" }}>{fmtK(p.currentValue - effMort)}</p>
                     {lBal !== null && <p style={{ fontSize: 11, color: "#cbd5e1" }}>Balance {fmtK(effMort)}</p>}
                   </td>
-                  <td style={{ padding: "16px 20px", fontSize: 14, fontWeight: 600, color: "#041830" }}>{fmt(getEffectiveMonthly(p, TRANSACTIONS).monthlyIncome)}</td>
-                  <td style={{ padding: "16px 20px", fontSize: 14, fontWeight: 700, color: "#041830" }}>{fmt(getEffectiveMonthly(p, TRANSACTIONS).monthlyIncome - getEffectiveMonthly(p, TRANSACTIONS).monthlyExpenses)}</td>
+                  <td style={{ padding: "16px 20px", fontSize: 14, fontWeight: 600, color: "var(--text-primary)" }}>{fmt(getEffectiveMonthly(p, TRANSACTIONS).monthlyIncome)}</td>
+                  <td style={{ padding: "16px 20px", fontSize: 14, fontWeight: 700, color: "var(--text-primary)" }}>{fmt(getEffectiveMonthly(p, TRANSACTIONS).monthlyIncome - getEffectiveMonthly(p, TRANSACTIONS).monthlyExpenses)}</td>
                   <td style={{ padding: "16px 20px" }}>
                     <span style={{ background: "#ede9fe", color: "#6d28d9", borderRadius: 20, padding: "3px 10px", fontSize: 12, fontWeight: 700 }}>{calcCapRate(p, TRANSACTIONS)}%</span>
                   </td>
                   <td style={{ padding: "16px 20px" }}><Badge status={p.status} /></td>
                   <td style={{ padding: "16px 20px" }}>
                     <div style={{ display: "flex", gap: 4 }}>
-                      <button onClick={e => openEdit(e, p)} style={{ background: "#f1f5f9", border: "none", borderRadius: 8, padding: "5px 8px", cursor: "pointer", display: "flex", alignItems: "center", gap: 5, color: "#475569", fontSize: 12, fontWeight: 600 }}>
+                      <button onClick={e => openEdit(e, p)} style={{ background: "var(--surface-muted)", border: "none", borderRadius: 8, padding: "5px 8px", cursor: "pointer", display: "flex", alignItems: "center", gap: 5, color: "var(--text-label)", fontSize: 12, fontWeight: 600 }}>
                         <Pencil size={12} /> Edit
                       </button>
                       <button onClick={e => { e.stopPropagation(); setDeleteConfirm(p); }} style={{ background: "#fee2e2", border: "none", borderRadius: 8, padding: "5px 8px", cursor: "pointer", display: "flex", alignItems: "center", color: "#ef4444" }} title="Delete">
@@ -2834,12 +2915,12 @@ function Properties({ onSelect, editPropertyId, onClearEditId, convertDealData, 
         <Modal title={editId ? "Edit Property" : "Add Property"} onClose={() => setShowModal(false)} width={580}>
           {/* Photo Upload */}
           <div style={{ marginBottom: 18 }}>
-            <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 8 }}>Property Photo</label>
+            <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 8 }}>Property Photo</label>
             <div
               onClick={() => document.getElementById("propPhotoInput").click()}
-              style={{ position: "relative", height: form.photo ? 160 : 100, borderRadius: 14, border: "2px dashed #e2e8f0", overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", background: form.photo ? "transparent" : "#f8fafc", transition: "border-color 0.15s" }}
+              style={{ position: "relative", height: form.photo ? 160 : 100, borderRadius: 14, border: "2px dashed var(--border)", overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", background: form.photo ? "transparent" : "#f8fafc", transition: "border-color 0.15s" }}
               onMouseEnter={e => e.currentTarget.style.borderColor = "#3b82f6"}
-              onMouseLeave={e => e.currentTarget.style.borderColor = "#e2e8f0"}
+              onMouseLeave={e => e.currentTarget.style.borderColor = "var(--border)"}
             >
               {form.photo ? (
                 <>
@@ -2855,7 +2936,7 @@ function Properties({ onSelect, editPropertyId, onClearEditId, convertDealData, 
                   </button>
                 </>
               ) : (
-                <div style={{ textAlign: "center", color: "#94a3b8", pointerEvents: "none" }}>
+                <div style={{ textAlign: "center", color: "var(--text-muted)", pointerEvents: "none" }}>
                   <UploadCloud size={28} style={{ margin: "0 auto 6px" }} />
                   <p style={{ fontSize: 13, fontWeight: 500 }}>Click to upload photo</p>
                   <p style={{ fontSize: 11, marginTop: 2 }}>JPG, PNG, WEBP</p>
@@ -2880,10 +2961,10 @@ function Properties({ onSelect, editPropertyId, onClearEditId, convertDealData, 
               { label: "Purchase Date", key: "purchaseDate", type: "date", placeholder: "" },
             ].map(f => (
               <div key={f.key} style={{ gridColumn: f.full ? "1 / -1" : "auto" }}>
-                <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>{f.label}</label>
+                <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>{f.label}</label>
                 <input type={f.type} placeholder={f.placeholder} value={form[f.key]} onChange={sf(f.key)} style={iS} />
                 {f.key === "landValue" && (
-                  <p style={{ fontSize: 11, color: "#94a3b8", marginTop: 4 }}>
+                  <p style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4 }}>
                     {form.landValue && parseFloat(form.purchasePrice) > 0
                       ? `Building value: ${fmt(parseFloat(form.purchasePrice) - parseFloat(form.landValue))} (depreciable basis for Schedule E)`
                       : "From county tax assessment. Used for depreciation — if blank, 20% of purchase price is estimated."}
@@ -2892,13 +2973,13 @@ function Properties({ onSelect, editPropertyId, onClearEditId, convertDealData, 
               </div>
             ))}
             <div>
-              <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Type</label>
+              <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Type</label>
               <select value={form.type} onChange={sf("type")} style={iS}>
                 {["Single Family","Multi-Family","Condo","Commercial","Land"].map(o => <option key={o}>{o}</option>)}
               </select>
             </div>
             <div>
-              <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Status</label>
+              <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Status</label>
               <select value={form.status} onChange={sf("status")} style={iS}>
                 {["Occupied","Partial Vacancy","Vacant"].map(o => <option key={o}>{o}</option>)}
               </select>
@@ -2912,27 +2993,27 @@ function Properties({ onSelect, editPropertyId, onClearEditId, convertDealData, 
             </p>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
               <div style={{ gridColumn: "1 / -1" }}>
-                <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Original Loan Amount ($)</label>
+                <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Original Loan Amount ($)</label>
                 <input type="number" placeholder="e.g. 308000" value={form.loanAmount} onChange={sf("loanAmount")} style={iS} />
               </div>
               <div>
-                <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Interest Rate (%)</label>
+                <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Interest Rate (%)</label>
                 <input type="number" step="0.01" placeholder="e.g. 3.25" value={form.loanRate} onChange={sf("loanRate")} style={iS} />
               </div>
               <div>
-                <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Loan Term (years)</label>
+                <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Loan Term (years)</label>
                 <input type="number" placeholder="30" value={form.loanTermYears} onChange={sf("loanTermYears")} style={iS} />
               </div>
               <div style={{ gridColumn: "1 / -1" }}>
-                <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Loan Start Date</label>
+                <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Loan Start Date</label>
                 <input type="date" value={form.loanStartDate} onChange={sf("loanStartDate")} style={iS} />
               </div>
               {form.loanAmount && form.loanRate && form.loanTermYears && form.loanStartDate && (() => {
                 const b = calcLoanBalance(form.loanAmount, form.loanRate, form.loanTermYears, form.loanStartDate);
                 return b !== null ? (
-                  <div style={{ gridColumn: "1 / -1", background: "#fff", borderRadius: 8, padding: "10px 14px", border: "1px solid #bae6fd", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <span style={{ color: "#64748b", fontSize: 13 }}>Estimated current balance:</span>
-                    <span style={{ color: "#041830", fontSize: 15, fontWeight: 700 }}>{fmt(b)}</span>
+                  <div style={{ gridColumn: "1 / -1", background: "var(--surface)", borderRadius: 8, padding: "10px 14px", border: "1px solid #bae6fd", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span style={{ color: "var(--text-secondary)", fontSize: 13 }}>Estimated current balance:</span>
+                    <span style={{ color: "var(--text-primary)", fontSize: 15, fontWeight: 700 }}>{fmt(b)}</span>
                   </div>
                 ) : null;
               })()}
@@ -2940,7 +3021,7 @@ function Properties({ onSelect, editPropertyId, onClearEditId, convertDealData, 
           </div>
 
           <div style={{ display: "flex", gap: 10, marginTop: 4 }}>
-            <button onClick={() => setShowModal(false)} style={{ flex: 1, padding: "12px", border: "1px solid #e2e8f0", borderRadius: 10, background: "#fff", color: "#475569", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
+            <button onClick={() => setShowModal(false)} style={{ flex: 1, padding: "12px", border: "1px solid var(--border)", borderRadius: 10, background: "var(--surface)", color: "var(--text-label)", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
             <button onClick={handleSaveProp} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "#e95e00", color: "#fff", fontWeight: 600, cursor: "pointer" }}>
               {editId ? "Save Changes" : "Add Property"}
             </button>
@@ -2953,17 +3034,17 @@ function Properties({ onSelect, editPropertyId, onClearEditId, convertDealData, 
             <div style={{ width: 48, height: 48, borderRadius: 14, background: "#fee2e2", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 16 }}>
               <Trash2 size={22} color="#ef4444" />
             </div>
-            <p style={{ color: "#041830", fontSize: 15, fontWeight: 600, marginBottom: 8 }}>
+            <p style={{ color: "var(--text-primary)", fontSize: 15, fontWeight: 600, marginBottom: 8 }}>
               Are you sure you want to delete <strong>{deleteConfirm.name}</strong>?
             </p>
-            <p style={{ color: "#64748b", fontSize: 13, marginBottom: 6 }}>
+            <p style={{ color: "var(--text-secondary)", fontSize: 13, marginBottom: 6 }}>
               {deleteConfirm.address}
             </p>
-            <p style={{ color: "#94a3b8", fontSize: 12, marginBottom: 24 }}>
+            <p style={{ color: "var(--text-muted)", fontSize: 12, marginBottom: 24 }}>
               This will remove the property and its data from your portfolio. This action cannot be undone.
             </p>
             <div style={{ display: "flex", gap: 10 }}>
-              <button onClick={() => setDeleteConfirm(null)} style={{ flex: 1, padding: "12px", border: "1px solid #e2e8f0", borderRadius: 10, background: "#fff", color: "#475569", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
+              <button onClick={() => setDeleteConfirm(null)} style={{ flex: 1, padding: "12px", border: "1px solid var(--border)", borderRadius: 10, background: "var(--surface)", color: "var(--text-label)", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
               <button onClick={handleDeleteProp} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "#ef4444", color: "#fff", fontWeight: 700, cursor: "pointer" }}>Delete Property</button>
             </div>
           </div>
@@ -2985,22 +3066,22 @@ function TxDetailPanel({ tx, onClose, onEdit, onDelete }) {
   return (
     <>
       <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(4,24,48,0.35)", zIndex: 1200 }} />
-      <div style={{ position: "fixed", top: 0, right: 0, bottom: 0, width: 460, background: "#fff", boxShadow: "-8px 0 40px rgba(0,0,0,0.14)", zIndex: 1201, display: "flex", flexDirection: "column" }}>
-        <div style={{ padding: "28px 28px 20px", background: "#f8fafc", borderBottom: "1px solid #f1f5f9" }}>
+      <div style={{ position: "fixed", top: 0, right: 0, bottom: 0, width: 460, background: "var(--surface)", boxShadow: "-8px 0 40px rgba(0,0,0,0.14)", zIndex: 1201, display: "flex", flexDirection: "column" }}>
+        <div style={{ padding: "28px 28px 20px", background: "var(--surface-alt)", borderBottom: "1px solid var(--border-subtle)" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
             <span style={{ background: bgColor, color, borderRadius: 20, padding: "3px 10px", fontSize: 12, fontWeight: 600, textTransform: "capitalize" }}>{tx.type}</span>
-            <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8", padding: 4, borderRadius: 8, lineHeight: 1 }}><X size={20} /></button>
+            <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)", padding: 4, borderRadius: 8, lineHeight: 1 }}><X size={20} /></button>
           </div>
           <p style={{ fontSize: 32, fontWeight: 800, color, margin: "0 0 4px" }}>{isIncome ? "+" : "−"}{fmt(Math.abs(tx.amount))}</p>
-          <p style={{ fontSize: 13, color: "#64748b" }}>{tx.date}</p>
+          <p style={{ fontSize: 13, color: "var(--text-secondary)" }}>{tx.date}</p>
         </div>
         <div style={{ flex: 1, padding: "24px 28px", display: "flex", flexDirection: "column", gap: 20, overflowY: "auto" }}>
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
-              <div style={{ width: 28, height: 28, borderRadius: 8, background: "#f1f5f9", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 2 }}><Tag size={14} color="#94a3b8" /></div>
+              <div style={{ width: 28, height: 28, borderRadius: 8, background: "var(--surface-muted)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 2 }}><Tag size={14} color="#94a3b8" /></div>
               <div>
-                <p style={{ fontSize: 11, fontWeight: 600, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 5 }}>Category</p>
-                <span style={{ background: "#f1f5f9", color: "#475569", borderRadius: 6, padding: "3px 9px", fontSize: 13, fontWeight: 600 }}>{tx.category}</span>
+                <p style={{ fontSize: 11, fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 5 }}>Category</p>
+                <span style={{ background: "var(--surface-muted)", color: "var(--text-label)", borderRadius: 6, padding: "3px 9px", fontSize: 13, fontWeight: 600 }}>{tx.category}</span>
               </div>
             </div>
             {[
@@ -3010,47 +3091,47 @@ function TxDetailPanel({ tx, onClose, onEdit, onDelete }) {
               { label: "Description", value: tx.description || "—", icon: <MessageSquare size={14} color="#94a3b8" /> },
             ].map(({ label, value, icon }) => (
               <div key={label} style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
-                <div style={{ width: 28, height: 28, borderRadius: 8, background: "#f1f5f9", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 2 }}>{icon}</div>
+                <div style={{ width: 28, height: 28, borderRadius: 8, background: "var(--surface-muted)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 2 }}>{icon}</div>
                 <div>
-                  <p style={{ fontSize: 11, fontWeight: 600, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 3 }}>{label}</p>
-                  <p style={{ fontSize: 14, color: "#041830", fontWeight: 500 }}>{value}</p>
+                  <p style={{ fontSize: 11, fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 3 }}>{label}</p>
+                  <p style={{ fontSize: 14, color: "var(--text-primary)", fontWeight: 500 }}>{value}</p>
                 </div>
               </div>
             ))}
           </div>
           {(tx.piPrincipal || tx.piInterest) && (
-            <div style={{ background: "#f8fafc", borderRadius: 12, padding: "16px 18px", border: "1px solid #e2e8f0" }}>
-              <p style={{ fontSize: 11, fontWeight: 600, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 12 }}>Principal & Interest</p>
+            <div style={{ background: "var(--surface-alt)", borderRadius: 12, padding: "16px 18px", border: "1px solid var(--border)" }}>
+              <p style={{ fontSize: 11, fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 12 }}>Principal & Interest</p>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-                <div><p style={{ fontSize: 12, color: "#64748b", marginBottom: 3 }}>Principal</p><p style={{ fontSize: 18, fontWeight: 700, color: "#041830" }}>{fmt(tx.piPrincipal || 0)}</p></div>
-                <div><p style={{ fontSize: 12, color: "#64748b", marginBottom: 3 }}>Interest</p><p style={{ fontSize: 18, fontWeight: 700, color: "#041830" }}>{fmt(tx.piInterest || 0)}</p></div>
+                <div><p style={{ fontSize: 12, color: "var(--text-secondary)", marginBottom: 3 }}>Principal</p><p style={{ fontSize: 18, fontWeight: 700, color: "var(--text-primary)" }}>{fmt(tx.piPrincipal || 0)}</p></div>
+                <div><p style={{ fontSize: 12, color: "var(--text-secondary)", marginBottom: 3 }}>Interest</p><p style={{ fontSize: 18, fontWeight: 700, color: "var(--text-primary)" }}>{fmt(tx.piInterest || 0)}</p></div>
               </div>
             </div>
           )}
           <div>
-            <p style={{ fontSize: 11, fontWeight: 600, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 12, display: "flex", alignItems: "center", gap: 6 }}>
-              <Paperclip size={12} /> Attachments{receipts.length > 0 && <span style={{ background: "#e2e8f0", borderRadius: 20, padding: "1px 7px", fontSize: 11, color: "#475569", marginLeft: 2 }}>{receipts.length}</span>}
+            <p style={{ fontSize: 11, fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 12, display: "flex", alignItems: "center", gap: 6 }}>
+              <Paperclip size={12} /> Attachments{receipts.length > 0 && <span style={{ background: "var(--border)", borderRadius: 20, padding: "1px 7px", fontSize: 11, color: "var(--text-label)", marginLeft: 2 }}>{receipts.length}</span>}
             </p>
             {receipts.length === 0 ? (
-              <div style={{ background: "#f8fafc", border: "1px dashed #e2e8f0", borderRadius: 12, padding: "28px 20px", textAlign: "center" }}>
+              <div style={{ background: "var(--surface-alt)", border: "1px dashed var(--border)", borderRadius: 12, padding: "28px 20px", textAlign: "center" }}>
                 <Paperclip size={20} color="#cbd5e1" style={{ display: "block", margin: "0 auto 8px" }} />
-                <p style={{ fontSize: 13, color: "#94a3b8" }}>No receipts attached</p>
+                <p style={{ fontSize: 13, color: "var(--text-muted)" }}>No receipts attached</p>
               </div>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 {receipts.map(r => (
-                  <div key={r.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", background: "#f8fafc", borderRadius: 10, border: "1px solid #e2e8f0" }}>
+                  <div key={r.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", background: "var(--surface-alt)", borderRadius: 10, border: "1px solid var(--border)" }}>
                     <div style={{ width: 36, height: 36, borderRadius: 8, background: r.mimeType?.includes("pdf") ? "#fee2e2" : "#dbeafe", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                       {r.mimeType?.includes("pdf") ? <FileText size={16} color="#ef4444" /> : <FileImage size={16} color="#3b82f6" />}
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <p style={{ fontSize: 13, fontWeight: 600, color: "#041830", marginBottom: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.name}</p>
-                      <p style={{ fontSize: 11, color: "#94a3b8" }}>{r.size}</p>
+                      <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)", marginBottom: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.name}</p>
+                      <p style={{ fontSize: 11, color: "var(--text-muted)" }}>{r.size}</p>
                     </div>
                     {r.ocrData && (
                       <div style={{ textAlign: "right", flexShrink: 0 }}>
-                        <p style={{ fontSize: 11, color: "#64748b", marginBottom: 1 }}>{r.ocrData.vendor}</p>
-                        <p style={{ fontSize: 13, fontWeight: 700, color: "#041830" }}>{fmt(r.ocrData.amount)}</p>
+                        <p style={{ fontSize: 11, color: "var(--text-secondary)", marginBottom: 1 }}>{r.ocrData.vendor}</p>
+                        <p style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)" }}>{fmt(r.ocrData.amount)}</p>
                       </div>
                     )}
                   </div>
@@ -3059,8 +3140,8 @@ function TxDetailPanel({ tx, onClose, onEdit, onDelete }) {
             )}
           </div>
         </div>
-        <div style={{ padding: "18px 28px", borderTop: "1px solid #f1f5f9", display: "flex", gap: 10, background: "#fff" }}>
-          <button onClick={() => { onClose(); onEdit(tx); }} style={{ flex: 1, padding: "11px 0", background: "#f1f5f9", border: "none", borderRadius: 10, cursor: "pointer", fontSize: 14, fontWeight: 600, color: "#475569", display: "flex", alignItems: "center", justifyContent: "center", gap: 7 }}><Pencil size={14} /> Edit</button>
+        <div style={{ padding: "18px 28px", borderTop: "1px solid var(--border-subtle)", display: "flex", gap: 10, background: "var(--surface)" }}>
+          <button onClick={() => { onClose(); onEdit(tx); }} style={{ flex: 1, padding: "11px 0", background: "var(--surface-muted)", border: "none", borderRadius: 10, cursor: "pointer", fontSize: 14, fontWeight: 600, color: "var(--text-label)", display: "flex", alignItems: "center", justifyContent: "center", gap: 7 }}><Pencil size={14} /> Edit</button>
           <button onClick={() => { onClose(); onDelete(tx); }} style={{ padding: "11px 18px", background: "#fee2e2", border: "none", borderRadius: 10, cursor: "pointer", fontSize: 14, fontWeight: 600, color: "#ef4444", display: "flex", alignItems: "center", justifyContent: "center", gap: 7 }}><Trash2 size={14} /> Delete</button>
         </div>
       </div>
@@ -3079,30 +3160,30 @@ function ExpDetailPanel({ exp, onClose, onEdit, onDelete }) {
   return (
     <>
       <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(4,24,48,0.35)", zIndex: 1200 }} />
-      <div style={{ position: "fixed", top: 0, right: 0, bottom: 0, width: 460, background: "#fff", boxShadow: "-8px 0 40px rgba(0,0,0,0.14)", zIndex: 1201, display: "flex", flexDirection: "column" }}>
-        <div style={{ padding: "28px 28px 20px", background: "#f8fafc", borderBottom: "1px solid #f1f5f9" }}>
+      <div style={{ position: "fixed", top: 0, right: 0, bottom: 0, width: 460, background: "var(--surface)", boxShadow: "-8px 0 40px rgba(0,0,0,0.14)", zIndex: 1201, display: "flex", flexDirection: "column" }}>
+        <div style={{ padding: "28px 28px 20px", background: "var(--surface-alt)", borderBottom: "1px solid var(--border-subtle)" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
             <span style={{ background: isPaid ? "#dcfce7" : "#fff7ed", color: isPaid ? "#15803d" : "#9a3412", borderRadius: 20, padding: "3px 10px", fontSize: 12, fontWeight: 600 }}>{isPaid ? "Paid" : "Pending"}</span>
-            <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8", padding: 4, borderRadius: 8, lineHeight: 1 }}><X size={20} /></button>
+            <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)", padding: 4, borderRadius: 8, lineHeight: 1 }}><X size={20} /></button>
           </div>
           <p style={{ fontSize: 32, fontWeight: 800, color: "#b91c1c", margin: "0 0 4px" }}>−{fmt(exp.amount)}</p>
-          <p style={{ fontSize: 13, color: "#64748b" }}>{exp.date}</p>
+          <p style={{ fontSize: 13, color: "var(--text-secondary)" }}>{exp.date}</p>
         </div>
         <div style={{ flex: 1, padding: "24px 28px", display: "flex", flexDirection: "column", gap: 20, overflowY: "auto" }}>
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
-              <div style={{ width: 28, height: 28, borderRadius: 8, background: "#f1f5f9", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 2 }}><Tag size={14} color="#94a3b8" /></div>
+              <div style={{ width: 28, height: 28, borderRadius: 8, background: "var(--surface-muted)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 2 }}><Tag size={14} color="#94a3b8" /></div>
               <div>
-                <p style={{ fontSize: 11, fontWeight: 600, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 5 }}>Category</p>
-                <span style={{ background: "#f1f5f9", color: "#475569", borderRadius: 6, padding: "3px 9px", fontSize: 13, fontWeight: 600 }}>{exp.category}</span>
+                <p style={{ fontSize: 11, fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 5 }}>Category</p>
+                <span style={{ background: "var(--surface-muted)", color: "var(--text-label)", borderRadius: 6, padding: "3px 9px", fontSize: 13, fontWeight: 600 }}>{exp.category}</span>
               </div>
             </div>
             {deal && (
               <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
-                <div style={{ width: 28, height: 28, borderRadius: 8, background: "#f1f5f9", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 2 }}><Hammer size={14} color="#94a3b8" /></div>
+                <div style={{ width: 28, height: 28, borderRadius: 8, background: "var(--surface-muted)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 2 }}><Hammer size={14} color="#94a3b8" /></div>
                 <div>
-                  <p style={{ fontSize: 11, fontWeight: 600, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 3 }}>Deal</p>
-                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}><span style={{ width: 8, height: 8, borderRadius: "50%", background: deal.color, display: "inline-block" }} /><p style={{ fontSize: 14, color: "#041830", fontWeight: 500 }}>{deal.name}</p></div>
+                  <p style={{ fontSize: 11, fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 3 }}>Deal</p>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}><span style={{ width: 8, height: 8, borderRadius: "50%", background: deal.color, display: "inline-block" }} /><p style={{ fontSize: 14, color: "var(--text-primary)", fontWeight: 500 }}>{deal.name}</p></div>
                 </div>
               </div>
             )}
@@ -3111,10 +3192,10 @@ function ExpDetailPanel({ exp, onClose, onEdit, onDelete }) {
               { label: "Description", value: exp.description || "—", icon: <MessageSquare size={14} color="#94a3b8" /> },
             ].map(({ label, value, icon }) => (
               <div key={label} style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
-                <div style={{ width: 28, height: 28, borderRadius: 8, background: "#f1f5f9", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 2 }}>{icon}</div>
+                <div style={{ width: 28, height: 28, borderRadius: 8, background: "var(--surface-muted)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 2 }}>{icon}</div>
                 <div>
-                  <p style={{ fontSize: 11, fontWeight: 600, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 3 }}>{label}</p>
-                  <p style={{ fontSize: 14, color: "#041830", fontWeight: 500 }}>{value}</p>
+                  <p style={{ fontSize: 11, fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 3 }}>{label}</p>
+                  <p style={{ fontSize: 14, color: "var(--text-primary)", fontWeight: 500 }}>{value}</p>
                 </div>
               </div>
             ))}
@@ -3122,11 +3203,11 @@ function ExpDetailPanel({ exp, onClose, onEdit, onDelete }) {
               <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
                 <div style={{ width: 28, height: 28, borderRadius: 8, background: "#fff7ed", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 2 }}><Layers size={14} color="#e95e00" /></div>
                 <div>
-                  <p style={{ fontSize: 11, fontWeight: 600, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 3 }}>Rehab Line Item</p>
-                  <p style={{ fontSize: 14, color: "#041830", fontWeight: 500 }}>{rehabItem.category}</p>
+                  <p style={{ fontSize: 11, fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 3 }}>Rehab Line Item</p>
+                  <p style={{ fontSize: 14, color: "var(--text-primary)", fontWeight: 500 }}>{rehabItem.category}</p>
                   <div style={{ display: "flex", gap: 12, marginTop: 4 }}>
-                    <p style={{ fontSize: 12, color: "#64748b" }}>Budget: <strong style={{ color: "#041830" }}>{fmt(rehabItem.budgeted || 0)}</strong></p>
-                    <p style={{ fontSize: 12, color: "#64748b" }}>Spent: <strong style={{ color: "#b91c1c" }}>{fmt(rehabItem.spent || 0)}</strong></p>
+                    <p style={{ fontSize: 12, color: "var(--text-secondary)" }}>Budget: <strong style={{ color: "var(--text-primary)" }}>{fmt(rehabItem.budgeted || 0)}</strong></p>
+                    <p style={{ fontSize: 12, color: "var(--text-secondary)" }}>Spent: <strong style={{ color: "#b91c1c" }}>{fmt(rehabItem.spent || 0)}</strong></p>
                   </div>
                 </div>
               </div>
@@ -3135,37 +3216,37 @@ function ExpDetailPanel({ exp, onClose, onEdit, onDelete }) {
               <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
                 <div style={{ width: 28, height: 28, borderRadius: 8, background: "#dbeafe", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 2 }}><UserCheck size={14} color="#3b82f6" /></div>
                 <div>
-                  <p style={{ fontSize: 11, fontWeight: 600, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 3 }}>Linked Contractor</p>
-                  <p style={{ fontSize: 14, color: "#041830", fontWeight: 500 }}>{contractor.name}</p>
-                  {contractor.trade && <p style={{ fontSize: 12, color: "#64748b" }}>{contractor.trade}</p>}
+                  <p style={{ fontSize: 11, fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 3 }}>Linked Contractor</p>
+                  <p style={{ fontSize: 14, color: "var(--text-primary)", fontWeight: 500 }}>{contractor.name}</p>
+                  {contractor.trade && <p style={{ fontSize: 12, color: "var(--text-secondary)" }}>{contractor.trade}</p>}
                 </div>
               </div>
             )}
           </div>
           <div>
-            <p style={{ fontSize: 11, fontWeight: 600, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 12, display: "flex", alignItems: "center", gap: 6 }}>
-              <Paperclip size={12} /> Attachments{receipts.length > 0 && <span style={{ background: "#e2e8f0", borderRadius: 20, padding: "1px 7px", fontSize: 11, color: "#475569", marginLeft: 2 }}>{receipts.length}</span>}
+            <p style={{ fontSize: 11, fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 12, display: "flex", alignItems: "center", gap: 6 }}>
+              <Paperclip size={12} /> Attachments{receipts.length > 0 && <span style={{ background: "var(--border)", borderRadius: 20, padding: "1px 7px", fontSize: 11, color: "var(--text-label)", marginLeft: 2 }}>{receipts.length}</span>}
             </p>
             {receipts.length === 0 ? (
-              <div style={{ background: "#f8fafc", border: "1px dashed #e2e8f0", borderRadius: 12, padding: "28px 20px", textAlign: "center" }}>
+              <div style={{ background: "var(--surface-alt)", border: "1px dashed var(--border)", borderRadius: 12, padding: "28px 20px", textAlign: "center" }}>
                 <Paperclip size={20} color="#cbd5e1" style={{ display: "block", margin: "0 auto 8px" }} />
-                <p style={{ fontSize: 13, color: "#94a3b8" }}>No receipts attached</p>
+                <p style={{ fontSize: 13, color: "var(--text-muted)" }}>No receipts attached</p>
               </div>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 {receipts.map(r => (
-                  <div key={r.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", background: "#f8fafc", borderRadius: 10, border: "1px solid #e2e8f0" }}>
+                  <div key={r.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", background: "var(--surface-alt)", borderRadius: 10, border: "1px solid var(--border)" }}>
                     <div style={{ width: 36, height: 36, borderRadius: 8, background: r.mimeType?.includes("pdf") ? "#fee2e2" : "#fff7ed", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                       {r.mimeType?.includes("pdf") ? <FileText size={16} color="#ef4444" /> : <FileImage size={16} color="#e95e00" />}
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <p style={{ fontSize: 13, fontWeight: 600, color: "#041830", marginBottom: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.name}</p>
-                      <p style={{ fontSize: 11, color: "#94a3b8" }}>{r.size}</p>
+                      <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)", marginBottom: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.name}</p>
+                      <p style={{ fontSize: 11, color: "var(--text-muted)" }}>{r.size}</p>
                     </div>
                     {r.ocrData && (
                       <div style={{ textAlign: "right", flexShrink: 0 }}>
-                        <p style={{ fontSize: 11, color: "#64748b", marginBottom: 1 }}>{r.ocrData.vendor}</p>
-                        <p style={{ fontSize: 13, fontWeight: 700, color: "#041830" }}>{fmt(r.ocrData.amount)}</p>
+                        <p style={{ fontSize: 11, color: "var(--text-secondary)", marginBottom: 1 }}>{r.ocrData.vendor}</p>
+                        <p style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)" }}>{fmt(r.ocrData.amount)}</p>
                       </div>
                     )}
                   </div>
@@ -3174,8 +3255,8 @@ function ExpDetailPanel({ exp, onClose, onEdit, onDelete }) {
             )}
           </div>
         </div>
-        <div style={{ padding: "18px 28px", borderTop: "1px solid #f1f5f9", display: "flex", gap: 10, background: "#fff" }}>
-          <button onClick={() => { onClose(); onEdit(exp); }} style={{ flex: 1, padding: "11px 0", background: "#f1f5f9", border: "none", borderRadius: 10, cursor: "pointer", fontSize: 14, fontWeight: 600, color: "#475569", display: "flex", alignItems: "center", justifyContent: "center", gap: 7 }}><Pencil size={14} /> Edit</button>
+        <div style={{ padding: "18px 28px", borderTop: "1px solid var(--border-subtle)", display: "flex", gap: 10, background: "var(--surface)" }}>
+          <button onClick={() => { onClose(); onEdit(exp); }} style={{ flex: 1, padding: "11px 0", background: "var(--surface-muted)", border: "none", borderRadius: 10, cursor: "pointer", fontSize: 14, fontWeight: 600, color: "var(--text-label)", display: "flex", alignItems: "center", justifyContent: "center", gap: 7 }}><Pencil size={14} /> Edit</button>
           <button onClick={() => { onClose(); onDelete(exp); }} style={{ padding: "11px 18px", background: "#fee2e2", border: "none", borderRadius: 10, cursor: "pointer", fontSize: 14, fontWeight: 600, color: "#ef4444", display: "flex", alignItems: "center", justifyContent: "center", gap: 7 }}><Trash2 size={14} /> Delete</button>
         </div>
       </div>
@@ -3360,18 +3441,18 @@ function PropertyDetail({ property, onBack, backLabel, onEditProperty, onGoToTra
               : <div style={{ width: 64, height: 64, borderRadius: 18, background: property.color, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 22, fontWeight: 800 }}>{property.image}</div>
             }
             <div>
-              <h1 style={{ color: "#041830", fontSize: 24, fontWeight: 800, marginBottom: 4 }}>{property.name}</h1>
-              <p style={{ color: "#64748b", fontSize: 14, display: "flex", alignItems: "center", gap: 4 }}><MapPin size={13} /> {property.address}</p>
+              <h1 style={{ color: "var(--text-primary)", fontSize: 24, fontWeight: 800, marginBottom: 4 }}>{property.name}</h1>
+              <p style={{ color: "var(--text-secondary)", fontSize: 14, display: "flex", alignItems: "center", gap: 4 }}><MapPin size={13} /> {property.address}</p>
               <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
-                <span style={{ background: "rgba(255,255,255,0.7)", borderRadius: 20, padding: "3px 10px", fontSize: 12, color: "#475569", fontWeight: 600 }}>{property.type}</span>
-                <span style={{ background: "rgba(255,255,255,0.7)", borderRadius: 20, padding: "3px 10px", fontSize: 12, color: "#475569", fontWeight: 600 }}>{property.units} unit{property.units > 1 ? "s" : ""}</span>
+                <span style={{ background: "rgba(255,255,255,0.7)", borderRadius: 20, padding: "3px 10px", fontSize: 12, color: "var(--text-label)", fontWeight: 600 }}>{property.type}</span>
+                <span style={{ background: "rgba(255,255,255,0.7)", borderRadius: 20, padding: "3px 10px", fontSize: 12, color: "var(--text-label)", fontWeight: 600 }}>{property.units} unit{property.units > 1 ? "s" : ""}</span>
                 <Badge status={property.status} />
               </div>
             </div>
           </div>
           <div style={{ textAlign: "right" }}>
-            <p style={{ color: "#64748b", fontSize: 13 }}>Current Value</p>
-            <p style={{ color: "#041830", fontSize: 32, fontWeight: 800 }}>{fmt(property.currentValue)}</p>
+            <p style={{ color: "var(--text-secondary)", fontSize: 13 }}>Current Value</p>
+            <p style={{ color: "var(--text-primary)", fontSize: 32, fontWeight: 800 }}>{fmt(property.currentValue)}</p>
             <p style={{ color: "#10b981", fontSize: 14, fontWeight: 600 }}>+{fmt(appreciation)} since purchase</p>
             {property.valueUpdatedAt && (() => {
               const staleD = Math.round((new Date() - new Date(property.valueUpdatedAt)) / 86400000);
@@ -3420,14 +3501,14 @@ function PropertyDetail({ property, onBack, backLabel, onEditProperty, onGoToTra
               {healthOpen && (
                 <div style={{ marginTop: 14, display: "flex", flexDirection: "column", gap: 10 }}>
                   {detailHealth.map(item => (
-                    <div key={item.key} style={{ display: "flex", alignItems: "flex-start", gap: 12, background: "#fff", borderRadius: 10, padding: "12px 16px", border: "1px solid #fdba74" }}>
+                    <div key={item.key} style={{ display: "flex", alignItems: "flex-start", gap: 12, background: "var(--surface)", borderRadius: 10, padding: "12px 16px", border: "1px solid #fdba74" }}>
                       <span style={{
                         width: 8, height: 8, borderRadius: "50%", marginTop: 5, flexShrink: 0,
                         background: item.severity === "high" ? "#dc2626" : item.severity === "medium" ? "#e95e00" : "#6366f1"
                       }} />
                       <div style={{ flex: 1 }}>
-                        <p style={{ color: "#041830", fontSize: 13, fontWeight: 700, marginBottom: 2 }}>{item.label}</p>
-                        <p style={{ color: "#64748b", fontSize: 12, lineHeight: 1.5 }}>{item.detail}</p>
+                        <p style={{ color: "var(--text-primary)", fontSize: 13, fontWeight: 700, marginBottom: 2 }}>{item.label}</p>
+                        <p style={{ color: "var(--text-secondary)", fontSize: 12, lineHeight: 1.5 }}>{item.detail}</p>
                       </div>
                       <button onClick={e => { e.stopPropagation(); item.field ? onEditProperty && onEditProperty(property) : onGoToTransactions && onGoToTransactions(); }} style={{
                         fontSize: 11, fontWeight: 600, color: "#c2410c", background: "#ffedd5", borderRadius: 6, padding: "5px 12px", whiteSpace: "nowrap", flexShrink: 0,
@@ -3447,17 +3528,17 @@ function PropertyDetail({ property, onBack, backLabel, onEditProperty, onGoToTra
             {[
               { label: "Monthly Income", value: fmt(eff.monthlyIncome), color: "#10b981", sub: eff.source === "transactions" ? `Avg from ${eff.months}mo of transactions` : "Manual estimate — log transactions for actuals", tip: "Average monthly rental income. Derived from transaction history when available, otherwise uses manually entered estimate." },
               { label: "Monthly Expenses", value: fmt(eff.monthlyExpenses), color: "#ef4444", sub: eff.source === "transactions" ? `Avg from ${eff.months}mo of transactions` : "Manual estimate — log transactions for actuals", tip: "Average monthly operating expenses. Derived from transaction history when available, otherwise uses manually entered estimate." },
-              { label: "Net Cash Flow", value: fmt(eff.monthlyIncome - eff.monthlyExpenses), color: "#041830", tip: "Monthly Income − Monthly Expenses. Positive means the property cash-flows." },
+              { label: "Net Cash Flow", value: fmt(eff.monthlyIncome - eff.monthlyExpenses), color: "var(--text-primary)", tip: "Monthly Income − Monthly Expenses. Positive means the property cash-flows." },
               { label: "Total Equity", value: fmt(equity), color: "#8b5cf6", tip: "Current Property Value − Mortgage Balance." },
-              { label: "Purchase Price", value: fmt(property.purchasePrice), color: "#041830", tip: "Original acquisition cost of the property." },
-              { label: "Closing Costs", value: property.closingCosts ? fmt(property.closingCosts) : "—", color: "#64748b", tip: "One-time costs paid at closing (title, legal, inspection, etc.)." },
+              { label: "Purchase Price", value: fmt(property.purchasePrice), color: "var(--text-primary)", tip: "Original acquisition cost of the property." },
+              { label: "Closing Costs", value: property.closingCosts ? fmt(property.closingCosts) : "—", color: "var(--text-secondary)", tip: "One-time costs paid at closing (title, legal, inspection, etc.)." },
               { label: calcBal !== null ? "Est. Mortgage Balance" : "Mortgage Balance", value: fmt(effectiveMortgage), color: "#e95e00", sub: calcBal !== null ? "Calculated from loan terms" : null, tip: "Current outstanding loan balance. Calculated from loan terms if amortization data is available." },
               { label: "Cap Rate", value: `${calcCapRate(property, TRANSACTIONS)}%`, color: "#8b5cf6", tip: "Annual NOI ÷ Current Property Value × 100. Measures return independent of financing." },
               { label: "Cash-on-Cash", value: `${calcCashOnCash(property, TRANSACTIONS)}%`, color: "#10b981", tip: "Annual Cash Flow After Debt Service ÷ Total Cash Invested × 100." },
             ].map((m, i) => (
-              <div key={i} style={{ background: "#fff", borderRadius: 12, padding: "16px 18px", boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" }}>
+              <div key={i} style={{ background: "var(--surface)", borderRadius: 12, padding: "16px 18px", boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 4 }}>
-                  <p style={{ color: "#94a3b8", fontSize: 12, fontWeight: 500 }}>{m.label}</p>
+                  <p style={{ color: "var(--text-muted)", fontSize: 12, fontWeight: 500 }}>{m.label}</p>
                   {m.tip && <InfoTip text={m.tip} />}
                 </div>
                 <p style={{ color: m.color, fontSize: 18, fontWeight: 700 }}>{m.value}</p>
@@ -3474,23 +3555,23 @@ function PropertyDetail({ property, onBack, backLabel, onEditProperty, onGoToTra
         <div>
           {/* Summary stat cards */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, marginBottom: 20 }}>
-            <div style={{ background: "#fff", borderRadius: 14, padding: 20, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" }}>
+            <div style={{ background: "var(--surface)", borderRadius: 14, padding: 20, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 4 }}>
-                <p style={{ color: "#94a3b8", fontSize: 12, fontWeight: 600, textTransform: "uppercase" }}>Total Income</p>
+                <p style={{ color: "var(--text-muted)", fontSize: 12, fontWeight: 600, textTransform: "uppercase" }}>Total Income</p>
                 <InfoTip text="Sum of all income transactions for this property (filtered if filters are active)." />
               </div>
               <p style={{ color: "#15803d", fontSize: 24, fontWeight: 800 }}>+{fmt(totalIncome)}</p>
             </div>
-            <div style={{ background: "#fff", borderRadius: 14, padding: 20, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" }}>
+            <div style={{ background: "var(--surface)", borderRadius: 14, padding: 20, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 4 }}>
-                <p style={{ color: "#94a3b8", fontSize: 12, fontWeight: 600, textTransform: "uppercase" }}>Total Expenses</p>
+                <p style={{ color: "var(--text-muted)", fontSize: 12, fontWeight: 600, textTransform: "uppercase" }}>Total Expenses</p>
                 <InfoTip text="Sum of all expense transactions for this property (filtered if filters are active)." />
               </div>
               <p style={{ color: "#b91c1c", fontSize: 24, fontWeight: 800 }}>-{fmt(totalExpenses)}</p>
             </div>
-            <div style={{ background: "#fff", borderRadius: 14, padding: 20, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" }}>
+            <div style={{ background: "var(--surface)", borderRadius: 14, padding: 20, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 4 }}>
-                <p style={{ color: "#94a3b8", fontSize: 12, fontWeight: 600, textTransform: "uppercase" }}>Net</p>
+                <p style={{ color: "var(--text-muted)", fontSize: 12, fontWeight: 600, textTransform: "uppercase" }}>Net</p>
                 <InfoTip text="Total Income minus Total Expenses. Positive = profitable." />
               </div>
               <p style={{ color: filteredTxTotal >= 0 ? "#15803d" : "#b91c1c", fontSize: 24, fontWeight: 800 }}>{filteredTxTotal >= 0 ? "+" : ""}{fmt(Math.abs(filteredTxTotal))}</p>
@@ -3499,7 +3580,7 @@ function PropertyDetail({ property, onBack, backLabel, onEditProperty, onGoToTra
 
           {/* Header row with counts + add buttons */}
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-            <p style={{ color: "#64748b", fontSize: 13 }}>
+            <p style={{ color: "var(--text-secondary)", fontSize: 13 }}>
               {txHasFilters ? `${filteredTx.length} of ${propTransactions.length} transactions` : `${propTransactions.length} transactions`}
             </p>
             <div style={{ display: "flex", gap: 8 }}>
@@ -3516,18 +3597,18 @@ function PropertyDetail({ property, onBack, backLabel, onEditProperty, onGoToTra
           <div style={{ display: "flex", gap: 10, marginBottom: txHasFilters ? 10 : 20, flexWrap: "wrap", alignItems: "center" }}>
             <div style={{ position: "relative", flex: 1, minWidth: 180 }}>
               <Search size={14} color="#94a3b8" style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)" }} />
-              <input value={txSearch} onChange={e => setTxSearch(e.target.value)} placeholder="Search transactions..." style={{ width: "100%", border: "1.5px solid #e2e8f0", borderRadius: 10, padding: "9px 12px 9px 32px", fontSize: 13, color: "#041830", background: "#fff", outline: "none" }} />
+              <input value={txSearch} onChange={e => setTxSearch(e.target.value)} placeholder="Search transactions..." style={{ width: "100%", border: "1.5px solid var(--border)", borderRadius: 10, padding: "9px 12px 9px 32px", fontSize: 13, color: "var(--text-primary)", background: "var(--surface)", outline: "none" }} />
             </div>
-            <select value={txTypeFilter} onChange={e => setTxTypeFilter(e.target.value)} style={{ border: "1.5px solid #e2e8f0", borderRadius: 10, padding: "9px 12px", fontSize: 13, color: "#475569", background: "#fff" }}>
+            <select value={txTypeFilter} onChange={e => setTxTypeFilter(e.target.value)} style={{ border: "1.5px solid var(--border)", borderRadius: 10, padding: "9px 12px", fontSize: 13, color: "var(--text-label)", background: "var(--surface)" }}>
               <option value="all">All Types</option>
               <option value="income">Income</option>
               <option value="expense">Expense</option>
             </select>
-            <select value={txCatFilter} onChange={e => setTxCatFilter(e.target.value)} style={{ border: "1.5px solid #e2e8f0", borderRadius: 10, padding: "9px 12px", fontSize: 13, color: "#475569", background: "#fff" }}>
+            <select value={txCatFilter} onChange={e => setTxCatFilter(e.target.value)} style={{ border: "1.5px solid var(--border)", borderRadius: 10, padding: "9px 12px", fontSize: 13, color: "var(--text-label)", background: "var(--surface)" }}>
               <option value="all">All Categories</option>
               {txCategories.map(c => <option key={c} value={c}>{c}</option>)}
             </select>
-            <select value={txDateFilter} onChange={e => setTxDateFilter(e.target.value)} style={{ border: "1.5px solid #e2e8f0", borderRadius: 10, padding: "9px 12px", fontSize: 13, color: "#475569", background: "#fff" }}>
+            <select value={txDateFilter} onChange={e => setTxDateFilter(e.target.value)} style={{ border: "1.5px solid var(--border)", borderRadius: 10, padding: "9px 12px", fontSize: 13, color: "var(--text-label)", background: "var(--surface)" }}>
               <option value="all">All Time</option>
               <option value="thisMonth">This Month</option>
               <option value="lastMonth">Last Month</option>
@@ -3537,8 +3618,8 @@ function PropertyDetail({ property, onBack, backLabel, onEditProperty, onGoToTra
             </select>
             {txDateFilter === "custom" && (
               <>
-                <input type="date" value={txDateFrom} onChange={e => setTxDateFrom(e.target.value)} style={{ border: "1.5px solid #e2e8f0", borderRadius: 10, padding: "9px 12px", fontSize: 13, color: "#475569", background: "#fff" }} />
-                <input type="date" value={txDateTo} onChange={e => setTxDateTo(e.target.value)} style={{ border: "1.5px solid #e2e8f0", borderRadius: 10, padding: "9px 12px", fontSize: 13, color: "#475569", background: "#fff" }} />
+                <input type="date" value={txDateFrom} onChange={e => setTxDateFrom(e.target.value)} style={{ border: "1.5px solid var(--border)", borderRadius: 10, padding: "9px 12px", fontSize: 13, color: "var(--text-label)", background: "var(--surface)" }} />
+                <input type="date" value={txDateTo} onChange={e => setTxDateTo(e.target.value)} style={{ border: "1.5px solid var(--border)", borderRadius: 10, padding: "9px 12px", fontSize: 13, color: "var(--text-label)", background: "var(--surface)" }} />
               </>
             )}
           </div>
@@ -3549,23 +3630,23 @@ function PropertyDetail({ property, onBack, backLabel, onEditProperty, onGoToTra
               {txTypeFilter !== "all" && <span style={{ background: "#dbeafe", color: "#1d4ed8", borderRadius: 20, padding: "3px 10px", fontSize: 12, fontWeight: 600, display: "flex", alignItems: "center", gap: 4 }}>{txTypeFilter} <button onClick={() => setTxTypeFilter("all")} style={{ background: "none", border: "none", cursor: "pointer", color: "#1d4ed8", padding: 0 }}><X size={10} /></button></span>}
               {txCatFilter !== "all" && <span style={{ background: "#dcfce7", color: "#15803d", borderRadius: 20, padding: "3px 10px", fontSize: 12, fontWeight: 600, display: "flex", alignItems: "center", gap: 4 }}>{txCatFilter} <button onClick={() => setTxCatFilter("all")} style={{ background: "none", border: "none", cursor: "pointer", color: "#15803d", padding: 0 }}><X size={10} /></button></span>}
               {txDateFilter !== "all" && <span style={{ background: "#fff7ed", color: "#9a3412", borderRadius: 20, padding: "3px 10px", fontSize: 12, fontWeight: 600, display: "flex", alignItems: "center", gap: 4 }}>{txDateFilter === "custom" ? `${txDateFrom || "..."} – ${txDateTo || "..."}` : txDateFilter} <button onClick={() => { setTxDateFilter("all"); setTxDateFrom(""); setTxDateTo(""); }} style={{ background: "none", border: "none", cursor: "pointer", color: "#9a3412", padding: 0 }}><X size={10} /></button></span>}
-              {txSearch && <span style={{ background: "#f1f5f9", color: "#475569", borderRadius: 20, padding: "3px 10px", fontSize: 12, fontWeight: 600, display: "flex", alignItems: "center", gap: 4 }}>"{txSearch}" <button onClick={() => setTxSearch("")} style={{ background: "none", border: "none", cursor: "pointer", color: "#475569", padding: 0 }}><X size={10} /></button></span>}
-              <button onClick={clearTxFilters} style={{ background: "none", border: "none", color: "#94a3b8", fontSize: 12, cursor: "pointer", textDecoration: "underline" }}>Clear all</button>
+              {txSearch && <span style={{ background: "var(--surface-muted)", color: "var(--text-label)", borderRadius: 20, padding: "3px 10px", fontSize: 12, fontWeight: 600, display: "flex", alignItems: "center", gap: 4 }}>"{txSearch}" <button onClick={() => setTxSearch("")} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-label)", padding: 0 }}><X size={10} /></button></span>}
+              <button onClick={clearTxFilters} style={{ background: "none", border: "none", color: "var(--text-muted)", fontSize: 12, cursor: "pointer", textDecoration: "underline" }}>Clear all</button>
             </div>
           )}
 
           {/* Transactions table */}
-          <div style={{ background: "#fff", borderRadius: 16, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9", overflow: "hidden" }}>
+          <div style={{ background: "var(--surface)", borderRadius: 16, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)", overflow: "hidden" }}>
             {filteredTx.length === 0 ? (
-              <p style={{ color: "#94a3b8", fontSize: 14, textAlign: "center", padding: 48 }}>
+              <p style={{ color: "var(--text-muted)", fontSize: 14, textAlign: "center", padding: 48 }}>
                 {txHasFilters ? <span>No transactions match your filters. <button onClick={clearTxFilters} style={{ background: "none", border: "none", color: "#3b82f6", cursor: "pointer", textDecoration: "underline", fontSize: 14 }}>Clear filters</button></span> : <span>No transactions yet. <button onClick={txOpenAddIncome} style={{ background: "none", border: "none", color: "#15803d", cursor: "pointer", textDecoration: "underline", fontSize: 14 }}>Add your first transaction</button></span>}
               </p>
             ) : (
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead>
-                  <tr style={{ background: "#f8fafc" }}>
+                  <tr style={{ background: "var(--surface-alt)" }}>
                     {["Date", "Category", "Paid To", "Description", "Amount", "Type", ""].map(h => (
-                      <th key={h} style={{ padding: "12px 16px", textAlign: "left", color: "#94a3b8", fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>{h}</th>
+                      <th key={h} style={{ padding: "12px 16px", textAlign: "left", color: "var(--text-muted)", fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -3573,16 +3654,16 @@ function PropertyDetail({ property, onBack, backLabel, onEditProperty, onGoToTra
                   {filteredTx.map((t, i) => (
                     <tr key={t.id}
                       onClick={() => setTxDetailItem(t)}
-                      style={{ borderTop: "1px solid #f1f5f9", background: i % 2 === 0 ? "#fff" : "#fafafa", transition: "background 0.15s", cursor: "pointer" }}
+                      style={{ borderTop: "1px solid var(--border-subtle)", background: i % 2 === 0 ? "#fff" : "#fafafa", transition: "background 0.15s", cursor: "pointer" }}
                       onMouseEnter={e => e.currentTarget.style.background = "#f0f9ff"}
                       onMouseLeave={e => e.currentTarget.style.background = i % 2 === 0 ? "#fff" : "#fafafa"}>
-                      <td style={{ padding: "12px 16px", fontSize: 13, color: "#64748b" }}>{t.date}</td>
+                      <td style={{ padding: "12px 16px", fontSize: 13, color: "var(--text-secondary)" }}>{t.date}</td>
                       <td style={{ padding: "12px 16px" }}>
-                        {(() => { const group = txParentOf(t.category, t.type); return group && group !== t.category ? <p style={{ fontSize: 10, color: "#94a3b8", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.03em", marginBottom: 2 }}>{group}</p> : null; })()}
-                        <span style={{ background: "#f1f5f9", borderRadius: 6, padding: "3px 8px", fontSize: 12, fontWeight: 600, color: "#475569" }}>{t.category}</span>
+                        {(() => { const group = txParentOf(t.category, t.type); return group && group !== t.category ? <p style={{ fontSize: 10, color: "var(--text-muted)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.03em", marginBottom: 2 }}>{group}</p> : null; })()}
+                        <span style={{ background: "var(--surface-muted)", borderRadius: 6, padding: "3px 8px", fontSize: 12, fontWeight: 600, color: "var(--text-label)" }}>{t.category}</span>
                       </td>
-                      <td style={{ padding: "12px 16px", fontSize: 13, color: "#475569" }}>{t.payee || <span style={{ color: "#cbd5e1", fontStyle: "italic" }}>—</span>}</td>
-                      <td style={{ padding: "12px 16px", fontSize: 13, color: "#041830" }}>{t.description}</td>
+                      <td style={{ padding: "12px 16px", fontSize: 13, color: "var(--text-label)" }}>{t.payee || <span style={{ color: "#cbd5e1", fontStyle: "italic" }}>—</span>}</td>
+                      <td style={{ padding: "12px 16px", fontSize: 13, color: "var(--text-primary)" }}>{t.description}</td>
                       <td style={{ padding: "12px 16px", fontSize: 14, fontWeight: 700, color: t.type === "income" ? "#15803d" : "#b91c1c" }}>
                         {t.type === "income" ? "+" : "-"}{fmt(Math.abs(t.amount))}
                       </td>
@@ -3591,7 +3672,7 @@ function PropertyDetail({ property, onBack, backLabel, onEditProperty, onGoToTra
                       </td>
                       <td style={{ padding: "12px 16px" }}>
                         <div style={{ display: "flex", gap: 4 }}>
-                          <button onClick={e => { e.stopPropagation(); txOpenEdit(t); }} style={{ background: "#f1f5f9", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "#475569", display: "flex", alignItems: "center" }} title="Edit"><Pencil size={13} /></button>
+                          <button onClick={e => { e.stopPropagation(); txOpenEdit(t); }} style={{ background: "var(--surface-muted)", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "var(--text-label)", display: "flex", alignItems: "center" }} title="Edit"><Pencil size={13} /></button>
                           <button onClick={e => { e.stopPropagation(); setTxDeleteConfirm(t); }} style={{ background: "#fee2e2", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "#ef4444", display: "flex", alignItems: "center" }} title="Delete"><Trash2 size={13} /></button>
                         </div>
                       </td>
@@ -3599,8 +3680,8 @@ function PropertyDetail({ property, onBack, backLabel, onEditProperty, onGoToTra
                   ))}
                 </tbody>
                 <tfoot>
-                  <tr style={{ borderTop: "2px solid #e2e8f0", background: "#f8fafc" }}>
-                    <td colSpan={4} style={{ padding: "12px 16px", fontSize: 13, fontWeight: 700, color: "#041830" }}>
+                  <tr style={{ borderTop: "2px solid var(--border)", background: "var(--surface-alt)" }}>
+                    <td colSpan={4} style={{ padding: "12px 16px", fontSize: 13, fontWeight: 700, color: "var(--text-primary)" }}>
                       {filteredTx.length} transaction{filteredTx.length !== 1 ? "s" : ""}
                     </td>
                     <td style={{ padding: "12px 16px", fontSize: 14, fontWeight: 800, color: filteredTxTotal >= 0 ? "#15803d" : "#b91c1c" }}>
@@ -3625,7 +3706,7 @@ function PropertyDetail({ property, onBack, backLabel, onEditProperty, onGoToTra
             const payeeLabel  = isIncome ? "Received From" : "Paid To *";
             const payeePlaceholder = isIncome ? "Who paid?" : "Who was paid?";
             const payeePool   = isIncome ? allPayers : allPayees;
-            const payeeHint   = <p style={{ fontSize: 11, color: "#94a3b8", marginTop: 4, fontStyle: "italic" }}>Type to search previous entries or add new</p>;
+            const payeeHint   = <p style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4, fontStyle: "italic" }}>Type to search previous entries or add new</p>;
 
             const TxPayeeDropdown = () => {
               const q = (txForm.payee || "").toLowerCase();
@@ -3634,16 +3715,16 @@ function PropertyDetail({ property, onBack, backLabel, onEditProperty, onGoToTra
               const showNew = q && !exactExists;
               if (matches.length === 0 && !showNew) return null;
               return (
-                <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, background: "#fff", border: "1px solid #e2e8f0", borderRadius: 12, boxShadow: "0 8px 24px rgba(0,0,0,0.10)", zIndex: 200, overflow: "hidden", maxHeight: 200, overflowY: "auto" }}>
+                <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, boxShadow: "0 8px 24px rgba(0,0,0,0.10)", zIndex: 200, overflow: "hidden", maxHeight: 200, overflowY: "auto" }}>
                   {matches.slice(0, 6).map(p => (
                     <button key={p} onMouseDown={() => { setTxForm(f => ({ ...f, payee: p })); setTxPayeeFocus(false); }}
-                      style={{ width: "100%", padding: "10px 14px", background: "none", border: "none", borderBottom: "1px solid #f1f5f9", textAlign: "left", cursor: "pointer", fontSize: 13, color: "#041830", display: "flex", alignItems: "center", gap: 8 }}>
-                      <User size={13} style={{ color: "#94a3b8", flexShrink: 0 }} /> {p}
+                      style={{ width: "100%", padding: "10px 14px", background: "none", border: "none", borderBottom: "1px solid var(--border-subtle)", textAlign: "left", cursor: "pointer", fontSize: 13, color: "var(--text-primary)", display: "flex", alignItems: "center", gap: 8 }}>
+                      <User size={13} style={{ color: "var(--text-muted)", flexShrink: 0 }} /> {p}
                     </button>
                   ))}
                   {showNew && (
                     <button onMouseDown={() => setTxPayeeFocus(false)}
-                      style={{ width: "100%", padding: "10px 14px", display: "flex", alignItems: "center", gap: 8, background: "#fff7ed", border: "none", borderTop: matches.length > 0 ? "1px solid #e2e8f0" : "none", cursor: "pointer", textAlign: "left" }}>
+                      style={{ width: "100%", padding: "10px 14px", display: "flex", alignItems: "center", gap: 8, background: "#fff7ed", border: "none", borderTop: matches.length > 0 ? "1px solid var(--border)" : "none", cursor: "pointer", textAlign: "left" }}>
                       <Plus size={13} style={{ color: "#e95e00", flexShrink: 0 }} />
                       <span style={{ fontSize: 13, color: "#e95e00", fontWeight: 600 }}>Add &ldquo;{txForm.payee}&rdquo; as new</span>
                     </button>
@@ -3672,18 +3753,18 @@ function PropertyDetail({ property, onBack, backLabel, onEditProperty, onGoToTra
 
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
                   <div>
-                    <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Date</label>
+                    <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Date</label>
                     <input type="date" value={txForm.date} onChange={txSf("date")} style={iS} />
                   </div>
                   <div>
-                    <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Amount ($) *</label>
+                    <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Amount ($) *</label>
                     <input type="number" placeholder="0.00" value={txForm.amount} onChange={txSf("amount")} style={iS} />
                   </div>
 
                   {/* Payee / Received From — typeahead */}
                   <div style={{ gridColumn: "1 / -1", position: "relative" }}>
-                    <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>
-                      {payeeLabel} {isIncome && <span style={{ color: "#94a3b8", fontWeight: 400 }}>(optional)</span>}
+                    <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>
+                      {payeeLabel} {isIncome && <span style={{ color: "var(--text-muted)", fontWeight: 400 }}>(optional)</span>}
                     </label>
                     <input type="text" placeholder={payeePlaceholder} value={txForm.payee} onChange={txSf("payee")}
                       onFocus={() => setTxPayeeFocus(true)} onBlur={() => setTimeout(() => setTxPayeeFocus(false), 150)}
@@ -3693,12 +3774,12 @@ function PropertyDetail({ property, onBack, backLabel, onEditProperty, onGoToTra
                   </div>
 
                   <div style={{ gridColumn: "1 / -1" }}>
-                    <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Description *</label>
+                    <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Description *</label>
                     <input type="text" placeholder="Brief description" value={txForm.description} onChange={txSf("description")} style={iS} />
                   </div>
 
                   <div style={{ gridColumn: "1 / -1" }}>
-                    <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Category</label>
+                    <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Category</label>
                     <select value={txForm.category} onChange={txSf("category")} style={iS}>
                       {Object.entries(txGroupsForType(txForm.type)).map(([group, subs]) => (
                         <optgroup key={group} label={group}>
@@ -3710,7 +3791,7 @@ function PropertyDetail({ property, onBack, backLabel, onEditProperty, onGoToTra
 
                   {/* Receipt / Attachment */}
                   <div style={{ gridColumn: "1 / -1" }}>
-                    <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>
+                    <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>
                       <Paperclip size={13} style={{ marginRight: 4, verticalAlign: "middle" }} />Receipt / Attachment
                     </label>
                     <AttachmentZone
@@ -3751,7 +3832,7 @@ function PropertyDetail({ property, onBack, backLabel, onEditProperty, onGoToTra
                 </div>
 
                 <div style={{ display: "flex", gap: 10, marginTop: 24, justifyContent: "flex-end" }}>
-                  <button onClick={txCloseModal} style={{ padding: "10px 20px", borderRadius: 10, border: "1px solid #e2e8f0", background: "#fff", fontSize: 14, fontWeight: 600, cursor: "pointer", color: "#64748b" }}>Cancel</button>
+                  <button onClick={txCloseModal} style={{ padding: "10px 20px", borderRadius: 10, border: "1px solid var(--border)", background: "var(--surface)", fontSize: 14, fontWeight: 600, cursor: "pointer", color: "var(--text-secondary)" }}>Cancel</button>
                   <button onClick={txHandleSave} style={{ padding: "10px 24px", borderRadius: 10, border: "none", background: accentColor, color: "#fff", fontSize: 14, fontWeight: 600, cursor: "pointer" }}>{txEditId ? "Save Changes" : isIncome ? "Save Income" : "Save Expense"}</button>
                 </div>
               </Modal>
@@ -3765,12 +3846,12 @@ function PropertyDetail({ property, onBack, backLabel, onEditProperty, onGoToTra
                 <div style={{ width: 48, height: 48, borderRadius: "50%", background: "#fee2e2", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
                   <Trash2 size={22} color="#ef4444" />
                 </div>
-                <p style={{ fontSize: 14, color: "#041830", fontWeight: 600, marginBottom: 4 }}>{txDeleteConfirm.description}</p>
-                <p style={{ fontSize: 13, color: "#64748b" }}>{txDeleteConfirm.date} · <span style={{ color: txDeleteConfirm.type === "income" ? "#15803d" : "#b91c1c", fontWeight: 600 }}>{txDeleteConfirm.type === "income" ? "+" : "-"}{fmt(Math.abs(txDeleteConfirm.amount))}</span></p>
+                <p style={{ fontSize: 14, color: "var(--text-primary)", fontWeight: 600, marginBottom: 4 }}>{txDeleteConfirm.description}</p>
+                <p style={{ fontSize: 13, color: "var(--text-secondary)" }}>{txDeleteConfirm.date} · <span style={{ color: txDeleteConfirm.type === "income" ? "#15803d" : "#b91c1c", fontWeight: 600 }}>{txDeleteConfirm.type === "income" ? "+" : "-"}{fmt(Math.abs(txDeleteConfirm.amount))}</span></p>
                 <p style={{ fontSize: 13, color: "#ef4444", marginTop: 12 }}>This action cannot be undone.</p>
               </div>
               <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
-                <button onClick={() => setTxDeleteConfirm(null)} style={{ padding: "10px 20px", borderRadius: 10, border: "1px solid #e2e8f0", background: "#fff", fontSize: 14, fontWeight: 600, cursor: "pointer", color: "#64748b" }}>Cancel</button>
+                <button onClick={() => setTxDeleteConfirm(null)} style={{ padding: "10px 20px", borderRadius: 10, border: "1px solid var(--border)", background: "var(--surface)", fontSize: 14, fontWeight: 600, cursor: "pointer", color: "var(--text-secondary)" }}>Cancel</button>
                 <button onClick={() => txHandleDelete(txDeleteConfirm)} style={{ padding: "10px 24px", borderRadius: 10, border: "none", background: "#ef4444", color: "#fff", fontSize: 14, fontWeight: 600, cursor: "pointer" }}>Delete</button>
               </div>
             </Modal>
@@ -3789,9 +3870,9 @@ function PropertyDetail({ property, onBack, backLabel, onEditProperty, onGoToTra
               { label: "Vacant", value: propTenants.filter(t => t.status === "vacant").length, color: propTenants.some(t => t.status === "vacant") ? "#ef4444" : "#94a3b8", tip: "Units without an active tenant. Vacant units don't generate rental income." },
               { label: "Monthly Rent", value: fmt(propTenants.filter(t => t.status !== "vacant" && t.status !== "past").reduce((s, t) => s + (t.rent || 0), 0)), color: "#e95e00", tip: "Combined rent from all active tenants at this property." },
             ].map((m, i) => (
-              <div key={i} style={{ background: "#fff", borderRadius: 12, padding: "16px 18px", boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" }}>
+              <div key={i} style={{ background: "var(--surface)", borderRadius: 12, padding: "16px 18px", boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 4 }}>
-                  <p style={{ color: "#94a3b8", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>{m.label}</p>
+                  <p style={{ color: "var(--text-muted)", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>{m.label}</p>
                   {m.tip && <InfoTip text={m.tip} />}
                 </div>
                 <p style={{ color: m.color, fontSize: 22, fontWeight: 700 }}>{m.value}</p>
@@ -3800,13 +3881,13 @@ function PropertyDetail({ property, onBack, backLabel, onEditProperty, onGoToTra
           </div>
 
           <div style={{ marginBottom: 14 }}>
-            <p style={{ color: "#64748b", fontSize: 13 }}>{propTenants.length} active unit{propTenants.length !== 1 ? "s" : ""}{propPastTenants.length > 0 ? ` · ${propPastTenants.length} past tenant${propPastTenants.length !== 1 ? "s" : ""}` : ""}</p>
+            <p style={{ color: "var(--text-secondary)", fontSize: 13 }}>{propTenants.length} active unit{propTenants.length !== 1 ? "s" : ""}{propPastTenants.length > 0 ? ` · ${propPastTenants.length} past tenant${propPastTenants.length !== 1 ? "s" : ""}` : ""}</p>
           </div>
 
           {propTenants.length === 0 ? (
-            <div style={{ background: "#fff", borderRadius: 16, padding: 48, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9", textAlign: "center" }}>
+            <div style={{ background: "var(--surface)", borderRadius: 16, padding: 48, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)", textAlign: "center" }}>
               <Users size={32} color="#cbd5e1" style={{ marginBottom: 12 }} />
-              <p style={{ color: "#94a3b8", fontSize: 14 }}>No tenants on record for this property.</p>
+              <p style={{ color: "var(--text-muted)", fontSize: 14 }}>No tenants on record for this property.</p>
               <p style={{ color: "#cbd5e1", fontSize: 13, marginTop: 4 }}>Add tenants from the Tenants page.</p>
             </div>
           ) : (
@@ -3831,36 +3912,36 @@ function PropertyDetail({ property, onBack, backLabel, onEditProperty, onGoToTra
                           {isVacant ? <Home size={17} color="#ef4444" /> : <User size={17} color="#3b82f6" />}
                         </div>
                         <div>
-                          <p style={{ fontSize: 14, fontWeight: 700, color: "#041830" }}>{isVacant ? "Vacant" : t.name}</p>
-                          <p style={{ fontSize: 12, color: "#94a3b8" }}>{t.unit}</p>
+                          <p style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)" }}>{isVacant ? "Vacant" : t.name}</p>
+                          <p style={{ fontSize: 12, color: "var(--text-muted)" }}>{t.unit}</p>
                         </div>
                       </div>
                       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                         <span style={{ background: st.bg, color: st.text, borderRadius: 20, padding: "4px 12px", fontSize: 12, fontWeight: 600 }}>{st.label}</span>
-                        <span style={{ fontSize: 16, fontWeight: 700, color: "#041830" }}>{fmt(t.rent)}<span style={{ fontSize: 11, color: "#94a3b8", fontWeight: 500 }}>/mo</span></span>
+                        <span style={{ fontSize: 16, fontWeight: 700, color: "var(--text-primary)" }}>{fmt(t.rent)}<span style={{ fontSize: 11, color: "var(--text-muted)", fontWeight: 500 }}>/mo</span></span>
                         <ChevronRight size={14} color="#94a3b8" />
                       </div>
                     </div>
                     {!isVacant && (
                       <div style={{ display: "flex", gap: 24, marginTop: 12, paddingTop: 12, borderTop: "1px solid #f8fafc" }}>
                         <div>
-                          <p style={{ color: "#94a3b8", fontSize: 11, fontWeight: 600, textTransform: "uppercase" }}>Lease</p>
-                          <p style={{ color: "#374151", fontSize: 12, fontWeight: 500 }}>{t.leaseStart} — {t.leaseEnd || "MTM"}</p>
+                          <p style={{ color: "var(--text-muted)", fontSize: 11, fontWeight: 600, textTransform: "uppercase" }}>Lease</p>
+                          <p style={{ color: "var(--text-dim)", fontSize: 12, fontWeight: 500 }}>{t.leaseStart} — {t.leaseEnd || "MTM"}</p>
                         </div>
                         {daysLeft !== null && (
                           <div>
-                            <p style={{ color: "#94a3b8", fontSize: 11, fontWeight: 600, textTransform: "uppercase" }}>Expires In</p>
+                            <p style={{ color: "var(--text-muted)", fontSize: 11, fontWeight: 600, textTransform: "uppercase" }}>Expires In</p>
                             <p style={{ color: daysLeft < 60 ? "#ef4444" : "#374151", fontSize: 12, fontWeight: daysLeft < 60 ? 700 : 500 }}>{daysLeft > 0 ? `${daysLeft} days` : "Expired"}</p>
                           </div>
                         )}
                         <div>
-                          <p style={{ color: "#94a3b8", fontSize: 11, fontWeight: 600, textTransform: "uppercase" }}>Last Payment</p>
-                          <p style={{ color: "#374151", fontSize: 12, fontWeight: 500 }}>{t.lastPayment || "—"}</p>
+                          <p style={{ color: "var(--text-muted)", fontSize: 11, fontWeight: 600, textTransform: "uppercase" }}>Last Payment</p>
+                          <p style={{ color: "var(--text-dim)", fontSize: 12, fontWeight: 500 }}>{t.lastPayment || "—"}</p>
                         </div>
                         {t.phone && (
                           <div>
-                            <p style={{ color: "#94a3b8", fontSize: 11, fontWeight: 600, textTransform: "uppercase" }}>Phone</p>
-                            <p style={{ color: "#374151", fontSize: 12, fontWeight: 500 }}>{t.phone}</p>
+                            <p style={{ color: "var(--text-muted)", fontSize: 11, fontWeight: 600, textTransform: "uppercase" }}>Phone</p>
+                            <p style={{ color: "var(--text-dim)", fontSize: 12, fontWeight: 500 }}>{t.phone}</p>
                           </div>
                         )}
                       </div>
@@ -3874,24 +3955,24 @@ function PropertyDetail({ property, onBack, backLabel, onEditProperty, onGoToTra
           {/* Past Tenants Section */}
           {propPastTenants.length > 0 && (
             <div style={{ marginTop: 28 }}>
-              <h3 style={{ fontSize: 16, fontWeight: 700, color: "#041830", marginBottom: 4 }}>Past Tenants</h3>
-              <p style={{ fontSize: 13, color: "#94a3b8", marginBottom: 16 }}>Previous tenants who have moved out</p>
+              <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--text-primary)", marginBottom: 4 }}>Past Tenants</h3>
+              <p style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 16 }}>Previous tenants who have moved out</p>
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 {propPastTenants.map(t => (
-                  <div key={t.id} style={{ background: "#fafafa", borderRadius: 12, padding: "14px 18px", border: "1px solid #f1f5f9" }}>
+                  <div key={t.id} style={{ background: "#fafafa", borderRadius: 12, padding: "14px 18px", border: "1px solid var(--border-subtle)" }}>
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                        <div style={{ width: 34, height: 34, borderRadius: 9, background: "#f1f5f9", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                        <div style={{ width: 34, height: 34, borderRadius: 9, background: "var(--surface-muted)", display: "flex", alignItems: "center", justifyContent: "center" }}>
                           <Clock size={15} color="#94a3b8" />
                         </div>
                         <div>
-                          <p style={{ fontSize: 13, fontWeight: 600, color: "#64748b" }}>{t.name}</p>
-                          <p style={{ fontSize: 11, color: "#94a3b8" }}>{t.unit} &middot; {t.leaseStart} — {t.leaseEnd}</p>
+                          <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text-secondary)" }}>{t.name}</p>
+                          <p style={{ fontSize: 11, color: "var(--text-muted)" }}>{t.unit} &middot; {t.leaseStart} — {t.leaseEnd}</p>
                         </div>
                       </div>
                       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                        <span style={{ background: "#f1f5f9", color: "#64748b", borderRadius: 20, padding: "3px 10px", fontSize: 11, fontWeight: 600 }}>{t.moveOutReason || "Moved out"}</span>
-                        <span style={{ fontSize: 13, color: "#94a3b8" }}>{fmt(t.rent)}/mo</span>
+                        <span style={{ background: "var(--surface-muted)", color: "var(--text-secondary)", borderRadius: 20, padding: "3px 10px", fontSize: 11, fontWeight: 600 }}>{t.moveOutReason || "Moved out"}</span>
+                        <span style={{ fontSize: 13, color: "var(--text-muted)" }}>{fmt(t.rent)}/mo</span>
                       </div>
                     </div>
                   </div>
@@ -3914,8 +3995,8 @@ function PropertyDetail({ property, onBack, backLabel, onEditProperty, onGoToTra
       {activeTab === "notes" && (
         <div>
           {/* Add / Edit note form */}
-          <div style={{ background: "#fff", borderRadius: 16, padding: 20, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9", marginBottom: 20 }}>
-            <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#475569", marginBottom: 8 }}>
+          <div style={{ background: "var(--surface)", borderRadius: 16, padding: 20, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)", marginBottom: 20 }}>
+            <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "var(--text-label)", marginBottom: 8 }}>
               {noteEditId ? "Edit Note" : "Add Note"}
             </label>
             <textarea
@@ -3923,12 +4004,12 @@ function PropertyDetail({ property, onBack, backLabel, onEditProperty, onGoToTra
               onChange={e => setNoteText(e.target.value)}
               placeholder="Write a note about this property..."
               rows={3}
-              style={{ width: "100%", padding: "10px 12px", border: "1.5px solid #e2e8f0", borderRadius: 10, fontSize: 14, color: "#0f172a", resize: "vertical", outline: "none", boxSizing: "border-box", fontFamily: "inherit" }}
+              style={{ width: "100%", padding: "10px 12px", border: "1.5px solid var(--border)", borderRadius: 10, fontSize: 14, color: "#0f172a", resize: "vertical", outline: "none", boxSizing: "border-box", fontFamily: "inherit" }}
             />
             <div style={{ display: "flex", gap: 8, marginTop: 10, justifyContent: "flex-end" }}>
               {noteEditId && (
                 <button onClick={() => { setNoteEditId(null); setNoteText(""); }}
-                  style={{ padding: "8px 16px", borderRadius: 8, border: "1px solid #e2e8f0", background: "#fff", color: "#475569", fontWeight: 600, fontSize: 13, cursor: "pointer" }}>Cancel</button>
+                  style={{ padding: "8px 16px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text-label)", fontWeight: 600, fontSize: 13, cursor: "pointer" }}>Cancel</button>
               )}
               <button onClick={() => {
                 const txt = noteText.trim();
@@ -3952,19 +4033,19 @@ function PropertyDetail({ property, onBack, backLabel, onEditProperty, onGoToTra
 
           {/* Notes list */}
           {propNotes.length === 0 ? (
-            <div style={{ textAlign: "center", padding: "40px 0", color: "#94a3b8" }}>
+            <div style={{ textAlign: "center", padding: "40px 0", color: "var(--text-muted)" }}>
               <MessageSquare size={28} style={{ marginBottom: 10, opacity: 0.4 }} />
               <p style={{ fontSize: 14, margin: 0 }}>No notes yet — add one above.</p>
             </div>
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               {propNotes.map(n => (
-                <div key={n.id} style={{ background: "#fff", borderRadius: 14, padding: 18, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" }}>
+                <div key={n.id} style={{ background: "var(--surface)", borderRadius: 14, padding: 18, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                    <span style={{ fontSize: 12, color: "#94a3b8", fontWeight: 500 }}>{n.date}</span>
+                    <span style={{ fontSize: 12, color: "var(--text-muted)", fontWeight: 500 }}>{n.date}</span>
                     <div style={{ display: "flex", gap: 6 }}>
                       <button onClick={() => { setNoteEditId(n.id); setNoteText(n.text); }}
-                        style={{ background: "#f1f5f9", border: "none", borderRadius: 7, padding: "4px 8px", cursor: "pointer", color: "#475569", display: "flex", alignItems: "center" }}>
+                        style={{ background: "var(--surface-muted)", border: "none", borderRadius: 7, padding: "4px 8px", cursor: "pointer", color: "var(--text-label)", display: "flex", alignItems: "center" }}>
                         <Pencil size={12} />
                       </button>
                       <button onClick={() => setNoteDeleteConfirm(n.id)}
@@ -3982,11 +4063,11 @@ function PropertyDetail({ property, onBack, backLabel, onEditProperty, onGoToTra
           {/* Delete confirm */}
           {noteDeleteConfirm && (
             <div style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 500 }}>
-              <div style={{ background: "#fff", borderRadius: 16, padding: 28, width: 360, boxShadow: "0 25px 60px rgba(0,0,0,0.2)" }}>
+              <div style={{ background: "var(--surface)", borderRadius: 16, padding: 28, width: 360, boxShadow: "0 25px 60px rgba(0,0,0,0.2)" }}>
                 <h3 style={{ fontSize: 17, fontWeight: 700, color: "#0f172a", margin: "0 0 8px 0" }}>Delete Note?</h3>
-                <p style={{ fontSize: 13, color: "#64748b", margin: "0 0 20px 0" }}>This cannot be undone.</p>
+                <p style={{ fontSize: 13, color: "var(--text-secondary)", margin: "0 0 20px 0" }}>This cannot be undone.</p>
                 <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
-                  <button onClick={() => setNoteDeleteConfirm(null)} style={{ padding: "8px 16px", borderRadius: 8, border: "1px solid #e2e8f0", background: "#fff", color: "#475569", fontWeight: 600, fontSize: 13, cursor: "pointer" }}>Cancel</button>
+                  <button onClick={() => setNoteDeleteConfirm(null)} style={{ padding: "8px 16px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text-label)", fontWeight: 600, fontSize: 13, cursor: "pointer" }}>Cancel</button>
                   <button onClick={() => {
                     const idx = RENTAL_NOTES.findIndex(n => n.id === noteDeleteConfirm);
                     if (idx !== -1) RENTAL_NOTES.splice(idx, 1);
@@ -4172,8 +4253,8 @@ function Transactions({ highlightTxId, onBack, onClearHighlight, backLabel }) {
       )}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
         <div>
-          <h1 style={{ color: "#041830", fontSize: 26, fontWeight: 700, marginBottom: 4 }}>Transactions</h1>
-          <p style={{ color: "#64748b", fontSize: 15 }}>Track all income and expenses across your portfolio</p>
+          <h1 style={{ color: "var(--text-primary)", fontSize: 26, fontWeight: 700, marginBottom: 4 }}>Transactions</h1>
+          <p style={{ color: "var(--text-secondary)", fontSize: 15 }}>Track all income and expenses across your portfolio</p>
         </div>
         <select value={propFilter} onChange={e => setPropFilter(e.target.value)} style={{ ...iS, width: 200, fontSize: 14, padding: "9px 14px", fontWeight: 600 }}>
           <option value="all">All Properties</option>
@@ -4181,16 +4262,16 @@ function Transactions({ highlightTxId, onBack, onClearHighlight, backLabel }) {
         </select>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, marginBottom: 24 }}>
-        <div style={{ background: "#fff", borderRadius: 14, padding: 20, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" }}>
-          <p style={{ color: "#94a3b8", fontSize: 12, fontWeight: 600, textTransform: "uppercase" }}>Total Income</p>
+        <div style={{ background: "var(--surface)", borderRadius: 14, padding: 20, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)" }}>
+          <p style={{ color: "var(--text-muted)", fontSize: 12, fontWeight: 600, textTransform: "uppercase" }}>Total Income</p>
           <p style={{ color: "#15803d", fontSize: 24, fontWeight: 800, marginTop: 4 }}>+{fmt(totalIncome)}</p>
         </div>
-        <div style={{ background: "#fff", borderRadius: 14, padding: 20, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" }}>
-          <p style={{ color: "#94a3b8", fontSize: 12, fontWeight: 600, textTransform: "uppercase" }}>Total Expenses</p>
+        <div style={{ background: "var(--surface)", borderRadius: 14, padding: 20, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)" }}>
+          <p style={{ color: "var(--text-muted)", fontSize: 12, fontWeight: 600, textTransform: "uppercase" }}>Total Expenses</p>
           <p style={{ color: "#b91c1c", fontSize: 24, fontWeight: 800, marginTop: 4 }}>-{fmt(totalExpenses)}</p>
         </div>
-        <div style={{ background: "#fff", borderRadius: 14, padding: 20, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" }}>
-          <p style={{ color: "#94a3b8", fontSize: 12, fontWeight: 600, textTransform: "uppercase" }}>Net</p>
+        <div style={{ background: "var(--surface)", borderRadius: 14, padding: 20, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)" }}>
+          <p style={{ color: "var(--text-muted)", fontSize: 12, fontWeight: 600, textTransform: "uppercase" }}>Net</p>
           <p style={{ color: totalIncome - totalExpenses >= 0 ? "#15803d" : "#b91c1c", fontSize: 24, fontWeight: 800, marginTop: 4 }}>{fmt(totalIncome - totalExpenses)}</p>
         </div>
       </div>
@@ -4198,8 +4279,8 @@ function Transactions({ highlightTxId, onBack, onClearHighlight, backLabel }) {
       <div style={{ display: "flex", gap: 10, marginBottom: 20, flexWrap: "wrap", alignItems: "center" }}>
         {/* Search */}
         <div style={{ position: "relative", flex: "1 1 200px", minWidth: 180 }}>
-          <Search size={15} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "#94a3b8" }} />
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search..." style={{ width: "100%", paddingLeft: 36, paddingRight: 12, paddingTop: 9, paddingBottom: 9, border: "1px solid #e2e8f0", borderRadius: 10, fontSize: 13, color: "#041830", background: "#fff", outline: "none", boxSizing: "border-box" }} />
+          <Search size={15} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "var(--text-muted)" }} />
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search..." style={{ width: "100%", paddingLeft: 36, paddingRight: 12, paddingTop: 9, paddingBottom: 9, border: "1px solid var(--border)", borderRadius: 10, fontSize: 13, color: "var(--text-primary)", background: "var(--surface)", outline: "none", boxSizing: "border-box" }} />
         </div>
         {/* Category */}
         <select value={catFilter} onChange={e => setCatFilter(e.target.value)} style={{ ...iS, width: "auto", minWidth: 160, fontSize: 13, padding: "9px 12px" }}>
@@ -4218,14 +4299,14 @@ function Transactions({ highlightTxId, onBack, onClearHighlight, backLabel }) {
         {dateFilter === "custom" && (
           <>
             <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} style={{ ...iS, width: "auto", fontSize: 13, padding: "9px 12px" }} placeholder="From" />
-            <span style={{ color: "#94a3b8", fontSize: 13, alignSelf: "center" }}>to</span>
+            <span style={{ color: "var(--text-muted)", fontSize: 13, alignSelf: "center" }}>to</span>
             <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} style={{ ...iS, width: "auto", fontSize: 13, padding: "9px 12px" }} placeholder="To" />
           </>
         )}
         {/* Income / Expense toggle */}
         <div style={{ display: "flex", gap: 6 }}>
           {[["all", "All"], ["income", "Income"], ["expense", "Expenses"]].map(([f, label]) => (
-            <button key={f} onClick={() => setFilter(f)} style={{ padding: "9px 16px", borderRadius: 10, border: filter === f ? "none" : "1px solid #e2e8f0", background: filter === f ? (f === "income" ? "#dcfce7" : f === "expense" ? "#fee2e2" : "#3b82f6") : "#fff", color: filter === f ? (f === "income" ? "#15803d" : f === "expense" ? "#b91c1c" : "#fff") : "#475569", fontWeight: 600, fontSize: 13, cursor: "pointer", whiteSpace: "nowrap" }}>
+            <button key={f} onClick={() => setFilter(f)} style={{ padding: "9px 16px", borderRadius: 10, border: filter === f ? "none" : "1px solid var(--border)", background: filter === f ? (f === "income" ? "#dcfce7" : f === "expense" ? "#fee2e2" : "#3b82f6") : "#fff", color: filter === f ? (f === "income" ? "#15803d" : f === "expense" ? "#b91c1c" : "#fff") : "#475569", fontWeight: 600, fontSize: 13, cursor: "pointer", whiteSpace: "nowrap" }}>
               {label}
             </button>
           ))}
@@ -4242,41 +4323,41 @@ function Transactions({ highlightTxId, onBack, onClearHighlight, backLabel }) {
       {/* Active filter chips + clear */}
       {(propFilter !== "all" || catFilter !== "all" || dateFilter !== "all" || search) && (
         <div style={{ display: "flex", gap: 8, marginBottom: 14, flexWrap: "wrap", alignItems: "center" }}>
-          <span style={{ fontSize: 12, color: "#94a3b8", fontWeight: 600 }}>Filtered:</span>
+          <span style={{ fontSize: 12, color: "var(--text-muted)", fontWeight: 600 }}>Filtered:</span>
           {propFilter !== "all" && <span style={{ background: "#fff7ed", color: "#e95e00", borderRadius: 20, padding: "3px 10px", fontSize: 12, fontWeight: 600 }}>{(PROPERTIES.find(p => p.id === Number(propFilter))?.name || "Property").split(" ").slice(0, 2).join(" ")}</span>}
           {catFilter !== "all" && <span style={{ background: "#f0fdf4", color: "#15803d", borderRadius: 20, padding: "3px 10px", fontSize: 12, fontWeight: 600 }}>{catFilter}</span>}
           {dateFilter !== "all" && <span style={{ background: "#fff7ed", color: "#7c2d12", borderRadius: 20, padding: "3px 10px", fontSize: 12, fontWeight: 600 }}>{{ thisMonth: "This Month", lastMonth: "Last Month", thisYear: "This Year", lastYear: "Last Year", custom: dateFrom && dateTo ? `${dateFrom} – ${dateTo}` : "Custom Range" }[dateFilter]}</span>}
-          {search && <span style={{ background: "#f1f5f9", color: "#475569", borderRadius: 20, padding: "3px 10px", fontSize: 12, fontWeight: 600 }}>"{search}"</span>}
-          <button onClick={() => { setPropFilter("all"); setCatFilter("all"); setDateFilter("all"); setDateFrom(""); setDateTo(""); setSearch(""); }} style={{ background: "none", border: "none", color: "#94a3b8", fontSize: 12, cursor: "pointer", textDecoration: "underline", padding: 0 }}>Clear all</button>
+          {search && <span style={{ background: "var(--surface-muted)", color: "var(--text-label)", borderRadius: 20, padding: "3px 10px", fontSize: 12, fontWeight: 600 }}>"{search}"</span>}
+          <button onClick={() => { setPropFilter("all"); setCatFilter("all"); setDateFilter("all"); setDateFrom(""); setDateTo(""); setSearch(""); }} style={{ background: "none", border: "none", color: "var(--text-muted)", fontSize: 12, cursor: "pointer", textDecoration: "underline", padding: 0 }}>Clear all</button>
         </div>
       )}
-      <div style={{ background: "#fff", borderRadius: 16, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9", overflow: "hidden" }}>
+      <div style={{ background: "var(--surface)", borderRadius: 16, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)", overflow: "hidden" }}>
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
-            <tr style={{ background: "#f8fafc" }}>
+            <tr style={{ background: "var(--surface-alt)" }}>
               {["Date", "Property", "Category", "Paid To", "Description", "Amount", "Type", ""].map(h => (
-                <th key={h} style={{ padding: "14px 20px", textAlign: "left", color: "#94a3b8", fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>{h}</th>
+                <th key={h} style={{ padding: "14px 20px", textAlign: "left", color: "var(--text-muted)", fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {filtered.length === 0 && (
-              <tr><td colSpan={8} style={{ padding: "48px 20px", textAlign: "center", color: "#94a3b8", fontSize: 14 }}>No transactions match your filters. <button onClick={() => { setPropFilter("all"); setCatFilter("all"); setDateFilter("all"); setDateFrom(""); setDateTo(""); setSearch(""); setFilter("all"); }} style={{ background: "none", border: "none", color: "#3b82f6", fontSize: 14, cursor: "pointer", textDecoration: "underline", padding: 0 }}>Clear filters</button></td></tr>
+              <tr><td colSpan={8} style={{ padding: "48px 20px", textAlign: "center", color: "var(--text-muted)", fontSize: 14 }}>No transactions match your filters. <button onClick={() => { setPropFilter("all"); setCatFilter("all"); setDateFilter("all"); setDateFrom(""); setDateTo(""); setSearch(""); setFilter("all"); }} style={{ background: "none", border: "none", color: "#3b82f6", fontSize: 14, cursor: "pointer", textDecoration: "underline", padding: 0 }}>Clear filters</button></td></tr>
             )}
             {filtered.map((t, i) => (
               <tr key={t.id} ref={t.id === flashId ? highlightRef : undefined}
                 onClick={() => setDetailTx(t)}
-                style={{ borderTop: "1px solid #f1f5f9", background: t.id === flashId ? "#dbeafe" : i % 2 === 0 ? "#fff" : "#fafafa", transition: "background 1.5s ease", cursor: "pointer" }}
+                style={{ borderTop: "1px solid var(--border-subtle)", background: t.id === flashId ? "#dbeafe" : i % 2 === 0 ? "#fff" : "#fafafa", transition: "background 1.5s ease", cursor: "pointer" }}
                 onMouseEnter={e => { if (t.id !== flashId) e.currentTarget.style.background = "#f0f9ff"; }}
                 onMouseLeave={e => { e.currentTarget.style.background = t.id === flashId ? "#dbeafe" : i % 2 === 0 ? "#fff" : "#fafafa"; }}>
-                <td style={{ padding: "14px 20px", fontSize: 13, color: "#64748b" }}>{t.date}</td>
-                <td style={{ padding: "14px 20px", fontSize: 13, fontWeight: 600, color: "#041830" }}>{(PROPERTIES.find(p => p.id === t.propertyId)?.name || "Unknown").split(" ").slice(0, 2).join(" ")}</td>
+                <td style={{ padding: "14px 20px", fontSize: 13, color: "var(--text-secondary)" }}>{t.date}</td>
+                <td style={{ padding: "14px 20px", fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>{(PROPERTIES.find(p => p.id === t.propertyId)?.name || "Unknown").split(" ").slice(0, 2).join(" ")}</td>
                 <td style={{ padding: "14px 20px" }}>
-                  {(() => { const group = parentOf(t.category, t.type); return group && group !== t.category ? <p style={{ fontSize: 10, color: "#94a3b8", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.03em", marginBottom: 2 }}>{group}</p> : null; })()}
-                  <span style={{ background: "#f1f5f9", borderRadius: 6, padding: "3px 8px", fontSize: 12, fontWeight: 600, color: "#475569" }}>{t.category}</span>
+                  {(() => { const group = parentOf(t.category, t.type); return group && group !== t.category ? <p style={{ fontSize: 10, color: "var(--text-muted)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.03em", marginBottom: 2 }}>{group}</p> : null; })()}
+                  <span style={{ background: "var(--surface-muted)", borderRadius: 6, padding: "3px 8px", fontSize: 12, fontWeight: 600, color: "var(--text-label)" }}>{t.category}</span>
                 </td>
-                <td style={{ padding: "14px 20px", fontSize: 13, color: "#475569" }}>{t.payee || <span style={{ color: "#cbd5e1", fontStyle: "italic" }}>—</span>}</td>
-                <td style={{ padding: "14px 20px", fontSize: 13, color: "#041830" }}>{t.description}</td>
+                <td style={{ padding: "14px 20px", fontSize: 13, color: "var(--text-label)" }}>{t.payee || <span style={{ color: "#cbd5e1", fontStyle: "italic" }}>—</span>}</td>
+                <td style={{ padding: "14px 20px", fontSize: 13, color: "var(--text-primary)" }}>{t.description}</td>
                 <td style={{ padding: "14px 20px", fontSize: 14, fontWeight: 700, color: t.type === "income" ? "#15803d" : "#b91c1c" }}>
                   {t.type === "income" ? "+" : "-"}{fmt(Math.abs(t.amount))}
                 </td>
@@ -4285,7 +4366,7 @@ function Transactions({ highlightTxId, onBack, onClearHighlight, backLabel }) {
                 </td>
                 <td style={{ padding: "14px 20px" }}>
                   <div style={{ display: "flex", gap: 4 }}>
-                    <button onClick={e => { e.stopPropagation(); openEdit(t); }} style={{ background: "#f1f5f9", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "#475569", display: "flex", alignItems: "center" }} title="Edit"><Pencil size={13} /></button>
+                    <button onClick={e => { e.stopPropagation(); openEdit(t); }} style={{ background: "var(--surface-muted)", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "var(--text-label)", display: "flex", alignItems: "center" }} title="Edit"><Pencil size={13} /></button>
                     <button onClick={e => { e.stopPropagation(); setDeleteConfirm(t); }} style={{ background: "#fee2e2", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "#ef4444", display: "flex", alignItems: "center" }} title="Delete"><Trash2 size={13} /></button>
                   </div>
                 </td>
@@ -4309,7 +4390,7 @@ function Transactions({ highlightTxId, onBack, onClearHighlight, backLabel }) {
           : "Who was paid?";
         const payeePool = isIncome ? allPayers : allPayees;
 
-        const typeaheadHint = <p style={{ fontSize: 11, color: "#94a3b8", marginTop: 4, fontStyle: "italic" }}>Type to search previous entries or add new</p>;
+        const typeaheadHint = <p style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4, fontStyle: "italic" }}>Type to search previous entries or add new</p>;
 
         const PayeeDropdown = () => {
           const q = form.payee.toLowerCase();
@@ -4318,16 +4399,16 @@ function Transactions({ highlightTxId, onBack, onClearHighlight, backLabel }) {
           const showNew = q && !exactExists;
           if (matches.length === 0 && !showNew) return null;
           return (
-            <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, background: "#fff", border: "1px solid #e2e8f0", borderRadius: 12, boxShadow: "0 8px 24px rgba(0,0,0,0.10)", zIndex: 200, overflow: "hidden", maxHeight: 200, overflowY: "auto" }}>
+            <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, boxShadow: "0 8px 24px rgba(0,0,0,0.10)", zIndex: 200, overflow: "hidden", maxHeight: 200, overflowY: "auto" }}>
               {matches.slice(0, 6).map(p => (
                 <button key={p} onMouseDown={() => { setForm(f => ({ ...f, payee: p })); setPayeeFocus(false); }}
-                  style={{ width: "100%", padding: "10px 14px", background: "none", border: "none", borderBottom: "1px solid #f1f5f9", textAlign: "left", cursor: "pointer", fontSize: 13, color: "#041830", display: "flex", alignItems: "center", gap: 8 }}>
-                  <User size={13} style={{ color: "#94a3b8", flexShrink: 0 }} /> {p}
+                  style={{ width: "100%", padding: "10px 14px", background: "none", border: "none", borderBottom: "1px solid var(--border-subtle)", textAlign: "left", cursor: "pointer", fontSize: 13, color: "var(--text-primary)", display: "flex", alignItems: "center", gap: 8 }}>
+                  <User size={13} style={{ color: "var(--text-muted)", flexShrink: 0 }} /> {p}
                 </button>
               ))}
               {showNew && (
                 <button onMouseDown={() => setPayeeFocus(false)}
-                  style={{ width: "100%", padding: "10px 14px", display: "flex", alignItems: "center", gap: 8, background: "#fff7ed", border: "none", borderTop: matches.length > 0 ? "1px solid #e2e8f0" : "none", cursor: "pointer", textAlign: "left" }}>
+                  style={{ width: "100%", padding: "10px 14px", display: "flex", alignItems: "center", gap: 8, background: "#fff7ed", border: "none", borderTop: matches.length > 0 ? "1px solid var(--border)" : "none", cursor: "pointer", textAlign: "left" }}>
                   <Plus size={13} style={{ color: "#e95e00", flexShrink: 0 }} />
                   <span style={{ fontSize: 13, color: "#e95e00", fontWeight: 600 }}>Add &ldquo;{form.payee}&rdquo; as new</span>
                 </button>
@@ -4361,11 +4442,11 @@ function Transactions({ highlightTxId, onBack, onClearHighlight, backLabel }) {
 
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
               <div>
-                <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Date</label>
+                <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Date</label>
                 <input type="date" value={form.date} onChange={sf("date")} style={iS} />
               </div>
               <div>
-                <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Amount ($) *</label>
+                <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Amount ($) *</label>
                 <input type="number" placeholder="0.00" value={form.amount} onChange={sf("amount")} style={iS} />
               </div>
 
@@ -4383,12 +4464,12 @@ function Transactions({ highlightTxId, onBack, onClearHighlight, backLabel }) {
                       <div>
                         <p style={{ fontSize: 12, fontWeight: 700, color: "#0c4a6e", marginBottom: 2 }}>Principal & Interest Split</p>
                         {hasLoanTerms && !form.piOverride ? (
-                          <p style={{ fontSize: 12, color: "#475569" }}>
+                          <p style={{ fontSize: 12, color: "var(--text-label)" }}>
                             <span style={{ fontWeight: 700, color: "#3b82f6" }}>{fmt(autoPrincipal)}</span> principal + <span style={{ fontWeight: 700, color: "#e95e00" }}>{fmt(autoInterest)}</span> interest
-                            <span style={{ color: "#94a3b8", marginLeft: 6 }}>(auto from loan terms)</span>
+                            <span style={{ color: "var(--text-muted)", marginLeft: 6 }}>(auto from loan terms)</span>
                           </p>
                         ) : !hasLoanTerms && !form.piOverride ? (
-                          <p style={{ fontSize: 12, color: "#94a3b8" }}>Add loan terms to this property for auto-calculation, or enter manually below</p>
+                          <p style={{ fontSize: 12, color: "var(--text-muted)" }}>Add loan terms to this property for auto-calculation, or enter manually below</p>
                         ) : null}
                       </div>
                       <button onClick={() => setForm(f => ({ ...f, piOverride: !f.piOverride, piPrincipal: f.piOverride ? "" : String(autoPrincipal ?? ""), piInterest: f.piOverride ? "" : String(autoInterest ?? "") }))} style={{ background: form.piOverride ? "#dbeafe" : "#fff", border: "1px solid #bae6fd", borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 600, color: "#3b82f6", cursor: "pointer", whiteSpace: "nowrap" }}>
@@ -4418,8 +4499,8 @@ function Transactions({ highlightTxId, onBack, onClearHighlight, backLabel }) {
 
               {/* Payee / Received From — typeahead */}
               <div style={{ gridColumn: "1 / -1", position: "relative" }}>
-                <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>
-                  {payeeLabel} {isIncome && <span style={{ color: "#94a3b8", fontWeight: 400 }}>(optional)</span>}
+                <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>
+                  {payeeLabel} {isIncome && <span style={{ color: "var(--text-muted)", fontWeight: 400 }}>(optional)</span>}
                 </label>
                 <input
                   type="text"
@@ -4436,17 +4517,17 @@ function Transactions({ highlightTxId, onBack, onClearHighlight, backLabel }) {
               </div>
 
               <div style={{ gridColumn: "1 / -1" }}>
-                <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Description *</label>
+                <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Description *</label>
                 <input type="text" placeholder="Brief description" value={form.description} onChange={sf("description")} style={iS} />
               </div>
               <div style={{ gridColumn: "1 / -1" }}>
-                <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Property</label>
+                <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Property</label>
                 <select value={form.propertyId} onChange={sf("propertyId")} style={iS}>
                   {PROPERTIES.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                 </select>
               </div>
               <div style={{ gridColumn: "1 / -1" }}>
-                <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Category</label>
+                <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Category</label>
                 <select value={form.category} onChange={sf("category")} style={iS}>
                   {Object.entries(groupsForType(form.type)).map(([group, subs]) => (
                     <optgroup key={group} label={group}>
@@ -4458,7 +4539,7 @@ function Transactions({ highlightTxId, onBack, onClearHighlight, backLabel }) {
 
               {/* Receipt / Attachment */}
               <div style={{ gridColumn: "1 / -1" }}>
-                <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>
+                <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>
                   <Paperclip size={13} style={{ marginRight: 4, verticalAlign: "middle" }} />Receipt / Attachment
                 </label>
                 <AttachmentZone
@@ -4499,7 +4580,7 @@ function Transactions({ highlightTxId, onBack, onClearHighlight, backLabel }) {
             </div>
 
             <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
-              <button onClick={closeModal} style={{ flex: 1, padding: "12px", border: "1px solid #e2e8f0", borderRadius: 10, background: "#fff", color: "#475569", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
+              <button onClick={closeModal} style={{ flex: 1, padding: "12px", border: "1px solid var(--border)", borderRadius: 10, background: "var(--surface)", color: "var(--text-label)", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
               <button onClick={handleSave} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: saveColor, color: "#fff", fontWeight: 700, cursor: "pointer" }}>
                 {editId ? "Save Changes" : isIncome ? "Save Income" : "Save Expense"}
               </button>
@@ -4509,14 +4590,14 @@ function Transactions({ highlightTxId, onBack, onClearHighlight, backLabel }) {
       })()}
       {deleteConfirm && (
         <Modal title="Delete Transaction" onClose={() => setDeleteConfirm(null)}>
-          <p style={{ color: "#475569", fontSize: 14, marginBottom: 8 }}>Are you sure you want to delete this transaction?</p>
-          <div style={{ background: "#f8fafc", borderRadius: 10, padding: 14, marginBottom: 18 }}>
-            <p style={{ fontSize: 13, fontWeight: 600, color: "#041830" }}>{deleteConfirm.description}</p>
-            <p style={{ fontSize: 12, color: "#64748b", marginTop: 4 }}>{PROPERTIES.find(p => p.id === deleteConfirm.propertyId)?.name || "Unknown"} · {deleteConfirm.date} · <span style={{ color: deleteConfirm.type === "income" ? "#15803d" : "#b91c1c", fontWeight: 700 }}>{deleteConfirm.type === "income" ? "+" : "-"}{fmt(Math.abs(deleteConfirm.amount))}</span></p>
+          <p style={{ color: "var(--text-label)", fontSize: 14, marginBottom: 8 }}>Are you sure you want to delete this transaction?</p>
+          <div style={{ background: "var(--surface-alt)", borderRadius: 10, padding: 14, marginBottom: 18 }}>
+            <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>{deleteConfirm.description}</p>
+            <p style={{ fontSize: 12, color: "var(--text-secondary)", marginTop: 4 }}>{PROPERTIES.find(p => p.id === deleteConfirm.propertyId)?.name || "Unknown"} · {deleteConfirm.date} · <span style={{ color: deleteConfirm.type === "income" ? "#15803d" : "#b91c1c", fontWeight: 700 }}>{deleteConfirm.type === "income" ? "+" : "-"}{fmt(Math.abs(deleteConfirm.amount))}</span></p>
           </div>
-          <p style={{ color: "#94a3b8", fontSize: 12, marginBottom: 18 }}>This action cannot be undone.</p>
+          <p style={{ color: "var(--text-muted)", fontSize: 12, marginBottom: 18 }}>This action cannot be undone.</p>
           <div style={{ display: "flex", gap: 10 }}>
-            <button onClick={() => setDeleteConfirm(null)} style={{ flex: 1, padding: "12px", border: "1px solid #e2e8f0", borderRadius: 10, background: "#fff", color: "#475569", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
+            <button onClick={() => setDeleteConfirm(null)} style={{ flex: 1, padding: "12px", border: "1px solid var(--border)", borderRadius: 10, background: "var(--surface)", color: "var(--text-label)", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
             <button onClick={() => { setTxData(prev => prev.filter(x => x.id !== deleteConfirm.id)); setDeleteConfirm(null); }} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "#ef4444", color: "#fff", fontWeight: 700, cursor: "pointer" }}>Delete</button>
           </div>
         </Modal>
@@ -4616,20 +4697,20 @@ function Analytics() {
       <div style={{ display: "flex", alignItems: "center", gap: 3, marginTop: 6 }}>
         {up ? <ArrowUp size={12} color="#10b981" /> : <ArrowDown size={12} color="#ef4444" />}
         <span style={{ fontSize: 11, fontWeight: 700, color: up ? "#10b981" : "#ef4444" }}>{up ? "+" : ""}{val}{suffix}</span>
-        <span style={{ fontSize: 11, color: "#94a3b8" }}>vs last year</span>
+        <span style={{ fontSize: 11, color: "var(--text-muted)" }}>vs last year</span>
       </div>
     );
   };
 
-  const cardS = { background: "#fff", borderRadius: 14, padding: "20px", boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" };
-  const sectionS = { background: "#fff", borderRadius: 16, padding: 24, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9", marginBottom: 24 };
+  const cardS = { background: "var(--surface)", borderRadius: 14, padding: "20px", boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)" };
+  const sectionS = { background: "var(--surface)", borderRadius: 16, padding: 24, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)", marginBottom: 24 };
 
   return (
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
         <div>
-          <h1 style={{ color: "#041830", fontSize: 26, fontWeight: 700, marginBottom: 4 }}>Analytics &amp; Returns</h1>
-          <p style={{ color: "#64748b", fontSize: 15 }}>
+          <h1 style={{ color: "var(--text-primary)", fontSize: 26, fontWeight: 700, marginBottom: 4 }}>Analytics &amp; Returns</h1>
+          <p style={{ color: "var(--text-secondary)", fontSize: 15 }}>
             {selectedProp ? `Performance details — ${selectedProp.name}` : "Detailed performance metrics for every property"}
           </p>
         </div>
@@ -4652,7 +4733,7 @@ function Analytics() {
               { label: "Avg Cash-on-Cash", value: `${avgCoC}%`, color: "#8b5cf6", yoy: yoyCoC, tip: "Average Cash-on-Cash return. CoC = (Annual NOI \u2212 Annual Debt Service) \u00f7 (Down Payment + Closing Costs). Down payment derived from Purchase Price \u2212 Loan Amount." },
             ].map((m, i) => (
               <div key={i} style={cardS}>
-                <p style={{ color: "#94a3b8", fontSize: 12, fontWeight: 600, textTransform: "uppercase", marginBottom: 6, display: "flex", alignItems: "center" }}>{m.label}<InfoTip text={m.tip} /></p>
+                <p style={{ color: "var(--text-muted)", fontSize: 12, fontWeight: 600, textTransform: "uppercase", marginBottom: 6, display: "flex", alignItems: "center" }}>{m.label}<InfoTip text={m.tip} /></p>
                 <p style={{ color: m.color, fontSize: 22, fontWeight: 800 }}>{m.value}</p>
                 <YoY val={m.yoy} />
               </div>
@@ -4666,9 +4747,9 @@ function Analytics() {
               { label: "DSCR", value: portfolioDSCR, color: "#3b82f6", desc: parseFloat(portfolioDSCR) >= 1.25 ? "Healthy coverage" : parseFloat(portfolioDSCR) >= 1.0 ? "Adequate" : "Below target", tip: "Debt Service Coverage Ratio = Annual NOI \u00f7 Annual Mortgage Payments. Above 1.25 is healthy; below 1.0 means income doesn\u2019t cover debt." },
             ].map((m, i) => (
               <div key={i} style={cardS}>
-                <p style={{ color: "#94a3b8", fontSize: 12, fontWeight: 600, textTransform: "uppercase", marginBottom: 6, display: "flex", alignItems: "center" }}>{m.label}<InfoTip text={m.tip} /></p>
+                <p style={{ color: "var(--text-muted)", fontSize: 12, fontWeight: 600, textTransform: "uppercase", marginBottom: 6, display: "flex", alignItems: "center" }}>{m.label}<InfoTip text={m.tip} /></p>
                 <p style={{ color: m.color, fontSize: 22, fontWeight: 800 }}>{m.value}</p>
-                {m.yoy !== undefined ? <YoY val={m.yoy} /> : <p style={{ color: "#94a3b8", fontSize: 11, marginTop: 6 }}>{m.desc}</p>}
+                {m.yoy !== undefined ? <YoY val={m.yoy} /> : <p style={{ color: "var(--text-muted)", fontSize: 11, marginTop: 6 }}>{m.desc}</p>}
               </div>
             ))}
           </div>
@@ -4677,8 +4758,8 @@ function Analytics() {
           <div style={sectionS}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 }}>
               <div>
-                <h3 style={{ color: "#041830", fontSize: 16, fontWeight: 700, marginBottom: 2 }}>Portfolio Cash Flow Trend</h3>
-                <p style={{ color: "#94a3b8", fontSize: 13 }}>Income vs. expenses — trailing 12 months across all properties</p>
+                <h3 style={{ color: "var(--text-primary)", fontSize: 16, fontWeight: 700, marginBottom: 2 }}>Portfolio Cash Flow Trend</h3>
+                <p style={{ color: "var(--text-muted)", fontSize: 13 }}>Income vs. expenses — trailing 12 months across all properties</p>
               </div>
               <div style={{ display: "flex", gap: 20 }}>
                 {[
@@ -4686,7 +4767,7 @@ function Analytics() {
                   { label: "Avg Expense Ratio", value: `${portfolioExpenseRatio}%`, color: "#e95e00" },
                 ].map((m, i) => (
                   <div key={i} style={{ textAlign: "right" }}>
-                    <p style={{ color: "#94a3b8", fontSize: 11, fontWeight: 600, textTransform: "uppercase" }}>{m.label}</p>
+                    <p style={{ color: "var(--text-muted)", fontSize: 11, fontWeight: 600, textTransform: "uppercase" }}>{m.label}</p>
                     <p style={{ color: m.color, fontSize: 18, fontWeight: 800 }}>{m.value}</p>
                   </div>
                 ))}
@@ -4704,10 +4785,10 @@ function Analytics() {
                     <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                <XAxis dataKey="month" tick={{ fontSize: 11, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 11, fill: "#94a3b8" }} axisLine={false} tickLine={false} tickFormatter={v => `$${(v / 1000).toFixed(0)}k`} />
-                <Tooltip formatter={(v, name) => [fmt(v), name === "income" ? "Income" : name === "expenses" ? "Expenses" : "Net"]} contentStyle={{ borderRadius: 10, border: "1px solid #e2e8f0", fontSize: 12 }} />
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
+                <XAxis dataKey="month" tick={{ fontSize: 11, fill: "var(--chart-axis)" }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fontSize: 11, fill: "var(--chart-axis)" }} axisLine={false} tickLine={false} tickFormatter={v => `$${(v / 1000).toFixed(0)}k`} />
+                <Tooltip formatter={(v, name) => [fmt(v), name === "income" ? "Income" : name === "expenses" ? "Expenses" : "Net"]} contentStyle={{ borderRadius: 10, border: "1px solid var(--tooltip-border)", fontSize: 12, background: "var(--tooltip-bg)", color: "var(--tooltip-text)" }} />
                 <Area type="monotone" dataKey="income" stroke="#10b981" strokeWidth={2.5} fill="url(#pIncGrad)" name="income" />
                 <Area type="monotone" dataKey="expenses" stroke="#ef4444" strokeWidth={2.5} fill="url(#pExpGrad)" name="expenses" />
                 <Area type="monotone" dataKey="net" stroke="#3b82f6" strokeWidth={2} strokeDasharray="5 5" fill="none" name="net" />
@@ -4717,7 +4798,7 @@ function Analytics() {
 
           {/* Property-by-Property — improved 3-column layout */}
           <div style={sectionS}>
-            <h3 style={{ color: "#041830", fontSize: 16, fontWeight: 700, marginBottom: 20 }}>Property-by-Property Performance</h3>
+            <h3 style={{ color: "var(--text-primary)", fontSize: 16, fontWeight: 700, marginBottom: 20 }}>Property-by-Property Performance</h3>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16 }}>
               {PROPERTIES.map(p => {
                 const pEff = getEffectiveMonthly(p, TRANSACTIONS);
@@ -4742,14 +4823,14 @@ function Analytics() {
                 const daysSinceUpdate = p.valueUpdatedAt ? Math.round((new Date() - new Date(p.valueUpdatedAt)) / (1000 * 60 * 60 * 24)) : 999;
                 const isStale = daysSinceUpdate > 90;
                 return (
-                  <div key={p.id} onClick={() => setSelectedPropId(String(p.id))} style={{ background: "#f8fafc", borderRadius: 14, padding: 20, border: `2px solid ${p.color}30`, cursor: "pointer", transition: "all 0.15s" }}
+                  <div key={p.id} onClick={() => setSelectedPropId(String(p.id))} style={{ background: "var(--surface-alt)", borderRadius: 14, padding: 20, border: `2px solid ${p.color}30`, cursor: "pointer", transition: "all 0.15s" }}
                     onMouseEnter={e => { e.currentTarget.style.borderColor = p.color; e.currentTarget.style.transform = "translateY(-2px)"; }}
                     onMouseLeave={e => { e.currentTarget.style.borderColor = `${p.color}30`; e.currentTarget.style.transform = "translateY(0)"; }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
                       <div style={{ width: 36, height: 36, borderRadius: 10, background: p.color, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 13, fontWeight: 700 }}>{p.image}</div>
                       <div>
-                        <p style={{ fontSize: 13, fontWeight: 700, color: "#041830", lineHeight: 1.3 }}>{p.name}</p>
-                        <p style={{ fontSize: 11, color: "#94a3b8" }}>{p.type} · {p.units} unit{p.units > 1 ? "s" : ""}</p>
+                        <p style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)", lineHeight: 1.3 }}>{p.name}</p>
+                        <p style={{ fontSize: 11, color: "var(--text-muted)" }}>{p.type} · {p.units} unit{p.units > 1 ? "s" : ""}</p>
                       </div>
                     </div>
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
@@ -4762,22 +4843,22 @@ function Analytics() {
                         { label: "DSCR", value: pDSCR, color: "#3b82f6" },
                       ].map((m, i) => (
                         <div key={i}>
-                          <p style={{ color: "#94a3b8", fontSize: 10, fontWeight: 600, textTransform: "uppercase", marginBottom: 1 }}>{m.label}</p>
+                          <p style={{ color: "var(--text-muted)", fontSize: 10, fontWeight: 600, textTransform: "uppercase", marginBottom: 1 }}>{m.label}</p>
                           <p style={{ color: m.color, fontSize: 15, fontWeight: 700 }}>{m.value}</p>
                         </div>
                       ))}
                     </div>
-                    <div style={{ marginTop: 12, paddingTop: 10, borderTop: "1px solid #e2e8f0", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                      <span style={{ fontSize: 11, color: "#94a3b8" }}>Occupancy</span>
+                    <div style={{ marginTop: 12, paddingTop: 10, borderTop: "1px solid var(--border)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <span style={{ fontSize: 11, color: "var(--text-muted)" }}>Occupancy</span>
                       <div style={{ display: "flex", alignItems: "center", gap: 8, flex: 1, marginLeft: 12 }}>
-                        <div style={{ flex: 1, height: 6, background: "#f1f5f9", borderRadius: 3, overflow: "hidden" }}>
+                        <div style={{ flex: 1, height: 6, background: "var(--surface-muted)", borderRadius: 3, overflow: "hidden" }}>
                           <div style={{ height: "100%", width: `${propOcc}%`, background: parseFloat(propOcc) >= 90 ? "#10b981" : parseFloat(propOcc) >= 70 ? "#e95e00" : "#ef4444", borderRadius: 3, transition: "width 0.3s" }} />
                         </div>
-                        <span style={{ fontSize: 12, fontWeight: 700, color: "#041830", minWidth: 36, textAlign: "right" }}>{propOcc}%</span>
+                        <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text-primary)", minWidth: 36, textAlign: "right" }}>{propOcc}%</span>
                       </div>
                     </div>
                     {isStale && (
-                      <div style={{ marginTop: 8, paddingTop: 8, borderTop: "1px solid #e2e8f0", display: "flex", alignItems: "center", gap: 6 }}>
+                      <div style={{ marginTop: 8, paddingTop: 8, borderTop: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 6 }}>
                         <AlertCircle size={12} color="#e95e00" />
                         <span style={{ fontSize: 11, color: "#c2410c" }}>Stale value — last updated {daysSinceUpdate}d ago. Update property value to improve accuracy.</span>
                       </div>
@@ -4791,14 +4872,14 @@ function Analytics() {
           {/* Cap Rate + CoC charts */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
             <div style={sectionS}>
-              <h3 style={{ color: "#041830", fontSize: 16, fontWeight: 700, marginBottom: 4 }}>Cap Rate Comparison</h3>
-              <p style={{ color: "#94a3b8", fontSize: 13, marginBottom: 20 }}>Annual net operating income / property value</p>
+              <h3 style={{ color: "var(--text-primary)", fontSize: 16, fontWeight: 700, marginBottom: 4 }}>Cap Rate Comparison</h3>
+              <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 20 }}>Annual net operating income / property value</p>
               <ResponsiveContainer width="100%" height={220}>
                 <BarChart data={PROPERTIES.map(p => ({ name: p.image, rate: calcCapRate(p), fill: p.color }))}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                  <XAxis dataKey="name" tick={{ fontSize: 12, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fontSize: 12, fill: "#94a3b8" }} axisLine={false} tickLine={false} domain={[0, 12]} tickFormatter={v => `${v}%`} />
-                  <Tooltip formatter={(v) => [`${v}%`, "Cap Rate"]} contentStyle={{ borderRadius: 10, border: "1px solid #e2e8f0", fontSize: 12 }} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
+                  <XAxis dataKey="name" tick={{ fontSize: 12, fill: "var(--chart-axis)" }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 12, fill: "var(--chart-axis)" }} axisLine={false} tickLine={false} domain={[0, 12]} tickFormatter={v => `${v}%`} />
+                  <Tooltip formatter={(v) => [`${v}%`, "Cap Rate"]} contentStyle={{ borderRadius: 10, border: "1px solid var(--tooltip-border)", fontSize: 12, background: "var(--tooltip-bg)", color: "var(--tooltip-text)" }} />
                   <Bar dataKey="rate" radius={[6, 6, 0, 0]}>
                     {PROPERTIES.map((p, i) => <Cell key={i} fill={p.color} />)}
                   </Bar>
@@ -4806,14 +4887,14 @@ function Analytics() {
               </ResponsiveContainer>
             </div>
             <div style={sectionS}>
-              <h3 style={{ color: "#041830", fontSize: 16, fontWeight: 700, marginBottom: 4 }}>Cash-on-Cash Return</h3>
-              <p style={{ color: "#94a3b8", fontSize: 13, marginBottom: 20 }}>Annual pre-tax cash flow / total cash invested</p>
+              <h3 style={{ color: "var(--text-primary)", fontSize: 16, fontWeight: 700, marginBottom: 4 }}>Cash-on-Cash Return</h3>
+              <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 20 }}>Annual pre-tax cash flow / total cash invested</p>
               <ResponsiveContainer width="100%" height={220}>
                 <BarChart data={PROPERTIES.map(p => ({ name: p.image, coc: calcCashOnCash(p) }))}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                  <XAxis dataKey="name" tick={{ fontSize: 12, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fontSize: 12, fill: "#94a3b8" }} axisLine={false} tickLine={false} domain={[0, 14]} tickFormatter={v => `${v}%`} />
-                  <Tooltip formatter={(v) => [`${v}%`, "CoC Return"]} contentStyle={{ borderRadius: 10, border: "1px solid #e2e8f0", fontSize: 12 }} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
+                  <XAxis dataKey="name" tick={{ fontSize: 12, fill: "var(--chart-axis)" }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 12, fill: "var(--chart-axis)" }} axisLine={false} tickLine={false} domain={[0, 14]} tickFormatter={v => `${v}%`} />
+                  <Tooltip formatter={(v) => [`${v}%`, "CoC Return"]} contentStyle={{ borderRadius: 10, border: "1px solid var(--tooltip-border)", fontSize: 12, background: "var(--tooltip-bg)", color: "var(--tooltip-text)" }} />
                   <Bar dataKey="coc" radius={[6, 6, 0, 0]} fill="#8b5cf6" />
                 </BarChart>
               </ResponsiveContainer>
@@ -4828,8 +4909,8 @@ function Analytics() {
             <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
               <div style={{ width: 38, height: 38, borderRadius: 10, background: selectedProp.color, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 18 }}>{selectedProp.image}</div>
               <div>
-                <h3 style={{ color: "#041830", fontSize: 16, fontWeight: 700, marginBottom: 2 }}>Return Scorecard</h3>
-                <p style={{ color: "#94a3b8", fontSize: 13 }}>How this property stacks up against your portfolio</p>
+                <h3 style={{ color: "var(--text-primary)", fontSize: 16, fontWeight: 700, marginBottom: 2 }}>Return Scorecard</h3>
+                <p style={{ color: "var(--text-muted)", fontSize: 13 }}>How this property stacks up against your portfolio</p>
               </div>
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, marginBottom: 16 }}>
@@ -4856,10 +4937,10 @@ function Analytics() {
                   };
                 })(),
               ].map((m, i) => (
-                <div key={i} style={{ background: "#f8fafc", borderRadius: 14, padding: "18px 16px", border: "1px solid #f1f5f9" }}>
-                  <p style={{ color: "#94a3b8", fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6, display: "flex", alignItems: "center" }}>{m.label}<InfoTip text={m.tip} /></p>
+                <div key={i} style={{ background: "var(--surface-alt)", borderRadius: 14, padding: "18px 16px", border: "1px solid var(--border-subtle)" }}>
+                  <p style={{ color: "var(--text-muted)", fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6, display: "flex", alignItems: "center" }}>{m.label}<InfoTip text={m.tip} /></p>
                   <p style={{ color: m.color, fontSize: 26, fontWeight: 800, marginBottom: 4 }}>{m.value}</p>
-                  <p style={{ color: "#94a3b8", fontSize: 11 }}>{m.sub}</p>
+                  <p style={{ color: "var(--text-muted)", fontSize: 11 }}>{m.sub}</p>
                 </div>
               ))}
             </div>
@@ -4886,10 +4967,10 @@ function Analytics() {
                   tip: "Occupied Units \u00f7 Total Units \u00d7 100. Based on current tenant lease status records.",
                 },
               ].map((m, i) => (
-                <div key={i} style={{ background: "#f8fafc", borderRadius: 14, padding: "18px 16px", border: "1px solid #f1f5f9" }}>
-                  <p style={{ color: "#94a3b8", fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6, display: "flex", alignItems: "center" }}>{m.label}<InfoTip text={m.tip} /></p>
+                <div key={i} style={{ background: "var(--surface-alt)", borderRadius: 14, padding: "18px 16px", border: "1px solid var(--border-subtle)" }}>
+                  <p style={{ color: "var(--text-muted)", fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6, display: "flex", alignItems: "center" }}>{m.label}<InfoTip text={m.tip} /></p>
                   <p style={{ color: m.color, fontSize: 26, fontWeight: 800, marginBottom: 4 }}>{m.value}</p>
-                  <p style={{ color: "#94a3b8", fontSize: 11 }}>{m.sub}</p>
+                  <p style={{ color: "var(--text-muted)", fontSize: 11 }}>{m.sub}</p>
                 </div>
               ))}
             </div>
@@ -4899,8 +4980,8 @@ function Analytics() {
           <div style={{ ...sectionS, marginBottom: 20 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 }}>
               <div>
-                <h3 style={{ color: "#041830", fontSize: 16, fontWeight: 700, marginBottom: 2 }}>Cash Flow Deep Dive</h3>
-                <p style={{ color: "#94a3b8", fontSize: 13 }}>Income vs. expenses — trailing 12 months</p>
+                <h3 style={{ color: "var(--text-primary)", fontSize: 16, fontWeight: 700, marginBottom: 2 }}>Cash Flow Deep Dive</h3>
+                <p style={{ color: "var(--text-muted)", fontSize: 13 }}>Income vs. expenses — trailing 12 months</p>
               </div>
               <div style={{ display: "flex", gap: 24 }}>
                 {[
@@ -4909,7 +4990,7 @@ function Analytics() {
                   { label: "Expense Ratio", value: `${((selectedPropEff.monthlyExpenses / selectedPropEff.monthlyIncome) * 100).toFixed(0)}%`, color: "#e95e00" },
                 ].map((m, i) => (
                   <div key={i} style={{ textAlign: "right" }}>
-                    <p style={{ color: "#94a3b8", fontSize: 11, fontWeight: 600, textTransform: "uppercase" }}>{m.label}</p>
+                    <p style={{ color: "var(--text-muted)", fontSize: 11, fontWeight: 600, textTransform: "uppercase" }}>{m.label}</p>
                     <p style={{ color: m.color, fontSize: 20, fontWeight: 800 }}>{m.value}</p>
                   </div>
                 ))}
@@ -4929,17 +5010,17 @@ function Analytics() {
                         <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
                       </linearGradient>
                     </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                    <XAxis dataKey="month" tick={{ fontSize: 11, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
-                    <YAxis tick={{ fontSize: 11, fill: "#94a3b8" }} axisLine={false} tickLine={false} tickFormatter={v => `$${(v / 1000).toFixed(0)}k`} />
-                    <Tooltip formatter={(v, name) => [fmt(v), name === "income" ? "Income" : "Expenses"]} contentStyle={{ borderRadius: 10, border: "1px solid #e2e8f0", fontSize: 12 }} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
+                    <XAxis dataKey="month" tick={{ fontSize: 11, fill: "var(--chart-axis)" }} axisLine={false} tickLine={false} />
+                    <YAxis tick={{ fontSize: 11, fill: "var(--chart-axis)" }} axisLine={false} tickLine={false} tickFormatter={v => `$${(v / 1000).toFixed(0)}k`} />
+                    <Tooltip formatter={(v, name) => [fmt(v), name === "income" ? "Income" : "Expenses"]} contentStyle={{ borderRadius: 10, border: "1px solid var(--tooltip-border)", fontSize: 12, background: "var(--tooltip-bg)", color: "var(--tooltip-text)" }} />
                     <Area type="monotone" dataKey="income" stroke="#10b981" strokeWidth={2.5} fill="url(#incGrad)" name="income" />
                     <Area type="monotone" dataKey="expenses" stroke="#ef4444" strokeWidth={2.5} fill="url(#expGrad)" name="expenses" />
                   </AreaChart>
                 </ResponsiveContainer>
               </div>
               <div>
-                <p style={{ fontSize: 13, fontWeight: 700, color: "#041830", marginBottom: 12 }}>Annual Breakdown</p>
+                <p style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)", marginBottom: 12 }}>Annual Breakdown</p>
                 <ResponsiveContainer width="100%" height={150}>
                   <PieChart>
                     <Pie
@@ -4952,7 +5033,7 @@ function Analytics() {
                       <Cell fill="#10b981" />
                       <Cell fill="#ef4444" />
                     </Pie>
-                    <Tooltip formatter={v => fmt(v)} contentStyle={{ borderRadius: 10, border: "1px solid #e2e8f0", fontSize: 12 }} />
+                    <Tooltip formatter={v => fmt(v)} contentStyle={{ borderRadius: 10, border: "1px solid var(--tooltip-border)", fontSize: 12, background: "var(--tooltip-bg)", color: "var(--tooltip-text)" }} />
                   </PieChart>
                 </ResponsiveContainer>
                 <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 4 }}>
@@ -4964,7 +5045,7 @@ function Analytics() {
                     <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                         <div style={{ width: 8, height: 8, borderRadius: "50%", background: m.color, flexShrink: 0 }} />
-                        <span style={{ fontSize: 12, color: "#64748b" }}>{m.label}</span>
+                        <span style={{ fontSize: 12, color: "var(--text-secondary)" }}>{m.label}</span>
                       </div>
                       <span style={{ fontSize: 12, fontWeight: 700, color: m.color }}>{m.value}</span>
                     </div>
@@ -4976,10 +5057,10 @@ function Analytics() {
 
           {/* 3. Tenant Health Panel */}
           <div style={{ ...sectionS, marginBottom: 0 }}>
-            <h3 style={{ color: "#041830", fontSize: 16, fontWeight: 700, marginBottom: 4 }}>Tenant Health Panel</h3>
-            <p style={{ color: "#94a3b8", fontSize: 13, marginBottom: 20 }}>Unit-by-unit lease and payment status</p>
+            <h3 style={{ color: "var(--text-primary)", fontSize: 16, fontWeight: 700, marginBottom: 4 }}>Tenant Health Panel</h3>
+            <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 20 }}>Unit-by-unit lease and payment status</p>
             {propTenants.length === 0 ? (
-              <p style={{ color: "#94a3b8", fontSize: 14, textAlign: "center", padding: "40px 0" }}>No tenants on record for this property.</p>
+              <p style={{ color: "var(--text-muted)", fontSize: 14, textAlign: "center", padding: "40px 0" }}>No tenants on record for this property.</p>
             ) : (
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 16 }}>
                 {propTenants.map(t => {
@@ -4987,31 +5068,31 @@ function Analytics() {
                   const sc = scMap[t.status] || scMap["active-lease"];
                   const expiring = t.daysUntilExpiry !== null && t.daysUntilExpiry <= 60;
                   return (
-                    <div key={t.id} style={{ background: "#f8fafc", borderRadius: 14, padding: 18, border: `1px solid ${expiring ? "#fdba74" : "#f1f5f9"}` }}>
+                    <div key={t.id} style={{ background: "var(--surface-alt)", borderRadius: 14, padding: 18, border: `1px solid ${expiring ? "#fdba74" : "#f1f5f9"}` }}>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
                         <div>
-                          <p style={{ fontSize: 14, fontWeight: 700, color: "#041830" }}>{t.unit || "Unit"}</p>
-                          <p style={{ fontSize: 12, color: "#64748b", marginTop: 2 }}>{t.status === "vacant" ? "No tenant" : t.name}</p>
+                          <p style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)" }}>{t.unit || "Unit"}</p>
+                          <p style={{ fontSize: 12, color: "var(--text-secondary)", marginTop: 2 }}>{t.status === "vacant" ? "No tenant" : t.name}</p>
                         </div>
                         <span style={{ background: sc.bg, color: sc.text, borderRadius: 20, padding: "3px 10px", fontSize: 11, fontWeight: 700 }}>{{ "active-lease": "Active Lease", "month-to-month": "Month-to-Month", vacant: "Vacant" }[t.status] || t.status}</span>
                       </div>
                       {t.status !== "vacant" && (
                         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                           {[
-                            { label: "Monthly Rent", value: fmt(t.rent), color: "#041830" },
-                            { label: "Lease Ends", value: t.leaseEnd || "—", color: "#041830" },
+                            { label: "Monthly Rent", value: fmt(t.rent), color: "var(--text-primary)" },
+                            { label: "Lease Ends", value: t.leaseEnd || "—", color: "var(--text-primary)" },
                             { label: "Days Remaining", value: t.daysUntilExpiry !== null ? `${t.daysUntilExpiry}d ${expiring ? "⚠️" : "✓"}` : "—", color: expiring ? "#c2410c" : "#15803d" },
-                            { label: "Last Payment", value: t.lastPayment || "—", color: "#041830" },
+                            { label: "Last Payment", value: t.lastPayment || "—", color: "var(--text-primary)" },
                           ].map((row, i) => (
                             <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                              <span style={{ fontSize: 12, color: "#94a3b8" }}>{row.label}</span>
+                              <span style={{ fontSize: 12, color: "var(--text-muted)" }}>{row.label}</span>
                               <span style={{ fontSize: 12, fontWeight: 600, color: row.color }}>{row.value}</span>
                             </div>
                           ))}
                           {t.securityDeposit ? (
-                            <div style={{ paddingTop: 8, borderTop: "1px solid #e2e8f0", display: "flex", justifyContent: "space-between" }}>
-                              <span style={{ fontSize: 12, color: "#94a3b8" }}>Security Deposit</span>
-                              <span style={{ fontSize: 12, fontWeight: 600, color: "#041830" }}>{fmt(t.securityDeposit)}</span>
+                            <div style={{ paddingTop: 8, borderTop: "1px solid var(--border)", display: "flex", justifyContent: "space-between" }}>
+                              <span style={{ fontSize: 12, color: "var(--text-muted)" }}>Security Deposit</span>
+                              <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-primary)" }}>{fmt(t.securityDeposit)}</span>
                             </div>
                           ) : null}
                         </div>
@@ -5450,16 +5531,16 @@ function Reports() {
   const allReportTypes = [...taxReports, ...financialReports];
   const isTaxReport = taxReports.some(r => r.id === activeReport);
 
-  const thStyle = { padding: "11px 16px", textAlign: "left", color: "#94a3b8", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", background: "#f8fafc" };
-  const tdStyle = { padding: "12px 16px", fontSize: 13, color: "#041830", borderTop: "1px solid #f1f5f9" };
+  const thStyle = { padding: "11px 16px", textAlign: "left", color: "var(--text-muted)", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", background: "var(--surface-alt)" };
+  const tdStyle = { padding: "12px 16px", fontSize: 13, color: "var(--text-primary)", borderTop: "1px solid var(--border-subtle)" };
 
   return (
     <div>
       {/* Header */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
         <div>
-          <h1 style={{ color: "#041830", fontSize: 26, fontWeight: 700, marginBottom: 4 }}>Reports</h1>
-          <p style={{ color: "#64748b", fontSize: 15 }}>Financial summaries, tax reports, and lender packages</p>
+          <h1 style={{ color: "var(--text-primary)", fontSize: 26, fontWeight: 700, marginBottom: 4 }}>Reports</h1>
+          <p style={{ color: "var(--text-secondary)", fontSize: 15 }}>Financial summaries, tax reports, and lender packages</p>
         </div>
         <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
           {activeReport !== "transactions" && activeReport !== "ownerStatement" && (
@@ -5473,7 +5554,7 @@ function Reports() {
             <option value="all">All Properties</option>
             {PROPERTIES.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
           </select>
-          <button onClick={() => exportReportCSV(activeReport, reportProps, monthlyData, deprRows, lenderData, calcPropLines, taxYear, ownerMonth)} style={{ background: "#fff", color: "#475569", border: "1px solid #e2e8f0", borderRadius: 10, padding: "10px 16px", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
+          <button onClick={() => exportReportCSV(activeReport, reportProps, monthlyData, deprRows, lenderData, calcPropLines, taxYear, ownerMonth)} style={{ background: "var(--surface)", color: "var(--text-label)", border: "1px solid var(--border)", borderRadius: 10, padding: "10px 16px", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
             <Download size={16} /> CSV
           </button>
           <button onClick={() => exportReportPDF(activeReport, reportProps, monthlyData, deprRows, lenderData, calcPropLines, taxYear, propFilter, ownerMonth)} style={{ background: "#e95e00", color: "#fff", border: "none", borderRadius: 10, padding: "10px 16px", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
@@ -5501,8 +5582,8 @@ function Reports() {
             { label: isTaxReport ? "Annual Depreciation" : "Portfolio Properties", value: isTaxReport ? fmt(tDepr) : String(reportProps.length), color: isTaxReport ? "#8b5cf6" : "#8b5cf6", bg: "#f5f3ff" },
             { label: "Actual Data Coverage", value: `${actualPct}%`, color: "#3b82f6", bg: "#eff6ff" },
           ].map((m, i) => (
-            <div key={i} style={{ background: m.bg, borderRadius: 14, padding: "14px 16px", border: "1px solid #f1f5f9" }}>
-              <p style={{ color: "#64748b", fontSize: 10, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6 }}>{m.label}</p>
+            <div key={i} style={{ background: m.bg, borderRadius: 14, padding: "14px 16px", border: "1px solid var(--border-subtle)" }}>
+              <p style={{ color: "var(--text-secondary)", fontSize: 10, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6 }}>{m.label}</p>
               <p style={{ color: m.color, fontSize: 20, fontWeight: 800 }}>{m.value}</p>
             </div>
           ));
@@ -5511,35 +5592,35 @@ function Reports() {
 
       <div style={{ display: "grid", gridTemplateColumns: "220px 1fr", gap: 20 }}>
         {/* Sidebar nav */}
-        <div style={{ background: "#fff", borderRadius: 16, padding: 10, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9", height: "fit-content" }}>
-          <p style={{ fontSize: 10, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.06em", padding: "8px 14px 4px" }}>Tax Reports</p>
+        <div style={{ background: "var(--surface)", borderRadius: 16, padding: 10, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)", height: "fit-content" }}>
+          <p style={{ fontSize: 10, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", padding: "8px 14px 4px" }}>Tax Reports</p>
           {taxReports.map(r => (
             <button key={r.id} onClick={() => setActiveReport(r.id)} style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "11px 14px", borderRadius: 10, border: "none", background: activeReport === r.id ? "#eff6ff" : "transparent", color: activeReport === r.id ? "#3b82f6" : "#475569", fontWeight: activeReport === r.id ? 700 : 500, fontSize: 14, cursor: "pointer", marginBottom: 2, textAlign: "left" }}>
               <r.icon size={16} /> {r.label}
             </button>
           ))}
-          <div style={{ borderTop: "1px solid #f1f5f9", margin: "8px 14px", paddingTop: 0 }} />
-          <p style={{ fontSize: 10, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.06em", padding: "4px 14px 4px" }}>Financial Reports</p>
+          <div style={{ borderTop: "1px solid var(--border-subtle)", margin: "8px 14px", paddingTop: 0 }} />
+          <p style={{ fontSize: 10, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", padding: "4px 14px 4px" }}>Financial Reports</p>
           {financialReports.map(r => (
             <button key={r.id} onClick={() => setActiveReport(r.id)} style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "11px 14px", borderRadius: 10, border: "none", background: activeReport === r.id ? "#eff6ff" : "transparent", color: activeReport === r.id ? "#3b82f6" : "#475569", fontWeight: activeReport === r.id ? 700 : 500, fontSize: 14, cursor: "pointer", marginBottom: 2, textAlign: "left" }}>
               <r.icon size={16} /> {r.label}
             </button>
           ))}
-          <div style={{ borderTop: "1px solid #f1f5f9", marginTop: 12, paddingTop: 12 }}>
-            <p style={{ fontSize: 11, color: "#94a3b8", fontWeight: 600, textTransform: "uppercase", padding: "0 14px", marginBottom: 6 }}>Scope</p>
-            <p style={{ fontSize: 12, color: "#475569", padding: "0 14px", fontWeight: 600 }}>{propFilter === "all" ? `All ${PROPERTIES.length} properties` : PROPERTIES.find(p => p.id === Number(propFilter))?.name}</p>
-            <p style={{ fontSize: 12, color: "#94a3b8", padding: "0 14px" }}>{activeReport === "transactions" ? `${txDateFrom} – ${txDateTo}` : isTaxReport ? `Tax Year ${taxYear}` : `Year ${taxYear}`}</p>
+          <div style={{ borderTop: "1px solid var(--border-subtle)", marginTop: 12, paddingTop: 12 }}>
+            <p style={{ fontSize: 11, color: "var(--text-muted)", fontWeight: 600, textTransform: "uppercase", padding: "0 14px", marginBottom: 6 }}>Scope</p>
+            <p style={{ fontSize: 12, color: "var(--text-label)", padding: "0 14px", fontWeight: 600 }}>{propFilter === "all" ? `All ${PROPERTIES.length} properties` : PROPERTIES.find(p => p.id === Number(propFilter))?.name}</p>
+            <p style={{ fontSize: 12, color: "var(--text-muted)", padding: "0 14px" }}>{activeReport === "transactions" ? `${txDateFrom} – ${txDateTo}` : isTaxReport ? `Tax Year ${taxYear}` : `Year ${taxYear}`}</p>
           </div>
         </div>
 
         {/* Report content */}
-        <div style={{ background: "#fff", borderRadius: 16, padding: 28, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" }}>
+        <div style={{ background: "var(--surface)", borderRadius: 16, padding: 28, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)" }}>
 
           {/* ── SCHEDULE E ── */}
           {activeReport === "scheduleE" && (
             <div>
-              <h2 style={{ color: "#041830", fontSize: 18, fontWeight: 700, marginBottom: 4 }}>Schedule E — Supplemental Income &amp; Loss</h2>
-              <p style={{ color: "#94a3b8", fontSize: 13, marginBottom: 24 }}>Tax Year {taxYear} · Part I: Income or Loss From Rental Real Estate</p>
+              <h2 style={{ color: "var(--text-primary)", fontSize: 18, fontWeight: 700, marginBottom: 4 }}>Schedule E — Supplemental Income &amp; Loss</h2>
+              <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 24 }}>Tax Year {taxYear} · Part I: Income or Loss From Rental Real Estate</p>
               {reportProps.map(p => {
                 const { lines, grossRent, totalExp, net, hasActual, interestSource } = calcPropLines(p);
                 const pDeprEst = getDeprBasis(p).estimated;
@@ -5561,17 +5642,17 @@ function Reports() {
                 ];
                 const filledLines = lineOrder.filter(l => l.income ? grossRent > 0 : (lines[l.n] || 0) > 0);
                 return (
-                  <div key={p.id} style={{ border: "1px solid #f1f5f9", borderRadius: 14, padding: 20, marginBottom: 16 }}>
+                  <div key={p.id} style={{ border: "1px solid var(--border-subtle)", borderRadius: 14, padding: 20, marginBottom: 16 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
                       <div style={{ width: 30, height: 30, borderRadius: 8, background: p.color, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 11, fontWeight: 700 }}>{p.image}</div>
                       <div>
-                        <p style={{ fontSize: 14, fontWeight: 700, color: "#041830" }}>{p.name}</p>
-                        <p style={{ fontSize: 12, color: "#94a3b8" }}>{p.address}</p>
+                        <p style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)" }}>{p.name}</p>
+                        <p style={{ fontSize: 12, color: "var(--text-muted)" }}>{p.address}</p>
                       </div>
                       <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 12 }}>
                         {hasActual && <span style={{ fontSize: 11, background: "#dcfce7", color: "#15803d", borderRadius: 6, padding: "3px 8px", fontWeight: 700 }}>Actual Data</span>}
                         <div style={{ textAlign: "right" }}>
-                          <p style={{ fontSize: 11, color: "#94a3b8" }}>Net Income / (Loss)</p>
+                          <p style={{ fontSize: 11, color: "var(--text-muted)" }}>Net Income / (Loss)</p>
                           <p style={{ fontSize: 17, fontWeight: 800, color: net >= 0 ? "#15803d" : "#b91c1c" }}>{net >= 0 ? "" : "-"}{fmt(Math.abs(net))}</p>
                         </div>
                       </div>
@@ -5589,8 +5670,8 @@ function Reports() {
                           const val = l.income ? grossRent : (lines[l.n] || 0);
                           return (
                             <tr key={l.n} style={{ background: i % 2 === 0 ? "#fff" : "#fafafa" }}>
-                              <td style={{ ...tdStyle, color: "#94a3b8", fontWeight: 700, width: 50 }}>{l.n}</td>
-                              <td style={{ ...tdStyle, color: "#475569" }}>{l.label}</td>
+                              <td style={{ ...tdStyle, color: "var(--text-muted)", fontWeight: 700, width: 50 }}>{l.n}</td>
+                              <td style={{ ...tdStyle, color: "var(--text-label)" }}>{l.label}</td>
                               <td style={{ ...tdStyle, textAlign: "right", fontWeight: 700, color: l.income ? "#15803d" : "#b91c1c" }}>
                                 {l.income ? "+" : "-"}{fmt(val)}
                               </td>
@@ -5624,14 +5705,14 @@ function Reports() {
                       { label: "Mortgage Interest (est.)", value: `-${fmt(reportProps.reduce((s, p) => { const b = calcLoanBalance(p.loanAmount, p.loanRate, p.loanTermYears, p.loanStartDate) ?? (p.loanAmount||0); return s + Math.round(b*(p.loanRate||4)/100); }, 0))}`, color: "#b91c1c" },
                       { label: "Est. Tax Liability @ 28%", value: tNet > 0 ? `-${fmt(Math.round(tNet * 0.28))}` : "$0", color: "#b91c1c" },
                     ].map((m, i) => (
-                      <div key={i} style={{ background: "#fff", borderRadius: 10, padding: "12px 16px" }}>
-                        <p style={{ color: "#64748b", fontSize: 11, fontWeight: 600, textTransform: "uppercase", marginBottom: 4 }}>{m.label}</p>
+                      <div key={i} style={{ background: "var(--surface)", borderRadius: 10, padding: "12px 16px" }}>
+                        <p style={{ color: "var(--text-secondary)", fontSize: 11, fontWeight: 600, textTransform: "uppercase", marginBottom: 4 }}>{m.label}</p>
                         <p style={{ color: m.color, fontSize: 16, fontWeight: 800 }}>{m.value}</p>
                       </div>
                     ));
                   })()}
                 </div>
-                <p style={{ color: "#94a3b8", fontSize: 11, marginTop: 14 }}>⚠️ Estimates for planning only. Mortgage interest is estimated from outstanding loan balance. Consult your CPA before filing.</p>
+                <p style={{ color: "var(--text-muted)", fontSize: 11, marginTop: 14 }}>⚠️ Estimates for planning only. Mortgage interest is estimated from outstanding loan balance. Consult your CPA before filing.</p>
               </div>
             </div>
           )}
@@ -5639,31 +5720,31 @@ function Reports() {
           {/* ── CASH FLOW REPORT ── */}
           {activeReport === "cashflow" && (
             <div>
-              <h2 style={{ color: "#041830", fontSize: 18, fontWeight: 700, marginBottom: 4 }}>Cash Flow Report</h2>
-              <p style={{ color: "#94a3b8", fontSize: 13, marginBottom: 6 }}>{taxYear} · Monthly income and expense detail</p>
+              <h2 style={{ color: "var(--text-primary)", fontSize: 18, fontWeight: 700, marginBottom: 4 }}>Cash Flow Report</h2>
+              <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 6 }}>{taxYear} · Monthly income and expense detail</p>
               <div style={{ display: "flex", gap: 14, marginBottom: 20 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                   <span style={{ width: 10, height: 10, borderRadius: 3, background: "#10b981", display: "inline-block" }} />
-                  <span style={{ fontSize: 12, color: "#475569" }}>Income</span>
+                  <span style={{ fontSize: 12, color: "var(--text-label)" }}>Income</span>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                   <span style={{ width: 10, height: 10, borderRadius: 3, background: "#ef4444", display: "inline-block" }} />
-                  <span style={{ fontSize: 12, color: "#475569" }}>Expenses</span>
+                  <span style={{ fontSize: 12, color: "var(--text-label)" }}>Expenses</span>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                   <span style={{ width: 10, height: 10, borderRadius: 3, background: "#3b82f6", display: "inline-block" }} />
-                  <span style={{ fontSize: 12, color: "#475569" }}>Net Cash Flow</span>
+                  <span style={{ fontSize: 12, color: "var(--text-label)" }}>Net Cash Flow</span>
                 </div>
               </div>
 
               {/* Cash Flow Bar Chart */}
-              <div style={{ background: "#f8fafc", borderRadius: 14, padding: "20px 16px 10px", marginBottom: 24, border: "1px solid #f1f5f9" }}>
+              <div style={{ background: "var(--surface-alt)", borderRadius: 14, padding: "20px 16px 10px", marginBottom: 24, border: "1px solid var(--border-subtle)" }}>
                 <ResponsiveContainer width="100%" height={240}>
                   <BarChart data={monthlyData} margin={{ top: 5, right: 10, left: 10, bottom: 5 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                    <XAxis dataKey="month" tick={{ fontSize: 11, fill: "#94a3b8" }} />
-                    <YAxis tick={{ fontSize: 11, fill: "#94a3b8" }} tickFormatter={v => `$${(v/1000).toFixed(0)}k`} />
-                    <Tooltip formatter={(v, name) => [`$${v.toLocaleString()}`, name]} contentStyle={{ borderRadius: 10, border: "1px solid #e2e8f0", fontSize: 12 }} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
+                    <XAxis dataKey="month" tick={{ fontSize: 11, fill: "var(--chart-axis)" }} />
+                    <YAxis tick={{ fontSize: 11, fill: "var(--chart-axis)" }} tickFormatter={v => `$${(v/1000).toFixed(0)}k`} />
+                    <Tooltip formatter={(v, name) => [`$${v.toLocaleString()}`, name]} contentStyle={{ borderRadius: 10, border: "1px solid var(--tooltip-border)", fontSize: 12, background: "var(--tooltip-bg)", color: "var(--tooltip-text)" }} />
                     <Bar dataKey="income" name="Income" fill="#10b981" radius={[6, 6, 0, 0]} />
                     <Bar dataKey="expenses" name="Expenses" fill="#ef4444" radius={[6, 6, 0, 0]} />
                     <Bar dataKey="net" name="Net" fill="#3b82f6" radius={[6, 6, 0, 0]} />
@@ -5698,10 +5779,10 @@ function Reports() {
                           <td style={{ ...tdStyle, fontWeight: 700, color: m.net >= 0 ? "#15803d" : "#b91c1c" }}>{m.net >= 0 ? "+" : ""}{fmt(m.net)}</td>
                           <td style={tdStyle}>
                             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                              <div style={{ flex: 1, height: 6, background: "#f1f5f9", borderRadius: 99, overflow: "hidden" }}>
+                              <div style={{ flex: 1, height: 6, background: "var(--surface-muted)", borderRadius: 99, overflow: "hidden" }}>
                                 <div style={{ height: "100%", width: `${Math.max(0, Math.min(100, Number(margin)))}%`, background: Number(margin) >= 30 ? "#10b981" : Number(margin) >= 10 ? "#e95e00" : "#ef4444", borderRadius: 99 }} />
                               </div>
-                              <span style={{ fontSize: 12, color: "#64748b", width: 34, textAlign: "right" }}>{margin}%</span>
+                              <span style={{ fontSize: 12, color: "var(--text-secondary)", width: 34, textAlign: "right" }}>{margin}%</span>
                             </div>
                           </td>
                         </tr>
@@ -5726,13 +5807,13 @@ function Reports() {
           {/* ── OWNER'S STATEMENT ── */}
           {activeReport === "ownerStatement" && (
             <div>
-              <h2 style={{ color: "#041830", fontSize: 18, fontWeight: 700, marginBottom: 4 }}>Owner's Statement</h2>
-              <p style={{ color: "#94a3b8", fontSize: 13, marginBottom: 20 }}>Monthly P&amp;L summary per property — select a property and month to generate</p>
+              <h2 style={{ color: "var(--text-primary)", fontSize: 18, fontWeight: 700, marginBottom: 4 }}>Owner's Statement</h2>
+              <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 20 }}>Monthly P&amp;L summary per property — select a property and month to generate</p>
               {propFilter === "all" ? (
-                <div style={{ background: "#f8fafc", borderRadius: 14, padding: 40, textAlign: "center", border: "1px dashed #cbd5e1" }}>
+                <div style={{ background: "var(--surface-alt)", borderRadius: 14, padding: 40, textAlign: "center", border: "1px dashed #cbd5e1" }}>
                   <Home size={36} style={{ color: "#cbd5e1", marginBottom: 12 }} />
-                  <p style={{ color: "#475569", fontWeight: 600, marginBottom: 6 }}>Select a Property to Generate Owner's Statement</p>
-                  <p style={{ color: "#94a3b8", fontSize: 13 }}>Use the property dropdown above to filter to a single property.</p>
+                  <p style={{ color: "var(--text-label)", fontWeight: 600, marginBottom: 6 }}>Select a Property to Generate Owner's Statement</p>
+                  <p style={{ color: "var(--text-muted)", fontSize: 13 }}>Use the property dropdown above to filter to a single property.</p>
                 </div>
               ) : (() => {
                 const p = reportProps[0];
@@ -5752,8 +5833,8 @@ function Reports() {
                     <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 24 }}>
                       <div style={{ width: 36, height: 36, borderRadius: 10, background: p.color, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 700 }}>{p.image}</div>
                       <div>
-                        <p style={{ fontWeight: 700, color: "#041830", fontSize: 15 }}>{p.name}</p>
-                        <p style={{ color: "#94a3b8", fontSize: 13 }}>{p.address}</p>
+                        <p style={{ fontWeight: 700, color: "var(--text-primary)", fontSize: 15 }}>{p.name}</p>
+                        <p style={{ color: "var(--text-muted)", fontSize: 13 }}>{p.address}</p>
                       </div>
                       <div style={{ marginLeft: "auto" }}>
                         <select value={ownerMonth} onChange={e => setOwnerMonth(Number(e.target.value))} style={{ ...iS, width: 160 }}>
@@ -5775,7 +5856,7 @@ function Reports() {
                         { label: "Net Operating Income", value: fmt(net), color: net >= 0 ? "#15803d" : "#b91c1c", bg: "#f0f9ff" },
                       ].map((kpi, i) => (
                         <div key={i} style={{ background: kpi.bg, borderRadius: 12, padding: "16px 18px" }}>
-                          <p style={{ color: "#64748b", fontSize: 11, fontWeight: 600, textTransform: "uppercase", marginBottom: 6 }}>{kpi.label}</p>
+                          <p style={{ color: "var(--text-secondary)", fontSize: 11, fontWeight: 600, textTransform: "uppercase", marginBottom: 6 }}>{kpi.label}</p>
                           <p style={{ color: kpi.color, fontSize: 22, fontWeight: 800 }}>{kpi.value}</p>
                         </div>
                       ))}
@@ -5787,17 +5868,17 @@ function Reports() {
                         <table style={{ width: "100%", borderCollapse: "collapse" }}>
                           <tbody>
                             {income.length > 0 ? income.map((t, i) => (
-                              <tr key={i} style={{ borderBottom: "1px solid #f1f5f9" }}>
-                                <td style={{ padding: "8px 0", fontSize: 13, color: "#041830" }}>
+                              <tr key={i} style={{ borderBottom: "1px solid var(--border-subtle)" }}>
+                                <td style={{ padding: "8px 0", fontSize: 13, color: "var(--text-primary)" }}>
                                   <div>{t.description}</div>
-                                  <div style={{ fontSize: 11, color: "#94a3b8" }}>{t.date}</div>
+                                  <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{t.date}</div>
                                 </td>
                                 <td style={{ padding: "8px 0", fontSize: 13, fontWeight: 700, color: "#15803d", textAlign: "right" }}>+{fmt(t.amount)}</td>
                               </tr>
                             )) : (
-                              <tr><td colSpan={2} style={{ padding: "12px 0", color: "#94a3b8", fontSize: 13, fontStyle: "italic" }}>No income recorded</td></tr>
+                              <tr><td colSpan={2} style={{ padding: "12px 0", color: "var(--text-muted)", fontSize: 13, fontStyle: "italic" }}>No income recorded</td></tr>
                             )}
-                            <tr style={{ borderTop: "2px solid #e2e8f0" }}>
+                            <tr style={{ borderTop: "2px solid var(--border)" }}>
                               <td style={{ padding: "10px 0", fontWeight: 700, fontSize: 13 }}>Total Income</td>
                               <td style={{ padding: "10px 0", fontWeight: 800, color: "#15803d", textAlign: "right" }}>+{fmt(totalIn)}</td>
                             </tr>
@@ -5809,17 +5890,17 @@ function Reports() {
                         <table style={{ width: "100%", borderCollapse: "collapse" }}>
                           <tbody>
                             {expenses.length > 0 ? expenses.map((t, i) => (
-                              <tr key={i} style={{ borderBottom: "1px solid #f1f5f9" }}>
-                                <td style={{ padding: "8px 0", fontSize: 13, color: "#041830" }}>
+                              <tr key={i} style={{ borderBottom: "1px solid var(--border-subtle)" }}>
+                                <td style={{ padding: "8px 0", fontSize: 13, color: "var(--text-primary)" }}>
                                   <div>{t.description}</div>
-                                  <div style={{ fontSize: 11, color: "#94a3b8" }}>{t.category} · {t.date}</div>
+                                  <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{t.category} · {t.date}</div>
                                 </td>
                                 <td style={{ padding: "8px 0", fontSize: 13, fontWeight: 600, color: "#b91c1c", textAlign: "right" }}>-{fmt(Math.abs(t.amount))}</td>
                               </tr>
                             )) : (
-                              <tr><td colSpan={2} style={{ padding: "12px 0", color: "#94a3b8", fontSize: 13, fontStyle: "italic" }}>No expenses recorded</td></tr>
+                              <tr><td colSpan={2} style={{ padding: "12px 0", color: "var(--text-muted)", fontSize: 13, fontStyle: "italic" }}>No expenses recorded</td></tr>
                             )}
-                            <tr style={{ borderTop: "2px solid #e2e8f0" }}>
+                            <tr style={{ borderTop: "2px solid var(--border)" }}>
                               <td style={{ padding: "10px 0", fontWeight: 700, fontSize: 13 }}>Total Expenses</td>
                               <td style={{ padding: "10px 0", fontWeight: 800, color: "#b91c1c", textAlign: "right" }}>-{fmt(totalOut)}</td>
                             </tr>
@@ -5840,17 +5921,17 @@ function Reports() {
                       return (
                         <div style={{ marginTop: 20 }}>
                           <div style={{ background: noi >= 0 ? "#f0fdf4" : "#fef2f2", borderRadius: "12px 12px 0 0", padding: "14px 20px", border: `1px solid ${noi >= 0 ? "#bbf7d0" : "#fecaca"}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                            <p style={{ fontWeight: 700, fontSize: 14, color: "#041830" }}>Net Operating Income — {MONTH_NAMES[ownerMonth]} {taxYear}</p>
+                            <p style={{ fontWeight: 700, fontSize: 14, color: "var(--text-primary)" }}>Net Operating Income — {MONTH_NAMES[ownerMonth]} {taxYear}</p>
                             <p style={{ fontWeight: 800, fontSize: 20, color: noi >= 0 ? "#15803d" : "#b91c1c" }}>{noi >= 0 ? "+" : "-"}{fmt(Math.abs(noi))}</p>
                           </div>
-                          <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderTop: "none", padding: "14px 20px" }}>
-                            <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: "1px solid #f1f5f9" }}>
-                              <span style={{ fontSize: 13, color: "#475569" }}>Operating Expenses (incl. mgmt{mgmtFee > 0 ? ` ${fmt(mgmtFee)}` : ""})</span>
+                          <div style={{ background: "var(--surface-alt)", border: "1px solid var(--border)", borderTop: "none", padding: "14px 20px" }}>
+                            <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: "1px solid var(--border-subtle)" }}>
+                              <span style={{ fontSize: 13, color: "var(--text-label)" }}>Operating Expenses (incl. mgmt{mgmtFee > 0 ? ` ${fmt(mgmtFee)}` : ""})</span>
                               <span style={{ fontSize: 13, fontWeight: 600, color: "#b91c1c" }}>-{fmt(opEx)}</span>
                             </div>
                             {debtService > 0 && (
-                              <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: "1px solid #f1f5f9" }}>
-                                <span style={{ fontSize: 13, color: "#475569" }}>Less: Debt Service (P&I)</span>
+                              <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: "1px solid var(--border-subtle)" }}>
+                                <span style={{ fontSize: 13, color: "var(--text-label)" }}>Less: Debt Service (P&I)</span>
                                 <span style={{ fontSize: 13, fontWeight: 600, color: "#b91c1c" }}>-{fmt(debtService)}</span>
                               </div>
                             )}
@@ -5871,8 +5952,8 @@ function Reports() {
           {/* ── LENDER PACKAGE ── */}
           {activeReport === "lenderPackage" && (
             <div>
-              <h2 style={{ color: "#041830", fontSize: 18, fontWeight: 700, marginBottom: 4 }}>Lender / Refinance Package</h2>
-              <p style={{ color: "#94a3b8", fontSize: 13, marginBottom: 24 }}>Key metrics lenders evaluate — NOI, DSCR, LTV, equity, and debt service</p>
+              <h2 style={{ color: "var(--text-primary)", fontSize: 18, fontWeight: 700, marginBottom: 4 }}>Lender / Refinance Package</h2>
+              <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 24 }}>Key metrics lenders evaluate — NOI, DSCR, LTV, equity, and debt service</p>
               <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: 24 }}>
                 <thead>
                   <tr>
@@ -5931,8 +6012,8 @@ function Reports() {
               </table>
 
               {/* DSCR Guide */}
-              <div style={{ background: "#f8fafc", borderRadius: 14, padding: 18, border: "1px solid #e2e8f0" }}>
-                <p style={{ fontSize: 12, fontWeight: 700, color: "#041830", marginBottom: 12, textTransform: "uppercase", letterSpacing: "0.05em" }}>DSCR Reference Guide</p>
+              <div style={{ background: "var(--surface-alt)", borderRadius: 14, padding: 18, border: "1px solid var(--border)" }}>
+                <p style={{ fontSize: 12, fontWeight: 700, color: "var(--text-primary)", marginBottom: 12, textTransform: "uppercase", letterSpacing: "0.05em" }}>DSCR Reference Guide</p>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 14 }}>
                   {[
                     { label: "Strong — Lender Favorable", range: "≥ 1.25", bg: "#dcfce7", color: "#15803d", note: "Most lenders approve at this threshold. Strong cash coverage." },
@@ -5944,11 +6025,11 @@ function Reports() {
                         <p style={{ fontSize: 12, fontWeight: 700, color: g.color }}>{g.label}</p>
                         <span style={{ fontSize: 14, fontWeight: 800, color: g.color }}>{g.range}</span>
                       </div>
-                      <p style={{ fontSize: 11, color: "#475569" }}>{g.note}</p>
+                      <p style={{ fontSize: 11, color: "var(--text-label)" }}>{g.note}</p>
                     </div>
                   ))}
                 </div>
-                <p style={{ fontSize: 11, color: "#94a3b8" }}>DSCR = Net Operating Income ÷ Annual Debt Service. LTV = Outstanding Loan Balance ÷ Current Property Value. Loan balances estimated via amortization formula.</p>
+                <p style={{ fontSize: 11, color: "var(--text-muted)" }}>DSCR = Net Operating Income ÷ Annual Debt Service. LTV = Outstanding Loan Balance ÷ Current Property Value. Loan balances estimated via amortization formula.</p>
               </div>
             </div>
           )}
@@ -5956,9 +6037,9 @@ function Reports() {
           {/* ── DEPRECIATION SCHEDULE ── */}
           {activeReport === "depreciation" && (
             <div>
-              <h2 style={{ color: "#041830", fontSize: 18, fontWeight: 700, marginBottom: 4 }}>Depreciation Schedule</h2>
-              <p style={{ color: "#94a3b8", fontSize: 13, marginBottom: 6 }}>Tax Year {taxYear} · IRS MACRS — Residential ({TAX_CONFIG.depreciationResidential} yr) &amp; Commercial ({TAX_CONFIG.depreciationCommercial} yr), straight-line</p>
-              <p style={{ color: "#64748b", fontSize: 12, marginBottom: 24 }}>Depreciable basis = Purchase Price − Land Value. Land is not depreciable per IRS rules.</p>
+              <h2 style={{ color: "var(--text-primary)", fontSize: 18, fontWeight: 700, marginBottom: 4 }}>Depreciation Schedule</h2>
+              <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 6 }}>Tax Year {taxYear} · IRS MACRS — Residential ({TAX_CONFIG.depreciationResidential} yr) &amp; Commercial ({TAX_CONFIG.depreciationCommercial} yr), straight-line</p>
+              <p style={{ color: "var(--text-secondary)", fontSize: 12, marginBottom: 24 }}>Depreciable basis = Purchase Price − Land Value. Land is not depreciable per IRS rules.</p>
               {hasAnyEstimatedDepr && (
                 <div style={{ background: "#fff7ed", border: "1px solid #fed7aa", borderRadius: 12, padding: "12px 16px", marginBottom: 20, display: "flex", alignItems: "flex-start", gap: 10 }}>
                   <AlertTriangle size={16} color="#c2410c" style={{ flexShrink: 0, marginTop: 1 }} />
@@ -6000,7 +6081,7 @@ function Reports() {
                       <td style={{ ...tdStyle, color: "#b91c1c", fontWeight: 700 }}>-{fmt(annual)}</td>
                       <td style={tdStyle}>{yearsHeld} yrs</td>
                       <td style={{ ...tdStyle, color: "#b91c1c" }}>-{fmt(cumul)}</td>
-                      <td style={{ ...tdStyle, color: "#041830", fontWeight: 600 }}>{fmt(remaining)}</td>
+                      <td style={{ ...tdStyle, color: "var(--text-primary)", fontWeight: 600 }}>{fmt(remaining)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -6052,8 +6133,8 @@ function Reports() {
 
             return (
             <div>
-              <h2 style={{ color: "#041830", fontSize: 18, fontWeight: 700, marginBottom: 4 }}>Year-End Tax Summary</h2>
-              <p style={{ color: "#94a3b8", fontSize: 13, marginBottom: 24 }}>Tax Year {taxYear} · Full rental P&amp;L for your records and CPA</p>
+              <h2 style={{ color: "var(--text-primary)", fontSize: 18, fontWeight: 700, marginBottom: 4 }}>Year-End Tax Summary</h2>
+              <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 24 }}>Tax Year {taxYear} · Full rental P&amp;L for your records and CPA</p>
 
               {/* Income section */}
               <div style={{ marginBottom: 20 }}>
@@ -6064,13 +6145,13 @@ function Reports() {
                       { label: "Gross Rents Received", value: totIncome },
                       { label: otherIncome > 0 ? `Other Income (late fees, deposits, etc.)` : "Other Income", value: otherIncome, note: otherIncome === 0 ? "No non-rent income transactions logged" : null },
                     ].map((row, i) => (
-                      <tr key={i} style={{ borderBottom: "1px solid #f1f5f9" }}>
-                        <td style={{ padding: "10px 0", fontSize: 14, color: "#041830" }}>{row.label}{row.note && <span style={{ color: "#94a3b8", fontSize: 12, marginLeft: 8 }}>({row.note})</span>}</td>
+                      <tr key={i} style={{ borderBottom: "1px solid var(--border-subtle)" }}>
+                        <td style={{ padding: "10px 0", fontSize: 14, color: "var(--text-primary)" }}>{row.label}{row.note && <span style={{ color: "var(--text-muted)", fontSize: 12, marginLeft: 8 }}>({row.note})</span>}</td>
                         <td style={{ padding: "10px 0", fontSize: 14, fontWeight: 700, color: "#15803d", textAlign: "right" }}>+{fmt(row.value)}</td>
                       </tr>
                     ))}
-                    <tr style={{ borderBottom: "2px solid #e2e8f0" }}>
-                      <td style={{ padding: "10px 0", fontSize: 14, fontWeight: 700, color: "#041830" }}>Total Gross Income</td>
+                    <tr style={{ borderBottom: "2px solid var(--border)" }}>
+                      <td style={{ padding: "10px 0", fontSize: 14, fontWeight: 700, color: "var(--text-primary)" }}>Total Gross Income</td>
                       <td style={{ padding: "10px 0", fontSize: 15, fontWeight: 800, color: "#15803d", textAlign: "right" }}>+{fmt(totalGross)}</td>
                     </tr>
                   </tbody>
@@ -6089,7 +6170,7 @@ function Reports() {
                       { label: hasAnyEstimatedDepr ? "Depreciation — straight-line (some land values estimated *)" : "Depreciation — straight-line", value: totDepr },
                       { label: propTaxHasActual ? "Property Taxes (from transactions)" : "Property Taxes (no transactions logged)", value: propTaxActual, note: !propTaxHasActual },
                     ].map((row, i) => (
-                      <tr key={i} style={{ borderBottom: "1px solid #f1f5f9", background: row.isInfo ? "#f8fafc" : "transparent" }}>
+                      <tr key={i} style={{ borderBottom: "1px solid var(--border-subtle)", background: row.isInfo ? "#f8fafc" : "transparent" }}>
                         <td style={{ padding: "10px 0", fontSize: row.isInfo ? 13 : 14, color: row.isInfo ? "#64748b" : "#041830", paddingLeft: row.isInfo ? 16 : 0 }}>
                           {row.label}
                           {row.note && <span style={{ color: "#e95e00", fontSize: 12, marginLeft: 8 }}>— log property tax payments for accuracy</span>}
@@ -6097,8 +6178,8 @@ function Reports() {
                         <td style={{ padding: "10px 0", fontSize: row.isInfo ? 13 : 14, fontWeight: 600, color: row.isInfo ? "#94a3b8" : "#b91c1c", textAlign: "right" }}>{row.isInfo ? fmt(row.value) : `-${fmt(row.value)}`}</td>
                       </tr>
                     ))}
-                    <tr style={{ borderBottom: "2px solid #e2e8f0" }}>
-                      <td style={{ padding: "10px 0", fontSize: 14, fontWeight: 700, color: "#041830" }}>Total Deductions</td>
+                    <tr style={{ borderBottom: "2px solid var(--border)" }}>
+                      <td style={{ padding: "10px 0", fontSize: 14, fontWeight: 700, color: "var(--text-primary)" }}>Total Deductions</td>
                       <td style={{ padding: "10px 0", fontSize: 15, fontWeight: 800, color: "#b91c1c", textAlign: "right" }}>-{fmt(totalDeductions)}</td>
                     </tr>
                   </tbody>
@@ -6108,14 +6189,14 @@ function Reports() {
               {/* Bottom line */}
               <div style={{ background: totNet >= 0 ? "#f0fdf4" : "#fef2f2", borderRadius: 14, padding: 20, border: `1px solid ${totNet >= 0 ? "#bbf7d0" : "#fecaca"}`, marginBottom: 16 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-                  <p style={{ fontSize: 16, fontWeight: 700, color: "#041830" }}>Net Taxable Rental Income</p>
+                  <p style={{ fontSize: 16, fontWeight: 700, color: "var(--text-primary)" }}>Net Taxable Rental Income</p>
                   <p style={{ fontSize: 24, fontWeight: 800, color: totNet >= 0 ? "#15803d" : "#b91c1c" }}>{totNet >= 0 ? "" : "-"}{fmt(Math.abs(totNet))}</p>
                 </div>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 14 }}>
-                  <div style={{ background: "#fff", borderRadius: 10, padding: "12px 14px" }}>
-                    <p style={{ color: "#94a3b8", fontSize: 11, fontWeight: 600, textTransform: "uppercase", marginBottom: 4 }}>Marginal Tax Rate</p>
+                  <div style={{ background: "var(--surface)", borderRadius: 10, padding: "12px 14px" }}>
+                    <p style={{ color: "var(--text-muted)", fontSize: 11, fontWeight: 600, textTransform: "uppercase", marginBottom: 4 }}>Marginal Tax Rate</p>
                     <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                      <select value={taxRate} onChange={e => setTaxRate(Number(e.target.value))} style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 6, padding: "4px 8px", fontSize: 15, fontWeight: 800, color: "#475569", cursor: "pointer" }}>
+                      <select value={taxRate} onChange={e => setTaxRate(Number(e.target.value))} style={{ background: "var(--surface-alt)", border: "1px solid var(--border)", borderRadius: 6, padding: "4px 8px", fontSize: 15, fontWeight: 800, color: "var(--text-label)", cursor: "pointer" }}>
                         {TAX_CONFIG.brackets.map(r => <option key={r} value={r}>{r}%</option>)}
                       </select>
                     </div>
@@ -6123,16 +6204,16 @@ function Reports() {
                   {[
                     { label: `Est. Federal Tax @ ${taxRate}%`, value: totNet > 0 ? `-${fmt(Math.round(totNet * rate))}` : "No liability", color: "#b91c1c" },
                     { label: "Net After Est. Taxes", value: fmt(totNet - Math.max(0, Math.round(totNet * rate))), color: "#15803d" },
-                    { label: "Effective Rate", value: totNet > 0 ? `${((Math.round(totNet * rate) / totalGross) * 100).toFixed(1)}%` : "N/A", color: "#475569" },
+                    { label: "Effective Rate", value: totNet > 0 ? `${((Math.round(totNet * rate) / totalGross) * 100).toFixed(1)}%` : "N/A", color: "var(--text-label)" },
                   ].map((m, i) => (
-                    <div key={i} style={{ background: "#fff", borderRadius: 10, padding: "12px 14px" }}>
-                      <p style={{ color: "#94a3b8", fontSize: 11, fontWeight: 600, textTransform: "uppercase", marginBottom: 4 }}>{m.label}</p>
+                    <div key={i} style={{ background: "var(--surface)", borderRadius: 10, padding: "12px 14px" }}>
+                      <p style={{ color: "var(--text-muted)", fontSize: 11, fontWeight: 600, textTransform: "uppercase", marginBottom: 4 }}>{m.label}</p>
                       <p style={{ color: m.color, fontSize: 15, fontWeight: 800 }}>{m.value}</p>
                     </div>
                   ))}
                 </div>
               </div>
-              <p style={{ fontSize: 11, color: "#94a3b8" }}>⚠️ Estimates for planning only — does not account for the {TAX_CONFIG.qbiDeductionPct * 100}% QBI deduction (Sec. 199A), passive activity loss rules, or state taxes. Please consult your CPA before filing.</p>
+              <p style={{ fontSize: 11, color: "var(--text-muted)" }}>⚠️ Estimates for planning only — does not account for the {TAX_CONFIG.qbiDeductionPct * 100}% QBI deduction (Sec. 199A), passive activity loss rules, or state taxes. Please consult your CPA before filing.</p>
             </div>
             );
           })()}
@@ -6227,8 +6308,8 @@ function Reports() {
 
             return (
             <div>
-              <h2 style={{ color: "#041830", fontSize: 18, fontWeight: 700, marginBottom: 4 }}>Transaction Detail</h2>
-              <p style={{ color: "#94a3b8", fontSize: 13, marginBottom: 16 }}>All transactions for selected date range · Filter by property, type, or category</p>
+              <h2 style={{ color: "var(--text-primary)", fontSize: 18, fontWeight: 700, marginBottom: 4 }}>Transaction Detail</h2>
+              <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 16 }}>All transactions for selected date range · Filter by property, type, or category</p>
 
               {/* Date range row */}
               <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 16, flexWrap: "wrap" }}>
@@ -6240,14 +6321,14 @@ function Reports() {
                   { id: "lastYear",  label: "Last Year" },
                   { id: "all",       label: "All Time" },
                 ].map(p => (
-                  <button key={p.id} onClick={() => applyPreset(p.id)} style={{ padding: "7px 14px", borderRadius: 8, border: txDatePreset === p.id ? "2px solid #3b82f6" : "1px solid #e2e8f0", background: txDatePreset === p.id ? "#eff6ff" : "#fff", color: txDatePreset === p.id ? "#3b82f6" : "#475569", fontWeight: txDatePreset === p.id ? 700 : 500, fontSize: 12, cursor: "pointer" }}>
+                  <button key={p.id} onClick={() => applyPreset(p.id)} style={{ padding: "7px 14px", borderRadius: 8, border: txDatePreset === p.id ? "2px solid #3b82f6" : "1px solid var(--border)", background: txDatePreset === p.id ? "#eff6ff" : "#fff", color: txDatePreset === p.id ? "#3b82f6" : "#475569", fontWeight: txDatePreset === p.id ? 700 : 500, fontSize: 12, cursor: "pointer" }}>
                     {p.label}
                   </button>
                 ))}
                 <div style={{ display: "flex", alignItems: "center", gap: 6, marginLeft: 8 }}>
-                  <input type="date" value={txDateFrom} onChange={e => { setTxDateFrom(e.target.value); setTxDatePreset("custom"); }} style={{ padding: "7px 10px", borderRadius: 8, border: "1px solid #e2e8f0", fontSize: 12, color: "#041830" }} />
-                  <span style={{ color: "#94a3b8", fontSize: 12 }}>to</span>
-                  <input type="date" value={txDateTo} onChange={e => { setTxDateTo(e.target.value); setTxDatePreset("custom"); }} style={{ padding: "7px 10px", borderRadius: 8, border: "1px solid #e2e8f0", fontSize: 12, color: "#041830" }} />
+                  <input type="date" value={txDateFrom} onChange={e => { setTxDateFrom(e.target.value); setTxDatePreset("custom"); }} style={{ padding: "7px 10px", borderRadius: 8, border: "1px solid var(--border)", fontSize: 12, color: "var(--text-primary)" }} />
+                  <span style={{ color: "var(--text-muted)", fontSize: 12 }}>to</span>
+                  <input type="date" value={txDateTo} onChange={e => { setTxDateTo(e.target.value); setTxDatePreset("custom"); }} style={{ padding: "7px 10px", borderRadius: 8, border: "1px solid var(--border)", fontSize: 12, color: "var(--text-primary)" }} />
                 </div>
               </div>
 
@@ -6259,8 +6340,8 @@ function Reports() {
                   { label: "Net Cash Flow", value: `${netFlow >= 0 ? "+" : ""}${fmt(netFlow)}`, color: netFlow >= 0 ? "#15803d" : "#b91c1c", bg: "#f0f9ff" },
                   { label: "Transactions", value: `${filtered.length}`, color: "#3b82f6", bg: "#eff6ff" },
                 ].map((m, i) => (
-                  <div key={i} style={{ background: m.bg, borderRadius: 14, padding: "14px 16px", border: "1px solid #f1f5f9" }}>
-                    <p style={{ color: "#64748b", fontSize: 10, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6 }}>{m.label}</p>
+                  <div key={i} style={{ background: m.bg, borderRadius: 14, padding: "14px 16px", border: "1px solid var(--border-subtle)" }}>
+                    <p style={{ color: "var(--text-secondary)", fontSize: 10, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6 }}>{m.label}</p>
                     <p style={{ color: m.color, fontSize: 20, fontWeight: 800 }}>{m.value}</p>
                   </div>
                 ))}
@@ -6269,8 +6350,8 @@ function Reports() {
               {/* Filters */}
               <div style={{ display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap" }}>
                 <div style={{ position: "relative", flex: 1, minWidth: 180 }}>
-                  <Search size={14} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "#94a3b8" }} />
-                  <input value={txSearch} onChange={e => setTxSearch(e.target.value)} placeholder="Search description, vendor, property..." style={{ width: "100%", padding: "10px 12px 10px 34px", borderRadius: 10, border: "1px solid #e2e8f0", fontSize: 13, color: "#041830", outline: "none" }} />
+                  <Search size={14} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "var(--text-muted)" }} />
+                  <input value={txSearch} onChange={e => setTxSearch(e.target.value)} placeholder="Search description, vendor, property..." style={{ width: "100%", padding: "10px 12px 10px 34px", borderRadius: 10, border: "1px solid var(--border)", fontSize: 13, color: "var(--text-primary)", outline: "none" }} />
                 </div>
                 <select value={txTypeFilter} onChange={e => setTxTypeFilter(e.target.value)} style={{ ...iS, width: 130 }}>
                   <option value="all">All Types</option>
@@ -6303,7 +6384,7 @@ function Reports() {
                   </thead>
                   <tbody>
                     {sorted.length === 0 ? (
-                      <tr><td colSpan={6} style={{ padding: 40, textAlign: "center", color: "#94a3b8", fontSize: 14 }}>No transactions match your filters</td></tr>
+                      <tr><td colSpan={6} style={{ padding: 40, textAlign: "center", color: "var(--text-muted)", fontSize: 14 }}>No transactions match your filters</td></tr>
                     ) : sorted.slice(0, 200).map((t, i) => {
                       const isIncome = t.type === "income";
                       return (
@@ -6315,7 +6396,7 @@ function Reports() {
                           <td style={tdStyle}>
                             <span style={{ fontSize: 11, fontWeight: 600, borderRadius: 6, padding: "3px 8px", background: isIncome ? "#dcfce7" : "#fee2e2", color: isIncome ? "#15803d" : "#b91c1c" }}>{t.category}</span>
                           </td>
-                          <td style={{ ...tdStyle, fontSize: 12, color: "#475569", maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.description || t.vendor || "—"}</td>
+                          <td style={{ ...tdStyle, fontSize: 12, color: "var(--text-label)", maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.description || t.vendor || "—"}</td>
                           <td style={tdStyle}>
                             <span style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", color: isIncome ? "#15803d" : "#b91c1c" }}>{t.type}</span>
                           </td>
@@ -6344,16 +6425,16 @@ function Reports() {
               {/* Category Breakdown */}
               {catRows.length > 0 && (
                 <div>
-                  <h3 style={{ fontSize: 14, fontWeight: 700, color: "#041830", marginBottom: 12 }}>Category Breakdown</h3>
+                  <h3 style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)", marginBottom: 12 }}>Category Breakdown</h3>
                   <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 10 }}>
                     {catRows.map(([cat, data]) => {
                       const total = data.income + data.expense;
                       const isIncomeCat = data.income > data.expense;
                       return (
-                        <div key={cat} style={{ background: "#f8fafc", borderRadius: 12, padding: "12px 14px", border: "1px solid #f1f5f9" }}>
+                        <div key={cat} style={{ background: "var(--surface-alt)", borderRadius: 12, padding: "12px 14px", border: "1px solid var(--border-subtle)" }}>
                           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
-                            <p style={{ fontSize: 12, fontWeight: 700, color: "#041830" }}>{cat}</p>
-                            <span style={{ fontSize: 10, fontWeight: 700, color: "#94a3b8", background: "#f1f5f9", borderRadius: 6, padding: "2px 6px" }}>{data.count}</span>
+                            <p style={{ fontSize: 12, fontWeight: 700, color: "var(--text-primary)" }}>{cat}</p>
+                            <span style={{ fontSize: 10, fontWeight: 700, color: "var(--text-muted)", background: "var(--surface-muted)", borderRadius: 6, padding: "2px 6px" }}>{data.count}</span>
                           </div>
                           {data.income > 0 && <p style={{ fontSize: 13, fontWeight: 700, color: "#15803d" }}>+{fmt(data.income)}</p>}
                           {data.expense > 0 && <p style={{ fontSize: 13, fontWeight: 700, color: "#b91c1c" }}>-{fmt(data.expense)}</p>}
@@ -6395,12 +6476,12 @@ function RehabProgress({ items }) {
   return (
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-        <span style={{ fontSize: 13, fontWeight: 600, color: "#041830" }}>{pct}% complete</span>
+        <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>{pct}% complete</span>
         <span style={{ fontSize: 13, color: over ? "#b91c1c" : "#64748b", fontWeight: over ? 700 : 400 }}>
           {fmt(totalSpent)} / {fmt(totalBudget)} {over && "(!) Over budget"}
         </span>
       </div>
-      <div style={{ height: 8, background: "#f1f5f9", borderRadius: 99, overflow: "hidden" }}>
+      <div style={{ height: 8, background: "var(--surface-muted)", borderRadius: 99, overflow: "hidden" }}>
         <div style={{ height: "100%", width: `${Math.min(pct, 100)}%`, background: over ? "#ef4444" : pct >= 80 ? "#e95e00" : "#10b981", borderRadius: 99, transition: "width 0.4s" }} />
       </div>
     </div>
@@ -6416,15 +6497,15 @@ function DealCard({ deal, onSelect }) {
 
   return (
     <div onClick={() => onSelect(deal)}
-      style={{ background: "#fff", borderRadius: 16, padding: 20, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9", cursor: "pointer", transition: "transform 0.15s, box-shadow 0.15s" }}
+      style={{ background: "var(--surface)", borderRadius: 16, padding: 20, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)", cursor: "pointer", transition: "transform 0.15s, box-shadow 0.15s" }}
       onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 8px 24px rgba(0,0,0,0.1)"; }}
       onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "0 1px 3px rgba(0,0,0,0.06)"; }}>
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 14 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <div style={{ width: 40, height: 40, borderRadius: 12, background: deal.color, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 13, fontWeight: 800 }}>{deal.image}</div>
           <div>
-            <p style={{ fontSize: 14, fontWeight: 700, color: "#041830", marginBottom: 2 }}>{deal.name}</p>
-            <p style={{ fontSize: 11, color: "#94a3b8" }}>{deal.address.split(",")[1]?.trim()}</p>
+            <p style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)", marginBottom: 2 }}>{deal.name}</p>
+            <p style={{ fontSize: 11, color: "var(--text-muted)" }}>{deal.address.split(",")[1]?.trim()}</p>
           </div>
         </div>
         <StageBadge stage={deal.stage} />
@@ -6436,8 +6517,8 @@ function DealCard({ deal, onSelect }) {
           { label: "ARV", value: fmtK(deal.arv) },
           { label: deal.stage === "Sold" ? "Net Profit" : "Proj. Profit", value: deal.stage === "Sold" ? fmt(deal.netProfit) : fmtK(Math.round(projectedProfit)), color: "#10b981" },
         ].map((m, i) => (
-          <div key={i} style={{ background: "#f8fafc", borderRadius: 8, padding: "8px 10px" }}>
-            <p style={{ color: "#94a3b8", fontSize: 10, fontWeight: 600, textTransform: "uppercase", marginBottom: 2 }}>{m.label}</p>
+          <div key={i} style={{ background: "var(--surface-alt)", borderRadius: 8, padding: "8px 10px" }}>
+            <p style={{ color: "var(--text-muted)", fontSize: 10, fontWeight: 600, textTransform: "uppercase", marginBottom: 2 }}>{m.label}</p>
             <p style={{ color: m.color || "#041830", fontSize: 13, fontWeight: 700 }}>{m.value}</p>
           </div>
         ))}
@@ -6446,10 +6527,10 @@ function DealCard({ deal, onSelect }) {
       {deal.stage !== "Sold" && deal.stage !== "Under Contract" && (
         <div>
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-            <span style={{ fontSize: 11, color: "#64748b", fontWeight: 600 }}>REHAB PROGRESS</span>
-            <span style={{ fontSize: 11, color: "#64748b" }}>{rehabPct}%</span>
+            <span style={{ fontSize: 11, color: "var(--text-secondary)", fontWeight: 600 }}>REHAB PROGRESS</span>
+            <span style={{ fontSize: 11, color: "var(--text-secondary)" }}>{rehabPct}%</span>
           </div>
-          <div style={{ height: 6, background: "#f1f5f9", borderRadius: 99, overflow: "hidden" }}>
+          <div style={{ height: 6, background: "var(--surface-muted)", borderRadius: 99, overflow: "hidden" }}>
             <div style={{ height: "100%", width: `${rehabPct}%`, background: rehabPct >= 80 ? "#10b981" : "#e95e00", borderRadius: 99 }} />
           </div>
         </div>
@@ -6463,7 +6544,7 @@ function DealCard({ deal, onSelect }) {
       )}
 
       {deal.daysOwned > 0 && (
-        <p style={{ fontSize: 11, color: "#94a3b8", marginTop: 8 }}>
+        <p style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 8 }}>
           <Clock size={11} style={{ display: "inline", marginRight: 3 }} />
           Day {deal.daysOwned} of hold
         </p>
@@ -6523,14 +6604,14 @@ function DealPipeline({ onSelect, onGuidedSetup }) {
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
         <div>
-          <h1 style={{ color: "#041830", fontSize: 26, fontWeight: 700, marginBottom: 4 }}>Deals</h1>
-          <p style={{ color: "#64748b", fontSize: 15 }}>Track every deal from contract to close</p>
+          <h1 style={{ color: "var(--text-primary)", fontSize: 26, fontWeight: 700, marginBottom: 4 }}>Deals</h1>
+          <p style={{ color: "var(--text-secondary)", fontSize: 15 }}>Track every deal from contract to close</p>
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
           <button onClick={() => setShowAddDeal(true)} style={{ background: "#e95e00", color: "#fff", border: "none", borderRadius: 10, padding: "10px 18px", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
             <Plus size={16} /> Add Deal
           </button>
-          {typeof onGuidedSetup === "function" && <button onClick={onGuidedSetup} style={{ background: "#fff", color: "#e95e00", border: "1px solid #e95e00", borderRadius: 10, padding: "10px 18px", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
+          {typeof onGuidedSetup === "function" && <button onClick={onGuidedSetup} style={{ background: "var(--surface)", color: "#e95e00", border: "1px solid #e95e00", borderRadius: 10, padding: "10px 18px", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
             <Sparkles size={16} /> Guided Setup
           </button>}
         </div>
@@ -6542,12 +6623,12 @@ function DealPipeline({ onSelect, onGuidedSetup }) {
           { icon: TrendingUp, label: "Projected Profit", value: fmtK(Math.round(totalProjected)), sub: "Active deals", color: "#10b981" },
           { icon: Star, label: "Realized Profit", value: fmt(realizedProfit), sub: "Closed deals YTD", color: "#8b5cf6" },
         ].map((m, i) => (
-          <div key={i} style={{ background: "#fff", borderRadius: 16, padding: 20, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" }}>
+          <div key={i} style={{ background: "var(--surface)", borderRadius: 16, padding: 20, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
               <div>
-                <p style={{ color: "#94a3b8", fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 4 }}>{m.label}</p>
-                <p style={{ color: "#041830", fontSize: 24, fontWeight: 800 }}>{m.value}</p>
-                {m.sub && <p style={{ color: "#94a3b8", fontSize: 12, marginTop: 2 }}>{m.sub}</p>}
+                <p style={{ color: "var(--text-muted)", fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 4 }}>{m.label}</p>
+                <p style={{ color: "var(--text-primary)", fontSize: 24, fontWeight: 800 }}>{m.value}</p>
+                {m.sub && <p style={{ color: "var(--text-muted)", fontSize: 12, marginTop: 2 }}>{m.sub}</p>}
               </div>
               <div style={{ background: m.color + "18", borderRadius: 10, padding: 10 }}>
                 <m.icon size={20} color={m.color} />
@@ -6557,7 +6638,7 @@ function DealPipeline({ onSelect, onGuidedSetup }) {
         ))}
       </div>
       <div style={{ display: "flex", gap: 10, marginBottom: 20, flexWrap: "wrap", alignItems: "center" }}>
-        <div style={{ display: "flex", gap: 4, background: "#f8fafc", borderRadius: 10, padding: 4, border: "1px solid #e2e8f0" }}>
+        <div style={{ display: "flex", gap: 4, background: "var(--surface-alt)", borderRadius: 10, padding: 4, border: "1px solid var(--border)" }}>
           {["all", ...STAGE_ORDER].map(s => {
             const active = activeStage === s;
             return (
@@ -6568,7 +6649,7 @@ function DealPipeline({ onSelect, onGuidedSetup }) {
           })}
         </div>
         {activeStage !== "all" && (
-          <button onClick={() => setActiveStage("all")} style={{ background: "none", border: "none", color: "#94a3b8", fontSize: 12, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
+          <button onClick={() => setActiveStage("all")} style={{ background: "none", border: "none", color: "var(--text-muted)", fontSize: 12, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
             <X size={13} /> Clear filter
           </button>
         )}
@@ -6587,61 +6668,61 @@ function DealPipeline({ onSelect, onGuidedSetup }) {
 
       {showAddDeal && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
-          <div style={{ background: "#fff", borderRadius: 20, width: 560, maxHeight: "90vh", overflow: "auto", padding: 28 }}>
+          <div style={{ background: "var(--surface)", borderRadius: 20, width: 560, maxHeight: "90vh", overflow: "auto", padding: 28 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-              <h2 style={{ color: "#041830", fontSize: 20, fontWeight: 700 }}>Add Deal</h2>
-              <button onClick={() => { setShowAddDeal(false); setDealForm(emptyDeal); }} style={{ background: "#f1f5f9", border: "none", borderRadius: 8, width: 32, height: 32, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><X size={16} color="#64748b" /></button>
+              <h2 style={{ color: "var(--text-primary)", fontSize: 20, fontWeight: 700 }}>Add Deal</h2>
+              <button onClick={() => { setShowAddDeal(false); setDealForm(emptyDeal); }} style={{ background: "var(--surface-muted)", border: "none", borderRadius: 8, width: 32, height: 32, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><X size={16} color="#64748b" /></button>
             </div>
 
             <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
               <div>
-                <label style={{ display: "block", color: "#374151", fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Deal Name *</label>
+                <label style={{ display: "block", color: "var(--text-dim)", fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Deal Name *</label>
                 <input value={dealForm.name} onChange={sfD("name")} placeholder="e.g. Oakdale Craftsman" style={iS} />
               </div>
               <div>
-                <label style={{ display: "block", color: "#374151", fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Address</label>
+                <label style={{ display: "block", color: "var(--text-dim)", fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Address</label>
                 <input value={dealForm.address} onChange={sfD("address")} placeholder="1234 Main St, Nashville, TN 37206" style={iS} />
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                 <div>
-                  <label style={{ display: "block", color: "#374151", fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Purchase Price *</label>
+                  <label style={{ display: "block", color: "var(--text-dim)", fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Purchase Price *</label>
                   <input value={dealForm.purchasePrice} onChange={sfD("purchasePrice")} type="number" placeholder="195000" style={iS} />
                 </div>
                 <div>
-                  <label style={{ display: "block", color: "#374151", fontSize: 13, fontWeight: 600, marginBottom: 4 }}>ARV (After Repair Value)</label>
+                  <label style={{ display: "block", color: "var(--text-dim)", fontSize: 13, fontWeight: 600, marginBottom: 4 }}>ARV (After Repair Value)</label>
                   <input value={dealForm.arv} onChange={sfD("arv")} type="number" placeholder="310000" style={iS} />
                 </div>
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                 <div>
-                  <label style={{ display: "block", color: "#374151", fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Rehab Budget</label>
+                  <label style={{ display: "block", color: "var(--text-dim)", fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Rehab Budget</label>
                   <input value={dealForm.rehabBudget} onChange={sfD("rehabBudget")} type="number" placeholder="62000" style={iS} />
                 </div>
                 <div>
-                  <label style={{ display: "block", color: "#374151", fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Holding Costs / Month</label>
+                  <label style={{ display: "block", color: "var(--text-dim)", fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Holding Costs / Month</label>
                   <input value={dealForm.holdingCostsPerMonth} onChange={sfD("holdingCostsPerMonth")} type="number" placeholder="1850" style={iS} />
                 </div>
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                 <div>
-                  <label style={{ display: "block", color: "#374151", fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Stage</label>
+                  <label style={{ display: "block", color: "var(--text-dim)", fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Stage</label>
                   <select value={dealForm.stage} onChange={sfD("stage")} style={iS}>
                     {STAGE_ORDER.filter(s => s !== "Sold").map(s => <option key={s} value={s}>{s}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label style={{ display: "block", color: "#374151", fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Acquisition Date</label>
+                  <label style={{ display: "block", color: "var(--text-dim)", fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Acquisition Date</label>
                   <input value={dealForm.acquisitionDate} onChange={sfD("acquisitionDate")} type="date" style={iS} />
                 </div>
               </div>
               <div>
-                <label style={{ display: "block", color: "#374151", fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Projected Close Date</label>
+                <label style={{ display: "block", color: "var(--text-dim)", fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Projected Close Date</label>
                 <input value={dealForm.projectedCloseDate} onChange={sfD("projectedCloseDate")} type="date" style={iS} />
               </div>
             </div>
 
             <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 22 }}>
-              <button onClick={() => { setShowAddDeal(false); setDealForm(emptyDeal); }} style={{ padding: "10px 20px", borderRadius: 10, border: "1px solid #e2e8f0", background: "#fff", color: "#64748b", fontWeight: 600, fontSize: 14, cursor: "pointer" }}>Cancel</button>
+              <button onClick={() => { setShowAddDeal(false); setDealForm(emptyDeal); }} style={{ padding: "10px 20px", borderRadius: 10, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text-secondary)", fontWeight: 600, fontSize: 14, cursor: "pointer" }}>Cancel</button>
               <button onClick={handleSaveDeal} style={{ padding: "10px 24px", borderRadius: 10, border: "none", background: "#e95e00", color: "#fff", fontWeight: 600, fontSize: 14, cursor: "pointer", opacity: (!dealForm.name || !dealForm.purchasePrice) ? 0.5 : 1 }}>Add Deal</button>
             </div>
           </div>
@@ -7183,14 +7264,14 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
           <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
             <div style={{ width: 60, height: 60, borderRadius: 18, background: deal.color, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 20, fontWeight: 800 }}>{deal.image}</div>
             <div>
-              <h1 style={{ color: "#041830", fontSize: 24, fontWeight: 800, marginBottom: 4 }}>{deal.name}</h1>
-              <p style={{ color: "#64748b", fontSize: 14, display: "flex", alignItems: "center", gap: 4 }}><MapPin size={13} /> {deal.address}</p>
+              <h1 style={{ color: "var(--text-primary)", fontSize: 24, fontWeight: 800, marginBottom: 4 }}>{deal.name}</h1>
+              <p style={{ color: "var(--text-secondary)", fontSize: 14, display: "flex", alignItems: "center", gap: 4 }}><MapPin size={13} /> {deal.address}</p>
               <div style={{ marginTop: 8, display: "flex", alignItems: "center", gap: 10 }}>
                 <StageBadge stage={stage} />
                 {stage === "Sold" || stage === "Converted to Rental" ? (
-                  <span style={{ fontSize: 12, color: "#94a3b8", fontStyle: "italic" }}>Deal closed</span>
+                  <span style={{ fontSize: 12, color: "var(--text-muted)", fontStyle: "italic" }}>Deal closed</span>
                 ) : (
-                  <select value={stage} onChange={handleStageChange} style={{ border: "1px solid rgba(0,0,0,0.12)", borderRadius: 8, padding: "4px 8px", fontSize: 12, background: "rgba(255,255,255,0.8)", color: "#475569", cursor: "pointer", outline: "none" }}>
+                  <select value={stage} onChange={handleStageChange} style={{ border: "1px solid rgba(0,0,0,0.12)", borderRadius: 8, padding: "4px 8px", fontSize: 12, background: "rgba(255,255,255,0.8)", color: "var(--text-label)", cursor: "pointer", outline: "none" }}>
                     {STAGE_ORDER.filter(s => s !== "Converted to Rental").map(s => <option key={s}>{s}</option>)}
                   </select>
                 )}
@@ -7215,10 +7296,10 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
                 if (onDealUpdated) onDealUpdated();
                 showToast(`"${cloned.name}" created`);
                 if (onNavigateToDeal) onNavigateToDeal(cloned);
-              }} style={{ background: "rgba(255,255,255,0.7)", border: "1px solid rgba(0,0,0,0.08)", borderRadius: 8, padding: "6px 12px", fontSize: 12, fontWeight: 600, color: "#475569", cursor: "pointer", display: "flex", alignItems: "center", gap: 5 }}>
+              }} style={{ background: "rgba(255,255,255,0.7)", border: "1px solid rgba(0,0,0,0.08)", borderRadius: 8, padding: "6px 12px", fontSize: 12, fontWeight: 600, color: "var(--text-label)", cursor: "pointer", display: "flex", alignItems: "center", gap: 5 }}>
                 <Copy size={12} /> Clone Deal
               </button>
-              <button onClick={openEditDeal} style={{ background: "rgba(255,255,255,0.7)", border: "1px solid rgba(0,0,0,0.08)", borderRadius: 8, padding: "6px 12px", fontSize: 12, fontWeight: 600, color: "#475569", cursor: "pointer", display: "flex", alignItems: "center", gap: 5 }}>
+              <button onClick={openEditDeal} style={{ background: "rgba(255,255,255,0.7)", border: "1px solid rgba(0,0,0,0.08)", borderRadius: 8, padding: "6px 12px", fontSize: 12, fontWeight: 600, color: "var(--text-label)", cursor: "pointer", display: "flex", alignItems: "center", gap: 5 }}>
                 <Pencil size={12} /> Edit Deal
               </button>
               <button onClick={() => setShowDeleteDeal(true)} style={{ background: "rgba(255,255,255,0.7)", border: "1px solid rgba(0,0,0,0.08)", borderRadius: 8, padding: "6px 12px", fontSize: 12, fontWeight: 600, color: "#ef4444", cursor: "pointer", display: "flex", alignItems: "center", gap: 5 }}>
@@ -7254,15 +7335,15 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
                 </>);
               })()}
             </div>
-            <p style={{ color: "#64748b", fontSize: 13 }}>{stage === "Sold" ? "Sale Price" : "ARV"}</p>
-            <p style={{ color: "#041830", fontSize: 32, fontWeight: 800 }}>{fmt(saleOrARV)}</p>
+            <p style={{ color: "var(--text-secondary)", fontSize: 13 }}>{stage === "Sold" ? "Sale Price" : "ARV"}</p>
+            <p style={{ color: "var(--text-primary)", fontSize: 32, fontWeight: 800 }}>{fmt(saleOrARV)}</p>
             <p style={{ color: profit >= 0 ? "#10b981" : "#ef4444", fontSize: 15, fontWeight: 700 }}>
               {profit >= 0 ? "+" : ""}{fmt(profit)} {stage === "Sold" ? "net profit" : "projected profit"}
             </p>
           </div>
         </div>
       </div>
-      <div style={{ display: "flex", gap: 6, background: "#f8fafc", borderRadius: 14, padding: 5, marginBottom: 24, border: "1px solid #e2e8f0" }}>
+      <div style={{ display: "flex", gap: 6, background: "var(--surface-alt)", borderRadius: 14, padding: 5, marginBottom: 24, border: "1px solid var(--border)" }}>
         {tabs.map(t => {
           const active = activeTab === t.id;
           return (
@@ -7275,8 +7356,8 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
       </div>
       {activeTab === "overview" && (<>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 24 }}>
-        <div style={{ background: "#fff", borderRadius: 16, padding: 24, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" }}>
-          <h3 style={{ color: "#041830", fontSize: 16, fontWeight: 700, marginBottom: 16 }}>Deal Profit &amp; Loss</h3>
+        <div style={{ background: "var(--surface)", borderRadius: 16, padding: 24, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)" }}>
+          <h3 style={{ color: "var(--text-primary)", fontSize: 16, fontWeight: 700, marginBottom: 16 }}>Deal Profit &amp; Loss</h3>
           {[
             { label: stage === "Sold" ? "Sale Price" : "ARV (Target)", value: fmt(saleOrARV), color: "#15803d", sign: "+" },
             { label: "Purchase Price", value: fmt(deal.purchasePrice), color: "#b91c1c", sign: "-" },
@@ -7287,25 +7368,25 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
             <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 0", borderBottom: "1px solid #f8fafc" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <span style={{ color: r.color, fontWeight: 700, fontSize: 16, lineHeight: 1 }}>{r.sign}</span>
-                <span style={{ fontSize: 14, color: "#475569" }}>{r.label}</span>
+                <span style={{ fontSize: 14, color: "var(--text-label)" }}>{r.label}</span>
               </div>
               <span style={{ fontSize: 14, fontWeight: 600, color: r.color }}>{r.value}</span>
             </div>
           ))}
           <div style={{ display: "flex", justifyContent: "space-between", padding: "14px 0 0", marginTop: 4 }}>
-            <span style={{ fontSize: 15, fontWeight: 800, color: "#041830" }}>Net Profit</span>
+            <span style={{ fontSize: 15, fontWeight: 800, color: "var(--text-primary)" }}>Net Profit</span>
             <span style={{ fontSize: 20, fontWeight: 800, color: profit >= 0 ? "#10b981" : "#ef4444" }}>{profit >= 0 ? "+" : ""}{fmt(profit)}</span>
           </div>
           <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4 }}>
-            <span style={{ fontSize: 13, color: "#94a3b8", display: "flex", alignItems: "center" }}>ROI on cash invested<InfoTip text="Net Profit ÷ Total Cash Invested × 100. Measures return as a percentage of the actual cash you put into the deal." /></span>
+            <span style={{ fontSize: 13, color: "var(--text-muted)", display: "flex", alignItems: "center" }}>ROI on cash invested<InfoTip text="Net Profit ÷ Total Cash Invested × 100. Measures return as a percentage of the actual cash you put into the deal." /></span>
             <span style={{ fontSize: 14, fontWeight: 700, color: "#3b82f6" }}>{roi}%</span>
           </div>
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          <div style={{ background: "#fff", borderRadius: 16, padding: 20, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" }}>
+          <div style={{ background: "var(--surface)", borderRadius: 16, padding: 20, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
               <Target size={16} color="#3b82f6" />
-              <h3 style={{ color: "#041830", fontSize: 15, fontWeight: 700 }}>70% Rule Check</h3>
+              <h3 style={{ color: "var(--text-primary)", fontSize: 15, fontWeight: 700 }}>70% Rule Check</h3>
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
               {[
@@ -7314,8 +7395,8 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
                 { label: "MAO (70% Rule)", value: fmt(mao70), color: "#3b82f6", tip: "Maximum Allowable Offer = (ARV × 70%) − Rehab Budget. The 70% rule is a rule of thumb for flip offers to leave room for profit and costs." },
                 { label: "Actual Purchase", value: fmt(deal.purchasePrice), color: deal.purchasePrice <= mao70 ? "#15803d" : "#b91c1c", tip: "What you actually paid for the property. Green if at or under MAO, red if over." },
               ].map((m, i) => (
-                <div key={i} style={{ background: "#f8fafc", borderRadius: 8, padding: "10px 12px" }}>
-                  <p style={{ color: "#94a3b8", fontSize: 10, fontWeight: 600, textTransform: "uppercase", marginBottom: 2, display: "flex", alignItems: "center" }}>{m.label}<InfoTip text={m.tip} /></p>
+                <div key={i} style={{ background: "var(--surface-alt)", borderRadius: 8, padding: "10px 12px" }}>
+                  <p style={{ color: "var(--text-muted)", fontSize: 10, fontWeight: 600, textTransform: "uppercase", marginBottom: 2, display: "flex", alignItems: "center" }}>{m.label}<InfoTip text={m.tip} /></p>
                   <p style={{ color: m.color || "#041830", fontSize: 14, fontWeight: 700 }}>{m.value}</p>
                 </div>
               ))}
@@ -7324,10 +7405,10 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
               {deal.purchasePrice <= mao70 ? `v Deal is ${fmt(mao70 - deal.purchasePrice)} under MAO - good spread` : `(!) Purchase is ${fmt(deal.purchasePrice - mao70)} over MAO - verify assumptions`}
             </p>
           </div>
-          <div style={{ background: "#fff", borderRadius: 16, padding: 20, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9", flex: 1 }}>
+          <div style={{ background: "var(--surface)", borderRadius: 16, padding: 20, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)", flex: 1 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
               <Calendar size={16} color="#8b5cf6" />
-              <h3 style={{ color: "#041830", fontSize: 15, fontWeight: 700 }}>Timeline</h3>
+              <h3 style={{ color: "var(--text-primary)", fontSize: 15, fontWeight: 700 }}>Timeline</h3>
             </div>
             {[
               { label: "Contract / Acquisition", date: deal.acquisitionDate || deal.contractDate },
@@ -7339,8 +7420,8 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
               <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
                 <div style={{ width: 8, height: 8, borderRadius: "50%", background: t.date ? "#3b82f6" : "#e2e8f0", flexShrink: 0 }} />
                 <div style={{ flex: 1, display: "flex", justifyContent: "space-between" }}>
-                  <span style={{ fontSize: 13, color: "#475569" }}>{t.label}</span>
-                  <span style={{ fontSize: 13, fontWeight: 600, color: "#041830" }}>{t.date}</span>
+                  <span style={{ fontSize: 13, color: "var(--text-label)" }}>{t.label}</span>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>{t.date}</span>
                 </div>
               </div>
             ))}
@@ -7354,11 +7435,11 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
         </div>
       </div>
       {/* Compact Rehab Summary */}
-      <div style={{ background: "#fff", borderRadius: 16, padding: 20, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" }}>
+      <div style={{ background: "var(--surface)", borderRadius: 16, padding: 20, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <Wrench size={16} color="#e95e00" />
-            <h3 style={{ color: "#041830", fontSize: 15, fontWeight: 700 }}>Rehab Progress</h3>
+            <h3 style={{ color: "var(--text-primary)", fontSize: 15, fontWeight: 700 }}>Rehab Progress</h3>
           </div>
           <button onClick={() => setActiveTab("rehab")} style={{ background: "none", border: "none", color: "#3b82f6", fontSize: 13, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
             View Details <ChevronRight size={14} />
@@ -7366,21 +7447,21 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
         </div>
         <RehabProgress items={rehabItems} />
         <div style={{ display: "flex", gap: 20, marginTop: 12 }}>
-          <div style={{ flex: 1, background: "#f8fafc", borderRadius: 10, padding: "10px 14px", textAlign: "center" }}>
-            <p style={{ color: "#94a3b8", fontSize: 11, fontWeight: 600, textTransform: "uppercase", marginBottom: 2, display: "flex", alignItems: "center", justifyContent: "center" }}>Budget<InfoTip text="Sum of budgeted amounts across all rehab line items for this deal." /></p>
-            <p style={{ color: "#041830", fontSize: 16, fontWeight: 700 }}>{fmt(rehabTotalBudget)}</p>
+          <div style={{ flex: 1, background: "var(--surface-alt)", borderRadius: 10, padding: "10px 14px", textAlign: "center" }}>
+            <p style={{ color: "var(--text-muted)", fontSize: 11, fontWeight: 600, textTransform: "uppercase", marginBottom: 2, display: "flex", alignItems: "center", justifyContent: "center" }}>Budget<InfoTip text="Sum of budgeted amounts across all rehab line items for this deal." /></p>
+            <p style={{ color: "var(--text-primary)", fontSize: 16, fontWeight: 700 }}>{fmt(rehabTotalBudget)}</p>
           </div>
-          <div style={{ flex: 1, background: "#f8fafc", borderRadius: 10, padding: "10px 14px", textAlign: "center" }}>
-            <p style={{ color: "#94a3b8", fontSize: 11, fontWeight: 600, textTransform: "uppercase", marginBottom: 2, display: "flex", alignItems: "center", justifyContent: "center" }}>Spent<InfoTip text="Sum of amounts spent to date across all rehab line items. Red if over budget." /></p>
+          <div style={{ flex: 1, background: "var(--surface-alt)", borderRadius: 10, padding: "10px 14px", textAlign: "center" }}>
+            <p style={{ color: "var(--text-muted)", fontSize: 11, fontWeight: 600, textTransform: "uppercase", marginBottom: 2, display: "flex", alignItems: "center", justifyContent: "center" }}>Spent<InfoTip text="Sum of amounts spent to date across all rehab line items. Red if over budget." /></p>
             <p style={{ color: rehabTotalSpent > rehabTotalBudget ? "#b91c1c" : "#041830", fontSize: 16, fontWeight: 700 }}>{fmt(rehabTotalSpent)}</p>
           </div>
-          <div style={{ flex: 1, background: "#f8fafc", borderRadius: 10, padding: "10px 14px", textAlign: "center" }}>
-            <p style={{ color: "#94a3b8", fontSize: 11, fontWeight: 600, textTransform: "uppercase", marginBottom: 2, display: "flex", alignItems: "center", justifyContent: "center" }}>Remaining<InfoTip text="Budget − Spent. Shown as 0 if over budget (see Spent for overage)." /></p>
+          <div style={{ flex: 1, background: "var(--surface-alt)", borderRadius: 10, padding: "10px 14px", textAlign: "center" }}>
+            <p style={{ color: "var(--text-muted)", fontSize: 11, fontWeight: 600, textTransform: "uppercase", marginBottom: 2, display: "flex", alignItems: "center", justifyContent: "center" }}>Remaining<InfoTip text="Budget − Spent. Shown as 0 if over budget (see Spent for overage)." /></p>
             <p style={{ color: "#3b82f6", fontSize: 16, fontWeight: 700 }}>{fmt(Math.max(0, rehabTotalBudget - rehabTotalSpent))}</p>
           </div>
-          <div style={{ flex: 1, background: "#f8fafc", borderRadius: 10, padding: "10px 14px", textAlign: "center" }}>
-            <p style={{ color: "#94a3b8", fontSize: 11, fontWeight: 600, textTransform: "uppercase", marginBottom: 2, display: "flex", alignItems: "center", justifyContent: "center" }}>Items<InfoTip text="Rehab line items marked complete out of the total count for this deal." /></p>
-            <p style={{ color: "#041830", fontSize: 16, fontWeight: 700 }}>{rehabComplete}/{rehabItems.length} done</p>
+          <div style={{ flex: 1, background: "var(--surface-alt)", borderRadius: 10, padding: "10px 14px", textAlign: "center" }}>
+            <p style={{ color: "var(--text-muted)", fontSize: 11, fontWeight: 600, textTransform: "uppercase", marginBottom: 2, display: "flex", alignItems: "center", justifyContent: "center" }}>Items<InfoTip text="Rehab line items marked complete out of the total count for this deal." /></p>
+            <p style={{ color: "var(--text-primary)", fontSize: 16, fontWeight: 700 }}>{rehabComplete}/{rehabItems.length} done</p>
           </div>
         </div>
       </div>
@@ -7429,7 +7510,7 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
         })()}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
           <div>
-            <p style={{ color: "#64748b", fontSize: 14 }}>
+            <p style={{ color: "var(--text-secondary)", fontSize: 14 }}>
               {rehabItems.length} item{rehabItems.length !== 1 ? "s" : ""}
             </p>
           </div>
@@ -7438,13 +7519,13 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
           </button>
         </div>
         {rehabItems.length === 0 ? (
-          <div style={{ background: "#fff", borderRadius: 16, padding: 32, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" }}>
+          <div style={{ background: "var(--surface)", borderRadius: 16, padding: 32, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)" }}>
             <div style={{ textAlign: "center", marginBottom: 24 }}>
               <div style={{ width: 56, height: 56, borderRadius: 14, background: "#fff7ed", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 12px" }}>
                 <Wrench size={24} color="#e95e00" />
               </div>
-              <h3 style={{ fontSize: 17, fontWeight: 700, color: "#041830", marginBottom: 6 }}>Start your rehab scope</h3>
-              <p style={{ fontSize: 13, color: "#64748b", maxWidth: 460, margin: "0 auto" }}>Pick a template to pre-populate standard scopes with suggested budgets, or build your own from scratch.</p>
+              <h3 style={{ fontSize: 17, fontWeight: 700, color: "var(--text-primary)", marginBottom: 6 }}>Start your rehab scope</h3>
+              <p style={{ fontSize: 13, color: "var(--text-secondary)", maxWidth: 460, margin: "0 auto" }}>Pick a template to pre-populate standard scopes with suggested budgets, or build your own from scratch.</p>
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(230px, 1fr))", gap: 12, marginBottom: 14 }}>
               {REHAB_TEMPLATES.map(tpl => {
@@ -7459,32 +7540,32 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
                     if (!deal.rehabItems) deal.rehabItems = [];
                     deal.rehabItems.splice(0, deal.rehabItems.length, ...seeded);
                     showToast(`${tpl.name} template loaded — ${seeded.length} items`);
-                  }} style={{ background: "#fff", border: "1.5px solid #e2e8f0", borderRadius: 14, padding: 18, textAlign: "left", cursor: "pointer", transition: "all 0.15s" }}
+                  }} style={{ background: "var(--surface)", border: "1.5px solid var(--border)", borderRadius: 14, padding: 18, textAlign: "left", cursor: "pointer", transition: "all 0.15s" }}
                     onMouseEnter={e => { e.currentTarget.style.borderColor = "#e95e00"; e.currentTarget.style.background = "#fff7ed"; }}
-                    onMouseLeave={e => { e.currentTarget.style.borderColor = "#e2e8f0"; e.currentTarget.style.background = "#fff"; }}>
-                    <p style={{ fontSize: 14, fontWeight: 700, color: "#041830", marginBottom: 4 }}>{tpl.name}</p>
-                    <p style={{ fontSize: 11, color: "#64748b", lineHeight: 1.5, marginBottom: 10, minHeight: 30 }}>{tpl.description}</p>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 10, borderTop: "1px solid #f1f5f9" }}>
-                      <span style={{ fontSize: 11, color: "#94a3b8", fontWeight: 600 }}>{tpl.items.length} items</span>
-                      <span style={{ fontSize: 12, color: "#041830", fontWeight: 700 }}>{fmt(total)}</span>
+                    onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.background = "var(--surface)"; }}>
+                    <p style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)", marginBottom: 4 }}>{tpl.name}</p>
+                    <p style={{ fontSize: 11, color: "var(--text-secondary)", lineHeight: 1.5, marginBottom: 10, minHeight: 30 }}>{tpl.description}</p>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 10, borderTop: "1px solid var(--border-subtle)" }}>
+                      <span style={{ fontSize: 11, color: "var(--text-muted)", fontWeight: 600 }}>{tpl.items.length} items</span>
+                      <span style={{ fontSize: 12, color: "var(--text-primary)", fontWeight: 700 }}>{fmt(total)}</span>
                     </div>
                   </button>
                 );
               })}
             </div>
             <div style={{ textAlign: "center" }}>
-              <button onClick={() => { setEditingRehabIdx(null); setRehabForm(emptyRehab); setShowAddRehab(true); }} style={{ background: "none", border: "none", color: "#64748b", fontSize: 13, fontWeight: 600, cursor: "pointer", textDecoration: "underline" }}>or start from scratch</button>
+              <button onClick={() => { setEditingRehabIdx(null); setRehabForm(emptyRehab); setShowAddRehab(true); }} style={{ background: "none", border: "none", color: "var(--text-secondary)", fontSize: 13, fontWeight: 600, cursor: "pointer", textDecoration: "underline" }}>or start from scratch</button>
             </div>
           </div>
         ) : (
-        <div style={{ background: "#fff", borderRadius: 16, padding: 24, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" }}>
+        <div style={{ background: "var(--surface)", borderRadius: 16, padding: 24, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)" }}>
           <RehabProgress items={rehabItems} />
           <div style={{ marginTop: 20 }}>
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead>
-                <tr style={{ background: "#f8fafc" }}>
+                <tr style={{ background: "var(--surface-alt)" }}>
                   {["Category", "Contractor", "Budgeted", "Spent", "Remaining", "Status", ""].map(h => (
-                    <th key={h} style={{ padding: "10px 16px", textAlign: "left", color: "#94a3b8", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>{h}</th>
+                    <th key={h} style={{ padding: "10px 16px", textAlign: "left", color: "var(--text-muted)", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -7498,10 +7579,10 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
                   const stop = e => e.stopPropagation();
                   return (
                     <tr key={i} onClick={() => onNavigateToRehabItem && onNavigateToRehabItem(i)}
-                      onMouseEnter={e => { if (onNavigateToRehabItem) e.currentTarget.style.background = "#f8fafc"; }}
+                      onMouseEnter={e => { if (onNavigateToRehabItem) e.currentTarget.style.background = "var(--surface-alt)"; }}
                       onMouseLeave={e => { e.currentTarget.style.background = "transparent"; }}
-                      style={{ borderTop: "1px solid #f1f5f9", cursor: onNavigateToRehabItem ? "pointer" : "default", transition: "background 0.15s" }}>
-                      <td style={{ padding: "12px 16px", fontSize: 14, fontWeight: 600, color: "#041830" }}>
+                      style={{ borderTop: "1px solid var(--border-subtle)", cursor: onNavigateToRehabItem ? "pointer" : "default", transition: "background 0.15s" }}>
+                      <td style={{ padding: "12px 16px", fontSize: 14, fontWeight: 600, color: "var(--text-primary)" }}>
                         <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
                           {item.category}
                           {(item.photos || []).length > 0 && <span style={{ color: "#3b82f6", fontSize: 11 }} title={`${item.photos.length} photo(s)`}><Image size={12} style={{ display: "inline" }} /> {item.photos.length}</span>}
@@ -7514,13 +7595,13 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
                             const con = CONTRACTORS.find(c => c.id === asgn.id);
                             if (!con) return null;
                             return (
-                              <div key={asgn.id} style={{ display: "flex", alignItems: "center", gap: 5, background: "#f1f5f9", borderRadius: 20, padding: "4px 8px 4px 6px" }}>
+                              <div key={asgn.id} style={{ display: "flex", alignItems: "center", gap: 5, background: "var(--surface-muted)", borderRadius: 20, padding: "4px 8px 4px 6px" }}>
                                 <div style={{ width: 18, height: 18, borderRadius: "50%", background: "linear-gradient(135deg, #e95e00, #041830)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                                   <Truck size={9} color="#fff" />
                                 </div>
-                                <span style={{ fontSize: 12, fontWeight: 600, color: "#374151" }}>{con.name}</span>
-                                {asgn.bid > 0 && <span style={{ fontSize: 11, color: "#64748b", fontWeight: 500 }}>{fmt(asgn.bid)}</span>}
-                                <button onClick={(e) => { e.stopPropagation(); removeContractorFromRehabItem(i, asgn.id); }} style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8", padding: 0, display: "flex", alignItems: "center" }}>
+                                <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-dim)" }}>{con.name}</span>
+                                {asgn.bid > 0 && <span style={{ fontSize: 11, color: "var(--text-secondary)", fontWeight: 500 }}>{fmt(asgn.bid)}</span>}
+                                <button onClick={(e) => { e.stopPropagation(); removeContractorFromRehabItem(i, asgn.id); }} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)", padding: 0, display: "flex", alignItems: "center" }}>
                                   <X size={10} />
                                 </button>
                               </div>
@@ -7535,31 +7616,31 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
                               onBlur={() => setTimeout(() => setAssignTA(s => s.rowIdx === i ? { rowIdx: null, query: "" } : s), 180)}
                               onKeyDown={e => { if (e.key === "Escape") setAssignTA({ rowIdx: null, query: "" }); }}
                               placeholder="Type contractor name..."
-                              style={{ border: "1.5px solid #cbd5e1", borderRadius: 8, padding: "5px 10px", fontSize: 12, color: "#374151", background: "#fff", outline: "none", width: 200 }} />
-                            <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, background: "#fff", border: "1px solid #e2e8f0", borderRadius: 8, boxShadow: "0 4px 12px rgba(0,0,0,0.08)", zIndex: 100, minWidth: 240, maxHeight: 240, overflowY: "auto" }}>
+                              style={{ border: "1.5px solid #cbd5e1", borderRadius: 8, padding: "5px 10px", fontSize: 12, color: "var(--text-dim)", background: "var(--surface)", outline: "none", width: 200 }} />
+                            <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 8, boxShadow: "0 4px 12px rgba(0,0,0,0.08)", zIndex: 100, minWidth: 240, maxHeight: 240, overflowY: "auto" }}>
                               {(() => {
                                 const q = assignTA.query.trim().toLowerCase();
                                 const matches = CONTRACTORS.filter(c => !assignedIds.includes(c.id) && (!q || c.name.toLowerCase().includes(q))).slice(0, 8);
                                 return (
                                   <>
                                     {matches.length === 0 && (
-                                      <div style={{ padding: "8px 12px", fontSize: 12, color: "#94a3b8" }}>{q ? "No matches" : "No contractors yet"}</div>
+                                      <div style={{ padding: "8px 12px", fontSize: 12, color: "var(--text-muted)" }}>{q ? "No matches" : "No contractors yet"}</div>
                                     )}
                                     {matches.map(c => {
                                       const onDeal = (c.dealIds || []).includes(deal.id);
                                       return (
                                         <div key={c.id}
                                           onMouseDown={e => { e.preventDefault(); assignContractorToRow(i, c.id); }}
-                                          style={{ padding: "8px 12px", fontSize: 12, cursor: "pointer", borderBottom: "1px solid #f1f5f9", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}
-                                          onMouseEnter={e => e.currentTarget.style.background = "#f8fafc"}
-                                          onMouseLeave={e => e.currentTarget.style.background = "#fff"}>
-                                          <span style={{ color: "#374151", fontWeight: 600 }}>{c.name}</span>
-                                          <span style={{ fontSize: 11, color: "#94a3b8" }}>{c.trade || ""}{!onDeal ? " · not on deal" : ""}</span>
+                                          style={{ padding: "8px 12px", fontSize: 12, cursor: "pointer", borderBottom: "1px solid var(--border-subtle)", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}
+                                          onMouseEnter={e => e.currentTarget.style.background = "var(--surface-alt)"}
+                                          onMouseLeave={e => e.currentTarget.style.background = "var(--surface)"}>
+                                          <span style={{ color: "var(--text-dim)", fontWeight: 600 }}>{c.name}</span>
+                                          <span style={{ fontSize: 11, color: "var(--text-muted)" }}>{c.trade || ""}{!onDeal ? " · not on deal" : ""}</span>
                                         </div>
                                       );
                                     })}
                                     <div onMouseDown={e => { e.preventDefault(); openAddContractorForRow(i, assignTA.query); }}
-                                      style={{ padding: "10px 12px", fontSize: 12, cursor: "pointer", color: "#e95e00", fontWeight: 700, background: "#fff7ed", borderTop: "1px solid #f1f5f9", display: "flex", alignItems: "center", gap: 6 }}
+                                      style={{ padding: "10px 12px", fontSize: 12, cursor: "pointer", color: "#e95e00", fontWeight: 700, background: "#fff7ed", borderTop: "1px solid var(--border-subtle)", display: "flex", alignItems: "center", gap: 6 }}
                                       onMouseEnter={e => e.currentTarget.style.background = "#ffedd5"}
                                       onMouseLeave={e => e.currentTarget.style.background = "#fff7ed"}>
                                       <Plus size={12} /> Add new contractor{assignTA.query.trim() ? ` "${assignTA.query.trim()}"` : ""}
@@ -7571,14 +7652,14 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
                           </div>
                         ) : (
                           <button onClick={() => setAssignTA({ rowIdx: i, query: "" })}
-                            style={{ border: "1.5px dashed #cbd5e1", borderRadius: 8, padding: "5px 10px", fontSize: 12, color: "#94a3b8", background: "#fafafa", cursor: "pointer" }}>
+                            style={{ border: "1.5px dashed #cbd5e1", borderRadius: 8, padding: "5px 10px", fontSize: 12, color: "var(--text-muted)", background: "#fafafa", cursor: "pointer" }}>
                             {assigned.length > 0 ? "+ Add" : "+ Assign contractor"}
                           </button>
                         )}
                         </div>
                       </td>
-                      <td style={{ padding: "12px 16px", fontSize: 13, color: "#475569" }}>{fmt(item.budgeted)}</td>
-                      <td style={{ padding: "12px 16px", fontSize: 13, fontWeight: 600, color: "#041830" }}>{fmt(item.spent)}</td>
+                      <td style={{ padding: "12px 16px", fontSize: 13, color: "var(--text-label)" }}>{fmt(item.budgeted)}</td>
+                      <td style={{ padding: "12px 16px", fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>{fmt(item.spent)}</td>
                       <td style={{ padding: "12px 16px", fontSize: 13, fontWeight: 700, color: over ? "#b91c1c" : "#15803d" }}>
                         {over ? `-${fmt(Math.abs(remaining))}` : fmt(remaining)}
                       </td>
@@ -7589,7 +7670,7 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
                       </td>
                       <td style={{ padding: "12px 16px" }} onClick={stop}>
                         <div style={{ display: "flex", gap: 4 }}>
-                          <button onClick={() => openEditRehab(item, i)} style={{ background: "#f1f5f9", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "#475569", display: "flex", alignItems: "center" }} title="Edit"><Pencil size={13} /></button>
+                          <button onClick={() => openEditRehab(item, i)} style={{ background: "var(--surface-muted)", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "var(--text-label)", display: "flex", alignItems: "center" }} title="Edit"><Pencil size={13} /></button>
                           <button onClick={() => setDeleteConfirm({ type: "rehab", item: item, index: i })} style={{ background: "#fee2e2", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "#ef4444", display: "flex", alignItems: "center" }} title="Delete"><Trash2 size={13} /></button>
                         </div>
                       </td>
@@ -7604,18 +7685,18 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
 
         {showAddRehab && (
           <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
-            <div style={{ background: "#fff", borderRadius: 20, width: 480, padding: 28 }}>
+            <div style={{ background: "var(--surface)", borderRadius: 20, width: 480, padding: 28 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-                <h2 style={{ color: "#041830", fontSize: 18, fontWeight: 700 }}>{editingRehabIdx !== null ? "Edit Rehab Item" : "Add Rehab Item"}</h2>
-                <button onClick={() => { setShowAddRehab(false); setRehabForm(emptyRehab); setEditingRehabIdx(null); }} style={{ background: "#f1f5f9", border: "none", borderRadius: 8, width: 32, height: 32, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><X size={16} color="#64748b" /></button>
+                <h2 style={{ color: "var(--text-primary)", fontSize: 18, fontWeight: 700 }}>{editingRehabIdx !== null ? "Edit Rehab Item" : "Add Rehab Item"}</h2>
+                <button onClick={() => { setShowAddRehab(false); setRehabForm(emptyRehab); setEditingRehabIdx(null); }} style={{ background: "var(--surface-muted)", border: "none", borderRadius: 8, width: 32, height: 32, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><X size={16} color="#64748b" /></button>
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
                 <div style={{ position: "relative" }}>
-                  <label style={{ display: "block", color: "#374151", fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Category *</label>
+                  <label style={{ display: "block", color: "var(--text-dim)", fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Category *</label>
                   <input value={rehabForm.category} placeholder="Start typing or pick from the list..." style={iS}
                     onChange={e => { setRehabForm(f => ({ ...f, category: e.target.value, canonicalCategory: null })); setCatFocus(true); }}
                     onFocus={() => setCatFocus(true)} onBlur={() => setTimeout(() => setCatFocus(false), 150)} />
-                  {!catFocus && !rehabForm.category && <p style={{ fontSize: 11, color: "#94a3b8", marginTop: 4, fontStyle: "italic" }}>Pick a standard category or type your own</p>}
+                  {!catFocus && !rehabForm.category && <p style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4, fontStyle: "italic" }}>Pick a standard category or type your own</p>}
                   {rehabForm.canonicalCategory && (
                     <span style={{ display: "inline-flex", alignItems: "center", gap: 4, marginTop: 4, fontSize: 11, fontWeight: 600, color: "#15803d" }}><CheckCircle size={11} /> Standard category</span>
                   )}
@@ -7631,14 +7712,14 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
                     const groupKeys = REHAB_CATEGORY_GROUPS.filter(g => grouped[g] && grouped[g].length > 0);
                     if (groupKeys.length === 0 && customMatches.length === 0 && !showNew) return null;
                     return (
-                      <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, background: "#fff", border: "1px solid #e2e8f0", borderRadius: 12, boxShadow: "0 8px 24px rgba(0,0,0,0.10)", zIndex: 200, overflow: "hidden", maxHeight: 320, overflowY: "auto" }}>
+                      <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, boxShadow: "0 8px 24px rgba(0,0,0,0.10)", zIndex: 200, overflow: "hidden", maxHeight: 320, overflowY: "auto" }}>
                         {groupKeys.map(g => (
                           <div key={g}>
-                            <div style={{ padding: "8px 14px 4px", fontSize: 10, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.05em", background: "#f8fafc" }}>{g}</div>
+                            <div style={{ padding: "8px 14px 4px", fontSize: 10, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em", background: "var(--surface-alt)" }}>{g}</div>
                             {grouped[g].map(c => (
                               <button key={c.slug} onMouseDown={() => { setRehabForm(f => ({ ...f, category: c.label, canonicalCategory: c.slug })); setCatFocus(false); }}
-                                style={{ width: "100%", padding: "8px 14px", background: "none", border: "none", borderBottom: "1px solid #f8fafc", textAlign: "left", cursor: "pointer", fontSize: 13, color: "#041830", display: "flex", alignItems: "center", gap: 8 }}>
-                                <Wrench size={12} style={{ color: "#94a3b8", flexShrink: 0 }} />
+                                style={{ width: "100%", padding: "8px 14px", background: "none", border: "none", borderBottom: "1px solid #f8fafc", textAlign: "left", cursor: "pointer", fontSize: 13, color: "var(--text-primary)", display: "flex", alignItems: "center", gap: 8 }}>
+                                <Wrench size={12} style={{ color: "var(--text-muted)", flexShrink: 0 }} />
                                 <span>{c.label}</span>
                               </button>
                             ))}
@@ -7646,11 +7727,11 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
                         ))}
                         {customMatches.length > 0 && (
                           <div>
-                            <div style={{ padding: "8px 14px 4px", fontSize: 10, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.05em", background: "#f8fafc" }}>Your Custom</div>
+                            <div style={{ padding: "8px 14px 4px", fontSize: 10, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em", background: "var(--surface-alt)" }}>Your Custom</div>
                             {customMatches.slice(0, 6).map(c => (
                               <button key={c} onMouseDown={() => { setRehabForm(f => ({ ...f, category: c, canonicalCategory: null })); setCatFocus(false); }}
-                                style={{ width: "100%", padding: "8px 14px", background: "none", border: "none", borderBottom: "1px solid #f8fafc", textAlign: "left", cursor: "pointer", fontSize: 13, color: "#041830", display: "flex", alignItems: "center", gap: 8 }}>
-                                <Wrench size={12} style={{ color: "#94a3b8", flexShrink: 0 }} />
+                                style={{ width: "100%", padding: "8px 14px", background: "none", border: "none", borderBottom: "1px solid #f8fafc", textAlign: "left", cursor: "pointer", fontSize: 13, color: "var(--text-primary)", display: "flex", alignItems: "center", gap: 8 }}>
+                                <Wrench size={12} style={{ color: "var(--text-muted)", flexShrink: 0 }} />
                                 <span>{c}</span>
                               </button>
                             ))}
@@ -7658,7 +7739,7 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
                         )}
                         {showNew && (
                           <button onMouseDown={() => setCatFocus(false)}
-                            style={{ width: "100%", padding: "10px 14px", display: "flex", alignItems: "center", gap: 8, background: "#fff7ed", border: "none", borderTop: "1px solid #e2e8f0", cursor: "pointer", textAlign: "left" }}>
+                            style={{ width: "100%", padding: "10px 14px", display: "flex", alignItems: "center", gap: 8, background: "#fff7ed", border: "none", borderTop: "1px solid var(--border)", cursor: "pointer", textAlign: "left" }}>
                             <Plus size={13} style={{ color: "#e95e00", flexShrink: 0 }} />
                             <span style={{ fontSize: 13, color: "#e95e00", fontWeight: 600 }}>Add &ldquo;{rehabForm.category}&rdquo; as custom</span>
                           </button>
@@ -7669,16 +7750,16 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
                 </div>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                   <div>
-                    <label style={{ display: "block", color: "#374151", fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Budget *</label>
+                    <label style={{ display: "block", color: "var(--text-dim)", fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Budget *</label>
                     <input value={rehabForm.budgeted} onChange={sfR("budgeted")} type="number" placeholder="18000" style={iS} />
                   </div>
                   <div>
-                    <label style={{ display: "block", color: "#374151", fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Spent So Far</label>
+                    <label style={{ display: "block", color: "var(--text-dim)", fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Spent So Far</label>
                     <input value={rehabForm.spent} onChange={sfR("spent")} type="number" placeholder="0" style={iS} />
                   </div>
                 </div>
                 <div>
-                  <label style={{ display: "block", color: "#374151", fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Status</label>
+                  <label style={{ display: "block", color: "var(--text-dim)", fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Status</label>
                   <select value={rehabForm.status} onChange={sfR("status")} style={iS}>
                     <option value="pending">Pending</option>
                     <option value="in-progress">In Progress</option>
@@ -7686,15 +7767,15 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
                   </select>
                 </div>
                 <div>
-                  <label style={{ display: "block", color: "#374151", fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Photos</label>
+                  <label style={{ display: "block", color: "var(--text-dim)", fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Photos</label>
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
                     {(rehabForm.photos || []).map((p, pi) => (
-                      <div key={pi} style={{ position: "relative", width: 60, height: 60, borderRadius: 8, overflow: "hidden", border: "1px solid #e2e8f0" }}>
+                      <div key={pi} style={{ position: "relative", width: 60, height: 60, borderRadius: 8, overflow: "hidden", border: "1px solid var(--border)" }}>
                         <img src={p} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                         <button onClick={() => setRehabForm(f => ({ ...f, photos: f.photos.filter((_, ii) => ii !== pi) }))} style={{ position: "absolute", top: 2, right: 2, background: "rgba(0,0,0,0.6)", border: "none", borderRadius: "50%", width: 18, height: 18, color: "#fff", fontSize: 10, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><X size={10} /></button>
                       </div>
                     ))}
-                    <label style={{ width: 60, height: 60, borderRadius: 8, border: "2px dashed #e2e8f0", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#94a3b8", fontSize: 10, gap: 2 }}>
+                    <label style={{ width: 60, height: 60, borderRadius: 8, border: "2px dashed var(--border)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "var(--text-muted)", fontSize: 10, gap: 2 }}>
                       <Camera size={16} />
                       <span>Add</span>
                       <input type="file" accept="image/*" multiple style={{ display: "none" }} onChange={e => {
@@ -7706,11 +7787,11 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
                       }} />
                     </label>
                   </div>
-                  <p style={{ fontSize: 11, color: "#94a3b8", marginTop: 4 }}>Before/after photos for this scope of work</p>
+                  <p style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4 }}>Before/after photos for this scope of work</p>
                 </div>
               </div>
               <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 22 }}>
-                <button onClick={() => { setShowAddRehab(false); setRehabForm(emptyRehab); setEditingRehabIdx(null); }} style={{ padding: "10px 20px", borderRadius: 10, border: "1px solid #e2e8f0", background: "#fff", color: "#64748b", fontWeight: 600, fontSize: 14, cursor: "pointer" }}>Cancel</button>
+                <button onClick={() => { setShowAddRehab(false); setRehabForm(emptyRehab); setEditingRehabIdx(null); }} style={{ padding: "10px 20px", borderRadius: 10, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text-secondary)", fontWeight: 600, fontSize: 14, cursor: "pointer" }}>Cancel</button>
                 <button onClick={() => {
                   if (!rehabForm.category || !rehabForm.budgeted) return;
                   const photos = rehabForm.photos || [];
@@ -7745,8 +7826,8 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
               const subs = FLIP_EXPENSE_GROUPS[group];
               const total = flipExpenses.filter(e => subs.includes(e.category)).reduce((s, e) => s + e.amount, 0);
               return (
-                <div key={group} style={{ background: "#fff", borderRadius: 12, padding: "12px 16px", boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9", minWidth: 130, flex: "1 0 auto" }}>
-                  <p style={{ color: "#94a3b8", fontSize: 10, fontWeight: 600, textTransform: "uppercase", marginBottom: 4, whiteSpace: "nowrap", display: "flex", alignItems: "center" }}>{group}<InfoTip text={`Sum of ${group} expenses for this deal. Includes categories: ${subs.join(", ")}.`} /></p>
+                <div key={group} style={{ background: "var(--surface)", borderRadius: 12, padding: "12px 16px", boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)", minWidth: 130, flex: "1 0 auto" }}>
+                  <p style={{ color: "var(--text-muted)", fontSize: 10, fontWeight: 600, textTransform: "uppercase", marginBottom: 4, whiteSpace: "nowrap", display: "flex", alignItems: "center" }}>{group}<InfoTip text={`Sum of ${group} expenses for this deal. Includes categories: ${subs.join(", ")}.`} /></p>
                   <p style={{ color: total > 0 ? "#041830" : "#cbd5e1", fontSize: 16, fontWeight: 700 }}>{total > 0 ? fmt(total) : "-"}</p>
                 </div>
               );
@@ -7754,7 +7835,7 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
           </div>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
             <div>
-              <p style={{ color: "#64748b", fontSize: 14 }}>
+              <p style={{ color: "var(--text-secondary)", fontSize: 14 }}>
                 {hasExpFilters ? `${flipExpenses.length} of ${expData.length}` : `${flipExpenses.length}`} transactions . <strong style={{ color: "#b91c1c" }}>{fmt(hasExpFilters ? filteredTotal : totalExpensed)}</strong> {hasExpFilters ? "filtered" : "total spent"}
               </p>
             </div>
@@ -7765,9 +7846,9 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
           {/* Filter bar */}
           <div style={{ display: "flex", gap: 10, marginBottom: hasExpFilters ? 10 : 16, flexWrap: "wrap", alignItems: "center" }}>
             <div style={{ position: "relative", flex: "1 1 160px", minWidth: 150 }}>
-              <Search size={14} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "#94a3b8" }} />
+              <Search size={14} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "var(--text-muted)" }} />
               <input value={expSearch} onChange={e => setExpSearch(e.target.value)} placeholder="Search..."
-                style={{ width: "100%", paddingLeft: 32, paddingRight: 10, paddingTop: 8, paddingBottom: 8, border: "1px solid #e2e8f0", borderRadius: 10, fontSize: 13, color: "#041830", background: "#fff", outline: "none", boxSizing: "border-box" }} />
+                style={{ width: "100%", paddingLeft: 32, paddingRight: 10, paddingTop: 8, paddingBottom: 8, border: "1px solid var(--border)", borderRadius: 10, fontSize: 13, color: "var(--text-primary)", background: "var(--surface)", outline: "none", boxSizing: "border-box" }} />
             </div>
             <select value={expCatFilter} onChange={e => setExpCatFilter(e.target.value)} style={{ ...iS, width: "auto", minWidth: 150, fontSize: 13, padding: "8px 10px" }}>
               <option value="all">All Categories</option>
@@ -7784,7 +7865,7 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
             {expDateFilter === "custom" && (
               <>
                 <input type="date" value={expDateFrom} onChange={e => setExpDateFrom(e.target.value)} style={{ ...iS, width: "auto", fontSize: 13, padding: "8px 10px" }} />
-                <span style={{ color: "#94a3b8", fontSize: 13 }}>to</span>
+                <span style={{ color: "var(--text-muted)", fontSize: 13 }}>to</span>
                 <input type="date" value={expDateTo} onChange={e => setExpDateTo(e.target.value)} style={{ ...iS, width: "auto", fontSize: 13, padding: "8px 10px" }} />
               </>
             )}
@@ -7792,16 +7873,16 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
           {/* Active filter chips */}
           {hasExpFilters && (
             <div style={{ display: "flex", gap: 8, marginBottom: 14, flexWrap: "wrap", alignItems: "center" }}>
-              <span style={{ fontSize: 12, color: "#94a3b8", fontWeight: 600 }}>Filtered:</span>
+              <span style={{ fontSize: 12, color: "var(--text-muted)", fontWeight: 600 }}>Filtered:</span>
               {expCatFilter !== "all" && <span style={{ background: "#fff7ed", color: "#7c2d12", borderRadius: 20, padding: "3px 10px", fontSize: 12, fontWeight: 600 }}>{expCatFilter}</span>}
               {expDateFilter !== "all" && <span style={{ background: "#f0fdf4", color: "#15803d", borderRadius: 20, padding: "3px 10px", fontSize: 12, fontWeight: 600 }}>{{ thisMonth: "This Month", lastMonth: "Last Month", thisYear: "This Year", lastYear: "Last Year", custom: expDateFrom && expDateTo ? `${expDateFrom} – ${expDateTo}` : "Custom Range" }[expDateFilter]}</span>}
-              {expSearch && <span style={{ background: "#f1f5f9", color: "#475569", borderRadius: 20, padding: "3px 10px", fontSize: 12, fontWeight: 600 }}>&ldquo;{expSearch}&rdquo;</span>}
-              <button onClick={clearExpFilters} style={{ background: "none", border: "none", color: "#94a3b8", fontSize: 12, cursor: "pointer", textDecoration: "underline", padding: 0 }}>Clear all</button>
+              {expSearch && <span style={{ background: "var(--surface-muted)", color: "var(--text-label)", borderRadius: 20, padding: "3px 10px", fontSize: 12, fontWeight: 600 }}>&ldquo;{expSearch}&rdquo;</span>}
+              <button onClick={clearExpFilters} style={{ background: "none", border: "none", color: "var(--text-muted)", fontSize: 12, cursor: "pointer", textDecoration: "underline", padding: 0 }}>Clear all</button>
             </div>
           )}
-          <div style={{ background: "#fff", borderRadius: 16, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9", overflow: "hidden" }}>
+          <div style={{ background: "var(--surface)", borderRadius: 16, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)", overflow: "hidden" }}>
             {flipExpenses.length === 0 ? (
-              <div style={{ textAlign: "center", padding: 48, color: "#94a3b8" }}>
+              <div style={{ textAlign: "center", padding: 48, color: "var(--text-muted)" }}>
                 <Receipt size={32} style={{ margin: "0 auto 12px", display: "block" }} />
                 {hasExpFilters ? (
                   <>
@@ -7818,27 +7899,27 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
             ) : (
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead>
-                  <tr style={{ background: "#f8fafc" }}>
+                  <tr style={{ background: "var(--surface-alt)" }}>
                     {["Date", "Paid To", "Category", "Description", "Amount", "Status", ""].map(h => (
-                      <th key={h} style={{ padding: "12px 18px", textAlign: "left", color: "#94a3b8", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>{h}</th>
+                      <th key={h} style={{ padding: "12px 18px", textAlign: "left", color: "var(--text-muted)", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {flipExpenses.map((e, i) => (
-                    <tr key={e.id} onClick={() => setExpDetailItem(e)} style={{ borderTop: "1px solid #f1f5f9", background: i % 2 === 0 ? "#fff" : "#fafafa", cursor: "pointer", transition: "background 0.15s" }}
+                    <tr key={e.id} onClick={() => setExpDetailItem(e)} style={{ borderTop: "1px solid var(--border-subtle)", background: i % 2 === 0 ? "#fff" : "#fafafa", cursor: "pointer", transition: "background 0.15s" }}
                       onMouseEnter={ev => { ev.currentTarget.style.background = "#f0f9ff"; }}
                       onMouseLeave={ev => { ev.currentTarget.style.background = i % 2 === 0 ? "#fff" : "#fafafa"; }}>
-                      <td style={{ padding: "13px 18px", fontSize: 13, color: "#64748b" }}>{e.date}</td>
-                      <td style={{ padding: "13px 18px", fontSize: 13, fontWeight: 600, color: "#041830" }}>
+                      <td style={{ padding: "13px 18px", fontSize: 13, color: "var(--text-secondary)" }}>{e.date}</td>
+                      <td style={{ padding: "13px 18px", fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
                         {e.vendor}
                         {e.contractorId && <UserCheck size={11} color="#3b82f6" style={{ marginLeft: 5, display: "inline" }} title={`Linked contractor`} />}
                       </td>
                       <td style={{ padding: "13px 18px" }}>
-                        {(() => { const group = getFlipExpGroup(e.category); return group && group !== e.category ? <p style={{ fontSize: 10, color: "#94a3b8", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.03em", marginBottom: 2 }}>{group}</p> : null; })()}
-                        <span style={{ background: "#f1f5f9", borderRadius: 6, padding: "3px 8px", fontSize: 11, fontWeight: 600, color: "#475569" }}>{e.category}</span>
+                        {(() => { const group = getFlipExpGroup(e.category); return group && group !== e.category ? <p style={{ fontSize: 10, color: "var(--text-muted)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.03em", marginBottom: 2 }}>{group}</p> : null; })()}
+                        <span style={{ background: "var(--surface-muted)", borderRadius: 6, padding: "3px 8px", fontSize: 11, fontWeight: 600, color: "var(--text-label)" }}>{e.category}</span>
                       </td>
-                      <td style={{ padding: "13px 18px", fontSize: 13, color: "#475569" }}>{e.description}</td>
+                      <td style={{ padding: "13px 18px", fontSize: 13, color: "var(--text-label)" }}>{e.description}</td>
                       <td style={{ padding: "13px 18px", fontSize: 14, fontWeight: 700, color: "#b91c1c" }}>{fmt(e.amount)}</td>
                       <td style={{ padding: "13px 18px" }}>
                         <button onClick={ev => { ev.stopPropagation(); setExpData(prev => prev.map(x => x.id === e.id ? { ...x, status: x.status === "paid" ? "pending" : "paid" } : x)); }} style={{ background: (e.status || "paid") === "paid" ? "#dcfce7" : "#fff7ed", color: (e.status || "paid") === "paid" ? "#15803d" : "#9a3412", borderRadius: 20, padding: "3px 10px", fontSize: 11, fontWeight: 600, border: "none", cursor: "pointer", textTransform: "capitalize" }}>
@@ -7847,7 +7928,7 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
                       </td>
                       <td style={{ padding: "13px 18px" }}>
                         <div style={{ display: "flex", gap: 4 }}>
-                          <button onClick={ev => { ev.stopPropagation(); openEditExp(e); }} style={{ background: "#f1f5f9", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "#475569", display: "flex", alignItems: "center" }} title="Edit"><Pencil size={13} /></button>
+                          <button onClick={ev => { ev.stopPropagation(); openEditExp(e); }} style={{ background: "var(--surface-muted)", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "var(--text-label)", display: "flex", alignItems: "center" }} title="Edit"><Pencil size={13} /></button>
                           <button onClick={ev => { ev.stopPropagation(); setDeleteConfirm({ type: "expense", item: e }); }} style={{ background: "#fee2e2", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "#ef4444", display: "flex", alignItems: "center" }} title="Delete"><Trash2 size={13} /></button>
                         </div>
                       </td>
@@ -7855,10 +7936,10 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
                   ))}
                 </tbody>
                 <tfoot>
-                  <tr style={{ background: "#f8fafc", borderTop: "2px solid #e2e8f0" }}>
-                    <td colSpan={4} style={{ padding: "12px 18px", fontSize: 13, fontWeight: 700, color: "#041830" }}>Total Expensed</td>
+                  <tr style={{ background: "var(--surface-alt)", borderTop: "2px solid var(--border)" }}>
+                    <td colSpan={4} style={{ padding: "12px 18px", fontSize: 13, fontWeight: 700, color: "var(--text-primary)" }}>Total Expensed</td>
                     <td style={{ padding: "12px 18px", fontSize: 15, fontWeight: 800, color: "#b91c1c" }}>{fmt(totalExpensed)}</td>
-                    <td colSpan={2} style={{ padding: "12px 18px", fontSize: 12, color: "#94a3b8" }}>
+                    <td colSpan={2} style={{ padding: "12px 18px", fontSize: 12, color: "var(--text-muted)" }}>
                       {expData.filter(e => (e.status || "paid") === "pending").length > 0 && <span style={{ color: "#9a3412", fontWeight: 600 }}>{expData.filter(e => e.status === "pending").length} pending</span>}
                     </td>
                   </tr>
@@ -7886,34 +7967,34 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
               const showNew = q && !exactExists;
               if (conMatches.length === 0 && vendorMatches.length === 0 && !showNew) return null;
               return (
-                <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, background: "#fff", border: "1px solid #e2e8f0", borderRadius: 12, boxShadow: "0 8px 24px rgba(0,0,0,0.10)", zIndex: 200, overflow: "hidden", maxHeight: 280, overflowY: "auto" }}>
+                <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, boxShadow: "0 8px 24px rgba(0,0,0,0.10)", zIndex: 200, overflow: "hidden", maxHeight: 280, overflowY: "auto" }}>
                   {conMatches.length > 0 && (
                     <>
-                      <div style={{ padding: "6px 14px", background: "#f8fafc", fontSize: 10, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.05em" }}>Project Contractors</div>
+                      <div style={{ padding: "6px 14px", background: "var(--surface-alt)", fontSize: 10, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em" }}>Project Contractors</div>
                       {conMatches.slice(0, 5).map(c => (
                         <button key={`con-${c.id}`} onMouseDown={() => { setExpForm(f => ({ ...f, vendor: c.name, contractorId: String(c.id) })); setVendorFocus(false); }}
-                          style={{ width: "100%", padding: "10px 14px", background: "none", border: "none", borderBottom: "1px solid #f1f5f9", textAlign: "left", cursor: "pointer", fontSize: 13, color: "#041830", display: "flex", alignItems: "center", gap: 8 }}>
+                          style={{ width: "100%", padding: "10px 14px", background: "none", border: "none", borderBottom: "1px solid var(--border-subtle)", textAlign: "left", cursor: "pointer", fontSize: 13, color: "var(--text-primary)", display: "flex", alignItems: "center", gap: 8 }}>
                           <UserCheck size={13} style={{ color: "#3b82f6", flexShrink: 0 }} />
                           <span style={{ flex: 1 }}>{c.name}</span>
-                          <span style={{ fontSize: 11, color: "#94a3b8" }}>{c.trade}</span>
+                          <span style={{ fontSize: 11, color: "var(--text-muted)" }}>{c.trade}</span>
                         </button>
                       ))}
                     </>
                   )}
                   {vendorMatches.length > 0 && (
                     <>
-                      <div style={{ padding: "6px 14px", background: "#f8fafc", fontSize: 10, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.05em" }}>Previous Vendors</div>
+                      <div style={{ padding: "6px 14px", background: "var(--surface-alt)", fontSize: 10, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em" }}>Previous Vendors</div>
                       {vendorMatches.slice(0, 5).map(v => (
                         <button key={v} onMouseDown={() => { setExpForm(f => ({ ...f, vendor: v, contractorId: "" })); setVendorFocus(false); }}
-                          style={{ width: "100%", padding: "10px 14px", background: "none", border: "none", borderBottom: "1px solid #f1f5f9", textAlign: "left", cursor: "pointer", fontSize: 13, color: "#041830", display: "flex", alignItems: "center", gap: 8 }}>
-                          <User size={13} style={{ color: "#94a3b8", flexShrink: 0 }} /> {v}
+                          style={{ width: "100%", padding: "10px 14px", background: "none", border: "none", borderBottom: "1px solid var(--border-subtle)", textAlign: "left", cursor: "pointer", fontSize: 13, color: "var(--text-primary)", display: "flex", alignItems: "center", gap: 8 }}>
+                          <User size={13} style={{ color: "var(--text-muted)", flexShrink: 0 }} /> {v}
                         </button>
                       ))}
                     </>
                   )}
                   {showNew && (
                     <button onMouseDown={() => setVendorFocus(false)}
-                      style={{ width: "100%", padding: "10px 14px", display: "flex", alignItems: "center", gap: 8, background: "#fff7ed", border: "none", borderTop: "1px solid #e2e8f0", cursor: "pointer", textAlign: "left" }}>
+                      style={{ width: "100%", padding: "10px 14px", display: "flex", alignItems: "center", gap: 8, background: "#fff7ed", border: "none", borderTop: "1px solid var(--border)", cursor: "pointer", textAlign: "left" }}>
                       <Plus size={13} style={{ color: "#e95e00", flexShrink: 0 }} />
                       <span style={{ fontSize: 13, color: "#e95e00", fontWeight: 600 }}>Add &ldquo;{expForm.vendor}&rdquo; as new</span>
                     </button>
@@ -7932,32 +8013,32 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
             <Modal title={editingExpId ? "Edit Expense" : "Add Expense"} onClose={() => { setShowExpenseModal(false); setEditingExpId(null); setExpForm(emptyExp); }}>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
                 <div>
-                  <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Date</label>
+                  <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Date</label>
                   <input type="date" value={expForm.date} onChange={sfE("date")} style={iS} />
                 </div>
                 <div>
-                  <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Amount ($) *</label>
+                  <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Amount ($) *</label>
                   <input type="number" placeholder="0.00" value={expForm.amount} onChange={sfE("amount")} style={iS} />
                 </div>
                 <div style={{ gridColumn: "1 / -1", position: "relative" }}>
-                  <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Paid To *</label>
+                  <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Paid To *</label>
                   <input type="text" placeholder="Who was paid?" value={expForm.vendor} onChange={handleVendorChange} onFocus={() => setVendorFocus(true)} onBlur={() => setTimeout(() => setVendorFocus(false), 150)} style={iS} autoComplete="off" />
                   {vendorFocus && <PaidToDropdown />}
-                  {!vendorFocus && !expForm.vendor && <p style={{ fontSize: 11, color: "#94a3b8", marginTop: 4, fontStyle: "italic" }}>Type to search previous entries or add new</p>}
+                  {!vendorFocus && !expForm.vendor && <p style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4, fontStyle: "italic" }}>Type to search previous entries or add new</p>}
                   {linkedCon && (
                     <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 6 }}>
                       <UserCheck size={12} color="#3b82f6" />
                       <span style={{ fontSize: 12, color: "#3b82f6", fontWeight: 600 }}>Linked to {linkedCon.name} ({linkedCon.trade})</span>
-                      <button onClick={() => setExpForm(f => ({ ...f, contractorId: "" }))} style={{ background: "none", border: "none", color: "#94a3b8", cursor: "pointer", fontSize: 11, textDecoration: "underline" }}>unlink</button>
+                      <button onClick={() => setExpForm(f => ({ ...f, contractorId: "" }))} style={{ background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", fontSize: 11, textDecoration: "underline" }}>unlink</button>
                     </div>
                   )}
                 </div>
                 <div style={{ gridColumn: "1 / -1" }}>
-                  <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Description *</label>
+                  <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Description *</label>
                   <input type="text" placeholder="Brief description" value={expForm.description} onChange={sfE("description")} style={iS} />
                 </div>
                 <div style={{ gridColumn: "1 / -1" }}>
-                  <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Category</label>
+                  <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Category</label>
                   <select value={expForm.category} onChange={sfE("category")} style={iS}>
                     {Object.entries(FLIP_EXPENSE_GROUPS).map(([group, subs]) => (
                       <optgroup key={group} label={group}>
@@ -7967,7 +8048,7 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
                   </select>
                 </div>
                 <div style={{ gridColumn: "1 / -1" }}>
-                  <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Rehab Item <span style={{ color: "#94a3b8", fontWeight: 400 }}>(optional)</span></label>
+                  <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Rehab Item <span style={{ color: "var(--text-muted)", fontWeight: 400 }}>(optional)</span></label>
                   <select value={expForm.rehabItemIdx} onChange={sfE("rehabItemIdx")} style={iS}>
                     <option value="">None — general expense</option>
                     {rehabItems.map((item, idx) => (
@@ -7975,11 +8056,11 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
                     ))}
                   </select>
                   {rehabItems.length === 0 && (
-                    <p style={{ fontSize: 11, color: "#94a3b8", marginTop: 4, fontStyle: "italic" }}>No rehab items on this deal yet — add them in the Rehab tab to link expenses</p>
+                    <p style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4, fontStyle: "italic" }}>No rehab items on this deal yet — add them in the Rehab tab to link expenses</p>
                   )}
                 </div>
                 <div style={{ gridColumn: "1 / -1" }}>
-                  <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Status</label>
+                  <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Status</label>
                   <select value={expForm.status} onChange={sfE("status")} style={iS}>
                     <option value="paid">Paid</option>
                     <option value="pending">Pending</option>
@@ -7987,7 +8068,7 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
                 </div>
               </div>
               <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
-                <button onClick={() => { setShowExpenseModal(false); setEditingExpId(null); setExpForm(emptyExp); }} style={{ flex: 1, padding: "12px", border: "1px solid #e2e8f0", borderRadius: 10, background: "#fff", color: "#475569", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
+                <button onClick={() => { setShowExpenseModal(false); setEditingExpId(null); setExpForm(emptyExp); }} style={{ flex: 1, padding: "12px", border: "1px solid var(--border)", borderRadius: 10, background: "var(--surface)", color: "var(--text-label)", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
                 <button onClick={handleSaveExp} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "#e95e00", color: "#fff", fontWeight: 600, cursor: "pointer" }}>{editingExpId ? "Save Changes" : "Save Expense"}</button>
               </div>
             </Modal>
@@ -7998,13 +8079,13 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
       {activeTab === "contractors" && (
         <div>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-            <p style={{ color: "#64748b", fontSize: 14 }}>{flipContractors.length} contractor{flipContractors.length !== 1 ? "s" : ""} on this project</p>
+            <p style={{ color: "var(--text-secondary)", fontSize: 14 }}>{flipContractors.length} contractor{flipContractors.length !== 1 ? "s" : ""} on this project</p>
             <button onClick={() => { setEditingConId(null); setConForm(emptyCon); setShowContractorModal(true); }} style={{ background: "#e95e00", color: "#fff", border: "none", borderRadius: 10, padding: "10px 16px", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
               <Plus size={15} /> Add Contractor
             </button>
           </div>
           {flipContractors.length === 0 ? (
-            <div style={{ background: "#fff", borderRadius: 16, padding: 48, textAlign: "center", color: "#94a3b8", border: "1px solid #f1f5f9" }}>
+            <div style={{ background: "var(--surface)", borderRadius: 16, padding: 48, textAlign: "center", color: "var(--text-muted)", border: "1px solid var(--border-subtle)" }}>
               <Users size={32} style={{ margin: "0 auto 12px", display: "block" }} />
               <p style={{ fontWeight: 600, marginBottom: 4 }}>No contractors added yet</p>
               <p style={{ fontSize: 13 }}>Track subs, payment types, and amounts owed.</p>
@@ -8020,47 +8101,47 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
                   <div key={c.id}
                     ref={el => { if (el && isHighlighted) { el.scrollIntoView({ behavior: "smooth", block: "center" }); } }}
                     onClick={() => onNavigateToContractor && onNavigateToContractor(c)}
-                    onMouseEnter={e => { if (onNavigateToContractor && !isHighlighted) { e.currentTarget.style.background = "#f8fafc"; e.currentTarget.style.borderColor = "#e2e8f0"; } }}
-                    onMouseLeave={e => { if (!isHighlighted) { e.currentTarget.style.background = "#fff"; e.currentTarget.style.borderColor = "#f1f5f9"; } }}
-                    style={{ background: isHighlighted ? "#fff7ed" : "#fff", borderRadius: 16, padding: 20, boxShadow: isHighlighted ? "0 0 0 3px #fed7aa, 0 4px 14px rgba(233,94,0,0.15)" : "0 1px 3px rgba(0,0,0,0.06)", border: isHighlighted ? "1px solid #fdba74" : "1px solid #f1f5f9", cursor: onNavigateToContractor ? "pointer" : "default", transition: "background 0.3s, border-color 0.3s, box-shadow 0.3s" }}>
+                    onMouseEnter={e => { if (onNavigateToContractor && !isHighlighted) { e.currentTarget.style.background = "var(--surface-alt)"; e.currentTarget.style.borderColor = "var(--border)"; } }}
+                    onMouseLeave={e => { if (!isHighlighted) { e.currentTarget.style.background = "var(--surface)"; e.currentTarget.style.borderColor = "#f1f5f9"; } }}
+                    style={{ background: isHighlighted ? "#fff7ed" : "#fff", borderRadius: 16, padding: 20, boxShadow: isHighlighted ? "0 0 0 3px #fed7aa, 0 4px 14px rgba(233,94,0,0.15)" : "0 1px 3px rgba(0,0,0,0.06)", border: isHighlighted ? "1px solid #fdba74" : "1px solid var(--border-subtle)", cursor: onNavigateToContractor ? "pointer" : "default", transition: "background 0.3s, border-color 0.3s, box-shadow 0.3s" }}>
                     <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 14 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                        <div style={{ width: 42, height: 42, borderRadius: 12, background: "#f1f5f9", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                        <div style={{ width: 42, height: 42, borderRadius: 12, background: "var(--surface-muted)", display: "flex", alignItems: "center", justifyContent: "center" }}>
                           <UserCheck size={20} color="#64748b" />
                         </div>
                         <div>
-                          <p style={{ fontSize: 15, fontWeight: 700, color: "#041830" }}>{c.name}</p>
-                          <p style={{ fontSize: 12, color: "#94a3b8" }}>{c.trade}{c.phone ? ` · ${c.phone}` : ""}</p>
+                          <p style={{ fontSize: 15, fontWeight: 700, color: "var(--text-primary)" }}>{c.name}</p>
+                          <p style={{ fontSize: 12, color: "var(--text-muted)" }}>{c.trade}{c.phone ? ` · ${c.phone}` : ""}</p>
                         </div>
                         {onNavigateToContractor && <ChevronRight size={16} color="#cbd5e1" style={{ marginLeft: 4, flexShrink: 0 }} />}
                       </div>
                       <div style={{ display: "flex", alignItems: "center", gap: 8 }} onClick={stop}>
-                        <button onClick={() => openEditCon(c)} style={{ background: "#f1f5f9", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "#475569", display: "flex", alignItems: "center" }} title="Edit"><Pencil size={13} /></button>
+                        <button onClick={() => openEditCon(c)} style={{ background: "var(--surface-muted)", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "var(--text-label)", display: "flex", alignItems: "center" }} title="Edit"><Pencil size={13} /></button>
                         <button onClick={() => setDeleteConfirm({ type: "contractor", item: c })} style={{ background: "#fee2e2", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "#ef4444", display: "flex", alignItems: "center" }} title="Delete"><Trash2 size={13} /></button>
                       </div>
                     </div>
                     <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
-                      <div style={{ background: "#f8fafc", borderRadius: 10, padding: "10px 12px" }}>
-                        <p style={{ color: "#94a3b8", fontSize: 10, fontWeight: 600, textTransform: "uppercase", marginBottom: 3, display: "flex", alignItems: "center" }}>Bids (This Deal)<InfoTip text="Number of bids this contractor has submitted on this deal. Pending count shown in parentheses if any are awaiting acceptance." /></p>
-                        <p style={{ color: "#041830", fontSize: 13, fontWeight: 700 }}>{t.bidCount}{t.pendingBids > 0 ? ` (${t.pendingBids} pending)` : ""}</p>
+                      <div style={{ background: "var(--surface-alt)", borderRadius: 10, padding: "10px 12px" }}>
+                        <p style={{ color: "var(--text-muted)", fontSize: 10, fontWeight: 600, textTransform: "uppercase", marginBottom: 3, display: "flex", alignItems: "center" }}>Bids (This Deal)<InfoTip text="Number of bids this contractor has submitted on this deal. Pending count shown in parentheses if any are awaiting acceptance." /></p>
+                        <p style={{ color: "var(--text-primary)", fontSize: 13, fontWeight: 700 }}>{t.bidCount}{t.pendingBids > 0 ? ` (${t.pendingBids} pending)` : ""}</p>
                       </div>
-                      <div style={{ background: "#f8fafc", borderRadius: 10, padding: "10px 12px" }}>
-                        <p style={{ color: "#94a3b8", fontSize: 10, fontWeight: 600, textTransform: "uppercase", marginBottom: 3, display: "flex", alignItems: "center" }}>Total Bid<InfoTip text="Sum of all accepted bid amounts from this contractor on this deal." /></p>
-                        <p style={{ color: "#041830", fontSize: 13, fontWeight: 700 }}>{fmt(t.totalBid)}</p>
+                      <div style={{ background: "var(--surface-alt)", borderRadius: 10, padding: "10px 12px" }}>
+                        <p style={{ color: "var(--text-muted)", fontSize: 10, fontWeight: 600, textTransform: "uppercase", marginBottom: 3, display: "flex", alignItems: "center" }}>Total Bid<InfoTip text="Sum of all accepted bid amounts from this contractor on this deal." /></p>
+                        <p style={{ color: "var(--text-primary)", fontSize: 13, fontWeight: 700 }}>{fmt(t.totalBid)}</p>
                       </div>
                       <div style={{ background: t.owed > 0 ? "#fff7ed" : t.totalBid > 0 ? "#dcfce7" : "#f8fafc", borderRadius: 10, padding: "10px 12px" }}>
-                        <p style={{ color: "#94a3b8", fontSize: 10, fontWeight: 600, textTransform: "uppercase", marginBottom: 3, display: "flex", alignItems: "center" }}>Balance Owed<InfoTip text="Total Bid − Paid to Date. What you still owe this contractor on this deal." /></p>
+                        <p style={{ color: "var(--text-muted)", fontSize: 10, fontWeight: 600, textTransform: "uppercase", marginBottom: 3, display: "flex", alignItems: "center" }}>Balance Owed<InfoTip text="Total Bid − Paid to Date. What you still owe this contractor on this deal." /></p>
                         <p style={{ color: t.owed > 0 ? "#9a3412" : "#15803d", fontSize: 13, fontWeight: 700 }}>{t.totalBid > 0 ? (t.owed > 0 ? fmt(t.owed) : "Paid in full") : "—"}</p>
                       </div>
                     </div>
                     <div style={{ marginTop: 10, display: "flex", alignItems: "center", gap: 12 }}>
                       <div style={{ flex: 1 }}>
-                        <p style={{ color: "#94a3b8", fontSize: 11, fontWeight: 600, textTransform: "uppercase", marginBottom: 4 }}>Paid to Date · {fmt(t.totalPaid)}</p>
-                        <div style={{ height: 6, background: "#f1f5f9", borderRadius: 99, overflow: "hidden" }}>
+                        <p style={{ color: "var(--text-muted)", fontSize: 11, fontWeight: 600, textTransform: "uppercase", marginBottom: 4 }}>Paid to Date · {fmt(t.totalPaid)}</p>
+                        <div style={{ height: 6, background: "var(--surface-muted)", borderRadius: 99, overflow: "hidden" }}>
                           <div style={{ height: "100%", width: `${pct}%`, background: "#10b981", borderRadius: 99 }} />
                         </div>
                       </div>
-                      <button onClick={(e) => { e.stopPropagation(); setQuickBid({ contractorId: c.id, rehabItem: "", canonicalCategory: null, amount: "" }); }} style={{ background: "#fff", color: "#e95e00", border: "1px solid #fed7aa", borderRadius: 8, padding: "6px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 5, whiteSpace: "nowrap", flexShrink: 0 }}>
+                      <button onClick={(e) => { e.stopPropagation(); setQuickBid({ contractorId: c.id, rehabItem: "", canonicalCategory: null, amount: "" }); }} style={{ background: "var(--surface)", color: "#e95e00", border: "1px solid #fed7aa", borderRadius: 8, padding: "6px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 5, whiteSpace: "nowrap", flexShrink: 0 }}>
                         <Plus size={12} /> Bid
                       </button>
                       <button onClick={(e) => { e.stopPropagation(); setShowPaymentModal(c.id); setPaymentDate(new Date().toISOString().split("T")[0]); }} style={{ background: "#10b981", color: "#fff", border: "none", borderRadius: 8, padding: "6px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 5, whiteSpace: "nowrap", flexShrink: 0 }}>
@@ -8081,8 +8162,8 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
             const existingAvailable = CONTRACTORS.filter(c => !onDealIds.has(c.id));
             if (existingAvailable.length === 0) return null;
             return (
-              <div style={{ marginBottom: 18, padding: 14, background: "#f8fafc", border: "1px solid #f1f5f9", borderRadius: 12 }}>
-                <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 8 }}>Add from your existing contractors</label>
+              <div style={{ marginBottom: 18, padding: 14, background: "var(--surface-alt)", border: "1px solid var(--border-subtle)", borderRadius: 12 }}>
+                <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 8 }}>Add from your existing contractors</label>
                 <select
                   defaultValue=""
                   onChange={e => { if (e.target.value) attachExistingContractor(parseInt(e.target.value)); }}
@@ -8092,28 +8173,28 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
                     <option key={c.id} value={c.id}>{c.name}{c.trade ? ` — ${c.trade}` : ""}</option>
                   ))}
                 </select>
-                <p style={{ fontSize: 11, color: "#94a3b8", marginTop: 8, textAlign: "center" }}>— or create a new contractor below —</p>
+                <p style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 8, textAlign: "center" }}>— or create a new contractor below —</p>
               </div>
             );
           })()}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14 }}>
-            <div><label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Company / Name *</label><input type="text" placeholder="e.g. ABC Plumbing" value={conForm.name} onChange={sfC("name")} style={iS} /></div>
-            <div><label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Trade</label><input type="text" placeholder="e.g. Plumbing, Electrical" value={conForm.trade} onChange={sfC("trade")} style={iS} /></div>
+            <div><label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Company / Name *</label><input type="text" placeholder="e.g. ABC Plumbing" value={conForm.name} onChange={sfC("name")} style={iS} /></div>
+            <div><label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Trade</label><input type="text" placeholder="e.g. Plumbing, Electrical" value={conForm.trade} onChange={sfC("trade")} style={iS} /></div>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14 }}>
-            <div><label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Phone <span style={{ color: "#94a3b8", fontWeight: 400 }}>(optional)</span></label><input type="tel" placeholder="555-000-0000" value={conForm.phone} onChange={sfC("phone")} style={iS} /></div>
-            <div><label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Email <span style={{ color: "#94a3b8", fontWeight: 400 }}>(optional)</span></label><input type="email" placeholder="info@contractor.com" value={conForm.email} onChange={sfC("email")} style={iS} /></div>
+            <div><label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Phone <span style={{ color: "var(--text-muted)", fontWeight: 400 }}>(optional)</span></label><input type="tel" placeholder="555-000-0000" value={conForm.phone} onChange={sfC("phone")} style={iS} /></div>
+            <div><label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Email <span style={{ color: "var(--text-muted)", fontWeight: 400 }}>(optional)</span></label><input type="email" placeholder="info@contractor.com" value={conForm.email} onChange={sfC("email")} style={iS} /></div>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14 }}>
-            <div><label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>License # <span style={{ color: "#94a3b8", fontWeight: 400 }}>(optional)</span></label><input type="text" placeholder="e.g. PL-2024-1847" value={conForm.license} onChange={sfC("license")} style={iS} /></div>
-            <div><label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Insurance Expiry <span style={{ color: "#94a3b8", fontWeight: 400 }}>(optional)</span></label><input type="date" value={conForm.insuranceExpiry} onChange={sfC("insuranceExpiry")} style={iS} /></div>
+            <div><label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>License # <span style={{ color: "var(--text-muted)", fontWeight: 400 }}>(optional)</span></label><input type="text" placeholder="e.g. PL-2024-1847" value={conForm.license} onChange={sfC("license")} style={iS} /></div>
+            <div><label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Insurance Expiry <span style={{ color: "var(--text-muted)", fontWeight: 400 }}>(optional)</span></label><input type="date" value={conForm.insuranceExpiry} onChange={sfC("insuranceExpiry")} style={iS} /></div>
           </div>
           <div style={{ marginBottom: 14 }}>
-            <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Notes <span style={{ color: "#94a3b8", fontWeight: 400 }}>(optional)</span></label>
+            <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Notes <span style={{ color: "var(--text-muted)", fontWeight: 400 }}>(optional)</span></label>
             <textarea style={{ ...iS, minHeight: 70, resize: "vertical" }} placeholder="Notes about this contractor..." value={conForm.notes} onChange={sfC("notes")} />
           </div>
           <div style={{ display: "flex", gap: 10 }}>
-            <button onClick={() => { setShowContractorModal(false); setEditingConId(null); setConForm(emptyCon); setPendingAssignRowIdx(null); }} style={{ flex: 1, padding: "12px", border: "1px solid #e2e8f0", borderRadius: 10, background: "#fff", color: "#475569", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
+            <button onClick={() => { setShowContractorModal(false); setEditingConId(null); setConForm(emptyCon); setPendingAssignRowIdx(null); }} style={{ flex: 1, padding: "12px", border: "1px solid var(--border)", borderRadius: 10, background: "var(--surface)", color: "var(--text-label)", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
             <button onClick={handleSaveCon} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "#e95e00", color: "#fff", fontWeight: 600, cursor: "pointer" }}>{editingConId ? "Save Changes" : "Add Contractor"}</button>
           </div>
         </Modal>
@@ -8123,9 +8204,9 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
         if (!con) return null;
         return (
           <Modal title={`Add Bid — ${con.name}`} onClose={() => { setQuickBid(null); setQuickBidRehabFocus(false); }}>
-            <p style={{ fontSize: 12, color: "#64748b", marginTop: -6, marginBottom: 14 }}>For <strong style={{ color: "#041830" }}>{deal.address}</strong></p>
+            <p style={{ fontSize: 12, color: "var(--text-secondary)", marginTop: -6, marginBottom: 14 }}>For <strong style={{ color: "var(--text-primary)" }}>{deal.address}</strong></p>
             <div style={{ position: "relative", marginBottom: 14 }}>
-              <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Rehab Item *</label>
+              <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Rehab Item *</label>
               <input value={quickBid.rehabItem} placeholder="Start typing or pick from the list..." style={iS}
                 onChange={e => setQuickBid(q => ({ ...q, rehabItem: e.target.value, canonicalCategory: null }))}
                 onFocus={() => setQuickBidRehabFocus(true)} onBlur={() => setTimeout(() => setQuickBidRehabFocus(false), 150)} />
@@ -8145,14 +8226,14 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
                 const groupKeys = REHAB_CATEGORY_GROUPS.filter(g => grouped[g] && grouped[g].length > 0);
                 if (groupKeys.length === 0 && customMatches.length === 0 && !showNew) return null;
                 return (
-                  <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, background: "#fff", border: "1px solid #e2e8f0", borderRadius: 12, boxShadow: "0 8px 24px rgba(0,0,0,0.10)", zIndex: 300, overflow: "hidden", maxHeight: 320, overflowY: "auto" }}>
+                  <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, boxShadow: "0 8px 24px rgba(0,0,0,0.10)", zIndex: 300, overflow: "hidden", maxHeight: 320, overflowY: "auto" }}>
                     {groupKeys.map(g => (
                       <div key={g}>
-                        <div style={{ padding: "8px 14px 4px", fontSize: 10, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.05em", background: "#f8fafc" }}>{g}</div>
+                        <div style={{ padding: "8px 14px 4px", fontSize: 10, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em", background: "var(--surface-alt)" }}>{g}</div>
                         {grouped[g].map(c => (
                           <button key={c.slug} onMouseDown={() => { setQuickBid(qq => ({ ...qq, rehabItem: c.label, canonicalCategory: c.slug })); setQuickBidRehabFocus(false); }}
-                            style={{ width: "100%", padding: "8px 14px", background: "none", border: "none", borderBottom: "1px solid #f8fafc", textAlign: "left", cursor: "pointer", fontSize: 13, color: "#041830", display: "flex", alignItems: "center", gap: 8 }}>
-                            <Wrench size={12} style={{ color: "#94a3b8", flexShrink: 0 }} />
+                            style={{ width: "100%", padding: "8px 14px", background: "none", border: "none", borderBottom: "1px solid #f8fafc", textAlign: "left", cursor: "pointer", fontSize: 13, color: "var(--text-primary)", display: "flex", alignItems: "center", gap: 8 }}>
+                            <Wrench size={12} style={{ color: "var(--text-muted)", flexShrink: 0 }} />
                             <span>{c.label}</span>
                           </button>
                         ))}
@@ -8160,11 +8241,11 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
                     ))}
                     {customMatches.length > 0 && (
                       <div>
-                        <div style={{ padding: "8px 14px 4px", fontSize: 10, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.05em", background: "#f8fafc" }}>On This Deal</div>
+                        <div style={{ padding: "8px 14px 4px", fontSize: 10, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em", background: "var(--surface-alt)" }}>On This Deal</div>
                         {customMatches.slice(0, 6).map(c => (
                           <button key={c} onMouseDown={() => { setQuickBid(qq => ({ ...qq, rehabItem: c, canonicalCategory: null })); setQuickBidRehabFocus(false); }}
-                            style={{ width: "100%", padding: "8px 14px", background: "none", border: "none", borderBottom: "1px solid #f8fafc", textAlign: "left", cursor: "pointer", fontSize: 13, color: "#041830", display: "flex", alignItems: "center", gap: 8 }}>
-                            <Wrench size={12} style={{ color: "#94a3b8", flexShrink: 0 }} />
+                            style={{ width: "100%", padding: "8px 14px", background: "none", border: "none", borderBottom: "1px solid #f8fafc", textAlign: "left", cursor: "pointer", fontSize: 13, color: "var(--text-primary)", display: "flex", alignItems: "center", gap: 8 }}>
+                            <Wrench size={12} style={{ color: "var(--text-muted)", flexShrink: 0 }} />
                             <span>{c}</span>
                           </button>
                         ))}
@@ -8172,7 +8253,7 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
                     )}
                     {showNew && (
                       <button onMouseDown={() => setQuickBidRehabFocus(false)}
-                        style={{ width: "100%", padding: "10px 14px", display: "flex", alignItems: "center", gap: 8, background: "#fff7ed", border: "none", borderTop: "1px solid #e2e8f0", cursor: "pointer", textAlign: "left" }}>
+                        style={{ width: "100%", padding: "10px 14px", display: "flex", alignItems: "center", gap: 8, background: "#fff7ed", border: "none", borderTop: "1px solid var(--border)", cursor: "pointer", textAlign: "left" }}>
                         <Plus size={13} style={{ color: "#e95e00", flexShrink: 0 }} />
                         <span style={{ fontSize: 13, color: "#e95e00", fontWeight: 600 }}>Use &ldquo;{quickBid.rehabItem}&rdquo;</span>
                       </button>
@@ -8182,11 +8263,11 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
               })()}
             </div>
             <div style={{ marginBottom: 18 }}>
-              <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Bid Amount ($) *</label>
+              <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Bid Amount ($) *</label>
               <input value={quickBid.amount} onChange={e => setQuickBid(q => ({ ...q, amount: e.target.value }))} type="number" placeholder="0" style={iS} />
             </div>
             <div style={{ display: "flex", gap: 10 }}>
-              <button onClick={() => { setQuickBid(null); setQuickBidRehabFocus(false); }} style={{ flex: 1, padding: "12px", border: "1px solid #e2e8f0", borderRadius: 10, background: "#fff", color: "#475569", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
+              <button onClick={() => { setQuickBid(null); setQuickBidRehabFocus(false); }} style={{ flex: 1, padding: "12px", border: "1px solid var(--border)", borderRadius: 10, background: "var(--surface)", color: "var(--text-label)", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
               <button disabled={!quickBid.rehabItem || !quickBid.amount} onClick={() => {
                 const canon = quickBid.canonicalCategory || getCanonicalByLabel(quickBid.rehabItem)?.slug || null;
                 pushContractorBid(quickBid.contractorId, quickBid.rehabItem, canon, quickBid.amount);
@@ -8203,44 +8284,44 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
         const t = conTotals(con);
         return (
           <Modal title={`Record Payment — ${con.name}`} onClose={() => { setShowPaymentModal(null); setPaymentAmount(""); setPaymentNote(""); }}>
-            <div style={{ background: "#f8fafc", borderRadius: 12, padding: 14, marginBottom: 18 }}>
+            <div style={{ background: "var(--surface-alt)", borderRadius: 12, padding: 14, marginBottom: 18 }}>
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-                <span style={{ fontSize: 13, color: "#64748b" }}>Trade</span>
-                <span style={{ fontSize: 13, fontWeight: 600, color: "#041830" }}>{con.trade}</span>
+                <span style={{ fontSize: 13, color: "var(--text-secondary)" }}>Trade</span>
+                <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>{con.trade}</span>
               </div>
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-                <span style={{ fontSize: 13, color: "#64748b" }}>Total Bid (This Deal)</span>
-                <span style={{ fontSize: 13, fontWeight: 600, color: "#041830" }}>{fmt(t.totalBid)}</span>
+                <span style={{ fontSize: 13, color: "var(--text-secondary)" }}>Total Bid (This Deal)</span>
+                <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>{fmt(t.totalBid)}</span>
               </div>
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-                <span style={{ fontSize: 13, color: "#64748b" }}>Paid to Date</span>
-                <span style={{ fontSize: 13, fontWeight: 600, color: "#041830" }}>{fmt(t.totalPaid)}</span>
+                <span style={{ fontSize: 13, color: "var(--text-secondary)" }}>Paid to Date</span>
+                <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>{fmt(t.totalPaid)}</span>
               </div>
               <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <span style={{ fontSize: 13, color: "#64748b", fontWeight: 600 }}>Balance Owed</span>
+                <span style={{ fontSize: 13, color: "var(--text-secondary)", fontWeight: 600 }}>Balance Owed</span>
                 <span style={{ fontSize: 13, fontWeight: 700, color: t.owed > 0 ? "#b91c1c" : "#15803d" }}>{t.owed > 0 ? fmt(t.owed) : "Paid in full"}</span>
               </div>
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
               <div>
-                <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Payment Amount ($) *</label>
+                <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Payment Amount ($) *</label>
                 <input type="number" placeholder={t.owed > 0 ? String(t.owed) : "0.00"} value={paymentAmount} onChange={e => setPaymentAmount(e.target.value)} style={iS} />
                 {t.owed > 0 && (
                   <button onClick={() => setPaymentAmount(String(t.owed))} style={{ background: "none", border: "none", color: "#3b82f6", fontSize: 11, fontWeight: 600, cursor: "pointer", marginTop: 4, padding: 0 }}>Fill remaining balance ({fmt(t.owed)})</button>
                 )}
               </div>
               <div>
-                <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Date</label>
+                <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Date</label>
                 <input type="date" value={paymentDate} onChange={e => setPaymentDate(e.target.value)} style={iS} />
               </div>
             </div>
             <div style={{ marginTop: 14 }}>
-              <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Note (optional)</label>
+              <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Note (optional)</label>
               <input type="text" placeholder="e.g. Draw #2, final payment, materials advance" value={paymentNote} onChange={e => setPaymentNote(e.target.value)} style={iS} />
             </div>
-            <p style={{ fontSize: 11, color: "#94a3b8", marginTop: 10 }}>This will also create a linked expense record automatically.</p>
+            <p style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 10 }}>This will also create a linked expense record automatically.</p>
             <div style={{ display: "flex", gap: 10, marginTop: 18 }}>
-              <button onClick={() => { setShowPaymentModal(null); setPaymentAmount(""); setPaymentNote(""); }} style={{ flex: 1, padding: "12px", border: "1px solid #e2e8f0", borderRadius: 10, background: "#fff", color: "#475569", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
+              <button onClick={() => { setShowPaymentModal(null); setPaymentAmount(""); setPaymentNote(""); }} style={{ flex: 1, padding: "12px", border: "1px solid var(--border)", borderRadius: 10, background: "var(--surface)", color: "var(--text-label)", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
               <button onClick={handleRecordPayment} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "#10b981", color: "#fff", fontWeight: 700, cursor: "pointer", opacity: paymentAmount ? 1 : 0.5 }}>Record Payment</button>
             </div>
           </Modal>
@@ -8250,7 +8331,7 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
         <div>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
             <div>
-              <p style={{ color: "#64748b", fontSize: 14 }}>
+              <p style={{ color: "var(--text-secondary)", fontSize: 14 }}>
                 {doneCount} of {milestones.length} complete
                 {overdueCount > 0 && <span style={{ color: "#ef4444", fontWeight: 700 }}> . {overdueCount} overdue</span>}
               </p>
@@ -8281,20 +8362,20 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
             </div>
           </div>
           {/* Progress bar */}
-          <div style={{ background: "#fff", borderRadius: 12, padding: "14px 20px", marginBottom: 16, border: "1px solid #f1f5f9", display: "flex", alignItems: "center", gap: 16 }}>
-            <div style={{ flex: 1, height: 8, background: "#f1f5f9", borderRadius: 99, overflow: "hidden" }}>
+          <div style={{ background: "var(--surface)", borderRadius: 12, padding: "14px 20px", marginBottom: 16, border: "1px solid var(--border-subtle)", display: "flex", alignItems: "center", gap: 16 }}>
+            <div style={{ flex: 1, height: 8, background: "var(--surface-muted)", borderRadius: 99, overflow: "hidden" }}>
               <div style={{ height: "100%", width: `${milestones.length > 0 ? Math.round((doneCount / milestones.length) * 100) : 0}%`, background: "#10b981", borderRadius: 99, transition: "width 0.3s" }} />
             </div>
-            <span style={{ fontSize: 13, fontWeight: 700, color: "#041830", whiteSpace: "nowrap" }}>{milestones.length > 0 ? Math.round((doneCount / milestones.length) * 100) : 0}%</span>
+            <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)", whiteSpace: "nowrap" }}>{milestones.length > 0 ? Math.round((doneCount / milestones.length) * 100) : 0}%</span>
           </div>
           {milestones.length === 0 ? (
-            <div style={{ background: "#fff", borderRadius: 16, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9", textAlign: "center", padding: 48, color: "#94a3b8" }}>
+            <div style={{ background: "var(--surface)", borderRadius: 16, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)", textAlign: "center", padding: 48, color: "var(--text-muted)" }}>
               <CheckSquare size={32} style={{ margin: "0 auto 12px", display: "block" }} />
               <p style={{ fontWeight: 600, marginBottom: 4 }}>No milestones yet</p>
               <p style={{ fontSize: 13 }}>Add milestones to track your deal's progress.</p>
             </div>
           ) : (
-            <div style={{ background: "#fff", borderRadius: 16, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9", padding: 20 }}>
+            <div style={{ background: "var(--surface)", borderRadius: 16, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)", padding: 20 }}>
               <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                 {milestones.map((m, i) => {
                   const overdue = !m.done && m.targetDate && m.targetDate < today;
@@ -8302,11 +8383,11 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
                   return isCompleting ? (
                     <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", borderRadius: 8, background: "#f0fdf4", border: "1px solid #bbf7d0" }}>
                       <CheckCircle size={18} color="#10b981" />
-                      <span style={{ fontSize: 13, fontWeight: 500, color: "#041830", flex: 1 }}>{m.label}</span>
-                      <span style={{ fontSize: 11, color: "#64748b" }}>Completed:</span>
+                      <span style={{ fontSize: 13, fontWeight: 500, color: "var(--text-primary)", flex: 1 }}>{m.label}</span>
+                      <span style={{ fontSize: 11, color: "var(--text-secondary)" }}>Completed:</span>
                       <input type="date" value={msCompletionDate} onChange={e => setMsCompletionDate(e.target.value)} style={{ ...iS, width: 140, padding: "5px 10px", fontSize: 12 }} />
                       <button onClick={() => { const updated = milestones.map((item, idx) => idx === i ? { ...item, done: true, date: msCompletionDate } : item); setMilestones(updated); setCompletingMsIdx(null); }} style={{ background: "#10b981", color: "#fff", border: "none", borderRadius: 6, padding: "5px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>Confirm</button>
-                      <button onClick={() => setCompletingMsIdx(null)} style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8", padding: 0 }}><X size={14} /></button>
+                      <button onClick={() => setCompletingMsIdx(null)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)", padding: 0 }}><X size={14} /></button>
                     </div>
                   ) : (
                     <div key={i} onMouseEnter={e => { e.currentTarget.style.background = m.done ? "#f0fdf4" : overdue ? "#fef2f2" : "#f1f5f9"; }} onMouseLeave={e => { e.currentTarget.style.background = m.done ? "#f0fdf4" : overdue ? "#fef2f2" : "#f8fafc"; }} style={{ display: "flex", alignItems: "center", gap: 12, padding: "8px 10px", borderRadius: 8, background: m.done ? "#f0fdf4" : overdue ? "#fef2f2" : "#f8fafc", border: `1px solid ${m.done ? "#bbf7d0" : overdue ? "#fecaca" : "#f1f5f9"}`, transition: "all 0.15s ease" }}>
@@ -8325,7 +8406,7 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
                         </span>
                       )}
                       <div style={{ display: "flex", gap: 4, flexShrink: 0, marginLeft: 4 }}>
-                        <button onClick={() => openEditMilestone(m, i)} style={{ background: "#f1f5f9", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "#475569", display: "flex", alignItems: "center" }} title="Edit"><Pencil size={13} /></button>
+                        <button onClick={() => openEditMilestone(m, i)} style={{ background: "var(--surface-muted)", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "var(--text-label)", display: "flex", alignItems: "center" }} title="Edit"><Pencil size={13} /></button>
                         <button onClick={() => setDeleteConfirm({ type: "milestone", item: m, index: i })} style={{ background: "#fee2e2", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "#ef4444", display: "flex", alignItems: "center" }} title="Delete"><Trash2 size={13} /></button>
                       </div>
                     </div>
@@ -8340,11 +8421,11 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
         <Modal title={editingMilestoneId !== null ? "Edit Milestone" : "Add Milestone"} onClose={() => { setShowMilestoneModal(false); setEditingMilestoneId(null); setMilestoneForm(emptyMilestone); }}>
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
             <div style={{ position: "relative" }}>
-              <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Milestone Name *</label>
+              <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Milestone Name *</label>
               <input value={milestoneForm.label} style={iS} placeholder="Start typing to search or add new..."
                 onChange={e => { setMilestoneForm(f => ({ ...f, label: e.target.value })); setMsLabelFocus(true); }}
                 onFocus={() => setMsLabelFocus(true)} onBlur={() => setTimeout(() => setMsLabelFocus(false), 150)} />
-              {!msLabelFocus && !milestoneForm.label && <p style={{ fontSize: 11, color: "#94a3b8", marginTop: 4, fontStyle: "italic" }}>Type to search previous milestones or add new</p>}
+              {!msLabelFocus && !milestoneForm.label && <p style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4, fontStyle: "italic" }}>Type to search previous milestones or add new</p>}
               {msLabelFocus && (() => {
                 const q = milestoneForm.label.toLowerCase();
                 const matches = q ? allMilestoneLabels.filter(l => l.toLowerCase().includes(q) && l.toLowerCase() !== q) : allMilestoneLabels.slice(0, 6);
@@ -8352,17 +8433,17 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
                 const showNew = q && !exactExists;
                 if (matches.length === 0 && !showNew) return null;
                 return (
-                  <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, background: "#fff", border: "1px solid #e2e8f0", borderRadius: 12, boxShadow: "0 8px 24px rgba(0,0,0,0.10)", zIndex: 200, overflow: "hidden", maxHeight: 200, overflowY: "auto" }}>
+                  <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, boxShadow: "0 8px 24px rgba(0,0,0,0.10)", zIndex: 200, overflow: "hidden", maxHeight: 200, overflowY: "auto" }}>
                     {matches.slice(0, 6).map(l => (
                       <button key={l} onMouseDown={() => { setMilestoneForm(f => ({ ...f, label: l })); setMsLabelFocus(false); }}
-                        style={{ width: "100%", padding: "10px 14px", background: "none", border: "none", borderBottom: "1px solid #f1f5f9", textAlign: "left", cursor: "pointer", fontSize: 13, color: "#041830", display: "flex", alignItems: "center", gap: 8 }}>
-                        <Flag size={13} style={{ color: "#94a3b8", flexShrink: 0 }} />
+                        style={{ width: "100%", padding: "10px 14px", background: "none", border: "none", borderBottom: "1px solid var(--border-subtle)", textAlign: "left", cursor: "pointer", fontSize: 13, color: "var(--text-primary)", display: "flex", alignItems: "center", gap: 8 }}>
+                        <Flag size={13} style={{ color: "var(--text-muted)", flexShrink: 0 }} />
                         <span>{l}</span>
                       </button>
                     ))}
                     {showNew && (
                       <button onMouseDown={() => { setMilestoneForm(f => ({ ...f, label: f.label })); setMsLabelFocus(false); }}
-                        style={{ width: "100%", padding: "10px 14px", display: "flex", alignItems: "center", gap: 8, background: "#fff7ed", border: "none", borderTop: matches.length > 0 ? "1px solid #e2e8f0" : "none", cursor: "pointer", textAlign: "left" }}>
+                        style={{ width: "100%", padding: "10px 14px", display: "flex", alignItems: "center", gap: 8, background: "#fff7ed", border: "none", borderTop: matches.length > 0 ? "1px solid var(--border)" : "none", cursor: "pointer", textAlign: "left" }}>
                         <Plus size={13} style={{ color: "#e95e00", flexShrink: 0 }} />
                         <span style={{ fontSize: 13, color: "#e95e00", fontWeight: 600 }}>Add &ldquo;{milestoneForm.label}&rdquo; as new</span>
                       </button>
@@ -8372,19 +8453,19 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
               })()}
             </div>
             <div>
-              <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Target Date</label>
+              <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Target Date</label>
               <input type="date" value={milestoneForm.targetDate} onChange={sfM("targetDate")} style={iS} />
             </div>
             {editingMilestoneId !== null && (
               <div>
-                <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Completion Date</label>
+                <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Completion Date</label>
                 <input type="date" value={milestoneForm.date} onChange={sfM("date")} style={iS} />
-                <p style={{ fontSize: 11, color: "#94a3b8", marginTop: 4 }}>Set to mark as complete, or clear to reopen</p>
+                <p style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4 }}>Set to mark as complete, or clear to reopen</p>
               </div>
             )}
           </div>
           <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
-            <button onClick={() => { setShowMilestoneModal(false); setEditingMilestoneId(null); setMilestoneForm(emptyMilestone); }} style={{ flex: 1, padding: "12px", border: "1px solid #e2e8f0", borderRadius: 10, background: "#fff", color: "#475569", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
+            <button onClick={() => { setShowMilestoneModal(false); setEditingMilestoneId(null); setMilestoneForm(emptyMilestone); }} style={{ flex: 1, padding: "12px", border: "1px solid var(--border)", borderRadius: 10, background: "var(--surface)", color: "var(--text-label)", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
             <button onClick={handleSaveMilestone} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "#e95e00", color: "#fff", fontWeight: 700, cursor: "pointer", opacity: milestoneForm.label.trim() ? 1 : 0.5 }}>{editingMilestoneId !== null ? "Save Changes" : "Add Milestone"}</button>
           </div>
         </Modal>
@@ -8411,7 +8492,7 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
         return (
         <div>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-            <p style={{ color: "#64748b", fontSize: 14 }}>
+            <p style={{ color: "var(--text-secondary)", fontSize: 14 }}>
               {dealNotes.length} note{dealNotes.length !== 1 ? "s" : ""}
               {q && filtered.length !== dealNotes.length && <span style={{ color: "#e95e00", fontWeight: 600 }}> . {filtered.length} match{filtered.length !== 1 ? "es" : ""}</span>}
             </p>
@@ -8421,44 +8502,44 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
           </div>
           {dealNotes.length > 2 && (
             <div style={{ position: "relative", marginBottom: 14 }}>
-              <Search size={16} style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: "#94a3b8" }} />
+              <Search size={16} style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: "var(--text-muted)" }} />
               <input type="text" placeholder="Search notes..." value={noteSearch} onChange={e => setNoteSearch(e.target.value)} style={{ ...iS, paddingLeft: 40 }} />
               {noteSearch && (
-                <button onClick={() => setNoteSearch("")} style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", color: "#94a3b8", cursor: "pointer", padding: 0 }}><X size={14} /></button>
+                <button onClick={() => setNoteSearch("")} style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", padding: 0 }}><X size={14} /></button>
               )}
             </div>
           )}
           {showNoteInput && (
-            <div style={{ background: "#fff", borderRadius: 16, padding: 20, marginBottom: 16, border: "1px solid #f1f5f9", boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
+            <div style={{ background: "var(--surface)", borderRadius: 16, padding: 20, marginBottom: 16, border: "1px solid var(--border-subtle)", boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
               <textarea value={noteText} onChange={e => setNoteText(e.target.value)} placeholder="Add a note about this deal... e.g. 'Spoke with inspector, needs structural review on back wall'" rows={3} style={{ ...iS, resize: "vertical", fontFamily: "inherit" }} autoFocus />
               <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 10 }}>
-                <button onClick={() => { setShowNoteInput(false); setNoteText(""); }} style={{ padding: "8px 16px", borderRadius: 8, border: "1px solid #e2e8f0", background: "#fff", color: "#64748b", fontWeight: 600, fontSize: 13, cursor: "pointer" }}>Cancel</button>
+                <button onClick={() => { setShowNoteInput(false); setNoteText(""); }} style={{ padding: "8px 16px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text-secondary)", fontWeight: 600, fontSize: 13, cursor: "pointer" }}>Cancel</button>
                 <button onClick={addNote} style={{ padding: "8px 16px", borderRadius: 8, border: "none", background: "#e95e00", color: "#fff", fontWeight: 600, fontSize: 13, cursor: "pointer", opacity: noteText.trim() ? 1 : 0.5 }}>Save Note</button>
               </div>
             </div>
           )}
-          <div style={{ background: "#fff", borderRadius: 16, border: "1px solid #f1f5f9", boxShadow: "0 1px 3px rgba(0,0,0,0.06)", overflow: "hidden" }}>
+          <div style={{ background: "var(--surface)", borderRadius: 16, border: "1px solid var(--border-subtle)", boxShadow: "0 1px 3px rgba(0,0,0,0.06)", overflow: "hidden" }}>
             {dealNotes.length === 0 ? (
-              <div style={{ textAlign: "center", padding: 48, color: "#94a3b8" }}>
+              <div style={{ textAlign: "center", padding: 48, color: "var(--text-muted)" }}>
                 <MessageSquare size={32} style={{ margin: "0 auto 12px", display: "block" }} />
                 <p style={{ fontWeight: 600, marginBottom: 4 }}>No notes yet</p>
                 <p style={{ fontSize: 13 }}>Keep a running journal of updates, calls, and decisions for this deal.</p>
               </div>
             ) : filtered.length === 0 ? (
-              <div style={{ textAlign: "center", padding: 36, color: "#94a3b8" }}>
+              <div style={{ textAlign: "center", padding: 36, color: "var(--text-muted)" }}>
                 <Search size={24} style={{ margin: "0 auto 8px", display: "block" }} />
                 <p style={{ fontWeight: 600, fontSize: 14 }}>No notes match "{noteSearch}"</p>
               </div>
             ) : (
               <div>
                 {filtered.map((note, i) => (
-                  <div key={note.id} style={{ display: "flex", gap: 14, padding: "16px 20px", borderBottom: i < filtered.length - 1 ? "1px solid #f1f5f9" : "none" }}>
+                  <div key={note.id} style={{ display: "flex", gap: 14, padding: "16px 20px", borderBottom: i < filtered.length - 1 ? "1px solid var(--border-subtle)" : "none" }}>
                     <div style={{ width: 36, height: 36, borderRadius: 10, background: "#dbeafe", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                       <MessageSquare size={16} color="#3b82f6" />
                     </div>
                     <div style={{ flex: 1 }}>
-                      <p style={{ fontSize: 14, color: "#041830", lineHeight: 1.6 }}>{highlight(note.text)}</p>
-                      <p style={{ fontSize: 12, color: "#94a3b8", marginTop: 6 }}>{note.date}</p>
+                      <p style={{ fontSize: 14, color: "var(--text-primary)", lineHeight: 1.6 }}>{highlight(note.text)}</p>
+                      <p style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 6 }}>{note.date}</p>
                     </div>
                     <button onClick={() => removeDealNote(note.id)} style={{ background: "#fee2e2", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "#ef4444", display: "flex", alignItems: "center", alignSelf: "flex-start" }} title="Delete"><Trash2 size={13} /></button>
                   </div>
@@ -8477,7 +8558,7 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
               { label: "Address", key: "address", type: "text", placeholder: "Full address" },
             ].map(f => (
               <div key={f.key} style={{ marginBottom: 14 }}>
-                <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>{f.label}</label>
+                <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>{f.label}</label>
                 <input type={f.type} placeholder={f.placeholder} value={dealEditForm[f.key] || ""} onChange={sfD(f.key)} style={iS} />
               </div>
             ))}
@@ -8489,18 +8570,18 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
                 { label: "Holding Costs / Month ($)", key: "holdingCostsPerMonth", placeholder: "1850" },
               ].map(f => (
                 <div key={f.key}>
-                  <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>{f.label}</label>
+                  <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>{f.label}</label>
                   <input type="number" placeholder={f.placeholder} value={dealEditForm[f.key] || ""} onChange={sfD(f.key)} style={iS} />
                 </div>
               ))}
             </div>
             {stage === "Sold" && (
               <div style={{ marginBottom: 14 }}>
-                <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Sale Price ($)</label>
+                <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Sale Price ($)</label>
                 <input type="number" placeholder="361500" value={dealEditForm.salePrice || ""} onChange={sfD("salePrice")} style={iS} />
               </div>
             )}
-            <p style={{ color: "#94a3b8", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 10, marginTop: 8 }}>Key Dates</p>
+            <p style={{ color: "var(--text-muted)", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 10, marginTop: 8 }}>Key Dates</p>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14 }}>
               {[
                 { label: "Acquisition Date", key: "acquisitionDate" },
@@ -8511,14 +8592,14 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
                 { label: stage === "Sold" ? "Close Date" : "Projected Close", key: stage === "Sold" ? "closeDate" : "projectedCloseDate" },
               ].map(f => (
                 <div key={f.key}>
-                  <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>{f.label}</label>
+                  <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>{f.label}</label>
                   <input type="date" value={dealEditForm[f.key] || ""} onChange={sfD(f.key)} style={iS} />
                 </div>
               ))}
             </div>
           </div>
           <div style={{ display: "flex", gap: 10, marginTop: 8 }}>
-            <button onClick={() => setShowEditDeal(false)} style={{ flex: 1, padding: "12px", border: "1px solid #e2e8f0", borderRadius: 10, background: "#fff", color: "#475569", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
+            <button onClick={() => setShowEditDeal(false)} style={{ flex: 1, padding: "12px", border: "1px solid var(--border)", borderRadius: 10, background: "var(--surface)", color: "var(--text-label)", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
             <button onClick={handleSaveDeal} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "#e95e00", color: "#fff", fontWeight: 700, cursor: "pointer" }}>Save Changes</button>
           </div>
         </Modal>
@@ -8527,7 +8608,7 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
         <Modal title={closeDealStep === "choose" ? "Close Deal" : closeDealStep === "sold" ? "Mark as Sold" : "Convert to Rental"} onClose={() => setShowCloseDeal(false)}>
           {/* Step 1: Choose path */}
           {closeDealStep === "choose" && (<>
-            <p style={{ color: "#475569", fontSize: 14, marginBottom: 20 }}>
+            <p style={{ color: "var(--text-label)", fontSize: 14, marginBottom: 20 }}>
               How would you like to close out <strong>{deal.name}</strong>?
             </p>
             <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 8 }}>
@@ -8536,8 +8617,8 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
                   <DollarSign size={22} color="#15803d" />
                 </div>
                 <div>
-                  <p style={{ fontSize: 15, fontWeight: 700, color: "#041830", marginBottom: 3 }}>Mark as Sold</p>
-                  <p style={{ fontSize: 13, color: "#64748b" }}>Enter sale price, close date, and selling costs to finalize the deal</p>
+                  <p style={{ fontSize: 15, fontWeight: 700, color: "var(--text-primary)", marginBottom: 3 }}>Mark as Sold</p>
+                  <p style={{ fontSize: 13, color: "var(--text-secondary)" }}>Enter sale price, close date, and selling costs to finalize the deal</p>
                 </div>
               </button>
               {onConvertToRental && (
@@ -8546,8 +8627,8 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
                     <Home size={22} color="#0369a1" />
                   </div>
                   <div>
-                    <p style={{ fontSize: 15, fontWeight: 700, color: "#041830", marginBottom: 3 }}>Convert to Rental</p>
-                    <p style={{ fontSize: 13, color: "#64748b" }}>Keep the property and add it to your rental portfolio</p>
+                    <p style={{ fontSize: 15, fontWeight: 700, color: "var(--text-primary)", marginBottom: 3 }}>Convert to Rental</p>
+                    <p style={{ fontSize: 13, color: "var(--text-secondary)" }}>Keep the property and add it to your rental portfolio</p>
                   </div>
                 </button>
               )}
@@ -8556,29 +8637,29 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
 
           {/* Step 2a: Sold form */}
           {closeDealStep === "sold" && (<>
-            <button onClick={() => setCloseDealStep("choose")} style={{ background: "none", border: "none", color: "#64748b", fontSize: 12, cursor: "pointer", padding: 0, marginBottom: 12, display: "flex", alignItems: "center", gap: 4 }}>
+            <button onClick={() => setCloseDealStep("choose")} style={{ background: "none", border: "none", color: "var(--text-secondary)", fontSize: 12, cursor: "pointer", padding: 0, marginBottom: 12, display: "flex", alignItems: "center", gap: 4 }}>
               <ArrowLeft size={12} /> Back
             </button>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
               <div>
-                <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Sale Price *</label>
+                <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Sale Price *</label>
                 <input type="number" placeholder="361500" value={closeForm.salePrice} onChange={sfClose("salePrice")} style={iS} />
               </div>
               <div>
-                <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Close Date *</label>
+                <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Close Date *</label>
                 <input type="date" value={closeForm.closeDate} onChange={sfClose("closeDate")} style={iS} />
               </div>
               <div>
-                <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Selling Costs ($)</label>
+                <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Selling Costs ($)</label>
                 <input type="number" placeholder="Agent commissions, title, etc." value={closeForm.sellingCosts} onChange={sfClose("sellingCosts")} style={iS} />
               </div>
               <div>
-                <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Buyer Credit ($)</label>
+                <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Buyer Credit ($)</label>
                 <input type="number" placeholder="0" value={closeForm.buyerCredit} onChange={sfClose("buyerCredit")} style={iS} />
               </div>
             </div>
             <div style={{ marginBottom: 16 }}>
-              <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Closing Notes (optional)</label>
+              <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Closing Notes (optional)</label>
               <textarea placeholder="Any notes about the sale..." value={closeForm.closingNotes} onChange={sfClose("closingNotes")} rows={2} style={{ ...iS, resize: "vertical", fontFamily: "inherit" }} />
             </div>
             {(() => {
@@ -8591,22 +8672,22 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
               const netProfit = sp - deal.purchasePrice - rehabSpent - totalHolding - sc - bc;
               return (
                 <div style={{ background: netProfit >= 0 ? "#f0fdf4" : "#fef2f2", borderRadius: 12, padding: 16, marginBottom: 20, border: `1px solid ${netProfit >= 0 ? "#bbf7d0" : "#fecaca"}` }}>
-                  <p style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 8 }}>Profit Preview</p>
+                  <p style={{ fontSize: 11, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 8 }}>Profit Preview</p>
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
                     <div>
-                      <p style={{ fontSize: 11, color: "#64748b" }}>Sale Price</p>
-                      <p style={{ fontSize: 14, fontWeight: 700, color: "#041830" }}>{fmt(sp)}</p>
+                      <p style={{ fontSize: 11, color: "var(--text-secondary)" }}>Sale Price</p>
+                      <p style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)" }}>{fmt(sp)}</p>
                     </div>
                     <div>
-                      <p style={{ fontSize: 11, color: "#64748b" }}>Total Costs</p>
+                      <p style={{ fontSize: 11, color: "var(--text-secondary)" }}>Total Costs</p>
                       <p style={{ fontSize: 14, fontWeight: 700, color: "#b91c1c" }}>{fmt(deal.purchasePrice + rehabSpent + totalHolding + sc + bc)}</p>
                     </div>
                     <div>
-                      <p style={{ fontSize: 11, color: "#64748b" }}>Net Profit</p>
+                      <p style={{ fontSize: 11, color: "var(--text-secondary)" }}>Net Profit</p>
                       <p style={{ fontSize: 14, fontWeight: 800, color: netProfit >= 0 ? "#15803d" : "#b91c1c" }}>{netProfit >= 0 ? "+" : ""}{fmt(netProfit)}</p>
                     </div>
                   </div>
-                  <div style={{ marginTop: 10, display: "flex", flexWrap: "wrap", gap: 16, fontSize: 11, color: "#64748b" }}>
+                  <div style={{ marginTop: 10, display: "flex", flexWrap: "wrap", gap: 16, fontSize: 11, color: "var(--text-secondary)" }}>
                     <span>Purchase: {fmt(deal.purchasePrice)}</span>
                     <span>Rehab: {fmt(rehabSpent)}</span>
                     <span>Holding ({holdDays}d): {fmt(totalHolding)}</span>
@@ -8617,7 +8698,7 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
               );
             })()}
             <div style={{ display: "flex", gap: 10 }}>
-              <button onClick={() => setShowCloseDeal(false)} style={{ flex: 1, padding: "12px", border: "1px solid #e2e8f0", borderRadius: 10, background: "#fff", color: "#475569", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
+              <button onClick={() => setShowCloseDeal(false)} style={{ flex: 1, padding: "12px", border: "1px solid var(--border)", borderRadius: 10, background: "var(--surface)", color: "var(--text-label)", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
               <button onClick={() => {
                 const sp = parseFloat(closeForm.salePrice) || 0;
                 if (!sp || !closeForm.closeDate) return;
@@ -8651,29 +8732,29 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
 
           {/* Step 2b: Convert to rental confirmation */}
           {closeDealStep === "convert" && (<>
-            <button onClick={() => setCloseDealStep("choose")} style={{ background: "none", border: "none", color: "#64748b", fontSize: 12, cursor: "pointer", padding: 0, marginBottom: 12, display: "flex", alignItems: "center", gap: 4 }}>
+            <button onClick={() => setCloseDealStep("choose")} style={{ background: "none", border: "none", color: "var(--text-secondary)", fontSize: 12, cursor: "pointer", padding: 0, marginBottom: 12, display: "flex", alignItems: "center", gap: 4 }}>
               <ArrowLeft size={12} /> Back
             </button>
-            <p style={{ color: "#475569", fontSize: 14, marginBottom: 16 }}>
+            <p style={{ color: "var(--text-label)", fontSize: 14, marginBottom: 16 }}>
               Convert this flip deal into a rental property in your portfolio. The deal will be marked as "Converted to Rental" and a new property will be created with the details below.
             </p>
-            <div style={{ background: "#f8fafc", borderRadius: 12, padding: 16, marginBottom: 16, border: "1px solid #e2e8f0" }}>
+            <div style={{ background: "var(--surface-alt)", borderRadius: 12, padding: 16, marginBottom: 16, border: "1px solid var(--border)" }}>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
                 <div>
-                  <p style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.05em" }}>Purchase Price</p>
-                  <p style={{ fontSize: 14, fontWeight: 700, color: "#041830" }}>{fmt(deal.purchasePrice)}</p>
+                  <p style={{ fontSize: 11, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em" }}>Purchase Price</p>
+                  <p style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)" }}>{fmt(deal.purchasePrice)}</p>
                 </div>
                 <div>
-                  <p style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.05em" }}>Current Value (ARV)</p>
-                  <p style={{ fontSize: 14, fontWeight: 700, color: "#041830" }}>{fmt(deal.arv)}</p>
+                  <p style={{ fontSize: 11, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em" }}>Current Value (ARV)</p>
+                  <p style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)" }}>{fmt(deal.arv)}</p>
                 </div>
                 <div>
-                  <p style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.05em" }}>Total Rehab Spent</p>
-                  <p style={{ fontSize: 14, fontWeight: 700, color: "#041830" }}>{fmt((deal.rehabItems || []).reduce((s, i) => s + (i.spent || 0), 0))}</p>
+                  <p style={{ fontSize: 11, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em" }}>Total Rehab Spent</p>
+                  <p style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)" }}>{fmt((deal.rehabItems || []).reduce((s, i) => s + (i.spent || 0), 0))}</p>
                 </div>
                 <div>
-                  <p style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.05em" }}>Acquisition Date</p>
-                  <p style={{ fontSize: 14, fontWeight: 700, color: "#041830" }}>{deal.acquisitionDate || deal.contractDate || "—"}</p>
+                  <p style={{ fontSize: 11, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em" }}>Acquisition Date</p>
+                  <p style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)" }}>{deal.acquisitionDate || deal.contractDate || "—"}</p>
                 </div>
               </div>
             </div>
@@ -8684,7 +8765,7 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
               </p>
             </div>
             <div style={{ display: "flex", gap: 10 }}>
-              <button onClick={() => setShowCloseDeal(false)} style={{ flex: 1, padding: "12px", border: "1px solid #e2e8f0", borderRadius: 10, background: "#fff", color: "#475569", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
+              <button onClick={() => setShowCloseDeal(false)} style={{ flex: 1, padding: "12px", border: "1px solid var(--border)", borderRadius: 10, background: "var(--surface)", color: "var(--text-label)", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
               <button onClick={() => {
                 const rehabSpent = (deal.rehabItems || []).reduce((s, i) => s + (i.spent || 0), 0);
                 onConvertToRental({
@@ -8709,10 +8790,10 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
       )}
       {showDeleteDeal && (
         <Modal title="Delete Deal" onClose={() => setShowDeleteDeal(false)}>
-          <p style={{ color: "#475569", fontSize: 14, marginBottom: 8 }}>Are you sure you want to permanently delete <strong>{deal.name}</strong>?</p>
-          <p style={{ color: "#94a3b8", fontSize: 13, marginBottom: 18 }}>This will remove the deal, its expenses, rehab items, milestones, and notes. This action cannot be undone.</p>
+          <p style={{ color: "var(--text-label)", fontSize: 14, marginBottom: 8 }}>Are you sure you want to permanently delete <strong>{deal.name}</strong>?</p>
+          <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 18 }}>This will remove the deal, its expenses, rehab items, milestones, and notes. This action cannot be undone.</p>
           <div style={{ display: "flex", gap: 10 }}>
-            <button onClick={() => setShowDeleteDeal(false)} style={{ flex: 1, padding: "12px", border: "1px solid #e2e8f0", borderRadius: 10, background: "#fff", color: "#475569", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
+            <button onClick={() => setShowDeleteDeal(false)} style={{ flex: 1, padding: "12px", border: "1px solid var(--border)", borderRadius: 10, background: "var(--surface)", color: "var(--text-label)", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
             <button onClick={() => {
               const idx = DEALS.findIndex(f => f.id === deal.id);
               if (idx !== -1) DEALS.splice(idx, 1);
@@ -8735,25 +8816,25 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
       )}
       {deleteConfirm && (
         <Modal title={`Delete ${deleteConfirm.type === "expense" ? "Expense" : deleteConfirm.type === "contractor" ? "Contractor" : deleteConfirm.type === "rehab" ? "Rehab Item" : "Milestone"}`} onClose={() => setDeleteConfirm(null)}>
-          <p style={{ color: "#475569", fontSize: 14, marginBottom: 8 }}>Are you sure you want to delete this {deleteConfirm.type === "rehab" ? "rehab item" : deleteConfirm.type}?</p>
-          <div style={{ background: "#f8fafc", borderRadius: 10, padding: 14, marginBottom: 18 }}>
+          <p style={{ color: "var(--text-label)", fontSize: 14, marginBottom: 8 }}>Are you sure you want to delete this {deleteConfirm.type === "rehab" ? "rehab item" : deleteConfirm.type}?</p>
+          <div style={{ background: "var(--surface-alt)", borderRadius: 10, padding: 14, marginBottom: 18 }}>
             {deleteConfirm.type === "expense" && <>
-              <p style={{ fontSize: 13, fontWeight: 600, color: "#041830" }}>{deleteConfirm.item.description}</p>
-              <p style={{ fontSize: 12, color: "#64748b", marginTop: 4 }}>{deleteConfirm.item.vendor} · {deleteConfirm.item.date} · <span style={{ color: "#b91c1c", fontWeight: 700 }}>{fmt(deleteConfirm.item.amount)}</span></p>
+              <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>{deleteConfirm.item.description}</p>
+              <p style={{ fontSize: 12, color: "var(--text-secondary)", marginTop: 4 }}>{deleteConfirm.item.vendor} · {deleteConfirm.item.date} · <span style={{ color: "#b91c1c", fontWeight: 700 }}>{fmt(deleteConfirm.item.amount)}</span></p>
             </>}
             {deleteConfirm.type === "contractor" && <>
-              <p style={{ fontSize: 13, fontWeight: 600, color: "#041830" }}>{deleteConfirm.item.name}</p>
-              <p style={{ fontSize: 12, color: "#64748b", marginTop: 4 }}>{deleteConfirm.item.trade}{deleteConfirm.item.phone ? ` · ${deleteConfirm.item.phone}` : ""}</p>
+              <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>{deleteConfirm.item.name}</p>
+              <p style={{ fontSize: 12, color: "var(--text-secondary)", marginTop: 4 }}>{deleteConfirm.item.trade}{deleteConfirm.item.phone ? ` · ${deleteConfirm.item.phone}` : ""}</p>
             </>}
             {deleteConfirm.type === "rehab" && <>
-              <p style={{ fontSize: 13, fontWeight: 600, color: "#041830" }}>{deleteConfirm.item.category}</p>
-              <p style={{ fontSize: 12, color: "#64748b", marginTop: 4 }}>Budget: {fmt(deleteConfirm.item.budgeted)} · Spent: {fmt(deleteConfirm.item.spent)}</p>
+              <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>{deleteConfirm.item.category}</p>
+              <p style={{ fontSize: 12, color: "var(--text-secondary)", marginTop: 4 }}>Budget: {fmt(deleteConfirm.item.budgeted)} · Spent: {fmt(deleteConfirm.item.spent)}</p>
             </>}
-            {deleteConfirm.type === "milestone" && <p style={{ fontSize: 13, fontWeight: 600, color: "#041830" }}>{deleteConfirm.item.label}</p>}
+            {deleteConfirm.type === "milestone" && <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>{deleteConfirm.item.label}</p>}
           </div>
-          <p style={{ color: "#94a3b8", fontSize: 12, marginBottom: 18 }}>This action cannot be undone.</p>
+          <p style={{ color: "var(--text-muted)", fontSize: 12, marginBottom: 18 }}>This action cannot be undone.</p>
           <div style={{ display: "flex", gap: 10 }}>
-            <button onClick={() => setDeleteConfirm(null)} style={{ flex: 1, padding: "12px", border: "1px solid #e2e8f0", borderRadius: 10, background: "#fff", color: "#475569", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
+            <button onClick={() => setDeleteConfirm(null)} style={{ flex: 1, padding: "12px", border: "1px solid var(--border)", borderRadius: 10, background: "var(--surface)", color: "var(--text-label)", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
             <button onClick={() => {
               if (deleteConfirm.type === "expense") setExpData(prev => prev.filter(x => x.id !== deleteConfirm.item.id));
               if (deleteConfirm.type === "contractor") setConData(prev => prev.filter(x => x.id !== deleteConfirm.item.id));
@@ -8928,8 +9009,8 @@ function TenantManagement({ onBack, highlightTenantId, onClearHighlight, prefill
       )}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
         <div>
-          <h1 style={{ color: "#041830", fontSize: 26, fontWeight: 700, marginBottom: 4 }}>Tenants</h1>
-          <p style={{ color: "#64748b", fontSize: 15 }}>All tenants, leases, and occupancy status</p>
+          <h1 style={{ color: "var(--text-primary)", fontSize: 26, fontWeight: 700, marginBottom: 4 }}>Tenants</h1>
+          <p style={{ color: "var(--text-secondary)", fontSize: 15 }}>All tenants, leases, and occupancy status</p>
         </div>
         <select value={propFilter} onChange={e => setPropFilter(e.target.value)} style={{ ...iS, width: 200, fontSize: 14, padding: "9px 14px", fontWeight: 600 }}>
           <option value="all">All Properties</option>
@@ -8943,15 +9024,15 @@ function TenantManagement({ onBack, highlightTenantId, onClearHighlight, prefill
           { label: "Vacancy Rate", value: `${vacancyRate}%`, sub: `${totalUnits - occupied} unit${totalUnits - occupied !== 1 ? "s" : ""} vacant`, color: Number(vacancyRate) > 10 ? "#ef4444" : "#e95e00", icon: AlertCircle, tip: "Vacant units / total units. Red when above 10%" },
           { label: "Gross Monthly Rent", value: fmt(grossRent), sub: "Occupied units only", color: "#8b5cf6", icon: DollarSign, tip: "Sum of monthly rent for all occupied units (excludes vacant)" },
         ].map((m, i) => (
-          <div key={i} style={{ background: "#fff", borderRadius: 16, padding: 20, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" }}>
+          <div key={i} style={{ background: "var(--surface)", borderRadius: 16, padding: 20, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
               <div>
                 <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 4 }}>
-                  <p style={{ color: "#94a3b8", fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.04em" }}>{m.label}</p>
+                  <p style={{ color: "var(--text-muted)", fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.04em" }}>{m.label}</p>
                   <InfoTip text={m.tip} />
                 </div>
-                <p style={{ color: "#041830", fontSize: 24, fontWeight: 800 }}>{m.value}</p>
-                <p style={{ color: "#94a3b8", fontSize: 12, marginTop: 2 }}>{m.sub}</p>
+                <p style={{ color: "var(--text-primary)", fontSize: 24, fontWeight: 800 }}>{m.value}</p>
+                <p style={{ color: "var(--text-muted)", fontSize: 12, marginTop: 2 }}>{m.sub}</p>
               </div>
               <div style={{ background: m.color + "18", borderRadius: 10, padding: 10 }}>
                 <m.icon size={20} color={m.color} />
@@ -8962,7 +9043,7 @@ function TenantManagement({ onBack, highlightTenantId, onClearHighlight, prefill
       </div>
       {/* Filters */}
       <div style={{ display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap", alignItems: "center" }}>
-        <div style={{ display: "flex", gap: 4, background: "#f8fafc", borderRadius: 10, padding: 4, border: "1px solid #e2e8f0" }}>
+        <div style={{ display: "flex", gap: 4, background: "var(--surface-alt)", borderRadius: 10, padding: 4, border: "1px solid var(--border)" }}>
           {[
             ["all", "All"],
             ["active-lease", "Active Lease"],
@@ -8981,7 +9062,7 @@ function TenantManagement({ onBack, highlightTenantId, onClearHighlight, prefill
           })}
         </div>
         {(propFilter !== "all" || statusFilter !== "all") && (
-          <button onClick={() => { setPropFilter("all"); setStatusFilter("all"); }} style={{ background: "none", border: "none", color: "#94a3b8", fontSize: 12, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
+          <button onClick={() => { setPropFilter("all"); setStatusFilter("all"); }} style={{ background: "none", border: "none", color: "var(--text-muted)", fontSize: 12, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
             <X size={13} /> Clear filters
           </button>
         )}
@@ -8999,15 +9080,15 @@ function TenantManagement({ onBack, highlightTenantId, onClearHighlight, prefill
           </p>
         </div>
       )}
-      <div style={{ background: "#fff", borderRadius: 16, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9", overflow: "hidden" }}>
+      <div style={{ background: "var(--surface)", borderRadius: 16, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)", overflow: "hidden" }}>
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
-            <tr style={{ background: "#f8fafc" }}>
+            <tr style={{ background: "var(--surface-alt)" }}>
               {(isPastView
                 ? ["Property / Unit", "Tenant", "Rent (was)", "Lease Period", "Move-Out Date", "Reason", ""]
                 : ["Property / Unit", "Tenant", "Monthly Rent", "Lease Start", "Lease End", "Days Left", "Status", "Last Payment", ""]
               ).map(h => (
-                <th key={h} style={{ padding: "14px 16px", textAlign: "left", color: "#94a3b8", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>{h}</th>
+                <th key={h} style={{ padding: "14px 16px", textAlign: "left", color: "var(--text-muted)", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>{h}</th>
               ))}
             </tr>
           </thead>
@@ -9016,7 +9097,7 @@ function TenantManagement({ onBack, highlightTenantId, onClearHighlight, prefill
               <tr><td colSpan={isPastView ? 7 : 9}>
                 {tenantData.length === 0 && !isPastView
                   ? <EmptyState icon={Users} title="No tenants yet" subtitle="Add your first tenant to start tracking leases and rent." actionLabel="Add Tenant" onAction={() => setShowModal(true)} />
-                  : <div style={{ padding: "48px 20px", textAlign: "center", color: "#94a3b8", fontSize: 14 }}>
+                  : <div style={{ padding: "48px 20px", textAlign: "center", color: "var(--text-muted)", fontSize: 14 }}>
                       {isPastView ? "No past tenant records found." : "No tenants match your filters."}{" "}
                       <button onClick={() => { setPropFilter("all"); setStatusFilter("all"); }} style={{ background: "none", border: "none", color: "#e95e00", fontSize: 14, cursor: "pointer", textDecoration: "underline", padding: 0 }}>Clear filters</button>
                     </div>
@@ -9033,29 +9114,29 @@ function TenantManagement({ onBack, highlightTenantId, onClearHighlight, prefill
 
               if (isPastView) {
                 return (
-                  <tr key={t.id} style={{ borderTop: "1px solid #f1f5f9", background: i % 2 === 0 ? "#fff" : "#fafafa" }}>
+                  <tr key={t.id} style={{ borderTop: "1px solid var(--border-subtle)", background: i % 2 === 0 ? "#fff" : "#fafafa" }}>
                     <td style={{ padding: "14px 16px" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                         <div style={{ width: 8, height: 8, borderRadius: "50%", background: prop?.color || "#94a3b8", flexShrink: 0 }} />
                         <div>
-                          <p style={{ fontSize: 13, fontWeight: 700, color: "#041830" }}>{prop?.name.split(" ").slice(0,2).join(" ")}</p>
-                          <p style={{ fontSize: 11, color: "#94a3b8" }}>{t.unit}</p>
+                          <p style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)" }}>{prop?.name.split(" ").slice(0,2).join(" ")}</p>
+                          <p style={{ fontSize: 11, color: "var(--text-muted)" }}>{t.unit}</p>
                         </div>
                       </div>
                     </td>
                     <td style={{ padding: "14px 16px" }}>
                       <div>
-                        <p style={{ fontSize: 13, fontWeight: 600, color: "#64748b" }}>{t.name}</p>
-                        <p style={{ fontSize: 11, color: "#94a3b8" }}>{t.email}</p>
+                        <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text-secondary)" }}>{t.name}</p>
+                        <p style={{ fontSize: 11, color: "var(--text-muted)" }}>{t.email}</p>
                       </div>
                     </td>
-                    <td style={{ padding: "14px 16px", fontSize: 14, fontWeight: 600, color: "#94a3b8" }}>{fmt(t.rent)}</td>
-                    <td style={{ padding: "14px 16px", fontSize: 12, color: "#64748b" }}>
+                    <td style={{ padding: "14px 16px", fontSize: 14, fontWeight: 600, color: "var(--text-muted)" }}>{fmt(t.rent)}</td>
+                    <td style={{ padding: "14px 16px", fontSize: 12, color: "var(--text-secondary)" }}>
                       {t.leaseStart || "?"} &mdash; {t.leaseEnd || "?"}
                     </td>
-                    <td style={{ padding: "14px 16px", fontSize: 13, fontWeight: 600, color: "#64748b" }}>{t.moveOutDate || "-"}</td>
+                    <td style={{ padding: "14px 16px", fontSize: 13, fontWeight: 600, color: "var(--text-secondary)" }}>{t.moveOutDate || "-"}</td>
                     <td style={{ padding: "14px 16px" }}>
-                      <span style={{ background: "#f1f5f9", color: "#64748b", borderRadius: 20, padding: "3px 10px", fontSize: 11, fontWeight: 600 }}>{t.moveOutReason || "-"}</span>
+                      <span style={{ background: "var(--surface-muted)", color: "var(--text-secondary)", borderRadius: 20, padding: "3px 10px", fontSize: 11, fontWeight: 600 }}>{t.moveOutReason || "-"}</span>
                     </td>
                     <td style={{ padding: "14px 16px" }}>
                       <button onClick={() => setDeleteConfirm(t)} style={{ background: "#fee2e2", border: "none", borderRadius: 8, padding: "5px 8px", cursor: "pointer", display: "flex", alignItems: "center", color: "#ef4444" }} title="Delete record">
@@ -9067,13 +9148,13 @@ function TenantManagement({ onBack, highlightTenantId, onClearHighlight, prefill
               }
 
               return (
-                <tr key={t.id} ref={isFlash ? highlightRef : null} style={{ borderTop: "1px solid #f1f5f9", background: isFlash ? "#ffedd5" : i % 2 === 0 ? "#fff" : "#fafafa", transition: "background 2.5s ease" }}>
+                <tr key={t.id} ref={isFlash ? highlightRef : null} style={{ borderTop: "1px solid var(--border-subtle)", background: isFlash ? "#ffedd5" : i % 2 === 0 ? "#fff" : "#fafafa", transition: "background 2.5s ease" }}>
                   <td style={{ padding: "14px 16px" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                       <div style={{ width: 8, height: 8, borderRadius: "50%", background: prop?.color || "#94a3b8", flexShrink: 0 }} />
                       <div>
-                        <p style={{ fontSize: 13, fontWeight: 700, color: "#041830" }}>{prop?.name.split(" ").slice(0,2).join(" ")}</p>
-                        <p style={{ fontSize: 11, color: "#94a3b8" }}>{t.unit}</p>
+                        <p style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)" }}>{prop?.name.split(" ").slice(0,2).join(" ")}</p>
+                        <p style={{ fontSize: 11, color: "var(--text-muted)" }}>{t.unit}</p>
                       </div>
                     </div>
                   </td>
@@ -9082,25 +9163,25 @@ function TenantManagement({ onBack, highlightTenantId, onClearHighlight, prefill
                       <span style={{ color: "#ef4444", fontSize: 13, fontWeight: 600, fontStyle: "italic" }}>Vacant</span>
                     ) : (
                       <div onClick={() => onSelectTenant && onSelectTenant(t)} style={{ cursor: onSelectTenant ? "pointer" : "default" }}>
-                        <p style={{ fontSize: 13, fontWeight: 600, color: "#041830" }}>{t.name}</p>
-                        <p style={{ fontSize: 11, color: "#94a3b8" }}>{t.email}</p>
+                        <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>{t.name}</p>
+                        <p style={{ fontSize: 11, color: "var(--text-muted)" }}>{t.email}</p>
                       </div>
                     )}
                   </td>
                   <td style={{ padding: "14px 16px", fontSize: 14, fontWeight: 700, color: t.status === "vacant" ? "#94a3b8" : "#041830" }}>{fmt(t.rent)}</td>
-                  <td style={{ padding: "14px 16px", fontSize: 13, color: "#64748b" }}>{t.leaseStart || "-"}</td>
-                  <td style={{ padding: "14px 16px", fontSize: 13, color: "#64748b" }}>{t.leaseEnd || "-"}</td>
+                  <td style={{ padding: "14px 16px", fontSize: 13, color: "var(--text-secondary)" }}>{t.leaseStart || "-"}</td>
+                  <td style={{ padding: "14px 16px", fontSize: 13, color: "var(--text-secondary)" }}>{t.leaseEnd || "-"}</td>
                   <td style={{ padding: "14px 16px" }}>
                     {daysLeft !== null && t.status !== "vacant" ? (
                       <span style={{ fontSize: 13, fontWeight: 700, color: expiring ? "#9a3412" : "#15803d" }}>
                         {expiring ? "(!) " : ""}{daysLeft}d
                       </span>
-                    ) : <span style={{ color: "#94a3b8", fontSize: 13 }}>-</span>}
+                    ) : <span style={{ color: "var(--text-muted)", fontSize: 13 }}>-</span>}
                   </td>
                   <td style={{ padding: "14px 16px" }}>
                     <span style={{ background: s.bg, color: s.text, borderRadius: 20, padding: "3px 10px", fontSize: 11, fontWeight: 700 }}>{STATUS_LABELS[t.status] || t.status}</span>
                   </td>
-                  <td style={{ padding: "14px 16px", fontSize: 13, color: "#64748b" }}>{t.lastPayment || "-"}</td>
+                  <td style={{ padding: "14px 16px", fontSize: 13, color: "var(--text-secondary)" }}>{t.lastPayment || "-"}</td>
                   <td style={{ padding: "14px 16px" }}>
                     <div style={{ display: "flex", gap: 4 }}>
                       {isActiveTenant && (
@@ -9108,7 +9189,7 @@ function TenantManagement({ onBack, highlightTenantId, onClearHighlight, prefill
                           <LogOut size={12} /> Close
                         </button>
                       )}
-                      <button onClick={() => openEdit(t)} style={{ background: "#f1f5f9", border: "none", borderRadius: 8, padding: "5px 8px", cursor: "pointer", display: "flex", alignItems: "center", gap: 5, color: "#475569", fontSize: 12, fontWeight: 600, whiteSpace: "nowrap" }}>
+                      <button onClick={() => openEdit(t)} style={{ background: "var(--surface-muted)", border: "none", borderRadius: 8, padding: "5px 8px", cursor: "pointer", display: "flex", alignItems: "center", gap: 5, color: "var(--text-label)", fontSize: 12, fontWeight: 600, whiteSpace: "nowrap" }}>
                         <Pencil size={12} /> Edit
                       </button>
                       <button onClick={() => setDeleteConfirm(t)} style={{ background: "#fee2e2", border: "none", borderRadius: 8, padding: "5px 8px", cursor: "pointer", display: "flex", alignItems: "center", color: "#ef4444" }} title="Delete">
@@ -9125,12 +9206,12 @@ function TenantManagement({ onBack, highlightTenantId, onClearHighlight, prefill
 
       {/* ── Turnover Analytics ── */}
       {!isPastView && pastTenants.length > 0 && (
-        <div style={{ background: "#fff", borderRadius: 16, padding: 24, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9", marginTop: 24 }}>
-          <h3 style={{ fontSize: 16, fontWeight: 700, color: "#041830", marginBottom: 4 }}>Turnover Analytics</h3>
-          <p style={{ fontSize: 13, color: "#94a3b8", marginBottom: 20 }}>Historical tenant turnover and rent trends</p>
+        <div style={{ background: "var(--surface)", borderRadius: 16, padding: 24, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)", marginTop: 24 }}>
+          <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--text-primary)", marginBottom: 4 }}>Turnover Analytics</h3>
+          <p style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 20 }}>Historical tenant turnover and rent trends</p>
           {(() => {
             const relevantPast = pastTenants.filter(t => propFilter === "all" || t.propertyId === Number(propFilter));
-            if (relevantPast.length === 0) return <p style={{ color: "#94a3b8", fontSize: 13 }}>No past tenant data for this property.</p>;
+            if (relevantPast.length === 0) return <p style={{ color: "var(--text-muted)", fontSize: 13 }}>No past tenant data for this property.</p>;
 
             // Turnover rate: past tenants / (past + current active non-vacant) over all time
             const relevantActive = activeTenants.filter(t => (propFilter === "all" || t.propertyId === Number(propFilter)) && t.status !== "vacant");
@@ -9164,45 +9245,45 @@ function TenantManagement({ onBack, highlightTenantId, onClearHighlight, prefill
             return (
               <div>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, marginBottom: 20 }}>
-                  <div style={{ background: "#f8fafc", borderRadius: 12, padding: "16px 18px", border: "1px solid #f1f5f9" }}>
+                  <div style={{ background: "var(--surface-alt)", borderRadius: 12, padding: "16px 18px", border: "1px solid var(--border-subtle)" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 4 }}>
-                      <p style={{ color: "#94a3b8", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>Turnover Rate</p>
+                      <p style={{ color: "var(--text-muted)", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>Turnover Rate</p>
                       <InfoTip text="Past tenants / (past + current active tenants). Higher rates may indicate tenant satisfaction issues." />
                     </div>
                     <p style={{ color: Number(turnoverRate) > 50 ? "#ef4444" : "#041830", fontSize: 22, fontWeight: 700 }}>{turnoverRate}%</p>
-                    <p style={{ color: "#94a3b8", fontSize: 11 }}>{relevantPast.length} past · {relevantActive.length} active</p>
+                    <p style={{ color: "var(--text-muted)", fontSize: 11 }}>{relevantPast.length} past · {relevantActive.length} active</p>
                   </div>
-                  <div style={{ background: "#f8fafc", borderRadius: 12, padding: "16px 18px", border: "1px solid #f1f5f9" }}>
+                  <div style={{ background: "var(--surface-alt)", borderRadius: 12, padding: "16px 18px", border: "1px solid var(--border-subtle)" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 4 }}>
-                      <p style={{ color: "#94a3b8", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>Avg Vacancy Gap</p>
+                      <p style={{ color: "var(--text-muted)", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>Avg Vacancy Gap</p>
                       <InfoTip text="Average days between a tenant moving out and the next tenant's lease starting on the same unit." />
                     </div>
                     <p style={{ color: avgVacancy !== null && avgVacancy > 30 ? "#e95e00" : "#041830", fontSize: 22, fontWeight: 700 }}>{avgVacancy !== null ? `${avgVacancy} days` : "—"}</p>
-                    <p style={{ color: "#94a3b8", fontSize: 11 }}>{vacancyDays.length > 0 ? `Based on ${vacancyDays.length} transition${vacancyDays.length !== 1 ? "s" : ""}` : "No transition data yet"}</p>
+                    <p style={{ color: "var(--text-muted)", fontSize: 11 }}>{vacancyDays.length > 0 ? `Based on ${vacancyDays.length} transition${vacancyDays.length !== 1 ? "s" : ""}` : "No transition data yet"}</p>
                   </div>
-                  <div style={{ background: "#f8fafc", borderRadius: 12, padding: "16px 18px", border: "1px solid #f1f5f9" }}>
+                  <div style={{ background: "var(--surface-alt)", borderRadius: 12, padding: "16px 18px", border: "1px solid var(--border-subtle)" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 4 }}>
-                      <p style={{ color: "#94a3b8", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>Avg Rent Growth</p>
+                      <p style={{ color: "var(--text-muted)", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>Avg Rent Growth</p>
                       <InfoTip text="Average rent increase (%) when a new tenant replaces a previous tenant on the same unit." />
                     </div>
                     <p style={{ color: avgRentGrowth !== null && parseFloat(avgRentGrowth) > 0 ? "#10b981" : "#041830", fontSize: 22, fontWeight: 700 }}>
                       {avgRentGrowth !== null ? `${parseFloat(avgRentGrowth) > 0 ? "+" : ""}${avgRentGrowth}%` : "—"}
                     </p>
-                    <p style={{ color: "#94a3b8", fontSize: 11 }}>{rentChanges.length > 0 ? `Across ${rentChanges.length} unit${rentChanges.length !== 1 ? "s" : ""}` : "No comparable data"}</p>
+                    <p style={{ color: "var(--text-muted)", fontSize: 11 }}>{rentChanges.length > 0 ? `Across ${rentChanges.length} unit${rentChanges.length !== 1 ? "s" : ""}` : "No comparable data"}</p>
                   </div>
                 </div>
 
                 {/* Rent growth breakdown per unit */}
                 {rentChanges.length > 0 && (
                   <div>
-                    <p style={{ color: "#64748b", fontSize: 13, fontWeight: 600, marginBottom: 10 }}>Rent Growth by Unit</p>
+                    <p style={{ color: "var(--text-secondary)", fontSize: 13, fontWeight: 600, marginBottom: 10 }}>Rent Growth by Unit</p>
                     <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                       {rentChanges.map((r, i) => (
-                        <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", background: "#fafafa", borderRadius: 10, border: "1px solid #f1f5f9" }}>
-                          <span style={{ fontSize: 12, fontWeight: 600, color: "#475569", minWidth: 120 }}>{r.property} · {r.unit}</span>
-                          <span style={{ fontSize: 12, color: "#94a3b8" }}>{fmt(r.from)}</span>
+                        <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", background: "#fafafa", borderRadius: 10, border: "1px solid var(--border-subtle)" }}>
+                          <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-label)", minWidth: 120 }}>{r.property} · {r.unit}</span>
+                          <span style={{ fontSize: 12, color: "var(--text-muted)" }}>{fmt(r.from)}</span>
                           <ArrowRight size={12} color="#94a3b8" />
-                          <span style={{ fontSize: 12, fontWeight: 700, color: "#041830" }}>{fmt(r.to)}</span>
+                          <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text-primary)" }}>{fmt(r.to)}</span>
                           <span style={{ marginLeft: "auto", fontSize: 12, fontWeight: 700, color: parseFloat(r.pct) > 0 ? "#10b981" : parseFloat(r.pct) < 0 ? "#ef4444" : "#94a3b8" }}>
                             {parseFloat(r.pct) > 0 ? "+" : ""}{r.pct}%
                           </span>
@@ -9230,16 +9311,16 @@ function TenantManagement({ onBack, highlightTenantId, onClearHighlight, prefill
                 </p>
               </div>
             </div>
-            <p style={{ fontSize: 13, color: "#64748b", marginBottom: 16 }}>
+            <p style={{ fontSize: 13, color: "var(--text-secondary)", marginBottom: 16 }}>
               The tenant will be moved to past records and the unit will be marked as vacant.
             </p>
             <div style={{ display: "grid", gap: 14, marginBottom: 20 }}>
               <div>
-                <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Move-Out Date</label>
+                <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Move-Out Date</label>
                 <input type="date" value={closeForm.moveOutDate} onChange={e => setCloseForm(f => ({ ...f, moveOutDate: e.target.value }))} style={iS} />
               </div>
               <div>
-                <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Reason</label>
+                <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Reason</label>
                 <select value={closeForm.moveOutReason} onChange={e => setCloseForm(f => ({ ...f, moveOutReason: e.target.value }))} style={iS}>
                   <option>Lease ended</option>
                   <option>Lease not renewed</option>
@@ -9253,7 +9334,7 @@ function TenantManagement({ onBack, highlightTenantId, onClearHighlight, prefill
               </div>
             </div>
             <div style={{ display: "flex", gap: 10 }}>
-              <button onClick={() => setClosingTenant(null)} style={{ flex: 1, padding: "12px", border: "1px solid #e2e8f0", borderRadius: 10, background: "#fff", color: "#475569", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
+              <button onClick={() => setClosingTenant(null)} style={{ flex: 1, padding: "12px", border: "1px solid var(--border)", borderRadius: 10, background: "var(--surface)", color: "var(--text-label)", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
               <button onClick={handleCloseLease} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "#e95e00", color: "#fff", fontWeight: 700, cursor: "pointer" }}>Close Lease</button>
             </div>
           </div>
@@ -9264,17 +9345,17 @@ function TenantManagement({ onBack, highlightTenantId, onClearHighlight, prefill
         <Modal title={editId ? "Edit Tenant" : "Add Tenant"} onClose={() => setShowModal(false)}>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
             <div style={{ gridColumn: "1 / -1" }}>
-              <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Property</label>
+              <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Property</label>
               <select value={form.propertyId} onChange={sf("propertyId")} style={iS}>
                 {PROPERTIES.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
               </select>
             </div>
             <div>
-              <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Unit</label>
+              <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Unit</label>
               <input type="text" placeholder="e.g. Unit A, #4B" value={form.unit} onChange={sf("unit")} style={iS} />
             </div>
             <div>
-              <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Status</label>
+              <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Status</label>
               <select value={form.status} onChange={sf("status")} style={iS}>
                 <option value="active-lease">Active Lease</option>
                 <option value="month-to-month">Month-to-Month</option>
@@ -9282,27 +9363,27 @@ function TenantManagement({ onBack, highlightTenantId, onClearHighlight, prefill
               </select>
             </div>
             <div style={{ gridColumn: "1 / -1" }}>
-              <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Tenant Name *</label>
+              <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Tenant Name *</label>
               <input type="text" placeholder="Full name" value={form.name} onChange={sf("name")} style={iS} />
             </div>
             <div>
-              <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Monthly Rent ($)</label>
+              <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Monthly Rent ($)</label>
               <input type="number" placeholder="0" value={form.rent} onChange={sf("rent")} style={iS} />
             </div>
             <div>
-              <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Phone</label>
+              <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Phone</label>
               <input type="text" placeholder="555-000-0000" value={form.phone} onChange={sf("phone")} style={iS} />
             </div>
             <div>
-              <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Lease Start</label>
+              <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Lease Start</label>
               <input type="date" value={form.leaseStart} onChange={sf("leaseStart")} style={iS} />
             </div>
             <div>
-              <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Lease End</label>
+              <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Lease End</label>
               <input type="date" value={form.leaseEnd} onChange={sf("leaseEnd")} style={iS} />
             </div>
             <div style={{ gridColumn: "1 / -1" }}>
-              <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Email</label>
+              <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Email</label>
               <input type="email" placeholder="tenant@email.com" value={form.email} onChange={sf("email")} style={iS} />
             </div>
           </div>
@@ -9312,15 +9393,15 @@ function TenantManagement({ onBack, highlightTenantId, onClearHighlight, prefill
             <p style={{ color: "#166534", fontSize: 13, fontWeight: 700, marginBottom: 14, letterSpacing: "0.03em", textTransform: "uppercase" }}>Lease Details</p>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
               <div>
-                <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Security Deposit ($)</label>
+                <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Security Deposit ($)</label>
                 <input type="number" placeholder="0" value={form.securityDeposit} onChange={sf("securityDeposit")} style={iS} />
               </div>
               <div>
-                <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Late Fee (%)</label>
+                <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Late Fee (%)</label>
                 <input type="number" placeholder="5" value={form.lateFeePct} onChange={sf("lateFeePct")} style={iS} />
               </div>
               <div style={{ gridColumn: "1 / -1" }}>
-                <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Renewal Terms</label>
+                <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Renewal Terms</label>
                 <select value={form.renewalTerms} onChange={sf("renewalTerms")} style={iS}>
                   <option value="Annual">Annual</option>
                   <option value="Month-to-Month">Month-to-Month</option>
@@ -9329,24 +9410,24 @@ function TenantManagement({ onBack, highlightTenantId, onClearHighlight, prefill
                 </select>
               </div>
               <div style={{ gridColumn: "1 / -1" }}>
-                <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Notes</label>
+                <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Notes</label>
                 <textarea placeholder="Any additional notes about this tenant or lease..." value={form.notes} onChange={sf("notes")} rows={3} style={{ ...iS, resize: "vertical", lineHeight: 1.5 }} />
               </div>
               <div style={{ gridColumn: "1 / -1" }}>
-                <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 8 }}>Lease Document</label>
+                <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 8 }}>Lease Document</label>
                 {form.leaseDoc ? (
-                  <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", background: "#fff", borderRadius: 10, border: "1px solid #d1fae5" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", background: "var(--surface)", borderRadius: 10, border: "1px solid #d1fae5" }}>
                     <FileText size={20} color="#10b981" style={{ flexShrink: 0 }} />
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontWeight: 600, fontSize: 13, color: "#041830", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{form.leaseDoc.name}</div>
-                      <div style={{ fontSize: 11, color: "#94a3b8" }}>{form.leaseDoc.size}</div>
+                      <div style={{ fontWeight: 600, fontSize: 13, color: "var(--text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{form.leaseDoc.name}</div>
+                      <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{form.leaseDoc.size}</div>
                     </div>
                     <button onClick={() => setForm(f => ({ ...f, leaseDoc: null }))} style={{ background: "none", border: "none", cursor: "pointer", color: "#ef4444", padding: 4, display: "flex", alignItems: "center" }}><X size={15} /></button>
                   </div>
                 ) : (
-                  <div onClick={() => document.getElementById("leaseDocInput").click()} style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 16px", background: "#fff", borderRadius: 10, border: "2px dashed #bbf7d0", cursor: "pointer" }}>
+                  <div onClick={() => document.getElementById("leaseDocInput").click()} style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 16px", background: "var(--surface)", borderRadius: 10, border: "2px dashed #bbf7d0", cursor: "pointer" }}>
                     <UploadCloud size={20} color="#10b981" />
-                    <span style={{ fontSize: 13, color: "#64748b" }}>Click to upload lease (PDF, DOC)</span>
+                    <span style={{ fontSize: 13, color: "var(--text-secondary)" }}>Click to upload lease (PDF, DOC)</span>
                   </div>
                 )}
                 <input id="leaseDocInput" type="file" accept=".pdf,.doc,.docx" style={{ display: "none" }} onChange={handleLeaseDocUpload} />
@@ -9355,7 +9436,7 @@ function TenantManagement({ onBack, highlightTenantId, onClearHighlight, prefill
           </div>
 
           <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
-            <button onClick={() => setShowModal(false)} style={{ flex: 1, padding: "12px", border: "1px solid #e2e8f0", borderRadius: 10, background: "#fff", color: "#475569", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
+            <button onClick={() => setShowModal(false)} style={{ flex: 1, padding: "12px", border: "1px solid var(--border)", borderRadius: 10, background: "var(--surface)", color: "var(--text-label)", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
             <button onClick={handleSaveTenant} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "#3b82f6", color: "#fff", fontWeight: 600, cursor: "pointer" }}>
               {editId ? "Save Changes" : "Add Tenant"}
             </button>
@@ -9368,17 +9449,17 @@ function TenantManagement({ onBack, highlightTenantId, onClearHighlight, prefill
             <div style={{ width: 48, height: 48, borderRadius: 14, background: "#fee2e2", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 16 }}>
               <Trash2 size={22} color="#ef4444" />
             </div>
-            <p style={{ color: "#041830", fontSize: 15, fontWeight: 600, marginBottom: 8 }}>
+            <p style={{ color: "var(--text-primary)", fontSize: 15, fontWeight: 600, marginBottom: 8 }}>
               {deleteConfirm.status === "past" ? "Delete" : "Remove"} <strong>{deleteConfirm.name || "Vacant Unit"}</strong> from {PROPERTIES.find(p => p.id === deleteConfirm.propertyId)?.name || "property"}?
             </p>
-            <p style={{ color: "#64748b", fontSize: 13, marginBottom: 6 }}>
+            <p style={{ color: "var(--text-secondary)", fontSize: 13, marginBottom: 6 }}>
               Unit {deleteConfirm.unit} · {deleteConfirm.status === "vacant" ? "Vacant" : deleteConfirm.status === "past" ? `Past tenant · Moved out ${deleteConfirm.moveOutDate || "N/A"}` : `Rent ${fmt(deleteConfirm.rent)}/mo`}
             </p>
-            <p style={{ color: "#94a3b8", fontSize: 12, marginBottom: 24 }}>
+            <p style={{ color: "var(--text-muted)", fontSize: 12, marginBottom: 24 }}>
               This will permanently remove this {deleteConfirm.status === "past" ? "historical" : "tenant"} record. This action cannot be undone.
             </p>
             <div style={{ display: "flex", gap: 10 }}>
-              <button onClick={() => setDeleteConfirm(null)} style={{ flex: 1, padding: "12px", border: "1px solid #e2e8f0", borderRadius: 10, background: "#fff", color: "#475569", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
+              <button onClick={() => setDeleteConfirm(null)} style={{ flex: 1, padding: "12px", border: "1px solid var(--border)", borderRadius: 10, background: "var(--surface)", color: "var(--text-label)", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
               <button onClick={handleDeleteTenant} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "#ef4444", color: "#fff", fontWeight: 700, cursor: "pointer" }}>{deleteConfirm.status === "past" ? "Delete Record" : "Remove Tenant"}</button>
             </div>
           </div>
@@ -9412,8 +9493,8 @@ function RehabItemDetail({ deal, itemIdx, onBack, backLabel, onNavigateToContrac
   if (!item) {
     return (
       <div>
-        <button onClick={onBack} style={{ background: "none", border: "none", color: "#64748b", cursor: "pointer", fontSize: 13, display: "flex", alignItems: "center", gap: 6, marginBottom: 20 }}><ChevronLeft size={16} /> {backLabel || "Back"}</button>
-        <div style={{ background: "#fff", borderRadius: 16, padding: 40, textAlign: "center", color: "#94a3b8" }}>Rehab item not found.</div>
+        <button onClick={onBack} style={{ background: "none", border: "none", color: "var(--text-secondary)", cursor: "pointer", fontSize: 13, display: "flex", alignItems: "center", gap: 6, marginBottom: 20 }}><ChevronLeft size={16} /> {backLabel || "Back"}</button>
+        <div style={{ background: "var(--surface)", borderRadius: 16, padding: 40, textAlign: "center", color: "var(--text-muted)" }}>Rehab item not found.</div>
       </div>
     );
   }
@@ -9527,18 +9608,18 @@ function RehabItemDetail({ deal, itemIdx, onBack, backLabel, onNavigateToContrac
     bump();
   };
 
-  const sectionS = { background: "#fff", borderRadius: 16, padding: 24, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9", marginBottom: 16 };
-  const cardS = { background: "#fff", borderRadius: 16, padding: 20, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" };
-  const iS = { width: "100%", padding: "10px 12px", border: "1px solid #e2e8f0", borderRadius: 10, fontSize: 13, color: "#041830", background: "#fff", outline: "none", fontFamily: "inherit" };
+  const sectionS = { background: "var(--surface)", borderRadius: 16, padding: 24, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)", marginBottom: 16 };
+  const cardS = { background: "var(--surface)", borderRadius: 16, padding: 20, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)" };
+  const iS = { width: "100%", padding: "10px 12px", border: "1px solid var(--border)", borderRadius: 10, fontSize: 13, color: "var(--text-primary)", background: "var(--surface)", outline: "none", fontFamily: "inherit" };
 
   return (
     <div>
-      <button onClick={onBack} style={{ background: "none", border: "none", color: "#64748b", cursor: "pointer", fontSize: 13, display: "flex", alignItems: "center", gap: 6, marginBottom: 16 }}><ChevronLeft size={16} /> {backLabel || "Back"}</button>
+      <button onClick={onBack} style={{ background: "none", border: "none", color: "var(--text-secondary)", cursor: "pointer", fontSize: 13, display: "flex", alignItems: "center", gap: 6, marginBottom: 16 }}><ChevronLeft size={16} /> {backLabel || "Back"}</button>
 
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24 }}>
         <div>
-          <h1 style={{ fontSize: 26, fontWeight: 700, color: "#041830", marginBottom: 4 }}>{item.category}</h1>
-          <p style={{ fontSize: 15, color: "#64748b" }}>{deal.name} · Rehab scope</p>
+          <h1 style={{ fontSize: 26, fontWeight: 700, color: "var(--text-primary)", marginBottom: 4 }}>{item.category}</h1>
+          <p style={{ fontSize: 15, color: "var(--text-secondary)" }}>{deal.name} · Rehab scope</p>
         </div>
         <div style={{ display: "flex", gap: 8 }}>
           <span style={{ background: statusBg[item.status], color: statusColors[item.status], borderRadius: 20, padding: "6px 14px", fontSize: 13, fontWeight: 600, display: "flex", alignItems: "center" }}>{statusLabel[item.status] || item.status}</span>
@@ -9550,28 +9631,28 @@ function RehabItemDetail({ deal, itemIdx, onBack, backLabel, onNavigateToContrac
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 20 }}>
         <div style={cardS}>
           <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
-            <p style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.05em" }}>Budget</p>
+            <p style={{ fontSize: 11, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em" }}>Budget</p>
             <InfoTip text="The amount budgeted for this rehab scope. Edit via the Edit button." />
           </div>
-          <p style={{ fontSize: 22, fontWeight: 700, color: "#041830" }}>{fmt(item.budgeted || 0)}</p>
+          <p style={{ fontSize: 22, fontWeight: 700, color: "var(--text-primary)" }}>{fmt(item.budgeted || 0)}</p>
         </div>
         <div style={cardS}>
           <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
-            <p style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.05em" }}>Spent</p>
+            <p style={{ fontSize: 11, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em" }}>Spent</p>
             <InfoTip text="Total spent on this scope. Updated manually or from linked expenses." />
           </div>
           <p style={{ fontSize: 22, fontWeight: 700, color: "#e95e00" }}>{fmt(item.spent || 0)}</p>
         </div>
         <div style={cardS}>
           <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
-            <p style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.05em" }}>{over ? "Over Budget" : "Remaining"}</p>
+            <p style={{ fontSize: 11, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em" }}>{over ? "Over Budget" : "Remaining"}</p>
             <InfoTip text="Budget minus Spent. Negative means over budget." />
           </div>
           <p style={{ fontSize: 22, fontWeight: 700, color: over ? "#b91c1c" : "#15803d" }}>{over ? `-${fmt(Math.abs(remaining))}` : fmt(remaining)}</p>
         </div>
         <div style={cardS}>
           <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
-            <p style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.05em" }}>Contractors</p>
+            <p style={{ fontSize: 11, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em" }}>Contractors</p>
             <InfoTip text="Number of contractors assigned to this scope." />
           </div>
           <p style={{ fontSize: 22, fontWeight: 700, color: "#3b82f6" }}>{assigned.length}</p>
@@ -9581,18 +9662,18 @@ function RehabItemDetail({ deal, itemIdx, onBack, backLabel, onNavigateToContrac
       {/* Contractors section */}
       <div style={sectionS}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-          <h3 style={{ fontSize: 16, fontWeight: 700, color: "#041830" }}>Assigned Contractors</h3>
+          <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--text-primary)" }}>Assigned Contractors</h3>
           {unassigned.length > 0 && (
             <select value="" onChange={e => { if (e.target.value) { addContractor(parseInt(e.target.value)); e.target.value = ""; } }}
-              style={{ border: "1.5px dashed #cbd5e1", borderRadius: 10, padding: "8px 12px", fontSize: 13, color: "#64748b", background: "#fafafa", cursor: "pointer", outline: "none" }}>
+              style={{ border: "1.5px dashed #cbd5e1", borderRadius: 10, padding: "8px 12px", fontSize: 13, color: "var(--text-secondary)", background: "#fafafa", cursor: "pointer", outline: "none" }}>
               <option value="">+ Assign contractor</option>
               {unassigned.map(c => <option key={c.id} value={c.id}>{c.name} ({c.trade})</option>)}
             </select>
           )}
         </div>
-        <p style={{ fontSize: 13, color: "#94a3b8", marginBottom: 20 }}>Contractors working on this scope and their bid amounts</p>
+        <p style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 20 }}>Contractors working on this scope and their bid amounts</p>
         {assigned.length === 0 ? (
-          <div style={{ padding: 32, textAlign: "center", color: "#94a3b8", fontSize: 13, background: "#f8fafc", borderRadius: 12 }}>
+          <div style={{ padding: 32, textAlign: "center", color: "var(--text-muted)", fontSize: 13, background: "var(--surface-alt)", borderRadius: 12 }}>
             {dealContractors.length === 0 ? "No contractors on this deal yet. Add contractors from the deal's Contractors tab." : "No contractors assigned to this scope yet."}
           </div>
         ) : (
@@ -9605,28 +9686,28 @@ function RehabItemDetail({ deal, itemIdx, onBack, backLabel, onNavigateToContrac
               const statusBidColor = bid?.status === "accepted" ? "#15803d" : "#9a3412";
               return (
                 <div key={asgn.id} onClick={() => onNavigateToContractor && onNavigateToContractor(con, "bids")}
-                  style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 16px", background: "#f8fafc", borderRadius: 12, border: "1px solid #f1f5f9", cursor: onNavigateToContractor ? "pointer" : "default", transition: "background 0.15s" }}
-                  onMouseEnter={e => e.currentTarget.style.background = "#f1f5f9"}
-                  onMouseLeave={e => e.currentTarget.style.background = "#f8fafc"}>
+                  style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 16px", background: "var(--surface-alt)", borderRadius: 12, border: "1px solid var(--border-subtle)", cursor: onNavigateToContractor ? "pointer" : "default", transition: "background 0.15s" }}
+                  onMouseEnter={e => e.currentTarget.style.background = "var(--surface-muted)"}
+                  onMouseLeave={e => e.currentTarget.style.background = "var(--surface-alt)"}>
                   <div style={{ display: "flex", alignItems: "center", gap: 12, flex: 1 }}>
                     <div style={{ width: 38, height: 38, borderRadius: 10, background: "linear-gradient(135deg, #e95e00, #041830)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                       <Truck size={16} color="#fff" />
                     </div>
                     <div>
-                      <p style={{ fontSize: 14, fontWeight: 700, color: "#041830" }}>{con.name}</p>
-                      <p style={{ fontSize: 12, color: "#64748b" }}>{con.trade}{con.phone ? ` · ${con.phone}` : ""}</p>
+                      <p style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)" }}>{con.name}</p>
+                      <p style={{ fontSize: 12, color: "var(--text-secondary)" }}>{con.trade}{con.phone ? ` · ${con.phone}` : ""}</p>
                     </div>
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
                     <div style={{ textAlign: "right" }}>
-                      <p style={{ fontSize: 10, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", marginBottom: 2 }}>Bid</p>
+                      <p style={{ fontSize: 10, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", marginBottom: 2 }}>Bid</p>
                       {bid ? (
                         <div style={{ display: "flex", alignItems: "center", gap: 8, justifyContent: "flex-end" }}>
-                          <span style={{ fontSize: 14, fontWeight: 700, color: "#041830" }}>{fmt(bid.amount)}</span>
+                          <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)" }}>{fmt(bid.amount)}</span>
                           <span style={{ background: statusBidBg, color: statusBidColor, borderRadius: 12, padding: "2px 8px", fontSize: 10, fontWeight: 600, textTransform: "capitalize" }}>{bid.status}</span>
                         </div>
                       ) : (
-                        <span style={{ fontSize: 12, color: "#94a3b8", fontStyle: "italic" }}>No bid yet</span>
+                        <span style={{ fontSize: 12, color: "var(--text-muted)", fontStyle: "italic" }}>No bid yet</span>
                       )}
                     </div>
                     <ChevronRight size={16} color="#cbd5e1" />
@@ -9642,19 +9723,19 @@ function RehabItemDetail({ deal, itemIdx, onBack, backLabel, onNavigateToContrac
       {/* Photos section */}
       <div style={sectionS}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-          <h3 style={{ fontSize: 16, fontWeight: 700, color: "#041830" }}>Photos</h3>
-          <label style={{ background: "#f1f5f9", color: "#475569", border: "none", borderRadius: 10, padding: "8px 14px", fontWeight: 600, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
+          <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--text-primary)" }}>Photos</h3>
+          <label style={{ background: "var(--surface-muted)", color: "var(--text-label)", border: "none", borderRadius: 10, padding: "8px 14px", fontWeight: 600, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
             <Plus size={14} /> Add Photo
             <input type="file" accept="image/*" onChange={addPhoto} style={{ display: "none" }} />
           </label>
         </div>
-        <p style={{ fontSize: 13, color: "#94a3b8", marginBottom: 20 }}>Before, during, and after shots for this scope</p>
+        <p style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 20 }}>Before, during, and after shots for this scope</p>
         {(item.photos || []).length === 0 ? (
-          <div style={{ padding: 32, textAlign: "center", color: "#94a3b8", fontSize: 13, background: "#f8fafc", borderRadius: 12 }}>No photos yet.</div>
+          <div style={{ padding: 32, textAlign: "center", color: "var(--text-muted)", fontSize: 13, background: "var(--surface-alt)", borderRadius: 12 }}>No photos yet.</div>
         ) : (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: 12 }}>
             {(item.photos || []).map((p, pi) => (
-              <div key={pi} style={{ position: "relative", aspectRatio: "1", borderRadius: 12, overflow: "hidden", border: "1px solid #e2e8f0" }}>
+              <div key={pi} style={{ position: "relative", aspectRatio: "1", borderRadius: 12, overflow: "hidden", border: "1px solid var(--border)" }}>
                 <img src={p} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                 <button onClick={() => removePhoto(pi)} style={{ position: "absolute", top: 6, right: 6, background: "rgba(0,0,0,0.6)", border: "none", borderRadius: "50%", width: 24, height: 24, color: "#fff", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><X size={12} /></button>
               </div>
@@ -9666,20 +9747,20 @@ function RehabItemDetail({ deal, itemIdx, onBack, backLabel, onNavigateToContrac
       {/* Linked Expenses */}
       <div style={sectionS}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-          <h3 style={{ fontSize: 16, fontWeight: 700, color: "#041830" }}>Linked Expenses</h3>
-          <span style={{ fontSize: 13, fontWeight: 600, color: "#041830" }}>{fmt(linkedTotal)} total</span>
+          <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--text-primary)" }}>Linked Expenses</h3>
+          <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>{fmt(linkedTotal)} total</span>
         </div>
-        <p style={{ fontSize: 13, color: "#94a3b8", marginBottom: 20 }}>Deal expenses tagged to this rehab scope or matching category</p>
+        <p style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 20 }}>Deal expenses tagged to this rehab scope or matching category</p>
         {linkedExpenses.length === 0 ? (
-          <div style={{ padding: 32, textAlign: "center", color: "#94a3b8", fontSize: 13, background: "#f8fafc", borderRadius: 12 }}>No expenses linked to this scope yet.</div>
+          <div style={{ padding: 32, textAlign: "center", color: "var(--text-muted)", fontSize: 13, background: "var(--surface-alt)", borderRadius: 12 }}>No expenses linked to this scope yet.</div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {linkedExpenses.map(exp => (
               <div key={exp.id} onClick={() => onNavigateToExpense && onNavigateToExpense(exp.id)}
-                style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 16px", background: "#f8fafc", borderRadius: 10, border: "1px solid #f1f5f9", cursor: onNavigateToExpense ? "pointer" : "default" }}>
+                style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 16px", background: "var(--surface-alt)", borderRadius: 10, border: "1px solid var(--border-subtle)", cursor: onNavigateToExpense ? "pointer" : "default" }}>
                 <div style={{ flex: 1 }}>
-                  <p style={{ fontSize: 14, fontWeight: 600, color: "#041830" }}>{exp.description || exp.vendor}</p>
-                  <p style={{ fontSize: 12, color: "#64748b", marginTop: 2 }}>{exp.date} · {exp.vendor} · {exp.category}</p>
+                  <p style={{ fontSize: 14, fontWeight: 600, color: "var(--text-primary)" }}>{exp.description || exp.vendor}</p>
+                  <p style={{ fontSize: 12, color: "var(--text-secondary)", marginTop: 2 }}>{exp.date} · {exp.vendor} · {exp.category}</p>
                 </div>
                 <p style={{ fontSize: 14, fontWeight: 700, color: "#b91c1c" }}>{fmt(exp.amount)}</p>
               </div>
@@ -9691,34 +9772,34 @@ function RehabItemDetail({ deal, itemIdx, onBack, backLabel, onNavigateToContrac
       {/* Notes */}
       <div style={sectionS}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-          <h3 style={{ fontSize: 16, fontWeight: 700, color: "#041830" }}>Notes</h3>
-          <button onClick={() => setShowAddNote(true)} style={{ background: "#f1f5f9", color: "#475569", border: "none", borderRadius: 10, padding: "8px 14px", fontWeight: 600, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
+          <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--text-primary)" }}>Notes</h3>
+          <button onClick={() => setShowAddNote(true)} style={{ background: "var(--surface-muted)", color: "var(--text-label)", border: "none", borderRadius: 10, padding: "8px 14px", fontWeight: 600, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
             <Plus size={14} /> Add Note
           </button>
         </div>
-        <p style={{ fontSize: 13, color: "#94a3b8", marginBottom: 20 }}>Scope-specific notes like change orders, delays, or permit status</p>
+        <p style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 20 }}>Scope-specific notes like change orders, delays, or permit status</p>
         {showAddNote && (
-          <div style={{ marginBottom: 16, padding: 14, background: "#f8fafc", borderRadius: 12, border: "1px solid #e2e8f0" }}>
+          <div style={{ marginBottom: 16, padding: 14, background: "var(--surface-alt)", borderRadius: 12, border: "1px solid var(--border)" }}>
             <textarea value={noteText} onChange={e => setNoteText(e.target.value)} placeholder="Type your note..."
               style={{ ...iS, minHeight: 70, resize: "vertical", fontFamily: "inherit" }} />
             <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
               <button onClick={addNote} style={{ background: "#e95e00", color: "#fff", border: "none", borderRadius: 8, padding: "8px 14px", fontWeight: 600, fontSize: 13, cursor: "pointer" }}>Save Note</button>
-              <button onClick={() => { setShowAddNote(false); setNoteText(""); }} style={{ background: "#fff", color: "#64748b", border: "1px solid #e2e8f0", borderRadius: 8, padding: "8px 14px", fontWeight: 600, fontSize: 13, cursor: "pointer" }}>Cancel</button>
+              <button onClick={() => { setShowAddNote(false); setNoteText(""); }} style={{ background: "var(--surface)", color: "var(--text-secondary)", border: "1px solid var(--border)", borderRadius: 8, padding: "8px 14px", fontWeight: 600, fontSize: 13, cursor: "pointer" }}>Cancel</button>
             </div>
           </div>
         )}
         {notes.length === 0 && !showAddNote ? (
-          <div style={{ padding: 32, textAlign: "center", color: "#94a3b8", fontSize: 13, background: "#f8fafc", borderRadius: 12 }}>No notes yet.</div>
+          <div style={{ padding: 32, textAlign: "center", color: "var(--text-muted)", fontSize: 13, background: "var(--surface-alt)", borderRadius: 12 }}>No notes yet.</div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {notes.map(n => (
-              <div key={n.id} style={{ padding: 14, background: "#f8fafc", borderRadius: 12, border: "1px solid #f1f5f9" }}>
+              <div key={n.id} style={{ padding: 14, background: "var(--surface-alt)", borderRadius: 12, border: "1px solid var(--border-subtle)" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
                   <div style={{ flex: 1 }}>
-                    <p style={{ fontSize: 11, color: "#94a3b8", fontWeight: 600, marginBottom: 4 }}>{n.date}</p>
-                    <p style={{ fontSize: 14, color: "#041830", lineHeight: 1.5, whiteSpace: "pre-wrap" }}>{n.text}</p>
+                    <p style={{ fontSize: 11, color: "var(--text-muted)", fontWeight: 600, marginBottom: 4 }}>{n.date}</p>
+                    <p style={{ fontSize: 14, color: "var(--text-primary)", lineHeight: 1.5, whiteSpace: "pre-wrap" }}>{n.text}</p>
                   </div>
-                  <button onClick={() => setDeletingNoteId(n.id)} style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8", padding: 4, display: "flex", alignItems: "center" }}><Trash2 size={14} /></button>
+                  <button onClick={() => setDeletingNoteId(n.id)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)", padding: 4, display: "flex", alignItems: "center" }}><Trash2 size={14} /></button>
                 </div>
               </div>
             ))}
@@ -9729,14 +9810,14 @@ function RehabItemDetail({ deal, itemIdx, onBack, backLabel, onNavigateToContrac
       {/* Edit modal */}
       {showEdit && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 500 }}>
-          <div style={{ background: "#fff", borderRadius: 20, padding: 28, width: 480, boxShadow: "0 25px 60px rgba(0,0,0,0.2)" }}>
+          <div style={{ background: "var(--surface)", borderRadius: 20, padding: 28, width: 480, boxShadow: "0 25px 60px rgba(0,0,0,0.2)" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-              <h2 style={{ color: "#041830", fontSize: 20, fontWeight: 700 }}>Edit Rehab Item</h2>
-              <button onClick={() => setShowEdit(false)} style={{ background: "#f1f5f9", border: "none", borderRadius: 8, width: 32, height: 32, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><X size={16} color="#64748b" /></button>
+              <h2 style={{ color: "var(--text-primary)", fontSize: 20, fontWeight: 700 }}>Edit Rehab Item</h2>
+              <button onClick={() => setShowEdit(false)} style={{ background: "var(--surface-muted)", border: "none", borderRadius: 8, width: 32, height: 32, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><X size={16} color="#64748b" /></button>
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
               <div style={{ position: "relative" }}>
-                <label style={{ display: "block", color: "#374151", fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Category *</label>
+                <label style={{ display: "block", color: "var(--text-dim)", fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Category *</label>
                 <input value={editForm.category} onChange={e => { setEditForm(f => ({ ...f, category: e.target.value, canonicalCategory: null })); setCatFocus(true); }}
                   onFocus={() => setCatFocus(true)} onBlur={() => setTimeout(() => setCatFocus(false), 150)} style={iS} />
                 {editForm.canonicalCategory && (
@@ -9754,14 +9835,14 @@ function RehabItemDetail({ deal, itemIdx, onBack, backLabel, onNavigateToContrac
                   const groupKeys = REHAB_CATEGORY_GROUPS.filter(g => grouped[g] && grouped[g].length > 0);
                   if (groupKeys.length === 0 && customMatches.length === 0 && !showNew) return null;
                   return (
-                    <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, background: "#fff", border: "1px solid #e2e8f0", borderRadius: 12, boxShadow: "0 8px 24px rgba(0,0,0,0.10)", zIndex: 200, overflow: "hidden", maxHeight: 320, overflowY: "auto" }}>
+                    <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, boxShadow: "0 8px 24px rgba(0,0,0,0.10)", zIndex: 200, overflow: "hidden", maxHeight: 320, overflowY: "auto" }}>
                       {groupKeys.map(g => (
                         <div key={g}>
-                          <div style={{ padding: "8px 14px 4px", fontSize: 10, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.05em", background: "#f8fafc" }}>{g}</div>
+                          <div style={{ padding: "8px 14px 4px", fontSize: 10, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em", background: "var(--surface-alt)" }}>{g}</div>
                           {grouped[g].map(c => (
                             <button key={c.slug} onMouseDown={() => { setEditForm(f => ({ ...f, category: c.label, canonicalCategory: c.slug })); setCatFocus(false); }}
-                              style={{ width: "100%", padding: "8px 14px", background: "none", border: "none", borderBottom: "1px solid #f8fafc", textAlign: "left", cursor: "pointer", fontSize: 13, color: "#041830", display: "flex", alignItems: "center", gap: 8 }}>
-                              <Wrench size={12} style={{ color: "#94a3b8", flexShrink: 0 }} />
+                              style={{ width: "100%", padding: "8px 14px", background: "none", border: "none", borderBottom: "1px solid #f8fafc", textAlign: "left", cursor: "pointer", fontSize: 13, color: "var(--text-primary)", display: "flex", alignItems: "center", gap: 8 }}>
+                              <Wrench size={12} style={{ color: "var(--text-muted)", flexShrink: 0 }} />
                               <span>{c.label}</span>
                             </button>
                           ))}
@@ -9769,11 +9850,11 @@ function RehabItemDetail({ deal, itemIdx, onBack, backLabel, onNavigateToContrac
                       ))}
                       {customMatches.length > 0 && (
                         <div>
-                          <div style={{ padding: "8px 14px 4px", fontSize: 10, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.05em", background: "#f8fafc" }}>Your Custom</div>
+                          <div style={{ padding: "8px 14px 4px", fontSize: 10, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em", background: "var(--surface-alt)" }}>Your Custom</div>
                           {customMatches.slice(0, 6).map(c => (
                             <button key={c} onMouseDown={() => { setEditForm(f => ({ ...f, category: c, canonicalCategory: null })); setCatFocus(false); }}
-                              style={{ width: "100%", padding: "8px 14px", background: "none", border: "none", borderBottom: "1px solid #f8fafc", textAlign: "left", cursor: "pointer", fontSize: 13, color: "#041830", display: "flex", alignItems: "center", gap: 8 }}>
-                              <Wrench size={12} style={{ color: "#94a3b8", flexShrink: 0 }} />
+                              style={{ width: "100%", padding: "8px 14px", background: "none", border: "none", borderBottom: "1px solid #f8fafc", textAlign: "left", cursor: "pointer", fontSize: 13, color: "var(--text-primary)", display: "flex", alignItems: "center", gap: 8 }}>
+                              <Wrench size={12} style={{ color: "var(--text-muted)", flexShrink: 0 }} />
                               <span>{c}</span>
                             </button>
                           ))}
@@ -9785,16 +9866,16 @@ function RehabItemDetail({ deal, itemIdx, onBack, backLabel, onNavigateToContrac
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                 <div>
-                  <label style={{ display: "block", color: "#374151", fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Budget *</label>
+                  <label style={{ display: "block", color: "var(--text-dim)", fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Budget *</label>
                   <input value={editForm.budgeted} onChange={e => setEditForm(f => ({ ...f, budgeted: e.target.value }))} type="number" style={iS} />
                 </div>
                 <div>
-                  <label style={{ display: "block", color: "#374151", fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Spent</label>
+                  <label style={{ display: "block", color: "var(--text-dim)", fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Spent</label>
                   <input value={editForm.spent} onChange={e => setEditForm(f => ({ ...f, spent: e.target.value }))} type="number" style={iS} />
                 </div>
               </div>
               <div>
-                <label style={{ display: "block", color: "#374151", fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Status</label>
+                <label style={{ display: "block", color: "var(--text-dim)", fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Status</label>
                 <select value={editForm.status} onChange={e => setEditForm(f => ({ ...f, status: e.target.value }))} style={iS}>
                   <option value="pending">Pending</option>
                   <option value="in-progress">In Progress</option>
@@ -9803,7 +9884,7 @@ function RehabItemDetail({ deal, itemIdx, onBack, backLabel, onNavigateToContrac
               </div>
             </div>
             <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
-              <button onClick={() => setShowEdit(false)} style={{ flex: 1, padding: "12px", border: "1px solid #e2e8f0", borderRadius: 10, background: "#fff", color: "#475569", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
+              <button onClick={() => setShowEdit(false)} style={{ flex: 1, padding: "12px", border: "1px solid var(--border)", borderRadius: 10, background: "var(--surface)", color: "var(--text-label)", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
               <button onClick={saveEdit} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "#e95e00", color: "#fff", fontWeight: 600, cursor: "pointer" }}>Save Changes</button>
             </div>
           </div>
@@ -9813,11 +9894,11 @@ function RehabItemDetail({ deal, itemIdx, onBack, backLabel, onNavigateToContrac
       {/* Delete note confirm */}
       {deletingNoteId && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 500 }}>
-          <div style={{ background: "#fff", borderRadius: 20, padding: 28, width: 400, boxShadow: "0 25px 60px rgba(0,0,0,0.2)" }}>
-            <h2 style={{ color: "#041830", fontSize: 18, fontWeight: 700, marginBottom: 8 }}>Delete note?</h2>
-            <p style={{ fontSize: 14, color: "#64748b", marginBottom: 20 }}>This cannot be undone.</p>
+          <div style={{ background: "var(--surface)", borderRadius: 20, padding: 28, width: 400, boxShadow: "0 25px 60px rgba(0,0,0,0.2)" }}>
+            <h2 style={{ color: "var(--text-primary)", fontSize: 18, fontWeight: 700, marginBottom: 8 }}>Delete note?</h2>
+            <p style={{ fontSize: 14, color: "var(--text-secondary)", marginBottom: 20 }}>This cannot be undone.</p>
             <div style={{ display: "flex", gap: 10 }}>
-              <button onClick={() => setDeletingNoteId(null)} style={{ flex: 1, padding: "12px", border: "1px solid #e2e8f0", borderRadius: 10, background: "#fff", color: "#475569", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
+              <button onClick={() => setDeletingNoteId(null)} style={{ flex: 1, padding: "12px", border: "1px solid var(--border)", borderRadius: 10, background: "var(--surface)", color: "var(--text-label)", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
               <button onClick={() => deleteNote(deletingNoteId)} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "#ef4444", color: "#fff", fontWeight: 600, cursor: "pointer" }}>Delete</button>
             </div>
           </div>
@@ -9980,10 +10061,10 @@ function TenantDetail({ tenant, onBack, backLabel, onTenantUpdated, onSelectTena
           </div>
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
-              <h1 style={{ color: "#041830", fontSize: 26, fontWeight: 700 }}>{tenant.name}</h1>
+              <h1 style={{ color: "var(--text-primary)", fontSize: 26, fontWeight: 700 }}>{tenant.name}</h1>
               <span style={{ background: s.bg, color: s.text, borderRadius: 20, padding: "3px 12px", fontSize: 11, fontWeight: 700 }}>{s.label}</span>
             </div>
-            <p style={{ color: "#64748b", fontSize: 15 }}>
+            <p style={{ color: "var(--text-secondary)", fontSize: 15 }}>
               {property?.name || "Unknown Property"} &middot; {tenant.unit}
               {tenant.rent ? ` · ${fmt(tenant.rent)}/mo` : ""}
             </p>
@@ -9995,14 +10076,14 @@ function TenantDetail({ tenant, onBack, backLabel, onTenantUpdated, onSelectTena
               <LogOut size={14} /> Close Lease
             </button>
           )}
-          <button onClick={openEdit} style={{ background: "#f1f5f9", border: "none", borderRadius: 10, padding: "9px 16px", cursor: "pointer", display: "flex", alignItems: "center", gap: 6, color: "#475569", fontSize: 13, fontWeight: 600 }}>
+          <button onClick={openEdit} style={{ background: "var(--surface-muted)", border: "none", borderRadius: 10, padding: "9px 16px", cursor: "pointer", display: "flex", alignItems: "center", gap: 6, color: "var(--text-label)", fontSize: 13, fontWeight: 600 }}>
             <Pencil size={14} /> Edit
           </button>
         </div>
       </div>
 
       {/* Tabs */}
-      <div style={{ display: "flex", gap: 4, background: "#f8fafc", borderRadius: 10, padding: 4, width: "fit-content", marginBottom: 24, border: "1px solid #e2e8f0" }}>
+      <div style={{ display: "flex", gap: 4, background: "var(--surface-alt)", borderRadius: 10, padding: 4, width: "fit-content", marginBottom: 24, border: "1px solid var(--border)" }}>
         {tabs.map(t => {
           const active = activeTab === t.id;
           return (
@@ -10017,15 +10098,15 @@ function TenantDetail({ tenant, onBack, backLabel, onTenantUpdated, onSelectTena
       {activeTab === "overview" && (
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
           {/* Contact Info */}
-          <div style={{ background: "#fff", borderRadius: 16, padding: 24, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" }}>
-            <h3 style={{ fontSize: 16, fontWeight: 700, color: "#041830", marginBottom: 16 }}>Contact Information</h3>
+          <div style={{ background: "var(--surface)", borderRadius: 16, padding: 24, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)" }}>
+            <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--text-primary)", marginBottom: 16 }}>Contact Information</h3>
             <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
               {tenant.phone && (
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                   <div style={{ background: "#eff6ff", borderRadius: 8, padding: 8 }}><Phone size={14} color="#3b82f6" /></div>
                   <div>
-                    <p style={{ fontSize: 11, color: "#94a3b8", fontWeight: 600, textTransform: "uppercase" }}>Phone</p>
-                    <p style={{ fontSize: 14, color: "#041830", fontWeight: 600 }}>{tenant.phone}</p>
+                    <p style={{ fontSize: 11, color: "var(--text-muted)", fontWeight: 600, textTransform: "uppercase" }}>Phone</p>
+                    <p style={{ fontSize: 14, color: "var(--text-primary)", fontWeight: 600 }}>{tenant.phone}</p>
                   </div>
                 </div>
               )}
@@ -10033,8 +10114,8 @@ function TenantDetail({ tenant, onBack, backLabel, onTenantUpdated, onSelectTena
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                   <div style={{ background: "#f0fdf4", borderRadius: 8, padding: 8 }}><Mail size={14} color="#10b981" /></div>
                   <div>
-                    <p style={{ fontSize: 11, color: "#94a3b8", fontWeight: 600, textTransform: "uppercase" }}>Email</p>
-                    <p style={{ fontSize: 14, color: "#041830", fontWeight: 600 }}>{tenant.email}</p>
+                    <p style={{ fontSize: 11, color: "var(--text-muted)", fontWeight: 600, textTransform: "uppercase" }}>Email</p>
+                    <p style={{ fontSize: 14, color: "var(--text-primary)", fontWeight: 600 }}>{tenant.email}</p>
                   </div>
                 </div>
               )}
@@ -10042,8 +10123,8 @@ function TenantDetail({ tenant, onBack, backLabel, onTenantUpdated, onSelectTena
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                   <div style={{ background: "#faf5ff", borderRadius: 8, padding: 8 }}><Shield size={14} color="#8b5cf6" /></div>
                   <div>
-                    <p style={{ fontSize: 11, color: "#94a3b8", fontWeight: 600, textTransform: "uppercase" }}>Security Deposit</p>
-                    <p style={{ fontSize: 14, color: "#041830", fontWeight: 600 }}>{fmt(tenant.securityDeposit)}</p>
+                    <p style={{ fontSize: 11, color: "var(--text-muted)", fontWeight: 600, textTransform: "uppercase" }}>Security Deposit</p>
+                    <p style={{ fontSize: 14, color: "var(--text-primary)", fontWeight: 600 }}>{fmt(tenant.securityDeposit)}</p>
                   </div>
                 </div>
               )}
@@ -10051,32 +10132,32 @@ function TenantDetail({ tenant, onBack, backLabel, onTenantUpdated, onSelectTena
           </div>
 
           {/* Lease Info */}
-          <div style={{ background: "#fff", borderRadius: 16, padding: 24, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" }}>
-            <h3 style={{ fontSize: 16, fontWeight: 700, color: "#041830", marginBottom: 16 }}>Lease Details</h3>
+          <div style={{ background: "var(--surface)", borderRadius: 16, padding: 24, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)" }}>
+            <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--text-primary)", marginBottom: 16 }}>Lease Details</h3>
             <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
               <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <span style={{ color: "#64748b", fontSize: 13 }}>Lease Period</span>
-                <span style={{ color: "#041830", fontSize: 13, fontWeight: 600 }}>{tenant.leaseStart || "-"} to {tenant.leaseEnd || "-"}</span>
+                <span style={{ color: "var(--text-secondary)", fontSize: 13 }}>Lease Period</span>
+                <span style={{ color: "var(--text-primary)", fontSize: 13, fontWeight: 600 }}>{tenant.leaseStart || "-"} to {tenant.leaseEnd || "-"}</span>
               </div>
               <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <span style={{ color: "#64748b", fontSize: 13 }}>Monthly Rent</span>
-                <span style={{ color: "#041830", fontSize: 13, fontWeight: 700 }}>{fmt(tenant.rent)}</span>
+                <span style={{ color: "var(--text-secondary)", fontSize: 13 }}>Monthly Rent</span>
+                <span style={{ color: "var(--text-primary)", fontSize: 13, fontWeight: 700 }}>{fmt(tenant.rent)}</span>
               </div>
               {daysLeft !== null && (
                 <div style={{ display: "flex", justifyContent: "space-between" }}>
-                  <span style={{ color: "#64748b", fontSize: 13 }}>Days Until Expiry</span>
+                  <span style={{ color: "var(--text-secondary)", fontSize: 13 }}>Days Until Expiry</span>
                   <span style={{ fontSize: 13, fontWeight: 700, color: daysLeft <= 90 ? "#9a3412" : "#15803d" }}>
                     {daysLeft <= 90 ? `(!) ${daysLeft} days` : `${daysLeft} days`}
                   </span>
                 </div>
               )}
               <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <span style={{ color: "#64748b", fontSize: 13 }}>Last Payment</span>
-                <span style={{ color: "#041830", fontSize: 13, fontWeight: 600 }}>{tenant.lastPayment || "-"}</span>
+                <span style={{ color: "var(--text-secondary)", fontSize: 13 }}>Last Payment</span>
+                <span style={{ color: "var(--text-primary)", fontSize: 13, fontWeight: 600 }}>{tenant.lastPayment || "-"}</span>
               </div>
               <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <span style={{ color: "#64748b", fontSize: 13 }}>Property</span>
-                <span style={{ color: "#041830", fontSize: 13, fontWeight: 600 }}>{property?.name || "-"}</span>
+                <span style={{ color: "var(--text-secondary)", fontSize: 13 }}>Property</span>
+                <span style={{ color: "var(--text-primary)", fontSize: 13, fontWeight: 600 }}>{property?.name || "-"}</span>
               </div>
             </div>
           </div>
@@ -10089,11 +10170,11 @@ function TenantDetail({ tenant, onBack, backLabel, onTenantUpdated, onSelectTena
               { label: "Open Requests", value: openRequests, color: openRequests > 0 ? "#e95e00" : "#10b981", icon: Wrench, tip: "Active or scheduled maintenance requests" },
               { label: "Documents", value: documents.length, color: "#3b82f6", icon: FileText, tip: "Total tenant documents on file" },
             ].map((m, i) => (
-              <div key={i} style={{ background: "#fff", borderRadius: 16, padding: 20, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" }}>
+              <div key={i} style={{ background: "var(--surface)", borderRadius: 16, padding: 20, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                   <div>
                     <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 4 }}>
-                      <p style={{ color: "#94a3b8", fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.04em" }}>{m.label}</p>
+                      <p style={{ color: "var(--text-muted)", fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.04em" }}>{m.label}</p>
                       <InfoTip text={m.tip} />
                     </div>
                     <p style={{ color: m.color, fontSize: 24, fontWeight: 800 }}>{m.value}</p>
@@ -10105,20 +10186,20 @@ function TenantDetail({ tenant, onBack, backLabel, onTenantUpdated, onSelectTena
           </div>
 
           {/* Recent Activity */}
-          <div style={{ gridColumn: "1 / -1", background: "#fff", borderRadius: 16, padding: 24, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" }}>
-            <h3 style={{ fontSize: 16, fontWeight: 700, color: "#041830", marginBottom: 16 }}>Recent Activity</h3>
+          <div style={{ gridColumn: "1 / -1", background: "var(--surface)", borderRadius: 16, padding: 24, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)" }}>
+            <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--text-primary)", marginBottom: 16 }}>Recent Activity</h3>
             {[...payments.slice(0, 3).map(p => ({ type: "payment", date: p.date, text: `Payment: ${fmt(p.amount)} — ${p.description}`, color: "#10b981", icon: DollarSign })),
               ...requests.filter(r => r.status !== "resolved").map(r => ({ type: "maintenance", date: r.createdAt.split("T")[0], text: `Maintenance: ${r.title}`, color: "#e95e00", icon: Wrench })),
               ...notes.slice(0, 2).map(n => ({ type: "note", date: n.date, text: `Note: ${n.text.substring(0, 80)}${n.text.length > 80 ? "..." : ""}`, color: "#3b82f6", icon: MessageSquare })),
             ].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 6).map((item, i) => (
-              <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 0", borderTop: i > 0 ? "1px solid #f1f5f9" : "none" }}>
+              <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 0", borderTop: i > 0 ? "1px solid var(--border-subtle)" : "none" }}>
                 <div style={{ background: item.color + "18", borderRadius: 8, padding: 8 }}><item.icon size={14} color={item.color} /></div>
-                <p style={{ fontSize: 13, color: "#041830", flex: 1 }}>{item.text}</p>
-                <p style={{ fontSize: 12, color: "#94a3b8" }}>{item.date}</p>
+                <p style={{ fontSize: 13, color: "var(--text-primary)", flex: 1 }}>{item.text}</p>
+                <p style={{ fontSize: 12, color: "var(--text-muted)" }}>{item.date}</p>
               </div>
             ))}
             {payments.length === 0 && requests.length === 0 && notes.length === 0 && (
-              <p style={{ color: "#94a3b8", fontSize: 13, textAlign: "center", padding: 20 }}>No activity recorded yet.</p>
+              <p style={{ color: "var(--text-muted)", fontSize: 13, textAlign: "center", padding: 20 }}>No activity recorded yet.</p>
             )}
           </div>
         </div>
@@ -10129,35 +10210,35 @@ function TenantDetail({ tenant, onBack, backLabel, onTenantUpdated, onSelectTena
         <div>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
             <div>
-              <h3 style={{ fontSize: 16, fontWeight: 700, color: "#041830" }}>Payment History</h3>
-              <p style={{ fontSize: 13, color: "#94a3b8" }}>{payments.length} payments recorded &middot; {fmt(totalPaid)} total</p>
+              <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--text-primary)" }}>Payment History</h3>
+              <p style={{ fontSize: 13, color: "var(--text-muted)" }}>{payments.length} payments recorded &middot; {fmt(totalPaid)} total</p>
             </div>
             <button onClick={() => setShowAddPayment(true)} style={{ background: "#10b981", color: "#fff", border: "none", borderRadius: 10, padding: "9px 16px", fontWeight: 600, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
               <Plus size={14} /> Record Payment
             </button>
           </div>
-          <div style={{ background: "#fff", borderRadius: 16, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9", overflow: "hidden" }}>
+          <div style={{ background: "var(--surface)", borderRadius: 16, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)", overflow: "hidden" }}>
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead>
-                <tr style={{ background: "#f8fafc" }}>
+                <tr style={{ background: "var(--surface-alt)" }}>
                   {["Date", "Amount", "Description", "Category"].map(h => (
-                    <th key={h} style={{ padding: "14px 16px", textAlign: "left", color: "#94a3b8", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>{h}</th>
+                    <th key={h} style={{ padding: "14px 16px", textAlign: "left", color: "var(--text-muted)", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {payments.map((p, i) => (
-                  <tr key={p.id} style={{ borderTop: "1px solid #f1f5f9", background: i % 2 === 0 ? "#fff" : "#fafafa" }}>
-                    <td style={{ padding: "14px 16px", fontSize: 13, color: "#041830", fontWeight: 600 }}>{p.date}</td>
+                  <tr key={p.id} style={{ borderTop: "1px solid var(--border-subtle)", background: i % 2 === 0 ? "#fff" : "#fafafa" }}>
+                    <td style={{ padding: "14px 16px", fontSize: 13, color: "var(--text-primary)", fontWeight: 600 }}>{p.date}</td>
                     <td style={{ padding: "14px 16px", fontSize: 14, fontWeight: 700, color: "#10b981" }}>{fmt(p.amount)}</td>
-                    <td style={{ padding: "14px 16px", fontSize: 13, color: "#64748b" }}>{p.description}</td>
+                    <td style={{ padding: "14px 16px", fontSize: 13, color: "var(--text-secondary)" }}>{p.description}</td>
                     <td style={{ padding: "14px 16px" }}>
                       <span style={{ background: "#dcfce7", color: "#15803d", borderRadius: 20, padding: "3px 10px", fontSize: 11, fontWeight: 700 }}>{p.category}</span>
                     </td>
                   </tr>
                 ))}
                 {payments.length === 0 && (
-                  <tr><td colSpan={4} style={{ padding: "48px 20px", textAlign: "center", color: "#94a3b8", fontSize: 14 }}>No rent payments recorded yet. Use "Record Payment" to log rent as a transaction.</td></tr>
+                  <tr><td colSpan={4} style={{ padding: "48px 20px", textAlign: "center", color: "var(--text-muted)", fontSize: 14 }}>No rent payments recorded yet. Use "Record Payment" to log rent as a transaction.</td></tr>
                 )}
               </tbody>
             </table>
@@ -10170,8 +10251,8 @@ function TenantDetail({ tenant, onBack, backLabel, onTenantUpdated, onSelectTena
         <div>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
             <div>
-              <h3 style={{ fontSize: 16, fontWeight: 700, color: "#041830" }}>Documents</h3>
-              <p style={{ fontSize: 13, color: "#94a3b8" }}>Lease agreements, applications, addenda, and tenant files</p>
+              <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--text-primary)" }}>Documents</h3>
+              <p style={{ fontSize: 13, color: "var(--text-muted)" }}>Lease agreements, applications, addenda, and tenant files</p>
             </div>
             <label style={{ background: "#3b82f6", color: "#fff", border: "none", borderRadius: 10, padding: "9px 16px", fontWeight: 600, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
               <UploadCloud size={14} /> Upload
@@ -10188,11 +10269,11 @@ function TenantDetail({ tenant, onBack, backLabel, onTenantUpdated, onSelectTena
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {documents.map(d => (
-              <div key={d.id} style={{ display: "flex", alignItems: "center", gap: 14, padding: "16px 20px", background: "#fff", borderRadius: 12, border: "1px solid #f1f5f9", boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
+              <div key={d.id} style={{ display: "flex", alignItems: "center", gap: 14, padding: "16px 20px", background: "var(--surface)", borderRadius: 12, border: "1px solid var(--border-subtle)", boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
                 <div style={{ background: "#eff6ff", borderRadius: 10, padding: 10 }}><FileText size={18} color="#3b82f6" /></div>
                 <div style={{ flex: 1 }}>
-                  <p style={{ fontSize: 14, fontWeight: 600, color: "#041830" }}>{d.name}</p>
-                  <p style={{ fontSize: 12, color: "#94a3b8" }}>{d.type} &middot; {d.size} &middot; {d.date}</p>
+                  <p style={{ fontSize: 14, fontWeight: 600, color: "var(--text-primary)" }}>{d.name}</p>
+                  <p style={{ fontSize: 12, color: "var(--text-muted)" }}>{d.type} &middot; {d.size} &middot; {d.date}</p>
                 </div>
                 <button onClick={() => { const idx = TENANT_DOCUMENTS.findIndex(td => td.id === d.id); if (idx !== -1) TENANT_DOCUMENTS.splice(idx, 1); setDocuments(prev => prev.filter(td => td.id !== d.id)); showToast("Document removed"); }} style={{ background: "#fee2e2", border: "none", borderRadius: 8, padding: "5px 8px", cursor: "pointer", color: "#ef4444" }}>
                   <Trash2 size={13} />
@@ -10200,7 +10281,7 @@ function TenantDetail({ tenant, onBack, backLabel, onTenantUpdated, onSelectTena
               </div>
             ))}
             {documents.length === 0 && (
-              <div style={{ padding: "48px 20px", textAlign: "center", color: "#94a3b8", fontSize: 14, background: "#fff", borderRadius: 12, border: "1px solid #f1f5f9" }}>
+              <div style={{ padding: "48px 20px", textAlign: "center", color: "var(--text-muted)", fontSize: 14, background: "var(--surface)", borderRadius: 12, border: "1px solid var(--border-subtle)" }}>
                 No documents on file. Upload lease agreements, applications, or addenda.
               </div>
             )}
@@ -10213,8 +10294,8 @@ function TenantDetail({ tenant, onBack, backLabel, onTenantUpdated, onSelectTena
         <div>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
             <div>
-              <h3 style={{ fontSize: 16, fontWeight: 700, color: "#041830" }}>Maintenance Requests</h3>
-              <p style={{ fontSize: 13, color: "#94a3b8" }}>{openRequests} open &middot; {resolvedRequests} resolved</p>
+              <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--text-primary)" }}>Maintenance Requests</h3>
+              <p style={{ fontSize: 13, color: "var(--text-muted)" }}>{openRequests} open &middot; {resolvedRequests} resolved</p>
             </div>
             <button onClick={() => setShowAddMaint(true)} style={{ background: "#e95e00", color: "#fff", border: "none", borderRadius: 10, padding: "9px 16px", fontWeight: 600, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
               <Plus size={14} /> New Request
@@ -10227,15 +10308,15 @@ function TenantDetail({ tenant, onBack, backLabel, onTenantUpdated, onSelectTena
               const ps = prioStyle[r.priority] || prioStyle.medium;
               const ss = statusStyle[r.status] || statusStyle.open;
               return (
-                <div key={r.id} style={{ background: "#fff", borderRadius: 12, padding: 20, border: "1px solid #f1f5f9", boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
+                <div key={r.id} style={{ background: "var(--surface)", borderRadius: 12, padding: 20, border: "1px solid var(--border-subtle)", boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
                     <div>
                       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-                        <p style={{ fontSize: 15, fontWeight: 700, color: "#041830" }}>{r.title}</p>
+                        <p style={{ fontSize: 15, fontWeight: 700, color: "var(--text-primary)" }}>{r.title}</p>
                         <span style={{ background: ps.bg, color: ps.text, borderRadius: 20, padding: "2px 8px", fontSize: 10, fontWeight: 700, textTransform: "uppercase" }}>{r.priority}</span>
                         <span style={{ background: ss.bg, color: ss.text, borderRadius: 20, padding: "2px 8px", fontSize: 10, fontWeight: 700, textTransform: "uppercase" }}>{r.status}</span>
                       </div>
-                      <p style={{ fontSize: 13, color: "#64748b" }}>{r.description}</p>
+                      <p style={{ fontSize: 13, color: "var(--text-secondary)" }}>{r.description}</p>
                     </div>
                     {r.status !== "resolved" && (
                       <button onClick={() => handleResolveMaint(r.id)} style={{ background: "#dcfce7", border: "none", borderRadius: 8, padding: "6px 12px", cursor: "pointer", color: "#15803d", fontSize: 12, fontWeight: 600, whiteSpace: "nowrap" }}>
@@ -10243,7 +10324,7 @@ function TenantDetail({ tenant, onBack, backLabel, onTenantUpdated, onSelectTena
                       </button>
                     )}
                   </div>
-                  <div style={{ display: "flex", gap: 16, fontSize: 12, color: "#94a3b8" }}>
+                  <div style={{ display: "flex", gap: 16, fontSize: 12, color: "var(--text-muted)" }}>
                     <span>Created: {r.createdAt.split("T")[0]}</span>
                     {r.scheduledDate && <span>Scheduled: {r.scheduledDate}</span>}
                     {r.resolvedDate && <span>Resolved: {r.resolvedDate}</span>}
@@ -10254,7 +10335,7 @@ function TenantDetail({ tenant, onBack, backLabel, onTenantUpdated, onSelectTena
               );
             })}
             {requests.length === 0 && (
-              <div style={{ padding: "48px 20px", textAlign: "center", color: "#94a3b8", fontSize: 14, background: "#fff", borderRadius: 12, border: "1px solid #f1f5f9" }}>
+              <div style={{ padding: "48px 20px", textAlign: "center", color: "var(--text-muted)", fontSize: 14, background: "var(--surface)", borderRadius: 12, border: "1px solid var(--border-subtle)" }}>
                 No maintenance requests for this tenant.
               </div>
             )}
@@ -10267,8 +10348,8 @@ function TenantDetail({ tenant, onBack, backLabel, onTenantUpdated, onSelectTena
         <div>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
             <div>
-              <h3 style={{ fontSize: 16, fontWeight: 700, color: "#041830" }}>Notes</h3>
-              <p style={{ fontSize: 13, color: "#94a3b8" }}>Private notes about this tenant</p>
+              <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--text-primary)" }}>Notes</h3>
+              <p style={{ fontSize: 13, color: "var(--text-muted)" }}>Private notes about this tenant</p>
             </div>
             <button onClick={() => setShowAddNote(true)} style={{ background: "#6366f1", color: "#fff", border: "none", borderRadius: 10, padding: "9px 16px", fontWeight: 600, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
               <Plus size={14} /> Add Note
@@ -10276,11 +10357,11 @@ function TenantDetail({ tenant, onBack, backLabel, onTenantUpdated, onSelectTena
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {notes.map(n => (
-              <div key={n.id} style={{ display: "flex", gap: 14, padding: "16px 20px", background: "#fff", borderRadius: 12, border: "1px solid #f1f5f9", boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
+              <div key={n.id} style={{ display: "flex", gap: 14, padding: "16px 20px", background: "var(--surface)", borderRadius: 12, border: "1px solid var(--border-subtle)", boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
                 <div style={{ background: "#eef2ff", borderRadius: 10, padding: 10, height: "fit-content" }}><MessageSquare size={16} color="#6366f1" /></div>
                 <div style={{ flex: 1 }}>
-                  <p style={{ fontSize: 14, color: "#041830", lineHeight: 1.5 }}>{n.text}</p>
-                  <p style={{ fontSize: 12, color: "#94a3b8", marginTop: 6 }}>{n.date}</p>
+                  <p style={{ fontSize: 14, color: "var(--text-primary)", lineHeight: 1.5 }}>{n.text}</p>
+                  <p style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 6 }}>{n.date}</p>
                 </div>
                 <button onClick={() => handleDeleteNote(n.id)} style={{ background: "#fee2e2", border: "none", borderRadius: 8, padding: "5px 8px", cursor: "pointer", color: "#ef4444", height: "fit-content" }}>
                   <Trash2 size={13} />
@@ -10288,7 +10369,7 @@ function TenantDetail({ tenant, onBack, backLabel, onTenantUpdated, onSelectTena
               </div>
             ))}
             {notes.length === 0 && (
-              <div style={{ padding: "48px 20px", textAlign: "center", color: "#94a3b8", fontSize: 14, background: "#fff", borderRadius: 12, border: "1px solid #f1f5f9" }}>
+              <div style={{ padding: "48px 20px", textAlign: "center", color: "var(--text-muted)", fontSize: 14, background: "var(--surface)", borderRadius: 12, border: "1px solid var(--border-subtle)" }}>
                 No notes for this tenant. Notes added here also appear in the unified Notes hub.
               </div>
             )}
@@ -10303,15 +10384,15 @@ function TenantDetail({ tenant, onBack, backLabel, onTenantUpdated, onSelectTena
         <Modal title="Edit Tenant" onClose={() => setShowEdit(false)}>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
             <div style={{ gridColumn: "1 / -1" }}>
-              <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Name</label>
+              <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Name</label>
               <input value={editForm.name} onChange={sef("name")} style={iS} />
             </div>
             <div>
-              <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Unit</label>
+              <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Unit</label>
               <input value={editForm.unit} onChange={sef("unit")} style={iS} />
             </div>
             <div>
-              <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Status</label>
+              <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Status</label>
               <select value={editForm.status} onChange={sef("status")} style={iS}>
                 <option value="active-lease">Active Lease</option>
                 <option value="month-to-month">Month-to-Month</option>
@@ -10319,32 +10400,32 @@ function TenantDetail({ tenant, onBack, backLabel, onTenantUpdated, onSelectTena
               </select>
             </div>
             <div>
-              <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Monthly Rent</label>
+              <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Monthly Rent</label>
               <input type="number" value={editForm.rent} onChange={sef("rent")} style={iS} />
             </div>
             <div>
-              <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Security Deposit</label>
+              <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Security Deposit</label>
               <input type="number" value={editForm.securityDeposit} onChange={sef("securityDeposit")} style={iS} />
             </div>
             <div>
-              <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Phone</label>
+              <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Phone</label>
               <input value={editForm.phone} onChange={sef("phone")} style={iS} />
             </div>
             <div>
-              <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Email</label>
+              <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Email</label>
               <input value={editForm.email} onChange={sef("email")} style={iS} />
             </div>
             <div>
-              <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Lease Start</label>
+              <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Lease Start</label>
               <input type="date" value={editForm.leaseStart} onChange={sef("leaseStart")} style={iS} />
             </div>
             <div>
-              <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Lease End</label>
+              <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Lease End</label>
               <input type="date" value={editForm.leaseEnd} onChange={sef("leaseEnd")} style={iS} />
             </div>
           </div>
           <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
-            <button onClick={() => setShowEdit(false)} style={{ flex: 1, padding: "12px", border: "1px solid #e2e8f0", borderRadius: 10, background: "#fff", color: "#475569", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
+            <button onClick={() => setShowEdit(false)} style={{ flex: 1, padding: "12px", border: "1px solid var(--border)", borderRadius: 10, background: "var(--surface)", color: "var(--text-label)", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
             <button onClick={handleSaveEdit} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "#3b82f6", color: "#fff", fontWeight: 700, cursor: "pointer" }}>Save Changes</button>
           </div>
         </Modal>
@@ -10363,18 +10444,18 @@ function TenantDetail({ tenant, onBack, backLabel, onTenantUpdated, onSelectTena
             </div>
             <div style={{ display: "grid", gap: 14, marginBottom: 20 }}>
               <div>
-                <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Move-Out Date</label>
+                <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Move-Out Date</label>
                 <input type="date" value={closeForm.moveOutDate} onChange={e => setCloseForm(f => ({ ...f, moveOutDate: e.target.value }))} style={iS} />
               </div>
               <div>
-                <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Reason</label>
+                <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Reason</label>
                 <select value={closeForm.moveOutReason} onChange={e => setCloseForm(f => ({ ...f, moveOutReason: e.target.value }))} style={iS}>
                   <option>Lease ended</option><option>Lease not renewed</option><option>Relocated for work</option><option>Purchased own home</option><option>Lease ended, rent increase</option><option>Eviction</option><option>Mutual agreement</option><option>Other</option>
                 </select>
               </div>
             </div>
             <div style={{ display: "flex", gap: 10 }}>
-              <button onClick={() => setShowClose(false)} style={{ flex: 1, padding: "12px", border: "1px solid #e2e8f0", borderRadius: 10, background: "#fff", color: "#475569", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
+              <button onClick={() => setShowClose(false)} style={{ flex: 1, padding: "12px", border: "1px solid var(--border)", borderRadius: 10, background: "var(--surface)", color: "var(--text-label)", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
               <button onClick={handleCloseLease} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "#e95e00", color: "#fff", fontWeight: 700, cursor: "pointer" }}>Close Lease</button>
             </div>
           </div>
@@ -10384,25 +10465,25 @@ function TenantDetail({ tenant, onBack, backLabel, onTenantUpdated, onSelectTena
       {/* Add Payment Modal */}
       {showAddPayment && (
         <Modal title="Record Rent Payment" onClose={() => setShowAddPayment(false)} width={480}>
-          <p style={{ fontSize: 13, color: "#64748b", marginBottom: 16 }}>This creates a rent income transaction on {property?.name || "the property"}.</p>
+          <p style={{ fontSize: 13, color: "var(--text-secondary)", marginBottom: 16 }}>This creates a rent income transaction on {property?.name || "the property"}.</p>
           <div style={{ display: "grid", gap: 14 }}>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
               <div>
-                <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Date</label>
+                <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Date</label>
                 <input type="date" value={payForm.date} onChange={spf("date")} style={iS} />
               </div>
               <div>
-                <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Amount</label>
+                <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Amount</label>
                 <input type="number" value={payForm.amount} onChange={spf("amount")} style={iS} />
               </div>
             </div>
             <div>
-              <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Description <span style={{ color: "#94a3b8", fontWeight: 400 }}>(optional)</span></label>
+              <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Description <span style={{ color: "var(--text-muted)", fontWeight: 400 }}>(optional)</span></label>
               <input value={payForm.description} onChange={spf("description")} placeholder={`Rent payment - ${tenant.name}`} style={iS} />
             </div>
           </div>
           <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
-            <button onClick={() => setShowAddPayment(false)} style={{ flex: 1, padding: "12px", border: "1px solid #e2e8f0", borderRadius: 10, background: "#fff", color: "#475569", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
+            <button onClick={() => setShowAddPayment(false)} style={{ flex: 1, padding: "12px", border: "1px solid var(--border)", borderRadius: 10, background: "var(--surface)", color: "var(--text-label)", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
             <button onClick={handleAddPayment} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "#10b981", color: "#fff", fontWeight: 700, cursor: "pointer" }}>Record Payment</button>
           </div>
         </Modal>
@@ -10415,7 +10496,7 @@ function TenantDetail({ tenant, onBack, backLabel, onTenantUpdated, onSelectTena
             <textarea value={noteText} onChange={e => setNoteText(e.target.value)} placeholder="Write a private note about this tenant..." rows={4} style={{ ...iS, resize: "vertical" }} />
           </div>
           <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
-            <button onClick={() => setShowAddNote(false)} style={{ flex: 1, padding: "12px", border: "1px solid #e2e8f0", borderRadius: 10, background: "#fff", color: "#475569", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
+            <button onClick={() => setShowAddNote(false)} style={{ flex: 1, padding: "12px", border: "1px solid var(--border)", borderRadius: 10, background: "var(--surface)", color: "var(--text-label)", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
             <button onClick={handleAddNote} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "#6366f1", color: "#fff", fontWeight: 700, cursor: "pointer" }}>Add Note</button>
           </div>
         </Modal>
@@ -10426,22 +10507,22 @@ function TenantDetail({ tenant, onBack, backLabel, onTenantUpdated, onSelectTena
         <Modal title="New Maintenance Request" onClose={() => setShowAddMaint(false)} width={520}>
           <div style={{ display: "grid", gap: 14 }}>
             <div>
-              <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Title</label>
+              <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Title</label>
               <input value={maintForm.title} onChange={smf("title")} placeholder="e.g., Leaky faucet in bathroom" style={iS} />
             </div>
             <div>
-              <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Description</label>
+              <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Description</label>
               <textarea value={maintForm.description} onChange={smf("description")} placeholder="Details about the issue..." rows={3} style={{ ...iS, resize: "vertical" }} />
             </div>
             <div>
-              <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Priority</label>
+              <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Priority</label>
               <select value={maintForm.priority} onChange={smf("priority")} style={iS}>
                 <option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option>
               </select>
             </div>
           </div>
           <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
-            <button onClick={() => setShowAddMaint(false)} style={{ flex: 1, padding: "12px", border: "1px solid #e2e8f0", borderRadius: 10, background: "#fff", color: "#475569", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
+            <button onClick={() => setShowAddMaint(false)} style={{ flex: 1, padding: "12px", border: "1px solid var(--border)", borderRadius: 10, background: "var(--surface)", color: "var(--text-label)", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
             <button onClick={handleAddMaint} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "#e95e00", color: "#fff", fontWeight: 700, cursor: "pointer" }}>Create Request</button>
           </div>
         </Modal>
@@ -10519,8 +10600,8 @@ function MileageTracker() {
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
         <div>
-          <h1 style={{ color: "#041830", fontSize: 26, fontWeight: 700, marginBottom: 4 }}>Mileage Tracker</h1>
-          <p style={{ color: "#64748b", fontSize: 15 }}>Log business trips · IRS rate: ${IRS_RATE}/mile (${TAX_CONFIG.mileageRateYear})</p>
+          <h1 style={{ color: "var(--text-primary)", fontSize: 26, fontWeight: 700, marginBottom: 4 }}>Mileage Tracker</h1>
+          <p style={{ color: "var(--text-secondary)", fontSize: 15 }}>Log business trips · IRS rate: ${IRS_RATE}/mile (${TAX_CONFIG.mileageRateYear})</p>
         </div>
         <button onClick={openAdd} style={{ background: "#3b82f6", color: "#fff", border: "none", borderRadius: 10, padding: "10px 18px", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
           <Plus size={16} /> Log Trip
@@ -10533,15 +10614,15 @@ function MileageTracker() {
           { label: "Mileage Deduction", value: fmt(deduction), sub: `@ $${IRS_RATE}/mile IRS rate`, color: "#8b5cf6", icon: DollarSign, tip: "Total deductible miles × IRS standard mileage rate. Each trip's miles are multiplied by its business-use percentage." },
           { label: "Trips", value: filteredTrips.length, sub: `of ${tripData.length} total logged`, color: "#e95e00", icon: Truck, tip: "Number of trips matching the current filters out of all logged trips." },
         ].map((m, i) => (
-          <div key={i} style={{ background: "#fff", borderRadius: 16, padding: 20, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" }}>
+          <div key={i} style={{ background: "var(--surface)", borderRadius: 16, padding: 20, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
               <div style={{ flex: 1 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 4 }}>
-                  <p style={{ color: "#94a3b8", fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.04em" }}>{m.label}</p>
+                  <p style={{ color: "var(--text-muted)", fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.04em" }}>{m.label}</p>
                   {m.tip && <InfoTip text={m.tip} />}
                 </div>
-                <p style={{ color: "#041830", fontSize: 22, fontWeight: 800 }}>{m.value}</p>
-                <p style={{ color: "#94a3b8", fontSize: 12, marginTop: 2 }}>{m.sub}</p>
+                <p style={{ color: "var(--text-primary)", fontSize: 22, fontWeight: 800 }}>{m.value}</p>
+                <p style={{ color: "var(--text-muted)", fontSize: 12, marginTop: 2 }}>{m.sub}</p>
               </div>
               <div style={{ background: m.color + "18", borderRadius: 10, padding: 10 }}>
                 <m.icon size={20} color={m.color} />
@@ -10552,7 +10633,7 @@ function MileageTracker() {
       </div>
       {/* Mileage filters */}
       <div style={{ display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap", alignItems: "center" }}>
-        <div style={{ display: "flex", gap: 4, background: "#f8fafc", borderRadius: 10, padding: 4, border: "1px solid #e2e8f0" }}>
+        <div style={{ display: "flex", gap: 4, background: "var(--surface-alt)", borderRadius: 10, padding: 4, border: "1px solid var(--border)" }}>
           {[["all", "All Purposes"], ["Rental", "Rental"], ["Deal", "Deal"], ["Business", "Business"]].map(([val, label]) => {
             const active = purposeFilter === val;
             return (
@@ -10562,9 +10643,9 @@ function MileageTracker() {
             );
           })}
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, background: "#fff", border: "1px solid #e2e8f0", borderRadius: 10, padding: "0 12px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: "0 12px" }}>
           <Search size={14} color="#94a3b8" />
-          <input placeholder="Search trips..." value={search} onChange={e => setSearch(e.target.value)} style={{ border: "none", background: "transparent", fontSize: 13, color: "#475569", outline: "none", padding: "9px 0", width: 140 }} />
+          <input placeholder="Search trips..." value={search} onChange={e => setSearch(e.target.value)} style={{ border: "none", background: "transparent", fontSize: 13, color: "var(--text-label)", outline: "none", padding: "9px 0", width: 140 }} />
         </div>
         {linkedOptions.length > 0 && (
           <select value={linkedFilter} onChange={e => setLinkedFilter(e.target.value)} style={{ ...iS, width: "auto", minWidth: 160, fontSize: 13, padding: "9px 12px" }}>
@@ -10579,15 +10660,15 @@ function MileageTracker() {
           <option value="all">All Time</option>
         </select>
         {(purposeFilter !== "all" || dateFilter !== "thisYear" || search || linkedFilter !== "all") && (
-          <button onClick={() => { setPurposeFilter("all"); setDateFilter("thisYear"); setSearch(""); setLinkedFilter("all"); }} style={{ background: "none", border: "none", color: "#94a3b8", fontSize: 12, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
+          <button onClick={() => { setPurposeFilter("all"); setDateFilter("thisYear"); setSearch(""); setLinkedFilter("all"); }} style={{ background: "none", border: "none", color: "var(--text-muted)", fontSize: 12, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
             <X size={13} /> Clear filters
           </button>
         )}
       </div>
 
-      <div style={{ background: "#fff", borderRadius: 16, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9", overflow: "hidden" }}>
-        <div style={{ padding: "16px 20px", borderBottom: "1px solid #f1f5f9", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <h3 style={{ color: "#041830", fontSize: 15, fontWeight: 700 }}>Trip Log</h3>
+      <div style={{ background: "var(--surface)", borderRadius: 16, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)", overflow: "hidden" }}>
+        <div style={{ padding: "16px 20px", borderBottom: "1px solid var(--border-subtle)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <h3 style={{ color: "var(--text-primary)", fontSize: 15, fontWeight: 700 }}>Trip Log</h3>
           <button onClick={() => {
             let csv = "Date,Description,From,To,Miles,Purpose,Business%,Deduction,Linked To\n";
             filteredTrips.forEach(t => {
@@ -10595,36 +10676,36 @@ function MileageTracker() {
             });
             csv += `\nTotal,,,,${totalMiles.toFixed(1)},,,${deduction.toFixed(2)},\n`;
             downloadFile(csv, `PropBooks_Mileage_${mThisYear}.csv`, "text/csv");
-          }} style={{ border: "1px solid #e2e8f0", borderRadius: 8, padding: "7px 12px", background: "#fff", color: "#475569", fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
+          }} style={{ border: "1px solid var(--border)", borderRadius: 8, padding: "7px 12px", background: "var(--surface)", color: "var(--text-label)", fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
             <Download size={13} /> Export CSV
           </button>
         </div>
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
-            <tr style={{ background: "#f8fafc" }}>
+            <tr style={{ background: "var(--surface-alt)" }}>
               {["Date", "Description", "From / To", "Linked To", "Miles", "Purpose", "Deduction", ""].map(h => (
-                <th key={h} style={{ padding: "12px 18px", textAlign: "left", color: "#94a3b8", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>{h}</th>
+                <th key={h} style={{ padding: "12px 18px", textAlign: "left", color: "var(--text-muted)", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {filteredTrips.length === 0 && (
-              <tr><td colSpan={8} style={{ padding: "40px 18px", textAlign: "center", color: "#94a3b8", fontSize: 14 }}>No trips match your filters.</td></tr>
+              <tr><td colSpan={8} style={{ padding: "40px 18px", textAlign: "center", color: "var(--text-muted)", fontSize: 14 }}>No trips match your filters.</td></tr>
             )}
             {filteredTrips.map((t, i) => (
-              <tr key={t.id} style={{ borderTop: "1px solid #f1f5f9", background: i % 2 === 0 ? "#fff" : "#fafafa" }}>
-                <td style={{ padding: "13px 18px", fontSize: 13, color: "#64748b" }}>{t.date}</td>
-                <td style={{ padding: "13px 18px", fontSize: 13, fontWeight: 600, color: "#041830" }}>{t.description}</td>
-                <td style={{ padding: "13px 18px", fontSize: 12, color: "#475569" }}>{t.from}  /  {t.to.split(",")[0]}</td>
+              <tr key={t.id} style={{ borderTop: "1px solid var(--border-subtle)", background: i % 2 === 0 ? "#fff" : "#fafafa" }}>
+                <td style={{ padding: "13px 18px", fontSize: 13, color: "var(--text-secondary)" }}>{t.date}</td>
+                <td style={{ padding: "13px 18px", fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>{t.description}</td>
+                <td style={{ padding: "13px 18px", fontSize: 12, color: "var(--text-label)" }}>{t.from}  /  {t.to.split(",")[0]}</td>
                 <td style={{ padding: "13px 18px", fontSize: 12, color: t.linkedTo ? "#475569" : "#cbd5e1" }}>{t.linkedTo || "—"}</td>
-                <td style={{ padding: "13px 18px", fontSize: 14, fontWeight: 700, color: "#041830" }}>{t.miles} mi</td>
+                <td style={{ padding: "13px 18px", fontSize: 14, fontWeight: 700, color: "var(--text-primary)" }}>{t.miles} mi</td>
                 <td style={{ padding: "13px 18px" }}>
                   <span style={{ background: (purposeColors[t.purpose] || "#94a3b8") + "20", color: purposeColors[t.purpose] || "#475569", borderRadius: 20, padding: "3px 10px", fontSize: 12, fontWeight: 700 }}>{t.purpose}</span>
                 </td>
                 <td style={{ padding: "13px 18px", fontSize: 13, fontWeight: 700, color: "#15803d" }}>{fmt(t.miles * IRS_RATE * t.businessPct / 100)}</td>
                 <td style={{ padding: "13px 18px" }}>
                   <div style={{ display: "flex", gap: 4 }}>
-                    <button onClick={() => openEdit(t)} style={{ background: "#f1f5f9", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "#475569", display: "flex", alignItems: "center" }} title="Edit"><Pencil size={13} /></button>
+                    <button onClick={() => openEdit(t)} style={{ background: "var(--surface-muted)", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "var(--text-label)", display: "flex", alignItems: "center" }} title="Edit"><Pencil size={13} /></button>
                     <button onClick={() => setDeleteConfirm(t)} style={{ background: "#fee2e2", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "#ef4444", display: "flex", alignItems: "center" }} title="Delete"><Trash2 size={13} /></button>
                   </div>
                 </td>
@@ -10632,9 +10713,9 @@ function MileageTracker() {
             ))}
           </tbody>
           <tfoot>
-            <tr style={{ background: "#f8fafc", borderTop: "2px solid #e2e8f0" }}>
-              <td colSpan={4} style={{ padding: "12px 18px", fontSize: 13, fontWeight: 700, color: "#041830" }}>Totals ({filteredTrips.length} trips)</td>
-              <td style={{ padding: "12px 18px", fontSize: 14, fontWeight: 800, color: "#041830" }}>{totalMiles.toFixed(1)} mi</td>
+            <tr style={{ background: "var(--surface-alt)", borderTop: "2px solid var(--border)" }}>
+              <td colSpan={4} style={{ padding: "12px 18px", fontSize: 13, fontWeight: 700, color: "var(--text-primary)" }}>Totals ({filteredTrips.length} trips)</td>
+              <td style={{ padding: "12px 18px", fontSize: 14, fontWeight: 800, color: "var(--text-primary)" }}>{totalMiles.toFixed(1)} mi</td>
               <td />
               <td style={{ padding: "12px 18px", fontSize: 15, fontWeight: 800, color: "#15803d" }}>{fmt(deduction)}</td>
             </tr>
@@ -10652,18 +10733,18 @@ function MileageTracker() {
             { label: "Business Use %", type: "number", key: "businessPct", placeholder: "100" },
           ].map(f => (
             <div key={f.key} style={{ marginBottom: 12 }}>
-              <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 4 }}>{f.label}</label>
+              <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 4 }}>{f.label}</label>
               <input type={f.type} placeholder={f.placeholder} value={form[f.key]} onChange={sf(f.key)} style={iS} />
             </div>
           ))}
           <div style={{ marginBottom: 12 }}>
-            <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Purpose</label>
+            <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Purpose</label>
             <select value={form.purpose} onChange={sf("purpose")} style={iS}>
               {["Deal","Rental","Business"].map(o => <option key={o}>{o}</option>)}
             </select>
           </div>
           <div style={{ marginBottom: 16 }}>
-            <label style={{ display: "block", color: "#475569", fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Linked Property / Deal</label>
+            <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Linked Property / Deal</label>
             <select value={form.linkedTo} onChange={sf("linkedTo")} style={iS}>
               <option value="">None</option>
               <optgroup label="Properties">
@@ -10675,21 +10756,21 @@ function MileageTracker() {
             </select>
           </div>
           <div style={{ display: "flex", gap: 10 }}>
-            <button onClick={() => setShowModal(false)} style={{ flex: 1, padding: "12px", border: "1px solid #e2e8f0", borderRadius: 10, background: "#fff", color: "#475569", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
+            <button onClick={() => setShowModal(false)} style={{ flex: 1, padding: "12px", border: "1px solid var(--border)", borderRadius: 10, background: "var(--surface)", color: "var(--text-label)", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
             <button onClick={handleSave} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "#3b82f6", color: "#fff", fontWeight: 600, cursor: "pointer" }}>{editId ? "Save Changes" : "Save Trip"}</button>
           </div>
         </Modal>
       )}
       {deleteConfirm && (
         <Modal title="Delete Trip" onClose={() => setDeleteConfirm(null)}>
-          <p style={{ color: "#475569", fontSize: 14, marginBottom: 8 }}>Are you sure you want to delete this trip?</p>
-          <div style={{ background: "#f8fafc", borderRadius: 10, padding: 14, marginBottom: 18 }}>
-            <p style={{ fontSize: 13, fontWeight: 600, color: "#041830" }}>{deleteConfirm.from} → {deleteConfirm.to}</p>
-            <p style={{ fontSize: 12, color: "#64748b", marginTop: 4 }}>{deleteConfirm.date} · {deleteConfirm.miles} mi · {deleteConfirm.purpose}</p>
+          <p style={{ color: "var(--text-label)", fontSize: 14, marginBottom: 8 }}>Are you sure you want to delete this trip?</p>
+          <div style={{ background: "var(--surface-alt)", borderRadius: 10, padding: 14, marginBottom: 18 }}>
+            <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>{deleteConfirm.from} → {deleteConfirm.to}</p>
+            <p style={{ fontSize: 12, color: "var(--text-secondary)", marginTop: 4 }}>{deleteConfirm.date} · {deleteConfirm.miles} mi · {deleteConfirm.purpose}</p>
           </div>
-          <p style={{ color: "#94a3b8", fontSize: 12, marginBottom: 18 }}>This action cannot be undone.</p>
+          <p style={{ color: "var(--text-muted)", fontSize: 12, marginBottom: 18 }}>This action cannot be undone.</p>
           <div style={{ display: "flex", gap: 10 }}>
-            <button onClick={() => setDeleteConfirm(null)} style={{ flex: 1, padding: "12px", border: "1px solid #e2e8f0", borderRadius: 10, background: "#fff", color: "#475569", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
+            <button onClick={() => setDeleteConfirm(null)} style={{ flex: 1, padding: "12px", border: "1px solid var(--border)", borderRadius: 10, background: "var(--surface)", color: "var(--text-label)", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
             <button onClick={() => { setTripData(prev => prev.filter(x => x.id !== deleteConfirm.id)); setDeleteConfirm(null); }} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "#ef4444", color: "#fff", fontWeight: 700, cursor: "pointer" }}>Delete</button>
           </div>
         </Modal>
@@ -10741,16 +10822,16 @@ function DealAnalyzer() {
   const cocReturn = rDown > 0 ? (((cashFlow * 12) / rDown) * 100).toFixed(2) : 0;
   const grm = rRent > 0 ? (rPrice / (rRent * 12)).toFixed(1) : 0;
 
-  const inputStyle = { width: "100%", padding: "10px 12px", border: "1px solid #e2e8f0", borderRadius: 10, fontSize: 14, color: "#041830", background: "#fff", outline: "none", boxSizing: "border-box" };
-  const labelStyle = { display: "block", color: "#475569", fontSize: 12, fontWeight: 600, marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.04em" };
+  const inputStyle = { width: "100%", padding: "10px 12px", border: "1px solid var(--border)", borderRadius: 10, fontSize: 14, color: "var(--text-primary)", background: "var(--surface)", outline: "none", boxSizing: "border-box" };
+  const labelStyle = { display: "block", color: "var(--text-label)", fontSize: 12, fontWeight: 600, marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.04em" };
 
   return (
     <div>
       <div style={{ marginBottom: 24 }}>
-        <h1 style={{ color: "#041830", fontSize: 26, fontWeight: 700, marginBottom: 4 }}>Deal Analyzer</h1>
-        <p style={{ color: "#64748b", fontSize: 15 }}>Run the numbers before you make an offer</p>
+        <h1 style={{ color: "var(--text-primary)", fontSize: 26, fontWeight: 700, marginBottom: 4 }}>Deal Analyzer</h1>
+        <p style={{ color: "var(--text-secondary)", fontSize: 15 }}>Run the numbers before you make an offer</p>
       </div>
-      <div style={{ display: "flex", background: "#f8fafc", borderRadius: 10, padding: 4, width: "fit-content", marginBottom: 28, border: "1px solid #e2e8f0" }}>
+      <div style={{ display: "flex", background: "var(--surface-alt)", borderRadius: 10, padding: 4, width: "fit-content", marginBottom: 28, border: "1px solid var(--border)" }}>
         {[{ id: "deal", label: "Fix & Flip", icon: Hammer }, { id: "rental", label: "Buy & Hold", icon: Building2 }].map(m => {
           const active = mode === m.id;
           return (
@@ -10763,11 +10844,11 @@ function DealAnalyzer() {
 
       {mode === "deal" && (
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
-          <div style={{ background: "#fff", borderRadius: 16, padding: 24, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" }}>
+          <div style={{ background: "var(--surface)", borderRadius: 16, padding: 24, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
-              <h3 style={{ color: "#041830", fontSize: 16, fontWeight: 700 }}>Deal Inputs</h3>
+              <h3 style={{ color: "var(--text-primary)", fontSize: 16, fontWeight: 700 }}>Deal Inputs</h3>
               {(dealCalc.arv || dealCalc.purchase || dealCalc.rehab) && (
-                <button onClick={() => setDealCalc({ arv: "", purchase: "", rehab: "", holdMonths: "4", sellingPct: "6" })} style={{ background: "none", border: "none", color: "#94a3b8", fontSize: 12, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
+                <button onClick={() => setDealCalc({ arv: "", purchase: "", rehab: "", holdMonths: "4", sellingPct: "6" })} style={{ background: "none", border: "none", color: "var(--text-muted)", fontSize: 12, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
                   <X size={13} /> Reset
                 </button>
               )}
@@ -10787,7 +10868,7 @@ function DealAnalyzer() {
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             <div style={{ background: fProfit > 0 ? "#f0fdf4" : "#fef2f2", borderRadius: 16, padding: 24, border: `1px solid ${fProfit > 0 ? "#bbf7d0" : "#fecaca"}` }}>
-              <h3 style={{ color: "#041830", fontSize: 16, fontWeight: 700, marginBottom: 16 }}>Projected Results</h3>
+              <h3 style={{ color: "var(--text-primary)", fontSize: 16, fontWeight: 700, marginBottom: 16 }}>Projected Results</h3>
               {[
                 { label: "ARV", value: fmt(fARV), color: "#15803d" },
                 { label: "- Purchase Price", value: fmt(fPurchase), color: "#b91c1c" },
@@ -10796,36 +10877,36 @@ function DealAnalyzer() {
                 { label: "- Selling Costs", value: fmt(sellCosts), color: "#b91c1c" },
               ].map((r, i) => (
                 <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid rgba(0,0,0,0.06)" }}>
-                  <span style={{ fontSize: 13, color: "#475569" }}>{r.label}</span>
+                  <span style={{ fontSize: 13, color: "var(--text-label)" }}>{r.label}</span>
                   <span style={{ fontSize: 13, fontWeight: 600, color: r.color }}>{r.value}</span>
                 </div>
               ))}
               <div style={{ display: "flex", justifyContent: "space-between", padding: "14px 0 4px" }}>
-                <span style={{ fontSize: 16, fontWeight: 800, color: "#041830" }}>Net Profit</span>
+                <span style={{ fontSize: 16, fontWeight: 800, color: "var(--text-primary)" }}>Net Profit</span>
                 <span style={{ fontSize: 22, fontWeight: 800, color: fProfit > 0 ? "#15803d" : "#b91c1c" }}>{fProfit >= 0 ? "+" : ""}{fmt(fProfit)}</span>
               </div>
               <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <span style={{ fontSize: 13, color: "#64748b" }}>ROI on cash in</span>
+                <span style={{ fontSize: 13, color: "var(--text-secondary)" }}>ROI on cash in</span>
                 <span style={{ fontSize: 14, fontWeight: 700, color: "#3b82f6" }}>{fROI}%</span>
               </div>
             </div>
-            <div style={{ background: "#fff", borderRadius: 16, padding: 20, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" }}>
-              <h3 style={{ color: "#041830", fontSize: 15, fontWeight: 700, marginBottom: 14 }}>Max Allowable Offer</h3>
+            <div style={{ background: "var(--surface)", borderRadius: 16, padding: 20, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)" }}>
+              <h3 style={{ color: "var(--text-primary)", fontSize: 15, fontWeight: 700, marginBottom: 14 }}>Max Allowable Offer</h3>
               {[
                 { label: "MAO at 70% Rule", value: fmt(mao70), color: "#3b82f6" },
                 { label: "MAO at 65% (conservative)", value: fmt(mao65), color: "#8b5cf6" },
-                { label: "Your Offer", value: fPurchase > 0 ? fmt(fPurchase) : "-", color: "#041830" },
+                { label: "Your Offer", value: fPurchase > 0 ? fmt(fPurchase) : "-", color: "var(--text-primary)" },
                 { label: "Spread vs. 70% MAO", value: spread !== null ? (spread >= 0 ? `+${fmt(spread)} under` : `${fmt(Math.abs(spread))} over`) : "-", color: spread !== null ? (spread >= 0 ? "#15803d" : "#b91c1c") : "#94a3b8" },
               ].map((m, i) => (
                 <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: i < 3 ? "1px solid #f8fafc" : "none" }}>
-                  <span style={{ fontSize: 13, color: "#64748b" }}>{m.label}</span>
+                  <span style={{ fontSize: 13, color: "var(--text-secondary)" }}>{m.label}</span>
                   <span style={{ fontSize: 13, fontWeight: 700, color: m.color }}>{m.value}</span>
                 </div>
               ))}
             </div>
             {fARV > 0 && fPurchase > 0 && (
-              <div style={{ background: "#fff", borderRadius: 16, padding: 20, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" }}>
-                <h3 style={{ color: "#041830", fontSize: 15, fontWeight: 700, marginBottom: 14 }}>Quick Checks</h3>
+              <div style={{ background: "var(--surface)", borderRadius: 16, padding: 20, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)" }}>
+                <h3 style={{ color: "var(--text-primary)", fontSize: 15, fontWeight: 700, marginBottom: 14 }}>Quick Checks</h3>
                 {(() => {
                   const purchasePctARV = (fPurchase / fARV * 100).toFixed(0);
                   const rehabPctARV = fARV > 0 ? (fRehab / fARV * 100).toFixed(0) : 0;
@@ -10840,11 +10921,11 @@ function DealAnalyzer() {
                     <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: i < checks.length - 1 ? "1px solid #f8fafc" : "none" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                         <div style={{ width: 8, height: 8, borderRadius: "50%", background: c.pass ? "#10b981" : "#ef4444" }} />
-                        <span style={{ fontSize: 13, color: "#475569" }}>{c.label}</span>
+                        <span style={{ fontSize: 13, color: "var(--text-label)" }}>{c.label}</span>
                       </div>
                       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                         <span style={{ fontSize: 13, fontWeight: 700, color: c.pass ? "#15803d" : "#b91c1c" }}>{c.value}</span>
-                        <span style={{ fontSize: 11, color: "#94a3b8" }}>{c.tip}</span>
+                        <span style={{ fontSize: 11, color: "var(--text-muted)" }}>{c.tip}</span>
                       </div>
                     </div>
                   ));
@@ -10857,16 +10938,16 @@ function DealAnalyzer() {
 
       {mode === "rental" && (
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
-          <div style={{ background: "#fff", borderRadius: 16, padding: 24, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" }}>
+          <div style={{ background: "var(--surface)", borderRadius: 16, padding: 24, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
-              <h3 style={{ color: "#041830", fontSize: 16, fontWeight: 700 }}>Property Inputs</h3>
+              <h3 style={{ color: "var(--text-primary)", fontSize: 16, fontWeight: 700 }}>Property Inputs</h3>
               {(rental.price || rental.monthlyRent) && (
-                <button onClick={() => setRental({ price: "", downPct: "20", rate: "7.25", termYears: "30", monthlyRent: "", taxes: "", insurance: "", maintenance: "", vacancy: "5", mgmtPct: "0" })} style={{ background: "none", border: "none", color: "#94a3b8", fontSize: 12, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
+                <button onClick={() => setRental({ price: "", downPct: "20", rate: "7.25", termYears: "30", monthlyRent: "", taxes: "", insurance: "", maintenance: "", vacancy: "5", mgmtPct: "0" })} style={{ background: "none", border: "none", color: "var(--text-muted)", fontSize: 12, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
                   <X size={13} /> Reset
                 </button>
               )}
             </div>
-            <p style={{ color: "#94a3b8", fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 10 }}>Purchase</p>
+            <p style={{ color: "var(--text-muted)", fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 10 }}>Purchase</p>
             {[
               { label: "Purchase Price", key: "price", placeholder: "385000" },
               { label: "Down Payment (%)", key: "downPct", placeholder: "20" },
@@ -10878,7 +10959,7 @@ function DealAnalyzer() {
                 <input type="number" placeholder={f.placeholder} value={rental[f.key]} onChange={e => setRental({ ...rental, [f.key]: e.target.value })} style={inputStyle} />
               </div>
             ))}
-            <p style={{ color: "#94a3b8", fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.04em", margin: "16px 0 10px" }}>Income &amp; Expenses</p>
+            <p style={{ color: "var(--text-muted)", fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.04em", margin: "16px 0 10px" }}>Income &amp; Expenses</p>
             {[
               { label: "Monthly Rent", key: "monthlyRent", placeholder: "2500" },
               { label: "Annual Property Taxes", key: "taxes", placeholder: "4200" },
@@ -10895,7 +10976,7 @@ function DealAnalyzer() {
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             <div style={{ background: cashFlow > 0 ? "#f0fdf4" : "#fef2f2", borderRadius: 16, padding: 24, border: `1px solid ${cashFlow > 0 ? "#bbf7d0" : "#fecaca"}` }}>
-              <h3 style={{ color: "#041830", fontSize: 16, fontWeight: 700, marginBottom: 16 }}>Monthly Cash Flow</h3>
+              <h3 style={{ color: "var(--text-primary)", fontSize: 16, fontWeight: 700, marginBottom: 16 }}>Monthly Cash Flow</h3>
               {[
                 { label: "Gross Rent", value: fmt(rRent), color: "#15803d" },
                 { label: "- Mortgage (P&I)", value: fmt(mortgage), color: "#b91c1c" },
@@ -10906,36 +10987,36 @@ function DealAnalyzer() {
                 { label: "- Mgmt Fee", value: fmt(rMgmt), color: "#b91c1c" },
               ].map((r, i) => (
                 <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "7px 0", borderBottom: "1px solid rgba(0,0,0,0.05)" }}>
-                  <span style={{ fontSize: 13, color: "#475569" }}>{r.label}</span>
+                  <span style={{ fontSize: 13, color: "var(--text-label)" }}>{r.label}</span>
                   <span style={{ fontSize: 13, fontWeight: 600, color: r.color }}>{r.value}</span>
                 </div>
               ))}
               <div style={{ display: "flex", justifyContent: "space-between", padding: "14px 0 4px" }}>
-                <span style={{ fontSize: 16, fontWeight: 800, color: "#041830" }}>Net Cash Flow / mo</span>
+                <span style={{ fontSize: 16, fontWeight: 800, color: "var(--text-primary)" }}>Net Cash Flow / mo</span>
                 <span style={{ fontSize: 22, fontWeight: 800, color: cashFlow > 0 ? "#15803d" : "#b91c1c" }}>{cashFlow >= 0 ? "+" : ""}{fmt(cashFlow)}</span>
               </div>
             </div>
-            <div style={{ background: "#fff", borderRadius: 16, padding: 20, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" }}>
-              <h3 style={{ color: "#041830", fontSize: 15, fontWeight: 700, marginBottom: 14 }}>Key Metrics</h3>
+            <div style={{ background: "var(--surface)", borderRadius: 16, padding: 20, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)" }}>
+              <h3 style={{ color: "var(--text-primary)", fontSize: 15, fontWeight: 700, marginBottom: 14 }}>Key Metrics</h3>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
                 {[
-                  { label: "Down Payment", value: fmt(rDown), color: "#041830" },
-                  { label: "Mortgage Payment", value: fmt(mortgage), color: "#041830" },
+                  { label: "Down Payment", value: fmt(rDown), color: "var(--text-primary)" },
+                  { label: "Mortgage Payment", value: fmt(mortgage), color: "var(--text-primary)" },
                   { label: "Annual NOI", value: fmt(noi), color: "#10b981" },
                   { label: "Cap Rate", value: `${capRate}%`, color: "#3b82f6" },
                   { label: "Cash-on-Cash Return", value: `${cocReturn}%`, color: "#8b5cf6" },
                   { label: "Gross Rent Multiplier", value: `${grm}x`, color: "#e95e00" },
                 ].map((m, i) => (
-                  <div key={i} style={{ background: "#f8fafc", borderRadius: 10, padding: "12px 14px" }}>
-                    <p style={{ color: "#94a3b8", fontSize: 10, fontWeight: 600, textTransform: "uppercase", marginBottom: 3 }}>{m.label}</p>
+                  <div key={i} style={{ background: "var(--surface-alt)", borderRadius: 10, padding: "12px 14px" }}>
+                    <p style={{ color: "var(--text-muted)", fontSize: 10, fontWeight: 600, textTransform: "uppercase", marginBottom: 3 }}>{m.label}</p>
                     <p style={{ color: m.color, fontSize: 16, fontWeight: 800 }}>{m.value}</p>
                   </div>
                 ))}
               </div>
             </div>
             {rPrice > 0 && rRent > 0 && (
-              <div style={{ background: "#fff", borderRadius: 16, padding: 20, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" }}>
-                <h3 style={{ color: "#041830", fontSize: 15, fontWeight: 700, marginBottom: 14 }}>Quick Checks</h3>
+              <div style={{ background: "var(--surface)", borderRadius: 16, padding: 20, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)" }}>
+                <h3 style={{ color: "var(--text-primary)", fontSize: 15, fontWeight: 700, marginBottom: 14 }}>Quick Checks</h3>
                 {(() => {
                   const onePercent = rRent >= rPrice * 0.01;
                   const onePctVal = (rRent / rPrice * 100).toFixed(2);
@@ -10952,11 +11033,11 @@ function DealAnalyzer() {
                     <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: i < checks.length - 1 ? "1px solid #f8fafc" : "none" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                         <div style={{ width: 8, height: 8, borderRadius: "50%", background: c.pass ? "#10b981" : "#ef4444" }} />
-                        <span style={{ fontSize: 13, color: "#475569" }}>{c.label}</span>
+                        <span style={{ fontSize: 13, color: "var(--text-label)" }}>{c.label}</span>
                       </div>
                       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                         <span style={{ fontSize: 13, fontWeight: 700, color: c.pass ? "#15803d" : "#b91c1c" }}>{c.value}</span>
-                        <span style={{ fontSize: 11, color: "#94a3b8" }}>{c.tip}</span>
+                        <span style={{ fontSize: 11, color: "var(--text-muted)" }}>{c.tip}</span>
                       </div>
                     </div>
                   ));
@@ -11048,8 +11129,8 @@ function MentionTextarea({ value, onChange, placeholder, mentions, onMentionsCha
         onKeyDown={handleKeyDown}
       />
       {showDropdown && filteredMembers.length > 0 && (
-        <div style={{ position: "absolute", bottom: "100%", left: 0, width: 280, background: "#fff", borderRadius: 12, boxShadow: "0 8px 30px rgba(0,0,0,0.15)", border: "1px solid #e2e8f0", maxHeight: 200, overflowY: "auto", zIndex: 100, marginBottom: 4 }}>
-          <p style={{ fontSize: 10, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.06em", padding: "8px 12px 4px" }}>Team Members</p>
+        <div style={{ position: "absolute", bottom: "100%", left: 0, width: 280, background: "var(--surface)", borderRadius: 12, boxShadow: "0 8px 30px rgba(0,0,0,0.15)", border: "1px solid var(--border)", maxHeight: 200, overflowY: "auto", zIndex: 100, marginBottom: 4 }}>
+          <p style={{ fontSize: 10, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", padding: "8px 12px 4px" }}>Team Members</p>
           {filteredMembers.map((m, i) => (
             <div key={m.id}
               onMouseDown={(e) => { e.preventDefault(); insertMention(m); }}
@@ -11057,8 +11138,8 @@ function MentionTextarea({ value, onChange, placeholder, mentions, onMentionsCha
               onMouseEnter={() => setDropdownIdx(i)}>
               <div style={{ width: 28, height: 28, borderRadius: 8, background: m.color + "18", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 700, color: m.color }}>{m.initials}</div>
               <div>
-                <p style={{ fontSize: 13, fontWeight: 600, color: "#041830" }}>{m.name}</p>
-                <p style={{ fontSize: 11, color: "#94a3b8" }}>{m.email}</p>
+                <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>{m.name}</p>
+                <p style={{ fontSize: 11, color: "var(--text-muted)" }}>{m.email}</p>
               </div>
             </div>
           ))}
@@ -11087,7 +11168,7 @@ function MentionTextarea({ value, onChange, placeholder, mentions, onMentionsCha
 function NoteTextWithMentions({ text }) {
   const parts = text.split(/(@[\w\s]+?)(?=\s|$|,|\.)/g);
   return (
-    <p style={{ fontSize: 13, color: "#475569", lineHeight: 1.6 }}>
+    <p style={{ fontSize: 13, color: "var(--text-label)", lineHeight: 1.6 }}>
       {parts.map((part, i) => {
         if (part.startsWith("@")) {
           const name = part.substring(1).trim();
@@ -11279,8 +11360,8 @@ function UnifiedNotes({ highlightNoteId, highlightDealNoteId, onBack, onClearHig
       )}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 }}>
         <div>
-          <h1 style={{ color: "#041830", fontSize: 26, fontWeight: 700, marginBottom: 4 }}>Notes</h1>
-          <p style={{ color: "#64748b", fontSize: 15 }}>{allNotes.length} note{allNotes.length !== 1 ? "s" : ""} across properties, deals, and general</p>
+          <h1 style={{ color: "var(--text-primary)", fontSize: 26, fontWeight: 700, marginBottom: 4 }}>Notes</h1>
+          <p style={{ color: "var(--text-secondary)", fontSize: 15 }}>{allNotes.length} note{allNotes.length !== 1 ? "s" : ""} across properties, deals, and general</p>
         </div>
         <button onClick={openAdd} style={{ background: "#3b82f6", color: "#fff", border: "none", borderRadius: 10, padding: "9px 16px", fontWeight: 600, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
           <Plus size={14} /> Add Note
@@ -11288,7 +11369,7 @@ function UnifiedNotes({ highlightNoteId, highlightDealNoteId, onBack, onClearHig
       </div>
 
       {/* Tab pills */}
-      <div style={{ display: "flex", gap: 6, background: "#f8fafc", borderRadius: 10, padding: 4, border: "1px solid #e2e8f0", marginBottom: 16, width: "fit-content" }}>
+      <div style={{ display: "flex", gap: 6, background: "var(--surface-alt)", borderRadius: 10, padding: 4, border: "1px solid var(--border)", marginBottom: 16, width: "fit-content" }}>
         {tabs.map(t => (
           <button key={t.id} onClick={() => { setActiveTab(t.id); setPropFilter("all"); setFlipFilter("all"); }}
             style={{ padding: "7px 14px", borderRadius: 8, border: "none", background: activeTab === t.id ? "#f59e0b" : "transparent", color: activeTab === t.id ? "#fff" : "#64748b", fontWeight: 600, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 5, transition: "all 0.15s" }}>
@@ -11301,9 +11382,9 @@ function UnifiedNotes({ highlightNoteId, highlightDealNoteId, onBack, onClearHig
       {/* Filter bar */}
       <div style={{ display: "flex", gap: 10, marginBottom: hasFilters ? 10 : 20, flexWrap: "wrap", alignItems: "center" }}>
         <div style={{ position: "relative", flex: "1 1 200px", minWidth: 180 }}>
-          <Search size={15} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "#94a3b8" }} />
+          <Search size={15} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "var(--text-muted)" }} />
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search notes..."
-            style={{ width: "100%", paddingLeft: 36, paddingRight: 12, paddingTop: 9, paddingBottom: 9, border: "1px solid #e2e8f0", borderRadius: 10, fontSize: 13, color: "#041830", background: "#fff", outline: "none", boxSizing: "border-box" }} />
+            style={{ width: "100%", paddingLeft: 36, paddingRight: 12, paddingTop: 9, paddingBottom: 9, border: "1px solid var(--border)", borderRadius: 10, fontSize: 13, color: "var(--text-primary)", background: "var(--surface)", outline: "none", boxSizing: "border-box" }} />
         </div>
         {activeTab === "properties" && (
           <select value={propFilter} onChange={e => setPropFilter(e.target.value)} style={{ ...iS, width: 200, fontSize: 14, padding: "9px 14px", fontWeight: 600 }}>
@@ -11318,13 +11399,13 @@ function UnifiedNotes({ highlightNoteId, highlightDealNoteId, onBack, onClearHig
           </select>
         )}
         {hasFilters && (
-          <button onClick={clearFilters} style={{ background: "none", border: "none", color: "#94a3b8", fontSize: 12, cursor: "pointer", display: "flex", alignItems: "center", gap: 3 }}><X size={11} /> Clear filters</button>
+          <button onClick={clearFilters} style={{ background: "none", border: "none", color: "var(--text-muted)", fontSize: 12, cursor: "pointer", display: "flex", alignItems: "center", gap: 3 }}><X size={11} /> Clear filters</button>
         )}
       </div>
 
       {/* Notes grouped by date */}
       {Object.keys(grouped).length === 0 ? (
-        <div style={{ background: "#fff", borderRadius: 16, padding: 48, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9", textAlign: "center", color: "#94a3b8" }}>
+        <div style={{ background: "var(--surface)", borderRadius: 16, padding: 48, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)", textAlign: "center", color: "var(--text-muted)" }}>
           <MessageSquare size={32} style={{ margin: "0 auto 12px", display: "block" }} />
           {hasFilters ? (
             <>
@@ -11340,15 +11421,15 @@ function UnifiedNotes({ highlightNoteId, highlightDealNoteId, onBack, onClearHig
         </div>
       ) : Object.entries(grouped).map(([dateKey, { label, notes }]) => (
         <div key={dateKey} style={{ marginBottom: 20 }}>
-          <p style={{ fontSize: 12, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 10 }}>{label}</p>
+          <p style={{ fontSize: 12, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 10 }}>{label}</p>
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {notes.map(n => {
               const badge = typeBadge(n.noteType);
               return (
                 <div key={n.id} id={"unote-" + n.id}
-                  onMouseEnter={e => { if (flashId !== n.id) e.currentTarget.style.background = "#f8fafc"; }}
-                  onMouseLeave={e => { if (flashId !== n.id) e.currentTarget.style.background = "#fff"; }}
-                  style={{ background: flashId === n.id ? "#ede9fe" : "#fff", borderRadius: 16, padding: 18, boxShadow: flashId === n.id ? "0 0 0 2px #8b5cf6" : "0 1px 3px rgba(0,0,0,0.06)", border: flashId === n.id ? "1px solid #8b5cf6" : "1px solid #f1f5f9", transition: "all 0.4s ease" }}>
+                  onMouseEnter={e => { if (flashId !== n.id) e.currentTarget.style.background = "var(--surface-alt)"; }}
+                  onMouseLeave={e => { if (flashId !== n.id) e.currentTarget.style.background = "var(--surface)"; }}
+                  style={{ background: flashId === n.id ? "#ede9fe" : "#fff", borderRadius: 16, padding: 18, boxShadow: flashId === n.id ? "0 0 0 2px #8b5cf6" : "0 1px 3px rgba(0,0,0,0.06)", border: flashId === n.id ? "1px solid #8b5cf6" : "1px solid var(--border-subtle)", transition: "all 0.4s ease" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                       {n.entityImage ? (
@@ -11358,7 +11439,7 @@ function UnifiedNotes({ highlightNoteId, highlightDealNoteId, onBack, onClearHig
                           <MessageSquare size={12} color={n.entityColor} />
                         </div>
                       )}
-                      <span style={{ fontSize: 13, fontWeight: 600, color: "#041830" }}>{n.entityName}</span>
+                      <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>{n.entityName}</span>
                       {n.tenantName && (
                         <span style={{ fontSize: 10, fontWeight: 600, background: "#dbeafe", color: "#1d4ed8", padding: "2px 7px", borderRadius: 5 }}>{n.tenantName}</span>
                       )}
@@ -11372,7 +11453,7 @@ function UnifiedNotes({ highlightNoteId, highlightDealNoteId, onBack, onClearHig
                       )}
                     </div>
                     <div style={{ display: "flex", gap: 4 }}>
-                      <button onClick={() => openEdit(n)} style={{ background: "#f1f5f9", border: "none", borderRadius: 7, padding: "4px 7px", cursor: "pointer", color: "#475569", display: "flex", alignItems: "center" }} title="Edit"><Pencil size={12} /></button>
+                      <button onClick={() => openEdit(n)} style={{ background: "var(--surface-muted)", border: "none", borderRadius: 7, padding: "4px 7px", cursor: "pointer", color: "var(--text-label)", display: "flex", alignItems: "center" }} title="Edit"><Pencil size={12} /></button>
                       <button onClick={() => setDeleteConfirm(n)} style={{ background: "#fee2e2", border: "none", borderRadius: 7, padding: "4px 7px", cursor: "pointer", color: "#ef4444", display: "flex", alignItems: "center" }} title="Delete"><Trash2 size={12} /></button>
                     </div>
                   </div>
@@ -11401,20 +11482,20 @@ function UnifiedNotes({ highlightNoteId, highlightDealNoteId, onBack, onClearHig
       {/* Add/Edit Note Modal */}
       {showAdd && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
-          <div style={{ background: "#fff", borderRadius: 20, padding: 32, width: 520, boxShadow: "0 20px 60px rgba(0,0,0,0.18)" }}>
+          <div style={{ background: "var(--surface)", borderRadius: 20, padding: 32, width: 520, boxShadow: "0 20px 60px rgba(0,0,0,0.18)" }}>
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 20 }}>
-              <h2 style={{ color: "#041830", fontSize: 20, fontWeight: 700 }}>{editId ? "Edit Note" : "Add Note"}</h2>
-              <button onClick={() => { setShowAdd(false); setEditId(null); }} style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8" }}><X size={20} /></button>
+              <h2 style={{ color: "var(--text-primary)", fontSize: 20, fontWeight: 700 }}>{editId ? "Edit Note" : "Add Note"}</h2>
+              <button onClick={() => { setShowAdd(false); setEditId(null); }} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)" }}><X size={20} /></button>
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               {/* Category selector */}
               {!editId && (
                 <div>
-                  <p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Category *</p>
+                  <p style={{ fontSize: 12, fontWeight: 600, color: "var(--text-dim)", marginBottom: 5 }}>Category *</p>
                   <div style={{ display: "flex", gap: 6 }}>
                     {[{ id: "general", label: "General", color: "#8b5cf6" }, { id: "property", label: "Property", color: "#3b82f6" }, { id: "deal", label: "Deal", color: "#e95e00" }].map(c => (
                       <button key={c.id} onClick={() => setNoteForm(f => ({ ...f, category: c.id, entityId: c.id === "property" ? (PROPERTIES[0] ? String(PROPERTIES[0].id) : "") : c.id === "deal" ? (DEALS[0] ? String(DEALS[0].id) : "") : "" }))}
-                        style={{ flex: 1, padding: "8px 12px", borderRadius: 8, border: noteForm.category === c.id ? "2px solid " + c.color : "1.5px solid #e2e8f0", background: noteForm.category === c.id ? c.color + "10" : "#fff", color: noteForm.category === c.id ? c.color : "#64748b", fontWeight: 600, fontSize: 13, cursor: "pointer", transition: "all 0.15s" }}>
+                        style={{ flex: 1, padding: "8px 12px", borderRadius: 8, border: noteForm.category === c.id ? "2px solid " + c.color : "1.5px solid var(--border)", background: noteForm.category === c.id ? c.color + "10" : "#fff", color: noteForm.category === c.id ? c.color : "#64748b", fontWeight: 600, fontSize: 13, cursor: "pointer", transition: "all 0.15s" }}>
                         {c.label}
                       </button>
                     ))}
@@ -11425,14 +11506,14 @@ function UnifiedNotes({ highlightNoteId, highlightDealNoteId, onBack, onClearHig
               {noteForm.category === "property" && (
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                   <div>
-                    <p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Property *</p>
+                    <p style={{ fontSize: 12, fontWeight: 600, color: "var(--text-dim)", marginBottom: 5 }}>Property *</p>
                     <select style={iS} value={noteForm.entityId} onChange={e => setNoteForm(f => ({ ...f, entityId: e.target.value, tenantId: "" }))} disabled={!!editId}>
                       <option value="">Select property...</option>
                       {PROPERTIES.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                     </select>
                   </div>
                   <div>
-                    <p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Tenant <span style={{ color: "#94a3b8", fontWeight: 400 }}>(optional)</span></p>
+                    <p style={{ fontSize: 12, fontWeight: 600, color: "var(--text-dim)", marginBottom: 5 }}>Tenant <span style={{ color: "var(--text-muted)", fontWeight: 400 }}>(optional)</span></p>
                     <select style={iS} value={noteForm.tenantId} onChange={e => setNoteForm(f => ({ ...f, tenantId: e.target.value }))} disabled={!noteForm.entityId}>
                       <option value="">No tenant</option>
                       {noteForm.entityId && TENANTS.filter(t => t.propertyId === parseInt(noteForm.entityId) && t.status !== "past" && t.status !== "vacant").map(t => <option key={t.id} value={t.id}>{t.name} — {t.unit}</option>)}
@@ -11442,7 +11523,7 @@ function UnifiedNotes({ highlightNoteId, highlightDealNoteId, onBack, onClearHig
               )}
               {noteForm.category === "deal" && (
                 <div>
-                  <p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Deal *</p>
+                  <p style={{ fontSize: 12, fontWeight: 600, color: "var(--text-dim)", marginBottom: 5 }}>Deal *</p>
                   <select style={iS} value={noteForm.entityId} onChange={e => setNoteForm(f => ({ ...f, entityId: e.target.value }))} disabled={!!editId}>
                     <option value="">Select deal...</option>
                     {DEALS.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
@@ -11451,7 +11532,7 @@ function UnifiedNotes({ highlightNoteId, highlightDealNoteId, onBack, onClearHig
               )}
               {/* Note text with @mention */}
               <div>
-                <p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Note *</p>
+                <p style={{ fontSize: 12, fontWeight: 600, color: "var(--text-dim)", marginBottom: 5 }}>Note *</p>
                 <MentionTextarea
                   value={noteForm.text}
                   onChange={(text) => setNoteForm(f => ({ ...f, text }))}
@@ -11463,7 +11544,7 @@ function UnifiedNotes({ highlightNoteId, highlightDealNoteId, onBack, onClearHig
             </div>
             <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
               <button onClick={handleSave} style={{ flex: 1, padding: "11px", borderRadius: 10, border: "none", background: "#3b82f6", color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer", opacity: (!noteForm.text.trim() || (noteForm.category !== "general" && !noteForm.entityId)) ? 0.5 : 1 }}>{editId ? "Save Changes" : "Add Note"}</button>
-              <button onClick={() => { setShowAdd(false); setEditId(null); }} style={{ padding: "11px 18px", borderRadius: 10, border: "1.5px solid #e2e8f0", background: "#fff", fontWeight: 600, fontSize: 14, cursor: "pointer", color: "#64748b" }}>Cancel</button>
+              <button onClick={() => { setShowAdd(false); setEditId(null); }} style={{ padding: "11px 18px", borderRadius: 10, border: "1.5px solid var(--border)", background: "var(--surface)", fontWeight: 600, fontSize: 14, cursor: "pointer", color: "var(--text-secondary)" }}>Cancel</button>
             </div>
           </div>
         </div>
@@ -11472,15 +11553,15 @@ function UnifiedNotes({ highlightNoteId, highlightDealNoteId, onBack, onClearHig
       {/* Delete Confirm */}
       {deleteConfirm && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
-          <div style={{ background: "#fff", borderRadius: 20, width: 480, padding: 28 }}>
-            <h2 style={{ color: "#041830", fontSize: 18, fontWeight: 700, marginBottom: 14 }}>Delete Note</h2>
-            <p style={{ color: "#475569", fontSize: 14, marginBottom: 8 }}>Are you sure you want to delete this note?</p>
-            <div style={{ background: "#f8fafc", borderRadius: 10, padding: 14, marginBottom: 18 }}>
-              <p style={{ fontSize: 13, color: "#475569", lineHeight: 1.5 }}>{deleteConfirm.text.substring(0, 120)}{deleteConfirm.text.length > 120 ? "..." : ""}</p>
+          <div style={{ background: "var(--surface)", borderRadius: 20, width: 480, padding: 28 }}>
+            <h2 style={{ color: "var(--text-primary)", fontSize: 18, fontWeight: 700, marginBottom: 14 }}>Delete Note</h2>
+            <p style={{ color: "var(--text-label)", fontSize: 14, marginBottom: 8 }}>Are you sure you want to delete this note?</p>
+            <div style={{ background: "var(--surface-alt)", borderRadius: 10, padding: 14, marginBottom: 18 }}>
+              <p style={{ fontSize: 13, color: "var(--text-label)", lineHeight: 1.5 }}>{deleteConfirm.text.substring(0, 120)}{deleteConfirm.text.length > 120 ? "..." : ""}</p>
             </div>
-            <p style={{ color: "#94a3b8", fontSize: 12, marginBottom: 18 }}>This action cannot be undone.</p>
+            <p style={{ color: "var(--text-muted)", fontSize: 12, marginBottom: 18 }}>This action cannot be undone.</p>
             <div style={{ display: "flex", gap: 10 }}>
-              <button onClick={() => setDeleteConfirm(null)} style={{ flex: 1, padding: "12px", border: "1px solid #e2e8f0", borderRadius: 10, background: "#fff", color: "#475569", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
+              <button onClick={() => setDeleteConfirm(null)} style={{ flex: 1, padding: "12px", border: "1px solid var(--border)", borderRadius: 10, background: "var(--surface)", color: "var(--text-label)", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
               <button onClick={() => handleDelete(deleteConfirm)} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "#ef4444", color: "#fff", fontWeight: 700, cursor: "pointer" }}>Delete</button>
             </div>
           </div>
@@ -11599,37 +11680,37 @@ function GlobalSearch({ onNavigate }) {
 
   return (
     <div ref={ref} style={{ position: "relative" }}>
-      <div style={{ background: focused ? "#fff" : "#f1f5f9", borderRadius: 10, padding: "8px 14px", display: "flex", alignItems: "center", gap: 8, border: focused ? "1px solid #e2e8f0" : "1px solid transparent", boxShadow: focused ? "0 4px 16px rgba(0,0,0,0.08)" : "none", transition: "all 0.15s" }}>
+      <div style={{ background: focused ? "#fff" : "#f1f5f9", borderRadius: 10, padding: "8px 14px", display: "flex", alignItems: "center", gap: 8, border: focused ? "1px solid var(--border)" : "1px solid transparent", boxShadow: focused ? "0 4px 16px rgba(0,0,0,0.08)" : "none", transition: "all 0.15s" }}>
         <Search size={14} color="#94a3b8" />
-        <input ref={inputRef} value={query} onChange={e => setQuery(e.target.value)} onFocus={() => setFocused(true)} placeholder="Search everything…" style={{ border: "none", background: "transparent", fontSize: 14, color: "#041830", outline: "none", width: 200 }} />
-        {!query && <kbd style={{ fontSize: 10, color: "#94a3b8", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 4, padding: "1px 5px", fontFamily: "inherit" }}>{navigator.platform?.includes("Mac") ? "⌘" : "Ctrl+"}K</kbd>}
-        {query && <button onClick={() => { setQuery(""); inputRef.current?.focus(); }} style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8", padding: 0, display: "flex" }}><X size={14} /></button>}
+        <input ref={inputRef} value={query} onChange={e => setQuery(e.target.value)} onFocus={() => setFocused(true)} placeholder="Search everything…" style={{ border: "none", background: "transparent", fontSize: 14, color: "var(--text-primary)", outline: "none", width: 200 }} />
+        {!query && <kbd style={{ fontSize: 10, color: "var(--text-muted)", background: "var(--surface-muted)", border: "1px solid var(--border)", borderRadius: 4, padding: "1px 5px", fontFamily: "inherit" }}>{navigator.platform?.includes("Mac") ? "⌘" : "Ctrl+"}K</kbd>}
+        {query && <button onClick={() => { setQuery(""); inputRef.current?.focus(); }} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)", padding: 0, display: "flex" }}><X size={14} /></button>}
       </div>
 
       {show && (
-        <div style={{ position: "absolute", top: "calc(100% + 6px)", right: 0, width: 420, background: "#fff", borderRadius: 14, boxShadow: "0 12px 40px rgba(0,0,0,0.15)", border: "1px solid #e2e8f0", maxHeight: 440, overflowY: "auto", zIndex: 999 }}>
+        <div style={{ position: "absolute", top: "calc(100% + 6px)", right: 0, width: 420, background: "var(--surface)", borderRadius: 14, boxShadow: "0 12px 40px rgba(0,0,0,0.15)", border: "1px solid var(--border)", maxHeight: 440, overflowY: "auto", zIndex: 999 }}>
           {results.length === 0 ? (
             <div style={{ padding: "28px 20px", textAlign: "center" }}>
               <Search size={28} color="#cbd5e1" style={{ marginBottom: 8 }} />
-              <p style={{ color: "#94a3b8", fontSize: 13 }}>No results for "{query}"</p>
+              <p style={{ color: "var(--text-muted)", fontSize: 13 }}>No results for "{query}"</p>
               <p style={{ color: "#cbd5e1", fontSize: 12, marginTop: 4 }}>Try searching by name, address, category, or description</p>
             </div>
           ) : (
             <div style={{ padding: "6px 0" }}>
               {[...grouped.entries()].map(([label, items]) => (
                 <div key={label}>
-                  <p style={{ padding: "8px 16px 4px", fontSize: 10, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.06em" }}>{label}</p>
+                  <p style={{ padding: "8px 16px 4px", fontSize: 10, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em" }}>{label}</p>
                   {items.map(item => (
                     <div key={item.type + "-" + item.id} onClick={() => handleSelect(item)}
                       style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 16px", cursor: "pointer", transition: "background 0.1s" }}
-                      onMouseEnter={e => e.currentTarget.style.background = "#f8fafc"}
+                      onMouseEnter={e => e.currentTarget.style.background = "var(--surface-alt)"}
                       onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
                       <div style={{ width: 30, height: 30, borderRadius: 8, background: (item.color || "#64748b") + "18", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                         {item.image ? <span style={{ fontSize: 10, fontWeight: 700, color: item.color }}>{item.image}</span> : <item.icon size={14} color={item.color || "#64748b"} />}
                       </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <p style={{ fontSize: 13, fontWeight: 600, color: "#041830", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.title}</p>
-                        <p style={{ fontSize: 11, color: "#94a3b8", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.sub}</p>
+                        <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.title}</p>
+                        <p style={{ fontSize: 11, color: "var(--text-muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.sub}</p>
                       </div>
                       <ChevronRight size={14} color="#cbd5e1" />
                     </div>
@@ -11649,6 +11730,7 @@ function GlobalSearch({ onNavigate }) {
 // ---------------------------------------------
 function AppShell() {
   const { user, signOut } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const [activeView, setActiveView] = useState("portfolio");
   const [selectedProperty, setSelectedProperty] = useState(null);
   const [selectedDeal, setSelectedDeal] = useState(null);
@@ -11762,7 +11844,7 @@ function AppShell() {
   };
 
   return (
-    <div style={{ display: "flex", minHeight: "100vh", background: "#f8fafc", fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>
+    <div style={{ display: "flex", minHeight: "100vh", background: "var(--surface-alt)", fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>
       <div style={{ width: 240, background: "#041830", display: "flex", flexDirection: "column", position: "fixed", top: 0, bottom: 0, left: 0, zIndex: 100 }}>
         <div style={{ padding: "24px 20px", borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
           <div style={{ display: "flex", alignItems: "center" }}>
@@ -11784,7 +11866,7 @@ function AppShell() {
               <div style={{ height: 1, background: "rgba(255,255,255,0.07)", margin: "14px 8px 12px" }} />
             </>
           )}
-          <p style={{ color: "#475569", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", padding: "0 8px", marginBottom: 8 }}>Rentals</p>
+          <p style={{ color: "var(--text-label)", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", padding: "0 8px", marginBottom: 8 }}>Rentals</p>
           {rentalNavItems.map(item => {
             const active = activeView === item.id || (item.id === "properties" && activeView === "propertyDetail");
             return (
@@ -11799,7 +11881,7 @@ function AppShell() {
             );
           })}
           <div style={{ height: 1, background: "rgba(255,255,255,0.07)", margin: "14px 8px 12px" }} />
-          <p style={{ color: "#475569", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", padding: "0 8px", marginBottom: 8 }}>Deals</p>
+          <p style={{ color: "var(--text-label)", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", padding: "0 8px", marginBottom: 8 }}>Deals</p>
           {dealNavItems.map(item => {
             const active = activeView === item.id || (item.id === "deals" && activeView === "dealDetail");
             return (
@@ -11814,7 +11896,7 @@ function AppShell() {
             );
           })}
           <div style={{ height: 1, background: "rgba(255,255,255,0.07)", margin: "14px 8px 12px" }} />
-          <p style={{ color: "#475569", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", padding: "0 8px", marginBottom: 8 }}>Tools</p>
+          <p style={{ color: "var(--text-label)", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", padding: "0 8px", marginBottom: 8 }}>Tools</p>
           {toolNavItems.map(item => {
             const active = activeView === item.id;
             return (
@@ -11835,7 +11917,7 @@ function AppShell() {
               <Star size={12} color="#f97316" fill="#f97316" />
               <span style={{ color: "#f97316", fontSize: 11, fontWeight: 700 }}>{user?.planLabel || "PRO PLAN"}</span>
             </div>
-            <p style={{ color: "#94a3b8", fontSize: 12 }}>{user?.planDescription || "Unlimited properties"}</p>
+            <p style={{ color: "var(--text-muted)", fontSize: 12 }}>{user?.planDescription || "Unlimited properties"}</p>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <div style={{ width: 34, height: 34, borderRadius: 10, background: "linear-gradient(135deg, #e95e00, #041830)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 700, fontSize: 13 }}>
@@ -11843,16 +11925,16 @@ function AppShell() {
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <p style={{ color: "#e2e8f0", fontSize: 13, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user?.name || "User"}</p>
-              <p style={{ color: "#64748b", fontSize: 11, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user?.email || ""}</p>
+              <p style={{ color: "var(--text-secondary)", fontSize: 11, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user?.email || ""}</p>
             </div>
             <SettingsIcon size={16} color="#475569" style={{ cursor: "pointer", flexShrink: 0 }} onClick={() => setShowSettings(true)} />
           </div>
         </div>
       </div>
       <div style={{ flex: 1, marginLeft: 240, display: "flex", flexDirection: "column" }}>
-        <div style={{ background: "#fff", borderBottom: "1px solid #f1f5f9", padding: "0 32px", height: 64, display: "flex", alignItems: "center", justifyContent: "space-between", position: "sticky", top: 0, zIndex: 50 }}>
+        <div style={{ background: "var(--surface)", borderBottom: "1px solid var(--border-subtle)", padding: "0 32px", height: 64, display: "flex", alignItems: "center", justifyContent: "space-between", position: "sticky", top: 0, zIndex: 50 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <span style={{ color: "#041830", fontSize: 15, fontWeight: 600 }}>
+            <span style={{ color: "var(--text-primary)", fontSize: 15, fontWeight: 600 }}>
               {activeView === "propertyDetail" && selectedProperty ? selectedProperty.name :
                activeView === "dealDetail" && selectedDeal ? selectedDeal.name :
                activeView === "tenantDetail" && selectedTenant ? selectedTenant.name :
@@ -11872,9 +11954,14 @@ function AppShell() {
               else if (item.type === "deal-note") { setHighlightDealNoteId(item.data.id); setActiveView("notes"); }
               else if (item.type === "deal-expense") { setHighlightExpId(item.data.id); setActiveView("dealexpenses"); }
             }} />
+            <button onClick={toggleTheme} title={theme === "light" ? "Switch to dark mode" : "Switch to light mode"} style={{ background: "none", border: "none", cursor: "pointer", padding: 6, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center" }}
+              onMouseEnter={e => e.currentTarget.style.background = "var(--hover-surface)"}
+              onMouseLeave={e => e.currentTarget.style.background = "none"}>
+              {theme === "light" ? <Moon size={18} color="var(--text-secondary)" /> : <Sun size={18} color="#f59e0b" />}
+            </button>
             <div style={{ position: "relative", cursor: "pointer" }}>
-              <Bell size={20} color="#64748b" />
-              <div style={{ position: "absolute", top: -3, right: -3, width: 8, height: 8, borderRadius: "50%", background: "#ef4444", border: "2px solid #fff" }} />
+              <Bell size={20} color="var(--text-secondary)" />
+              <div style={{ position: "absolute", top: -3, right: -3, width: 8, height: 8, borderRadius: "50%", background: "#ef4444", border: "2px solid var(--surface)" }} />
             </div>
             <div onClick={() => setShowSettings(true)} style={{ width: 34, height: 34, borderRadius: 10, background: "linear-gradient(135deg, #e95e00, #041830)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>{user?.initials || "?"}</div>
           </div>
@@ -11938,7 +12025,7 @@ function AppShell() {
       {/* Settings Modal */}
       {showSettings && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 500 }}>
-          <div style={{ background: "#fff", borderRadius: 20, padding: 32, width: "min(880px, 95vw)", maxHeight: "90vh", overflowY: "auto", boxShadow: "0 25px 60px rgba(0,0,0,0.2)" }}>
+          <div style={{ background: "var(--surface)", borderRadius: 20, padding: 32, width: "min(880px, 95vw)", maxHeight: "90vh", overflowY: "auto", boxShadow: "0 25px 60px rgba(0,0,0,0.2)" }}>
             <Settings onClose={() => setShowSettings(false)} />
           </div>
         </div>
@@ -11952,11 +12039,13 @@ function AppShell() {
 
 export default function App() {
   return (
-    <ToastProvider>
-      <AuthProvider>
-        <AuthGate />
-      </AuthProvider>
-    </ToastProvider>
+    <ThemeProvider>
+      <ToastProvider>
+        <AuthProvider>
+          <AuthGate />
+        </AuthProvider>
+      </ToastProvider>
+    </ThemeProvider>
   );
 }
 
