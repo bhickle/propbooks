@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback } from "react";
 // Build trigger: 2026-04-06
-import propbooksLogo from "./logos/PropBooks Horizontal Logo (3).png";
+import propbooksLogo from "./logos/PropBooks Horizontal Logo_transparent_white.png";
 import {
   AreaChart, Area, BarChart, Bar, LineChart, Line,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend
