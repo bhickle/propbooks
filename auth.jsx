@@ -9,7 +9,7 @@
 
 import { useState, createContext, useContext } from "react";
 import { Eye, EyeOff, ArrowRight, CheckCircle, Building2, TrendingUp, PieChart, Hammer, Car } from "lucide-react";
-import propbooksLogoDark from "./logos/PropBooks Horizontal Logo (3).png";
+import propbooksLogoDark from "./logos/PropBooks Horizontal Logo_transparent_white.png";
 import propbooksLogoLight from "./logos/PropBooks Horizontal Logo (2).png";
 
 // -----------------------------------------------------------------------------
