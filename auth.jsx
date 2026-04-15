@@ -351,7 +351,7 @@ export function AuthScreen() {
 
         <div style={{ position: "relative", zIndex: 1, textAlign: "center", maxWidth: 460 }}>
           {/* Logo */}
-          <img src={propbooksLogoDark} alt="PropBooks" style={{ height: 48, objectFit: "contain", marginBottom: 36, mixBlendMode: "screen" }} />
+          <img src={propbooksLogoDark} alt="PropBooks" style={{ height: 48, objectFit: "contain", marginBottom: 36 }} />
 
           <h2 style={{ color: "#fff", fontSize: 32, fontWeight: 800, marginBottom: 16, lineHeight: 1.2, letterSpacing: "-0.02em" }}>
             Whether you hold it or flip it,<br />we've got you covered.
