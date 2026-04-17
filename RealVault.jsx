@@ -1177,18 +1177,27 @@ function WizardShell({ steps, currentStep, onStepClick, title, subtitle, onExit,
 }
 
 // Shared wizard step navigation buttons
-function WizardNav({ onBack, onNext, nextLabel, backLabel, nextDisabled }) {
+function WizardNav({ onBack, onNext, onSkip, nextLabel, backLabel, nextDisabled }) {
   return (
-    <div style={{ display: "flex", justifyContent: "space-between", marginTop: 32, paddingTop: 20, borderTop: "1px solid var(--border-subtle)" }}>
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 32, paddingTop: 20, borderTop: "1px solid var(--border-subtle)" }}>
       {onBack ? (
         <button onClick={onBack} style={{ display: "flex", alignItems: "center", gap: 6, padding: "10px 20px", borderRadius: 10, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text-label)", fontSize: 14, fontWeight: 600, cursor: "pointer" }}>
           <ArrowLeft size={16} /> {backLabel || "Back"}
         </button>
       ) : <div />}
-      <button onClick={onNext} disabled={nextDisabled}
-        style={{ display: "flex", alignItems: "center", gap: 6, padding: "10px 24px", borderRadius: 10, border: "none", background: nextDisabled ? "#cbd5e1" : "#e95e00", color: "#fff", fontSize: 14, fontWeight: 700, cursor: nextDisabled ? "not-allowed" : "pointer", transition: "background 0.15s" }}>
-        {nextLabel || "Continue"} {nextLabel !== "Add to Portfolio" && nextLabel !== "Add to Pipeline" && <ArrowRight size={16} />}
-      </button>
+      <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+        {onSkip && (
+          <button onClick={onSkip} style={{ background: "none", border: "none", color: "var(--text-muted)", fontSize: 13, fontWeight: 600, cursor: "pointer", padding: "10px 4px" }}
+            onMouseEnter={e => e.currentTarget.style.color = "var(--text-secondary)"}
+            onMouseLeave={e => e.currentTarget.style.color = "var(--text-muted)"}>
+            Skip this step
+          </button>
+        )}
+        <button onClick={onNext} disabled={nextDisabled}
+          style={{ display: "flex", alignItems: "center", gap: 6, padding: "10px 24px", borderRadius: 10, border: "none", background: nextDisabled ? "#cbd5e1" : "#e95e00", color: "#fff", fontSize: 14, fontWeight: 700, cursor: nextDisabled ? "not-allowed" : "pointer", transition: "background 0.15s" }}>
+          {nextLabel || "Continue"} {nextLabel !== "Add to Portfolio" && nextLabel !== "Add to Pipeline" && <ArrowRight size={16} />}
+        </button>
+      </div>
     </div>
   );
 }
@@ -1215,13 +1224,14 @@ function RentalWizard({ onComplete, onExit }) {
   const steps = ["Property", "Financials", "Tenants", "Review"];
   const [step, setStep] = useState(0);
   const todayStr = new Date().toISOString().slice(0, 10);
+  const [showExitConfirm, setShowExitConfirm] = useState(false);
 
   // Step 1: Property basics
-  const [basics, setBasics] = useState({ name: "", address: "", type: "Single Family", units: "1", status: "Occupied", purchaseDate: "" });
+  const [basics, setBasics] = useState({ name: "", address: "", type: "Single Family", units: "1", status: "Occupied", purchaseDate: todayStr });
   const sb = k => e => setBasics(f => ({ ...f, [k]: e.target.value }));
 
   // Step 2: Financials
-  const [fin, setFin] = useState({ purchasePrice: "", currentValue: "", closingCosts: "", loanAmount: "", loanRate: "", loanTermYears: "30", loanStartDate: "", monthlyRent: "", monthlyExpenses: "" });
+  const [fin, setFin] = useState({ purchasePrice: "", currentValue: "", closingCosts: "", loanAmount: "", loanRate: "", loanTermYears: "30", loanStartDate: todayStr, monthlyRent: "", monthlyExpenses: "" });
   const sf = k => e => setFin(f => ({ ...f, [k]: e.target.value }));
 
   // Mortgage calc
@@ -1283,8 +1293,30 @@ function RentalWizard({ onComplete, onExit }) {
     onComplete && onComplete();
   };
 
+  const handleExit = () => {
+    if (basics.name.trim()) { setShowExitConfirm(true); } else { onExit(); }
+  };
+  const handleSaveAndExit = () => {
+    handleSave();
+    showToast(`"${basics.name}" saved — you can finish editing from the property detail screen`);
+  };
+
   return (
-    <WizardShell steps={steps} currentStep={step} onStepClick={setStep} title="Add Rental Property" subtitle="We'll walk you through setting up your property, financials, and tenants." onExit={onExit}>
+    <WizardShell steps={steps} currentStep={step} onStepClick={setStep} title="Add Rental Property" subtitle="We'll walk you through setting up your property, financials, and tenants." onExit={handleExit}>
+      {showExitConfirm && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999 }}>
+          <div style={{ background: "var(--surface)", borderRadius: 16, padding: 28, maxWidth: 400, width: "90%", boxShadow: "0 20px 60px rgba(0,0,0,0.15)" }}>
+            <h3 style={{ fontSize: 17, fontWeight: 700, color: "var(--text-primary)", marginBottom: 8 }}>Save before leaving?</h3>
+            <p style={{ fontSize: 13, color: "var(--text-secondary)", lineHeight: 1.6, marginBottom: 24 }}>
+              You've started adding "{basics.name}". Would you like to save what you have so far? You can finish filling in the details later.
+            </p>
+            <div style={{ display: "flex", gap: 10 }}>
+              <button onClick={onExit} style={{ flex: 1, padding: "10px 0", borderRadius: 10, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text-label)", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Discard</button>
+              <button onClick={handleSaveAndExit} style={{ flex: 1, padding: "10px 0", borderRadius: 10, border: "none", background: "#e95e00", color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>Save & Exit</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {step === 0 && (
         <div style={{ background: "var(--surface)", borderRadius: 16, padding: 28, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)" }}>
@@ -1373,7 +1405,7 @@ function RentalWizard({ onComplete, onExit }) {
               </WizardField>
             </div>
           </div>
-          <WizardNav onBack={() => setStep(0)} onNext={() => setStep(2)} />
+          <WizardNav onBack={() => setStep(0)} onNext={() => setStep(2)} onSkip={() => setStep(2)} />
         </div>
       )}
 
@@ -1427,7 +1459,7 @@ function RentalWizard({ onComplete, onExit }) {
               </div>
             ))}
           </div>
-          <WizardNav onBack={() => setStep(1)} onNext={() => setStep(3)} />
+          <WizardNav onBack={() => setStep(1)} onNext={() => setStep(3)} onSkip={() => setStep(3)} />
         </div>
       )}
 
@@ -1506,9 +1538,10 @@ function FlipWizard({ onComplete, onExit }) {
   const steps = ["Deal Info", "Financials", "Rehab Scope", "Review"];
   const [step, setStep] = useState(0);
   const todayStr = new Date().toISOString().slice(0, 10);
+  const [showExitConfirm, setShowExitConfirm] = useState(false);
 
   // Step 1: Deal basics
-  const [basics, setBasics] = useState({ name: "", address: "", stage: "Under Contract", acquisitionDate: "", projectedCloseDate: "" });
+  const [basics, setBasics] = useState({ name: "", address: "", stage: "Under Contract", acquisitionDate: todayStr, projectedCloseDate: "" });
   const sb = k => e => setBasics(f => ({ ...f, [k]: e.target.value }));
 
   // Step 2: Financials
@@ -1565,8 +1598,30 @@ function FlipWizard({ onComplete, onExit }) {
     onComplete && onComplete();
   };
 
+  const handleExit = () => {
+    if (basics.name.trim()) { setShowExitConfirm(true); } else { onExit(); }
+  };
+  const handleSaveAndExit = () => {
+    handleSave();
+    showToast(`"${basics.name}" saved — you can finish editing from the deal detail screen`);
+  };
+
   return (
-    <WizardShell steps={steps} currentStep={step} onStepClick={setStep} title="Add Fix & Flip Deal" subtitle="We'll walk you through the deal details, financials, and rehab scope." onExit={onExit}>
+    <WizardShell steps={steps} currentStep={step} onStepClick={setStep} title="Add Fix & Flip Deal" subtitle="We'll walk you through the deal details, financials, and rehab scope." onExit={handleExit}>
+      {showExitConfirm && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999 }}>
+          <div style={{ background: "var(--surface)", borderRadius: 16, padding: 28, maxWidth: 400, width: "90%", boxShadow: "0 20px 60px rgba(0,0,0,0.15)" }}>
+            <h3 style={{ fontSize: 17, fontWeight: 700, color: "var(--text-primary)", marginBottom: 8 }}>Save before leaving?</h3>
+            <p style={{ fontSize: 13, color: "var(--text-secondary)", lineHeight: 1.6, marginBottom: 24 }}>
+              You've started adding "{basics.name}". Would you like to save what you have so far? You can finish filling in the details later.
+            </p>
+            <div style={{ display: "flex", gap: 10 }}>
+              <button onClick={onExit} style={{ flex: 1, padding: "10px 0", borderRadius: 10, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text-label)", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Discard</button>
+              <button onClick={handleSaveAndExit} style={{ flex: 1, padding: "10px 0", borderRadius: 10, border: "none", background: "#e95e00", color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>Save & Exit</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {step === 0 && (
         <div style={{ background: "var(--surface)", borderRadius: 16, padding: 28, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)" }}>
@@ -1624,7 +1679,7 @@ function FlipWizard({ onComplete, onExit }) {
               </span>
             </div>
           )}
-          <WizardNav onBack={() => setStep(0)} onNext={() => setStep(2)} />
+          <WizardNav onBack={() => setStep(0)} onNext={() => setStep(2)} onSkip={() => setStep(2)} />
         </div>
       )}
 
@@ -1767,7 +1822,7 @@ function FlipWizard({ onComplete, onExit }) {
               )}
             </div>
           )}
-          <WizardNav onBack={() => setStep(1)} onNext={() => setStep(3)} />
+          <WizardNav onBack={() => setStep(1)} onNext={() => setStep(3)} onSkip={() => setStep(3)} />
         </div>
       )}
 
@@ -2013,10 +2068,8 @@ function PortfolioDashboard({ onNavigate, onSelectProperty, onSelectFlip, onNavi
         {[
           { label: "Log Rental Transaction", icon: ArrowUpDown, color: "#10b981", bg: "#dcfce7", action: () => onNavigate("transactions") },
           { label: "Log Deal Expense", icon: Hammer, color: "#e95e00", bg: "#ffedd5", action: () => onNavigate("dealexpenses") },
-          { label: "Add Property", icon: Building2, color: "#e95e00", bg: "#fff7ed", action: () => onNavigate("properties") },
-          { label: "Add Deal", icon: Target, color: "#8b5cf6", bg: "#ede9fe", action: () => onNavigate("deals") },
-          { label: "Rental Wizard", icon: Sparkles, color: "#3b82f6", bg: "#eff6ff", action: () => onNavigate("rentalWizard") },
-          { label: "Flip Wizard", icon: Sparkles, color: "#f59e0b", bg: "#fefce8", action: () => onNavigate("flipWizard") },
+          { label: "Add Property", icon: Building2, color: "#e95e00", bg: "#fff7ed", action: () => onNavigate("rentalWizard") },
+          { label: "Add Deal", icon: Target, color: "#8b5cf6", bg: "#ede9fe", action: () => onNavigate("flipWizard") },
           { label: "Add Note", icon: MessageSquare, color: "#6366f1", bg: "#eef2ff", action: () => onNavigate("notes-add") },
         ].map((qa, i) => (
           <button key={i} onClick={qa.action} style={qaBtnS(qa.color, qa.bg)}
@@ -2733,12 +2786,9 @@ function Properties({ onSelect, editPropertyId, onClearEditId, convertDealData, 
           <p style={{ color: "var(--text-secondary)", fontSize: 15 }}>{PROPERTIES.length} properties in your portfolio</p>
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          <button onClick={openAdd} style={{ background: "#e95e00", color: "#fff", border: "none", borderRadius: 10, padding: "10px 18px", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
+          <button onClick={onGuidedSetup} style={{ background: "#e95e00", color: "#fff", border: "none", borderRadius: 10, padding: "10px 18px", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
             <Plus size={16} /> Add Property
           </button>
-          {typeof onGuidedSetup === "function" && <button onClick={onGuidedSetup} style={{ background: "var(--surface)", color: "#e95e00", border: "1px solid #e95e00", borderRadius: 10, padding: "10px 18px", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
-            <Sparkles size={16} /> Guided Setup
-          </button>}
         </div>
       </div>
       <div style={{ display: "flex", gap: 12, marginBottom: 24 }}>
@@ -2828,7 +2878,7 @@ function Properties({ onSelect, editPropertyId, onClearEditId, convertDealData, 
           {filtered.length === 0 && (
             <div style={{ gridColumn: "1 / -1" }}>
               {PROPERTIES.length === 0
-                ? <EmptyState icon={Home} title="No properties yet" subtitle="Add your first rental property to start tracking your portfolio." actionLabel="Add Property" onAction={openAdd} />
+                ? <EmptyState icon={Home} title="No properties yet" subtitle="Add your first rental property to start tracking your portfolio." actionLabel="Add Property" onAction={onGuidedSetup} />
                 : <EmptyState icon={Search} title="No properties found" subtitle="Try adjusting your search or filters." />
               }
             </div>
@@ -2902,7 +2952,7 @@ function Properties({ onSelect, editPropertyId, onClearEditId, convertDealData, 
               {filtered.length === 0 && (
                 <tr><td colSpan={9}>
                   {PROPERTIES.length === 0
-                    ? <EmptyState icon={Home} title="No properties yet" subtitle="Add your first rental property to start tracking your portfolio." actionLabel="Add Property" onAction={openAdd} />
+                    ? <EmptyState icon={Home} title="No properties yet" subtitle="Add your first rental property to start tracking your portfolio." actionLabel="Add Property" onAction={onGuidedSetup} />
                     : <EmptyState icon={Search} title="No properties found" subtitle="Try adjusting your search or filters." />
                   }
                 </td></tr>
@@ -6608,12 +6658,9 @@ function DealPipeline({ onSelect, onGuidedSetup }) {
           <p style={{ color: "var(--text-secondary)", fontSize: 15 }}>Track every deal from contract to close</p>
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          <button onClick={() => setShowAddDeal(true)} style={{ background: "#e95e00", color: "#fff", border: "none", borderRadius: 10, padding: "10px 18px", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
+          <button onClick={onGuidedSetup} style={{ background: "#e95e00", color: "#fff", border: "none", borderRadius: 10, padding: "10px 18px", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
             <Plus size={16} /> Add Deal
           </button>
-          {typeof onGuidedSetup === "function" && <button onClick={onGuidedSetup} style={{ background: "var(--surface)", color: "#e95e00", border: "1px solid #e95e00", borderRadius: 10, padding: "10px 18px", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
-            <Sparkles size={16} /> Guided Setup
-          </button>}
         </div>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 24 }}>
@@ -6659,7 +6706,7 @@ function DealPipeline({ onSelect, onGuidedSetup }) {
         {filtered.length === 0 && (
           <div style={{ gridColumn: "1 / -1" }}>
             {DEALS.length === 0
-              ? <EmptyState icon={Layers} title="No deals yet" subtitle="Add your first deal to start tracking your pipeline." actionLabel="Add Deal" onAction={() => setShowAddDeal(true)} />
+              ? <EmptyState icon={Layers} title="No deals yet" subtitle="Add your first deal to start tracking your pipeline." actionLabel="Add Deal" onAction={onGuidedSetup} />
               : <EmptyState icon={Search} title="No deals match this filter" subtitle="Try selecting a different stage or clear the filter." />
             }
           </div>
