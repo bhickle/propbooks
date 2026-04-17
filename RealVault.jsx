@@ -15,7 +15,7 @@ import {
   Users, Route, Calculator, FileCheck, UserCheck, Truck, Layers, Car,
   CheckSquare, Square, PlusCircle, Receipt, UploadCloud, Trash2, Pencil, Info, List,
   CreditCard, MessageSquare, Copy, Camera, Image, AlertTriangle, ArrowRight, ArrowLeft, ExternalLink,
-  Paperclip, ScanLine, FileImage, FilePlus, Loader, Phone, Mail, Shield, Sparkles, Sun, Moon
+  Paperclip, ScanLine, FileImage, FilePlus, Loader, Phone, Mail, Shield, Sun, Moon
 } from "lucide-react";
 import {
   newId, fmt, fmtK,
@@ -2727,7 +2727,6 @@ function Properties({ onSelect, editPropertyId, onClearEditId, convertDealData, 
     e.target.value = ""; // allow re-upload of same file
   };
 
-  const openAdd = () => { setEditId(null); setForm(emptyP); setShowModal(true); };
   const openEdit = (e, p) => {
     e.stopPropagation();
     setEditId(p.id);
@@ -6606,38 +6605,7 @@ function DealCard({ deal, onSelect }) {
 function DealPipeline({ onSelect, onGuidedSetup }) {
   const { showToast } = useToast();
   const [activeStage, setActiveStage] = useState("all");
-  const [showAddDeal, setShowAddDeal] = useState(false);
-  const emptyDeal = { name: "", address: "", purchasePrice: "", arv: "", rehabBudget: "", holdingCostsPerMonth: "", stage: "Under Contract", acquisitionDate: "", projectedCloseDate: "" };
-  const [dealForm, setDealForm] = useState(emptyDeal);
-  const sfD = k => e => setDealForm(f => ({ ...f, [k]: e.target.value }));
   const [, forceRender] = useState(0);
-
-  const handleSaveDeal = () => {
-    if (!dealForm.name || !dealForm.purchasePrice) return;
-    const initials = dealForm.name.split(/\s+/).map(w => w[0]).join("").toUpperCase().slice(0, 2);
-    const colors = ["#e95e00", "#3b82f6", "#10b981", "#8b5cf6", "#ef4444", "#ec4899"];
-    const color = colors[DEALS.length % colors.length];
-    const newDeal = {
-      id: newId(), name: dealForm.name, address: dealForm.address || "",
-      stage: dealForm.stage, image: initials, color,
-      purchasePrice: parseFloat(dealForm.purchasePrice) || 0,
-      arv: parseFloat(dealForm.arv) || 0,
-      rehabBudget: parseFloat(dealForm.rehabBudget) || 0,
-      rehabSpent: 0,
-      holdingCostsPerMonth: parseFloat(dealForm.holdingCostsPerMonth) || 0,
-      acquisitionDate: dealForm.acquisitionDate || "",
-      projectedCloseDate: dealForm.projectedCloseDate || "",
-      daysOwned: 0,
-      rehabItems: [],
-    };
-    DEALS.push(newDeal);
-    // Auto-populate milestones for the new deal
-    _LOCAL_FLIP_MILESTONES[newDeal.id] = DEFAULT_MILESTONES.map(label => ({ label, done: false, date: null, targetDate: null }));
-    setDealForm(emptyDeal);
-    setShowAddDeal(false);
-    forceRender(n => n + 1);
-    showToast(`"${newDeal.name}" added to pipeline`);
-  };
 
   const activeDeals = DEALS.filter(f => f.stage !== "Sold");
   const totalDeployed = activeDeals.reduce((s, f) => s + f.purchasePrice + f.rehabSpent, 0);
@@ -6713,68 +6681,6 @@ function DealPipeline({ onSelect, onGuidedSetup }) {
         )}
       </div>
 
-      {showAddDeal && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
-          <div style={{ background: "var(--surface)", borderRadius: 20, width: 560, maxHeight: "90vh", overflow: "auto", padding: 28 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-              <h2 style={{ color: "var(--text-primary)", fontSize: 20, fontWeight: 700 }}>Add Deal</h2>
-              <button onClick={() => { setShowAddDeal(false); setDealForm(emptyDeal); }} style={{ background: "var(--surface-muted)", border: "none", borderRadius: 8, width: 32, height: 32, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><X size={16} color="#64748b" /></button>
-            </div>
-
-            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-              <div>
-                <label style={{ display: "block", color: "var(--text-dim)", fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Deal Name *</label>
-                <input value={dealForm.name} onChange={sfD("name")} placeholder="e.g. Oakdale Craftsman" style={iS} />
-              </div>
-              <div>
-                <label style={{ display: "block", color: "var(--text-dim)", fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Address</label>
-                <input value={dealForm.address} onChange={sfD("address")} placeholder="1234 Main St, Nashville, TN 37206" style={iS} />
-              </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-                <div>
-                  <label style={{ display: "block", color: "var(--text-dim)", fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Purchase Price *</label>
-                  <input value={dealForm.purchasePrice} onChange={sfD("purchasePrice")} type="number" placeholder="195000" style={iS} />
-                </div>
-                <div>
-                  <label style={{ display: "block", color: "var(--text-dim)", fontSize: 13, fontWeight: 600, marginBottom: 4 }}>ARV (After Repair Value)</label>
-                  <input value={dealForm.arv} onChange={sfD("arv")} type="number" placeholder="310000" style={iS} />
-                </div>
-              </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-                <div>
-                  <label style={{ display: "block", color: "var(--text-dim)", fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Rehab Budget</label>
-                  <input value={dealForm.rehabBudget} onChange={sfD("rehabBudget")} type="number" placeholder="62000" style={iS} />
-                </div>
-                <div>
-                  <label style={{ display: "block", color: "var(--text-dim)", fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Holding Costs / Month</label>
-                  <input value={dealForm.holdingCostsPerMonth} onChange={sfD("holdingCostsPerMonth")} type="number" placeholder="1850" style={iS} />
-                </div>
-              </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-                <div>
-                  <label style={{ display: "block", color: "var(--text-dim)", fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Stage</label>
-                  <select value={dealForm.stage} onChange={sfD("stage")} style={iS}>
-                    {STAGE_ORDER.filter(s => s !== "Sold").map(s => <option key={s} value={s}>{s}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label style={{ display: "block", color: "var(--text-dim)", fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Acquisition Date</label>
-                  <input value={dealForm.acquisitionDate} onChange={sfD("acquisitionDate")} type="date" style={iS} />
-                </div>
-              </div>
-              <div>
-                <label style={{ display: "block", color: "var(--text-dim)", fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Projected Close Date</label>
-                <input value={dealForm.projectedCloseDate} onChange={sfD("projectedCloseDate")} type="date" style={iS} />
-              </div>
-            </div>
-
-            <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 22 }}>
-              <button onClick={() => { setShowAddDeal(false); setDealForm(emptyDeal); }} style={{ padding: "10px 20px", borderRadius: 10, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text-secondary)", fontWeight: 600, fontSize: 14, cursor: "pointer" }}>Cancel</button>
-              <button onClick={handleSaveDeal} style={{ padding: "10px 24px", borderRadius: 10, border: "none", background: "#e95e00", color: "#fff", fontWeight: 600, fontSize: 14, cursor: "pointer", opacity: (!dealForm.name || !dealForm.purchasePrice) ? 0.5 : 1 }}>Add Deal</button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
