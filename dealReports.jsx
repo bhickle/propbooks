@@ -16,10 +16,10 @@ import { fmt, fmtK, STAGE_ORDER, STAGE_COLORS } from "./api.js";
 import { DEALS as _DEALS, DEAL_EXPENSES as _FE, CONTRACTORS as _CON } from "./api.js";
 
 // ─── Shared styles ───────────────────────────────────────────────────────────
-const iS = { width: "100%", padding: "10px 14px", borderRadius: 10, border: "1.5px solid #e2e8f0", fontSize: 14, color: "#0f172a", background: "#fff", outline: "none" };
-const thS = { padding: "11px 16px", textAlign: "left", color: "#94a3b8", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", background: "#f8fafc" };
-const tdS = { padding: "12px 16px", fontSize: 13, color: "#0f172a", borderTop: "1px solid #f1f5f9" };
-const sectionS = { background: "#fff", borderRadius: 16, padding: 24, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" };
+const iS = { width: "100%", padding: "10px 14px", borderRadius: 10, border: "1.5px solid var(--border)", fontSize: 14, color: "var(--text-primary)", background: "var(--surface)", outline: "none" };
+const thS = { padding: "11px 16px", textAlign: "left", color: "var(--text-muted)", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", background: "var(--surface-alt)" };
+const tdS = { padding: "12px 16px", fontSize: 13, color: "var(--text-primary)", borderTop: "1px solid var(--border-subtle)" };
+const sectionS = { background: "var(--surface)", borderRadius: 16, padding: 24, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)" };
 
 // ─── InfoTip ─────────────────────────────────────────────────────────────────
 function InfoTip({ text }) {
@@ -27,11 +27,11 @@ function InfoTip({ text }) {
   return (
     <span style={{ position: "relative", display: "inline-flex", marginLeft: 4, cursor: "help" }}
       onMouseEnter={() => setShow(true)} onMouseLeave={() => setShow(false)}>
-      <Info size={12} color="#94a3b8" />
+      <Info size={12} color="var(--text-muted)" />
       {show && (
         <span style={{ position: "absolute", bottom: "calc(100% + 8px)", left: "50%", transform: "translateX(-50%)",
-          background: "#0f172a", color: "#fff", fontSize: 12, padding: "8px 12px", borderRadius: 10,
-          border: "1px solid #e2e8f0", whiteSpace: "nowrap", zIndex: 100, fontWeight: 400, lineHeight: 1.4 }}>
+          background: "var(--tooltip-bg)", color: "var(--tooltip-text)", fontSize: 12, padding: "8px 12px", borderRadius: 10,
+          border: "1px solid var(--tooltip-border)", whiteSpace: "nowrap", zIndex: 100, fontWeight: 400, lineHeight: 1.4 }}>
           {text}
         </span>
       )}
@@ -89,8 +89,8 @@ export function DealReports() {
       {/* Header */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
         <div>
-          <h1 style={{ color: "#0f172a", fontSize: 26, fontWeight: 700, marginBottom: 4 }}>Deal Reports</h1>
-          <p style={{ color: "#64748b", fontSize: 15 }}>Profitability, rehab analysis, contractor payments, and projections</p>
+          <h1 style={{ color: "var(--text-primary)", fontSize: 26, fontWeight: 700, marginBottom: 4 }}>Deal Reports</h1>
+          <p style={{ color: "var(--text-secondary)", fontSize: 15 }}>Profitability, rehab analysis, contractor payments, and projections</p>
         </div>
         <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
           <select value={dealFilter} onChange={e => setDealFilter(e.target.value)} style={{ ...iS, width: 220 }}>
@@ -103,14 +103,14 @@ export function DealReports() {
       {/* KPI Strip */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 14, marginBottom: 24 }}>
         {[
-          { label: "Total Invested",  value: fmt(totalInvested), color: "#3b82f6", bg: "#eff6ff",   tip: "Purchase + rehab spent + holding costs + selling costs" },
-          { label: "Total Profit",    value: fmt(totalProfit),   color: totalProfit >= 0 ? "#15803d" : "#b91c1c", bg: totalProfit >= 0 ? "#f0fdf4" : "#fef2f2", tip: "Sale price (or ARV) minus total invested" },
-          { label: "Avg ROI",         value: `${avgROI.toFixed(1)}%`, color: "#8b5cf6", bg: "#f5f3ff", tip: "Average return on investment across all deals" },
-          { label: "Rehab Spend",     value: fmt(totalRehab),    color: "#f59e0b", bg: "#fffbeb",   tip: "Total rehab dollars spent across all deals" },
-          { label: "Budget Variance", value: `${totalBudget > 0 ? (((totalRehab - totalBudget) / totalBudget) * 100).toFixed(1) : 0}%`, color: totalRehab > totalBudget ? "#b91c1c" : "#15803d", bg: totalRehab > totalBudget ? "#fef2f2" : "#f0fdf4", tip: "How much total rehab spend is over/under total budget" },
+          { label: "Total Invested",  value: fmt(totalInvested), color: "#3b82f6", bg: "var(--surface-alt)",   tip: "Purchase + rehab spent + holding costs + selling costs" },
+          { label: "Total Profit",    value: fmt(totalProfit),   color: totalProfit >= 0 ? "#15803d" : "#b91c1c", bg: "var(--surface-alt)", tip: "Sale price (or ARV) minus total invested" },
+          { label: "Avg ROI",         value: `${avgROI.toFixed(1)}%`, color: "#8b5cf6", bg: "var(--surface-alt)", tip: "Average return on investment across all deals" },
+          { label: "Rehab Spend",     value: fmt(totalRehab),    color: "#f59e0b", bg: "var(--surface-alt)",   tip: "Total rehab dollars spent across all deals" },
+          { label: "Budget Variance", value: `${totalBudget > 0 ? (((totalRehab - totalBudget) / totalBudget) * 100).toFixed(1) : 0}%`, color: totalRehab > totalBudget ? "#b91c1c" : "#15803d", bg: "var(--surface-alt)", tip: "How much total rehab spend is over/under total budget" },
         ].map((m, i) => (
-          <div key={i} style={{ background: m.bg, borderRadius: 14, padding: "14px 16px", border: "1px solid #f1f5f9" }}>
-            <p style={{ color: "#64748b", fontSize: 10, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6 }}>{m.label}<InfoTip text={m.tip} /></p>
+          <div key={i} style={{ background: m.bg, borderRadius: 14, padding: "14px 16px", border: "1px solid var(--border-subtle)" }}>
+            <p style={{ color: "var(--text-secondary)", fontSize: 10, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6 }}>{m.label}<InfoTip text={m.tip} /></p>
             <p style={{ color: m.color, fontSize: 20, fontWeight: 800 }}>{m.value}</p>
           </div>
         ))}
@@ -118,24 +118,24 @@ export function DealReports() {
 
       <div style={{ display: "grid", gridTemplateColumns: "220px 1fr", gap: 20 }}>
         {/* Sidebar */}
-        <div style={{ background: "#fff", borderRadius: 16, padding: 10, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9", height: "fit-content" }}>
-          <p style={{ fontSize: 10, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.06em", padding: "8px 14px 4px" }}>Profitability</p>
+        <div style={{ background: "var(--surface)", borderRadius: 16, padding: 10, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)", height: "fit-content" }}>
+          <p style={{ fontSize: 10, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", padding: "8px 14px 4px" }}>Profitability</p>
           {profitReports.map(r => (
-            <button key={r.id} onClick={() => setActiveReport(r.id)} style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "11px 14px", borderRadius: 10, border: "none", background: activeReport === r.id ? "#eff6ff" : "transparent", color: activeReport === r.id ? "#3b82f6" : "#475569", fontWeight: activeReport === r.id ? 700 : 500, fontSize: 14, cursor: "pointer", marginBottom: 2, textAlign: "left" }}>
+            <button key={r.id} onClick={() => setActiveReport(r.id)} style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "11px 14px", borderRadius: 10, border: "none", background: activeReport === r.id ? "#eff6ff" : "transparent", color: activeReport === r.id ? "#3b82f6" : "var(--text-label)", fontWeight: activeReport === r.id ? 700 : 500, fontSize: 14, cursor: "pointer", marginBottom: 2, textAlign: "left" }}>
               <r.icon size={16} /> {r.label}
             </button>
           ))}
-          <div style={{ borderTop: "1px solid #f1f5f9", margin: "8px 14px", paddingTop: 0 }} />
-          <p style={{ fontSize: 10, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.06em", padding: "4px 14px 4px" }}>Operational</p>
+          <div style={{ borderTop: "1px solid var(--border-subtle)", margin: "8px 14px", paddingTop: 0 }} />
+          <p style={{ fontSize: 10, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", padding: "4px 14px 4px" }}>Operational</p>
           {operationalReports.map(r => (
-            <button key={r.id} onClick={() => setActiveReport(r.id)} style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "11px 14px", borderRadius: 10, border: "none", background: activeReport === r.id ? "#eff6ff" : "transparent", color: activeReport === r.id ? "#3b82f6" : "#475569", fontWeight: activeReport === r.id ? 700 : 500, fontSize: 14, cursor: "pointer", marginBottom: 2, textAlign: "left" }}>
+            <button key={r.id} onClick={() => setActiveReport(r.id)} style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "11px 14px", borderRadius: 10, border: "none", background: activeReport === r.id ? "#eff6ff" : "transparent", color: activeReport === r.id ? "#3b82f6" : "var(--text-label)", fontWeight: activeReport === r.id ? 700 : 500, fontSize: 14, cursor: "pointer", marginBottom: 2, textAlign: "left" }}>
               <r.icon size={16} /> {r.label}
             </button>
           ))}
-          <div style={{ borderTop: "1px solid #f1f5f9", marginTop: 12, paddingTop: 12 }}>
-            <p style={{ fontSize: 11, color: "#94a3b8", fontWeight: 600, textTransform: "uppercase", padding: "0 14px", marginBottom: 6 }}>Scope</p>
-            <p style={{ fontSize: 12, color: "#475569", padding: "0 14px", fontWeight: 600 }}>{dealFilter === "all" ? `All ${_DEALS.length} deals` : _DEALS.find(f => f.id === parseInt(dealFilter))?.name}</p>
-            <p style={{ fontSize: 12, color: "#94a3b8", padding: "0 14px" }}>{deals.filter(d => d.stage === "Sold").length} sold · {deals.filter(d => d.stage !== "Sold").length} active</p>
+          <div style={{ borderTop: "1px solid var(--border-subtle)", marginTop: 12, paddingTop: 12 }}>
+            <p style={{ fontSize: 11, color: "var(--text-muted)", fontWeight: 600, textTransform: "uppercase", padding: "0 14px", marginBottom: 6 }}>Scope</p>
+            <p style={{ fontSize: 12, color: "var(--text-label)", padding: "0 14px", fontWeight: 600 }}>{dealFilter === "all" ? `All ${_DEALS.length} deals` : _DEALS.find(f => f.id === parseInt(dealFilter))?.name}</p>
+            <p style={{ fontSize: 12, color: "var(--text-muted)", padding: "0 14px" }}>{deals.filter(d => d.stage === "Sold").length} sold · {deals.filter(d => d.stage !== "Sold").length} active</p>
           </div>
         </div>
 
@@ -165,8 +165,8 @@ function ProfitabilityReport({ deals }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
       <div style={sectionS}>
-        <h3 style={{ fontSize: 16, fontWeight: 700, color: "#0f172a", marginBottom: 4 }}>Deal Profitability Summary</h3>
-        <p style={{ fontSize: 13, color: "#94a3b8", marginBottom: 20 }}>Profit, ROI, and cost breakdown per deal</p>
+        <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--text-primary)", marginBottom: 4 }}>Deal Profitability Summary</h3>
+        <p style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 20 }}>Profit, ROI, and cost breakdown per deal</p>
 
         <div style={{ overflowX: "auto" }}>
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
@@ -224,14 +224,14 @@ function ProfitabilityReport({ deals }) {
       {/* Profit chart */}
       {chartData.length > 1 && (
         <div style={sectionS}>
-          <h3 style={{ fontSize: 16, fontWeight: 700, color: "#0f172a", marginBottom: 4 }}>Profit by Deal</h3>
-          <p style={{ fontSize: 13, color: "#94a3b8", marginBottom: 20 }}>Net profit comparison across deals</p>
+          <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--text-primary)", marginBottom: 4 }}>Profit by Deal</h3>
+          <p style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 20 }}>Net profit comparison across deals</p>
           <ResponsiveContainer width="100%" height={280}>
             <BarChart data={chartData} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-              <XAxis dataKey="name" tick={{ fontSize: 12, fill: "#94a3b8" }} />
-              <YAxis tickFormatter={v => fmtK(v)} tick={{ fontSize: 12, fill: "#94a3b8" }} />
-              <Tooltip formatter={v => fmt(v)} contentStyle={{ borderRadius: 10, border: "1px solid #e2e8f0", fontSize: 12 }} />
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
+              <XAxis dataKey="name" tick={{ fontSize: 12, fill: "var(--chart-axis)" }} />
+              <YAxis tickFormatter={v => fmtK(v)} tick={{ fontSize: 12, fill: "var(--chart-axis)" }} />
+              <Tooltip formatter={v => fmt(v)} contentStyle={{ borderRadius: 10, border: "1px solid var(--tooltip-border)", fontSize: 12 }} />
               <Bar dataKey="profit" name="Profit" radius={[6, 6, 0, 0]}>
                 {chartData.map((d, i) => <Cell key={i} fill={d.profit >= 0 ? "#10b981" : "#ef4444"} />)}
               </Bar>
@@ -266,12 +266,12 @@ function RehabBudgetReport({ deals }) {
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                 <span style={{ width: 10, height: 10, borderRadius: "50%", background: d.color }} />
-                <h3 style={{ fontSize: 16, fontWeight: 700, color: "#0f172a" }}>{d.name}</h3>
-                <span style={{ background: STAGE_COLORS[d.stage]?.bg || "#f1f5f9", color: STAGE_COLORS[d.stage]?.text || "#64748b", borderRadius: 20, padding: "2px 10px", fontSize: 11, fontWeight: 600 }}>{d.stage}</span>
+                <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--text-primary)" }}>{d.name}</h3>
+                <span style={{ background: STAGE_COLORS[d.stage]?.bg || "var(--surface-muted)", color: STAGE_COLORS[d.stage]?.text || "var(--text-secondary)", borderRadius: 20, padding: "2px 10px", fontSize: 11, fontWeight: 600 }}>{d.stage}</span>
               </div>
               <div style={{ display: "flex", gap: 16, fontSize: 13 }}>
-                <span style={{ color: "#64748b" }}>Budget: <strong style={{ color: "#0f172a" }}>{fmt(totalBudget)}</strong></span>
-                <span style={{ color: "#64748b" }}>Spent: <strong style={{ color: totalSpent > totalBudget ? "#b91c1c" : "#0f172a" }}>{fmt(totalSpent)}</strong></span>
+                <span style={{ color: "var(--text-secondary)" }}>Budget: <strong style={{ color: "var(--text-primary)" }}>{fmt(totalBudget)}</strong></span>
+                <span style={{ color: "var(--text-secondary)" }}>Spent: <strong style={{ color: totalSpent > totalBudget ? "#b91c1c" : "var(--text-primary)" }}>{fmt(totalSpent)}</strong></span>
                 <span style={{ color: variance > 0 ? "#b91c1c" : "#15803d", fontWeight: 700 }}>{variance > 0 ? "+" : ""}{variance.toFixed(1)}%</span>
               </div>
             </div>
@@ -300,10 +300,10 @@ function RehabBudgetReport({ deals }) {
                       <td style={{ ...tdS, textAlign: "right", fontWeight: 600, color: v > 0 ? "#b91c1c" : v < 0 ? "#15803d" : "#64748b" }}>{v > 0 ? "+" : ""}{v.toFixed(1)}%</td>
                       <td style={{ ...tdS, minWidth: 120 }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                          <div style={{ flex: 1, height: 6, background: "#f1f5f9", borderRadius: 99, overflow: "hidden" }}>
+                          <div style={{ flex: 1, height: 6, background: "var(--surface-muted)", borderRadius: 99, overflow: "hidden" }}>
                             <div style={{ height: "100%", width: `${pct}%`, background: pct > 100 ? "#ef4444" : pct === 100 ? "#10b981" : "#3b82f6", borderRadius: 99, transition: "width 0.3s" }} />
                           </div>
-                          <span style={{ fontSize: 11, color: "#64748b", minWidth: 32 }}>{Math.round(pct)}%</span>
+                          <span style={{ fontSize: 11, color: "var(--text-secondary)", minWidth: 32 }}>{Math.round(pct)}%</span>
                         </div>
                       </td>
                     </tr>
@@ -316,10 +316,10 @@ function RehabBudgetReport({ deals }) {
             {chartData.length > 0 && (
               <ResponsiveContainer width="100%" height={220}>
                 <BarChart data={chartData} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                  <XAxis dataKey="name" tick={{ fontSize: 11, fill: "#94a3b8" }} />
-                  <YAxis tickFormatter={v => fmtK(v)} tick={{ fontSize: 11, fill: "#94a3b8" }} />
-                  <Tooltip formatter={v => fmt(v)} contentStyle={{ borderRadius: 10, border: "1px solid #e2e8f0", fontSize: 12 }} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
+                  <XAxis dataKey="name" tick={{ fontSize: 11, fill: "var(--chart-axis)" }} />
+                  <YAxis tickFormatter={v => fmtK(v)} tick={{ fontSize: 11, fill: "var(--chart-axis)" }} />
+                  <Tooltip formatter={v => fmt(v)} contentStyle={{ borderRadius: 10, border: "1px solid var(--tooltip-border)", fontSize: 12 }} />
                   <Bar dataKey="budgeted" name="Budgeted" fill="#cbd5e1" radius={[6, 6, 0, 0]} />
                   <Bar dataKey="spent" name="Spent" fill="#f59e0b" radius={[6, 6, 0, 0]} />
                   <Legend wrapperStyle={{ fontSize: 12 }} />
@@ -344,8 +344,8 @@ function HoldingCostsReport({ deals }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
       <div style={sectionS}>
-        <h3 style={{ fontSize: 16, fontWeight: 700, color: "#0f172a", marginBottom: 4 }}>Holding Cost Analysis</h3>
-        <p style={{ fontSize: 13, color: "#94a3b8", marginBottom: 20 }}>Monthly burn rate, days held, and total holding costs per deal</p>
+        <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--text-primary)", marginBottom: 4 }}>Holding Cost Analysis</h3>
+        <p style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 20 }}>Monthly burn rate, days held, and total holding costs per deal</p>
 
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
@@ -360,7 +360,7 @@ function HoldingCostsReport({ deals }) {
               const pctInv = d.m.totalInvested > 0 ? (d.m.totalHolding / d.m.totalInvested * 100) : 0;
               const holdVsProfit = d.m.profit > 0 ? (d.m.totalHolding / d.m.profit * 100) : 0;
               const daily = d.m.holdPerMonth > 0 ? Math.round(d.m.holdPerMonth / 30) : 0;
-              const stg = STAGE_COLORS[d.stage] || { bg: "#f1f5f9", text: "#64748b" };
+              const stg = STAGE_COLORS[d.stage] || { bg: "var(--surface-muted)", text: "var(--text-secondary)" };
               return (
                 <tr key={d.id}>
                   <td style={{ ...tdS, fontWeight: 600 }}>
@@ -371,11 +371,11 @@ function HoldingCostsReport({ deals }) {
                   </td>
                   <td style={tdS}><span style={{ background: stg.bg, color: stg.text, borderRadius: 20, padding: "2px 10px", fontSize: 11, fontWeight: 600 }}>{d.stage}</span></td>
                   <td style={{ ...tdS, textAlign: "right", fontWeight: 600 }}>{d.m.daysOwned || "—"}</td>
-                  <td style={{ ...tdS, textAlign: "right" }}>{fmt(d.m.holdPerMonth)}<span style={{ color: "#94a3b8", fontSize: 11 }}>/mo</span></td>
-                  <td style={{ ...tdS, textAlign: "right" }}>{fmt(daily)}<span style={{ color: "#94a3b8", fontSize: 11 }}>/day</span></td>
+                  <td style={{ ...tdS, textAlign: "right" }}>{fmt(d.m.holdPerMonth)}<span style={{ color: "var(--text-muted)", fontSize: 11 }}>/mo</span></td>
+                  <td style={{ ...tdS, textAlign: "right" }}>{fmt(daily)}<span style={{ color: "var(--text-muted)", fontSize: 11 }}>/day</span></td>
                   <td style={{ ...tdS, textAlign: "right", fontWeight: 700, color: "#b91c1c" }}>{fmt(d.m.totalHolding)}</td>
                   <td style={{ ...tdS, textAlign: "right" }}>{pctInv.toFixed(1)}%</td>
-                  <td style={{ ...tdS, textAlign: "right", color: holdVsProfit > 30 ? "#b91c1c" : "#64748b" }}>{d.m.profit > 0 ? `${holdVsProfit.toFixed(1)}%` : "—"}</td>
+                  <td style={{ ...tdS, textAlign: "right", color: holdVsProfit > 30 ? "#b91c1c" : "var(--text-secondary)" }}>{d.m.profit > 0 ? `${holdVsProfit.toFixed(1)}%` : "—"}</td>
                 </tr>
               );
             })}
@@ -385,14 +385,14 @@ function HoldingCostsReport({ deals }) {
 
       {chartData.length > 1 && (
         <div style={sectionS}>
-          <h3 style={{ fontSize: 16, fontWeight: 700, color: "#0f172a", marginBottom: 4 }}>Holding Costs by Deal</h3>
-          <p style={{ fontSize: 13, color: "#94a3b8", marginBottom: 20 }}>Total holding cost comparison</p>
+          <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--text-primary)", marginBottom: 4 }}>Holding Costs by Deal</h3>
+          <p style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 20 }}>Total holding cost comparison</p>
           <ResponsiveContainer width="100%" height={260}>
             <BarChart data={chartData} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-              <XAxis dataKey="name" tick={{ fontSize: 12, fill: "#94a3b8" }} />
-              <YAxis tickFormatter={v => fmtK(v)} tick={{ fontSize: 12, fill: "#94a3b8" }} />
-              <Tooltip formatter={v => fmt(v)} contentStyle={{ borderRadius: 10, border: "1px solid #e2e8f0", fontSize: 12 }} />
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
+              <XAxis dataKey="name" tick={{ fontSize: 12, fill: "var(--chart-axis)" }} />
+              <YAxis tickFormatter={v => fmtK(v)} tick={{ fontSize: 12, fill: "var(--chart-axis)" }} />
+              <Tooltip formatter={v => fmt(v)} contentStyle={{ borderRadius: 10, border: "1px solid var(--tooltip-border)", fontSize: 12 }} />
               <Bar dataKey="holding" name="Total Holding" fill="#ef4444" radius={[6, 6, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
@@ -455,8 +455,8 @@ function ContractorPaymentsReport({ dealFilter }) {
           { label: "Total Paid",          value: fmt(totalPaid),     color: "#f59e0b", tip: "Total payments disbursed to all contractors" },
           { label: "Outstanding Balance", value: fmt(outstanding),   color: outstanding > 0 ? "#ef4444" : "#10b981", tip: "Accepted bids minus payments made" },
         ].map((m, i) => (
-          <div key={i} style={{ background: "#fff", borderRadius: 16, padding: "18px 20px", border: "1px solid #f1f5f9" }}>
-            <p style={{ color: "#94a3b8", fontSize: 10, fontWeight: 600, textTransform: "uppercase", marginBottom: 4 }}>{m.label}<InfoTip text={m.tip} /></p>
+          <div key={i} style={{ background: "var(--surface)", borderRadius: 16, padding: "18px 20px", border: "1px solid var(--border-subtle)" }}>
+            <p style={{ color: "var(--text-muted)", fontSize: 10, fontWeight: 600, textTransform: "uppercase", marginBottom: 4 }}>{m.label}<InfoTip text={m.tip} /></p>
             <p style={{ color: m.color, fontSize: 22, fontWeight: 800 }}>{m.value}</p>
           </div>
         ))}
@@ -464,11 +464,11 @@ function ContractorPaymentsReport({ dealFilter }) {
 
       {/* Contractor table */}
       <div style={sectionS}>
-        <h3 style={{ fontSize: 16, fontWeight: 700, color: "#0f172a", marginBottom: 4 }}>Contractor Payment Detail</h3>
-        <p style={{ fontSize: 13, color: "#94a3b8", marginBottom: 20 }}>All contractors with bids or payments</p>
+        <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--text-primary)", marginBottom: 4 }}>Contractor Payment Detail</h3>
+        <p style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 20 }}>All contractors with bids or payments</p>
 
         {sorted.length === 0 ? (
-          <div style={{ padding: 40, textAlign: "center", color: "#94a3b8", fontSize: 14 }}>No contractor activity to report.</div>
+          <div style={{ padding: 40, textAlign: "center", color: "var(--text-muted)", fontSize: 14 }}>No contractor activity to report.</div>
         ) : (
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
@@ -496,7 +496,7 @@ function ContractorPaymentsReport({ dealFilter }) {
                         {c.rating > 0 && <span style={{ fontSize: 11, color: "#f59e0b" }}>{"★".repeat(c.rating)}</span>}
                       </div>
                     </td>
-                    <td style={{ ...tdS, color: "#64748b" }}>{c.trade}</td>
+                    <td style={{ ...tdS, color: "var(--text-secondary)" }}>{c.trade}</td>
                     <td style={{ ...tdS, textAlign: "right" }}>{dealCount}</td>
                     <td style={{ ...tdS, textAlign: "right" }}>{fmt(bidTotal)}</td>
                     <td style={{ ...tdS, textAlign: "right" }}>{fmt(acceptTotal)}</td>
@@ -514,8 +514,8 @@ function ContractorPaymentsReport({ dealFilter }) {
       {/* Pie by trade */}
       {pieData.length > 1 && (
         <div style={sectionS}>
-          <h3 style={{ fontSize: 16, fontWeight: 700, color: "#0f172a", marginBottom: 4 }}>Payments by Trade</h3>
-          <p style={{ fontSize: 13, color: "#94a3b8", marginBottom: 20 }}>Distribution of contractor payments by trade specialty</p>
+          <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--text-primary)", marginBottom: 4 }}>Payments by Trade</h3>
+          <p style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 20 }}>Distribution of contractor payments by trade specialty</p>
           <ResponsiveContainer width="100%" height={340}>
             <PieChart>
               <Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} innerRadius={0}
@@ -525,10 +525,10 @@ function ContractorPaymentsReport({ dealFilter }) {
                   const cx2 = 0; const cy2 = 0;
                   return `${name} (${(percent * 100).toFixed(0)}%)`;
                 }}
-                labelLine={{ stroke: "#94a3b8", strokeWidth: 1 }}>
+                labelLine={{ stroke: "var(--text-muted)", strokeWidth: 1 }}>
                 {pieData.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
               </Pie>
-              <Tooltip formatter={v => fmt(v)} contentStyle={{ borderRadius: 10, border: "1px solid #e2e8f0", fontSize: 12 }} />
+              <Tooltip formatter={v => fmt(v)} contentStyle={{ borderRadius: 10, border: "1px solid var(--tooltip-border)", fontSize: 12 }} />
               <Legend wrapperStyle={{ fontSize: 12, paddingTop: 12 }} />
             </PieChart>
           </ResponsiveContainer>
@@ -573,16 +573,16 @@ function CapitalGainsReport({ deals }) {
           { label: "Short-Term Deals",    value: String(shortCount), color: "#f59e0b", tip: "Held less than 1 year — taxed as ordinary income" },
           { label: "Long-Term Deals",     value: String(longCount),  color: "#10b981", tip: "Held 1+ years — lower capital gains rate" },
         ].map((m, i) => (
-          <div key={i} style={{ background: "#fff", borderRadius: 16, padding: "18px 20px", border: "1px solid #f1f5f9" }}>
-            <p style={{ color: "#94a3b8", fontSize: 10, fontWeight: 600, textTransform: "uppercase", marginBottom: 4 }}>{m.label}<InfoTip text={m.tip} /></p>
+          <div key={i} style={{ background: "var(--surface)", borderRadius: 16, padding: "18px 20px", border: "1px solid var(--border-subtle)" }}>
+            <p style={{ color: "var(--text-muted)", fontSize: 10, fontWeight: 600, textTransform: "uppercase", marginBottom: 4 }}>{m.label}<InfoTip text={m.tip} /></p>
             <p style={{ color: m.color, fontSize: 22, fontWeight: 800 }}>{m.value}</p>
           </div>
         ))}
       </div>
 
       <div style={sectionS}>
-        <h3 style={{ fontSize: 16, fontWeight: 700, color: "#0f172a", marginBottom: 4 }}>Capital Gains Projection</h3>
-        <p style={{ fontSize: 13, color: "#94a3b8", marginBottom: 20 }}>Estimated tax liability by deal — consult your CPA for actual filing</p>
+        <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--text-primary)", marginBottom: 4 }}>Capital Gains Projection</h3>
+        <p style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 20 }}>Estimated tax liability by deal — consult your CPA for actual filing</p>
 
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
@@ -618,7 +618,7 @@ function CapitalGainsReport({ deals }) {
           </tbody>
         </table>
 
-        <p style={{ marginTop: 16, fontSize: 12, color: "#94a3b8", fontStyle: "italic" }}>
+        <p style={{ marginTop: 16, fontSize: 12, color: "var(--text-muted)", fontStyle: "italic" }}>
           Tax estimates use 22% for short-term and 15% for long-term gains. Actual rates depend on your income bracket. Consult a tax professional.
         </p>
       </div>
@@ -662,15 +662,15 @@ function CashFlowReport({ deals }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
       <div style={sectionS}>
-        <h3 style={{ fontSize: 16, fontWeight: 700, color: "#0f172a", marginBottom: 4 }}>Monthly Cash Flow</h3>
-        <p style={{ fontSize: 13, color: "#94a3b8", marginBottom: 20 }}>Money in (sales) vs money out (purchases, rehab, holding) by month</p>
+        <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--text-primary)", marginBottom: 4 }}>Monthly Cash Flow</h3>
+        <p style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 20 }}>Money in (sales) vs money out (purchases, rehab, holding) by month</p>
 
         <ResponsiveContainer width="100%" height={300}>
           <BarChart data={monthlyData} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-            <XAxis dataKey="month" tick={{ fontSize: 12, fill: "#94a3b8" }} />
-            <YAxis tickFormatter={v => fmtK(v)} tick={{ fontSize: 12, fill: "#94a3b8" }} />
-            <Tooltip formatter={v => fmt(v)} contentStyle={{ borderRadius: 10, border: "1px solid #e2e8f0", fontSize: 12 }} />
+            <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
+            <XAxis dataKey="month" tick={{ fontSize: 12, fill: "var(--chart-axis)" }} />
+            <YAxis tickFormatter={v => fmtK(v)} tick={{ fontSize: 12, fill: "var(--chart-axis)" }} />
+            <Tooltip formatter={v => fmt(v)} contentStyle={{ borderRadius: 10, border: "1px solid var(--tooltip-border)", fontSize: 12 }} />
             <Bar dataKey="sales" name="Sales" fill="#10b981" radius={[6, 6, 0, 0]} />
             <Bar dataKey="totalOut" name="Cash Out" fill="#ef4444" radius={[6, 6, 0, 0]} />
             <Legend wrapperStyle={{ fontSize: 12 }} />
@@ -679,8 +679,8 @@ function CashFlowReport({ deals }) {
       </div>
 
       <div style={sectionS}>
-        <h3 style={{ fontSize: 16, fontWeight: 700, color: "#0f172a", marginBottom: 4 }}>Cash Flow Detail</h3>
-        <p style={{ fontSize: 13, color: "#94a3b8", marginBottom: 20 }}>Monthly breakdown of inflows and outflows</p>
+        <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--text-primary)", marginBottom: 4 }}>Cash Flow Detail</h3>
+        <p style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 20 }}>Monthly breakdown of inflows and outflows</p>
 
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
@@ -694,8 +694,8 @@ function CashFlowReport({ deals }) {
             {monthlyData.map((m, i) => (
               <tr key={i}>
                 <td style={{ ...tdS, fontWeight: 600 }}>{m.month}</td>
-                <td style={{ ...tdS, textAlign: "right", color: m.sales > 0 ? "#15803d" : "#94a3b8" }}>{m.sales > 0 ? fmt(m.sales) : "—"}</td>
-                <td style={{ ...tdS, textAlign: "right", color: m.purchases > 0 ? "#b91c1c" : "#94a3b8" }}>{m.purchases > 0 ? fmt(m.purchases) : "—"}</td>
+                <td style={{ ...tdS, textAlign: "right", color: m.sales > 0 ? "#15803d" : "var(--text-muted)" }}>{m.sales > 0 ? fmt(m.sales) : "—"}</td>
+                <td style={{ ...tdS, textAlign: "right", color: m.purchases > 0 ? "#b91c1c" : "var(--text-muted)" }}>{m.purchases > 0 ? fmt(m.purchases) : "—"}</td>
                 <td style={{ ...tdS, textAlign: "right" }}>{m.rehabSpend > 0 ? fmt(m.rehabSpend) : "—"}</td>
                 <td style={{ ...tdS, textAlign: "right" }}>{m.holdingCosts > 0 ? fmt(m.holdingCosts) : "—"}</td>
                 <td style={{ ...tdS, textAlign: "right", fontWeight: 600 }}>{m.totalOut > 0 ? fmt(m.totalOut) : "—"}</td>
@@ -704,7 +704,7 @@ function CashFlowReport({ deals }) {
             ))}
           </tbody>
           <tfoot>
-            <tr style={{ background: "#f8fafc" }}>
+            <tr style={{ background: "var(--surface-alt)" }}>
               <td style={{ ...tdS, fontWeight: 700 }}>Total</td>
               <td style={{ ...tdS, textAlign: "right", fontWeight: 700, color: "#15803d" }}>{fmt(monthlyData.reduce((s, m) => s + m.sales, 0))}</td>
               <td style={{ ...tdS, textAlign: "right", fontWeight: 700 }}>{fmt(monthlyData.reduce((s, m) => s + m.purchases, 0))}</td>
@@ -753,8 +753,8 @@ function PipelineReport({ deals }) {
           { label: "Projected Profit",      value: fmt(projectedProfit), color: "#8b5cf6", tip: "Estimated profit on unsold deals (ARV minus costs)" },
           { label: "Realized Profit",       value: fmt(realizedProfit),  color: "#15803d", tip: "Actual profit from sold deals" },
         ].map((m, i) => (
-          <div key={i} style={{ background: "#fff", borderRadius: 16, padding: "18px 20px", border: "1px solid #f1f5f9" }}>
-            <p style={{ color: "#94a3b8", fontSize: 10, fontWeight: 600, textTransform: "uppercase", marginBottom: 4 }}>{m.label}<InfoTip text={m.tip} /></p>
+          <div key={i} style={{ background: "var(--surface)", borderRadius: 16, padding: "18px 20px", border: "1px solid var(--border-subtle)" }}>
+            <p style={{ color: "var(--text-muted)", fontSize: 10, fontWeight: 600, textTransform: "uppercase", marginBottom: 4 }}>{m.label}<InfoTip text={m.tip} /></p>
             <p style={{ color: m.color, fontSize: 22, fontWeight: 800 }}>{m.value}</p>
           </div>
         ))}
@@ -762,8 +762,8 @@ function PipelineReport({ deals }) {
 
       {/* Stage breakdown */}
       <div style={sectionS}>
-        <h3 style={{ fontSize: 16, fontWeight: 700, color: "#0f172a", marginBottom: 4 }}>Pipeline by Stage</h3>
-        <p style={{ fontSize: 13, color: "#94a3b8", marginBottom: 20 }}>Deal count, value, and projected profit at each stage</p>
+        <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--text-primary)", marginBottom: 4 }}>Pipeline by Stage</h3>
+        <p style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 20 }}>Deal count, value, and projected profit at each stage</p>
 
         <div style={{ display: "grid", gridTemplateColumns: pieData.length > 1 ? "1fr 300px" : "1fr", gap: 24 }}>
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
@@ -798,10 +798,10 @@ function PipelineReport({ deals }) {
               <PieChart>
                 <Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={85} innerRadius={0}
                   label={({ percent }) => `${(percent * 100).toFixed(0)}%`}
-                  labelLine={{ stroke: "#94a3b8", strokeWidth: 1 }}>
+                  labelLine={{ stroke: "var(--text-muted)", strokeWidth: 1 }}>
                   {pieData.map((d, i) => <Cell key={i} fill={PIE_COLORS[d.name] || "#64748b"} />)}
                 </Pie>
-                <Tooltip formatter={v => fmt(v)} contentStyle={{ borderRadius: 10, border: "1px solid #e2e8f0", fontSize: 12 }} />
+                <Tooltip formatter={v => fmt(v)} contentStyle={{ borderRadius: 10, border: "1px solid var(--tooltip-border)", fontSize: 12 }} />
                 <Legend wrapperStyle={{ fontSize: 12, paddingTop: 8 }} />
               </PieChart>
             </ResponsiveContainer>
@@ -811,8 +811,8 @@ function PipelineReport({ deals }) {
 
       {/* Deal timeline */}
       <div style={sectionS}>
-        <h3 style={{ fontSize: 16, fontWeight: 700, color: "#0f172a", marginBottom: 4 }}>Deal Timeline</h3>
-        <p style={{ fontSize: 13, color: "#94a3b8", marginBottom: 20 }}>Key dates and projected milestones for each deal</p>
+        <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--text-primary)", marginBottom: 4 }}>Deal Timeline</h3>
+        <p style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 20 }}>Key dates and projected milestones for each deal</p>
 
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
@@ -824,7 +824,7 @@ function PipelineReport({ deals }) {
           </thead>
           <tbody>
             {deals.map(d => {
-              const stg = STAGE_COLORS[d.stage] || { bg: "#f1f5f9", text: "#64748b" };
+              const stg = STAGE_COLORS[d.stage] || { bg: "var(--surface-muted)", text: "var(--text-secondary)" };
               return (
                 <tr key={d.id}>
                   <td style={{ ...tdS, fontWeight: 600 }}>
