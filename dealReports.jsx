@@ -188,7 +188,7 @@ function ProfitabilityReport({ deals }) {
                         {d.name}
                       </div>
                     </td>
-                    <td style={tdS}><span style={{ background: stg.bg, color: stg.text, borderRadius: 20, padding: "2px 10px", fontSize: 11, fontWeight: 600 }}>{d.stage}</span></td>
+                    <td style={tdS}><span style={{ background: stg.bg, color: stg.text, borderRadius: 20, padding: "2px 10px", fontSize: 11, fontWeight: 600, whiteSpace: "nowrap", display: "inline-block", lineHeight: 1.4 }}>{d.stage}</span></td>
                     <td style={{ ...tdS, textAlign: "right" }}>{fmt(d.purchasePrice)}</td>
                     <td style={{ ...tdS, textAlign: "right" }}>{fmt(d.m.rehabSpent)}</td>
                     <td style={{ ...tdS, textAlign: "right" }}>{fmt(d.m.totalHolding)}</td>
@@ -267,7 +267,7 @@ function RehabBudgetReport({ deals }) {
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                 <span style={{ width: 10, height: 10, borderRadius: "50%", background: d.color }} />
                 <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--text-primary)" }}>{d.name}</h3>
-                <span style={{ background: STAGE_COLORS[d.stage]?.bg || "var(--surface-muted)", color: STAGE_COLORS[d.stage]?.text || "var(--text-secondary)", borderRadius: 20, padding: "2px 10px", fontSize: 11, fontWeight: 600 }}>{d.stage}</span>
+                <span style={{ background: STAGE_COLORS[d.stage]?.bg || "var(--surface-muted)", color: STAGE_COLORS[d.stage]?.text || "var(--text-secondary)", borderRadius: 20, padding: "2px 10px", fontSize: 11, fontWeight: 600, whiteSpace: "nowrap" }}>{d.stage}</span>
               </div>
               <div style={{ display: "flex", gap: 16, fontSize: 13 }}>
                 <span style={{ color: "var(--text-secondary)" }}>Budget: <strong style={{ color: "var(--text-primary)" }}>{fmt(totalBudget)}</strong></span>
@@ -369,7 +369,7 @@ function HoldingCostsReport({ deals }) {
                       {d.name}
                     </div>
                   </td>
-                  <td style={tdS}><span style={{ background: stg.bg, color: stg.text, borderRadius: 20, padding: "2px 10px", fontSize: 11, fontWeight: 600 }}>{d.stage}</span></td>
+                  <td style={tdS}><span style={{ background: stg.bg, color: stg.text, borderRadius: 20, padding: "2px 10px", fontSize: 11, fontWeight: 600, whiteSpace: "nowrap", display: "inline-block", lineHeight: 1.4 }}>{d.stage}</span></td>
                   <td style={{ ...tdS, textAlign: "right", fontWeight: 600 }}>{d.m.daysOwned || "—"}</td>
                   <td style={{ ...tdS, textAlign: "right" }}>{fmt(d.m.holdPerMonth)}<span style={{ color: "var(--text-muted)", fontSize: 11 }}>/mo</span></td>
                   <td style={{ ...tdS, textAlign: "right" }}>{fmt(daily)}<span style={{ color: "var(--text-muted)", fontSize: 11 }}>/day</span></td>
@@ -833,7 +833,7 @@ function PipelineReport({ deals }) {
                       {d.name}
                     </div>
                   </td>
-                  <td style={tdS}><span style={{ background: stg.bg, color: stg.text, borderRadius: 20, padding: "2px 10px", fontSize: 11, fontWeight: 600 }}>{d.stage}</span></td>
+                  <td style={tdS}><span style={{ background: stg.bg, color: stg.text, borderRadius: 20, padding: "2px 10px", fontSize: 11, fontWeight: 600, whiteSpace: "nowrap", display: "inline-block", lineHeight: 1.4 }}>{d.stage}</span></td>
                   <td style={{ ...tdS, textAlign: "right", fontSize: 12 }}>{d.acquisitionDate || d.contractDate || "—"}</td>
                   <td style={{ ...tdS, textAlign: "right", fontSize: 12 }}>{d.rehabStartDate || "—"}</td>
                   <td style={{ ...tdS, textAlign: "right", fontSize: 12 }}>{d.rehabEndDate || "—"}</td>
