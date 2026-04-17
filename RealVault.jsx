@@ -187,6 +187,15 @@ function ThemeProvider({ children }) {
           --warning-btn-bg-hover: #fdba74;
           --warning-btn-text: #c2410c;
           --warning-btn-text-hover: #9a3412;
+          --success-tint: #f0fdf4;
+          --success-border: #bbf7d0;
+          --danger-tint: #fef2f2;
+          --danger-border: #fecaca;
+          --info-tint: #eff6ff;
+          --info-border: #bfdbfe;
+          --info-tint-alt: #f0f9ff;
+          --purple-tint: #f5f3ff;
+          --active-highlight: #eff6ff;
         }
         :root[data-theme="dark"] {
           --surface: #1e293b;
@@ -216,6 +225,15 @@ function ThemeProvider({ children }) {
           --warning-btn-bg-hover: rgba(245, 158, 11, 0.25);
           --warning-btn-text: #fbbf24;
           --warning-btn-text-hover: #fde68a;
+          --success-tint: rgba(16, 185, 129, 0.08);
+          --success-border: rgba(16, 185, 129, 0.2);
+          --danger-tint: rgba(239, 68, 68, 0.08);
+          --danger-border: rgba(239, 68, 68, 0.2);
+          --info-tint: rgba(59, 130, 246, 0.08);
+          --info-border: rgba(59, 130, 246, 0.2);
+          --info-tint-alt: rgba(59, 130, 246, 0.06);
+          --purple-tint: rgba(139, 92, 246, 0.08);
+          --active-highlight: rgba(59, 130, 246, 0.12);
         }
         :root[data-theme="dark"] body { background: var(--page-bg); }
         :root[data-theme="dark"] input, :root[data-theme="dark"] select, :root[data-theme="dark"] textarea {
@@ -5641,11 +5659,11 @@ function Reports() {
           }, 0);
           const actualPct = Math.round((allCalc.filter(c => c.hasActual).length / Math.max(1, allCalc.length)) * 100);
           return [
-            { label: "Gross Rental Income", value: fmt(tRent), color: "#15803d", bg: "#f0fdf4" },
-            { label: "Total Expenses", value: fmt(tExp), color: "#b91c1c", bg: "#fef2f2" },
-            { label: isTaxReport ? "Net Taxable Income" : "Net Operating Income", value: fmt(tNet), color: tNet >= 0 ? "#15803d" : "#b91c1c", bg: "#f0f9ff" },
-            { label: isTaxReport ? "Annual Depreciation" : "Portfolio Properties", value: isTaxReport ? fmt(tDepr) : String(reportProps.length), color: isTaxReport ? "#8b5cf6" : "#8b5cf6", bg: "#f5f3ff" },
-            { label: "Actual Data Coverage", value: `${actualPct}%`, color: "#3b82f6", bg: "#eff6ff" },
+            { label: "Gross Rental Income", value: fmt(tRent), color: "#15803d", bg: "var(--success-tint)" },
+            { label: "Total Expenses", value: fmt(tExp), color: "#b91c1c", bg: "var(--danger-tint)" },
+            { label: isTaxReport ? "Net Taxable Income" : "Net Operating Income", value: fmt(tNet), color: tNet >= 0 ? "#15803d" : "#b91c1c", bg: "var(--info-tint-alt)" },
+            { label: isTaxReport ? "Annual Depreciation" : "Portfolio Properties", value: isTaxReport ? fmt(tDepr) : String(reportProps.length), color: isTaxReport ? "#8b5cf6" : "#8b5cf6", bg: "var(--purple-tint)" },
+            { label: "Actual Data Coverage", value: `${actualPct}%`, color: "#3b82f6", bg: "var(--info-tint)" },
           ].map((m, i) => (
             <div key={i} style={{ background: m.bg, borderRadius: 14, padding: "14px 16px", border: "1px solid var(--border-subtle)" }}>
               <p style={{ color: "var(--text-secondary)", fontSize: 10, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6 }}>{m.label}</p>
@@ -5660,14 +5678,14 @@ function Reports() {
         <div style={{ background: "var(--surface)", borderRadius: 16, padding: 10, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)", height: "fit-content" }}>
           <p style={{ fontSize: 10, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", padding: "8px 14px 4px" }}>Tax Reports</p>
           {taxReports.map(r => (
-            <button key={r.id} onClick={() => setActiveReport(r.id)} style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "11px 14px", borderRadius: 10, border: "none", background: activeReport === r.id ? "#eff6ff" : "transparent", color: activeReport === r.id ? "#3b82f6" : "var(--text-label)", fontWeight: activeReport === r.id ? 700 : 500, fontSize: 14, cursor: "pointer", marginBottom: 2, textAlign: "left" }}>
+            <button key={r.id} onClick={() => setActiveReport(r.id)} style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "11px 14px", borderRadius: 10, border: "none", background: activeReport === r.id ? "var(--active-highlight)" : "transparent", color: activeReport === r.id ? "#3b82f6" : "var(--text-label)", fontWeight: activeReport === r.id ? 700 : 500, fontSize: 14, cursor: "pointer", marginBottom: 2, textAlign: "left" }}>
               <r.icon size={16} /> {r.label}
             </button>
           ))}
           <div style={{ borderTop: "1px solid var(--border-subtle)", margin: "8px 14px", paddingTop: 0 }} />
           <p style={{ fontSize: 10, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", padding: "4px 14px 4px" }}>Financial Reports</p>
           {financialReports.map(r => (
-            <button key={r.id} onClick={() => setActiveReport(r.id)} style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "11px 14px", borderRadius: 10, border: "none", background: activeReport === r.id ? "#eff6ff" : "transparent", color: activeReport === r.id ? "#3b82f6" : "var(--text-label)", fontWeight: activeReport === r.id ? 700 : 500, fontSize: 14, cursor: "pointer", marginBottom: 2, textAlign: "left" }}>
+            <button key={r.id} onClick={() => setActiveReport(r.id)} style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "11px 14px", borderRadius: 10, border: "none", background: activeReport === r.id ? "var(--active-highlight)" : "transparent", color: activeReport === r.id ? "#3b82f6" : "var(--text-label)", fontWeight: activeReport === r.id ? 700 : 500, fontSize: 14, cursor: "pointer", marginBottom: 2, textAlign: "left" }}>
               <r.icon size={16} /> {r.label}
             </button>
           ))}
@@ -5909,16 +5927,16 @@ function Reports() {
                     </div>
 
                     {!hasData ? (
-                      <div style={{ background: "#fff7ed", borderRadius: 12, padding: "14px 18px", border: "1px solid #fdba74", marginBottom: 20 }}>
-                        <p style={{ color: "#7c2d12", fontSize: 13, fontWeight: 600 }}>No transactions logged for {MONTH_NAMES[ownerMonth]} {taxYear}. Add transactions to see actual data here.</p>
+                      <div style={{ background: "var(--warning-bg)", borderRadius: 12, padding: "14px 18px", border: "1px solid var(--warning-border)", marginBottom: 20 }}>
+                        <p style={{ color: "var(--warning-text)", fontSize: 13, fontWeight: 600 }}>No transactions logged for {MONTH_NAMES[ownerMonth]} {taxYear}. Add transactions to see actual data here.</p>
                       </div>
                     ) : null}
 
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16, marginBottom: 24 }}>
                       {[
-                        { label: "Total Income", value: fmt(totalIn), color: "#15803d", bg: "#f0fdf4" },
-                        { label: "Total Expenses", value: fmt(totalOut), color: "#b91c1c", bg: "#fef2f2" },
-                        { label: "Net Operating Income", value: fmt(net), color: net >= 0 ? "#15803d" : "#b91c1c", bg: "#f0f9ff" },
+                        { label: "Total Income", value: fmt(totalIn), color: "#15803d", bg: "var(--success-tint)" },
+                        { label: "Total Expenses", value: fmt(totalOut), color: "#b91c1c", bg: "var(--danger-tint)" },
+                        { label: "Net Operating Income", value: fmt(net), color: net >= 0 ? "#15803d" : "#b91c1c", bg: "var(--info-tint-alt)" },
                       ].map((kpi, i) => (
                         <div key={i} style={{ background: kpi.bg, borderRadius: 12, padding: "16px 18px" }}>
                           <p style={{ color: "var(--text-secondary)", fontSize: 11, fontWeight: 600, textTransform: "uppercase", marginBottom: 6 }}>{kpi.label}</p>
@@ -5985,7 +6003,7 @@ function Reports() {
                       const cashFlow = noi - debtService;
                       return (
                         <div style={{ marginTop: 20 }}>
-                          <div style={{ background: noi >= 0 ? "#f0fdf4" : "#fef2f2", borderRadius: "12px 12px 0 0", padding: "14px 20px", border: `1px solid ${noi >= 0 ? "#bbf7d0" : "#fecaca"}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                          <div style={{ background: noi >= 0 ? "var(--success-tint)" : "var(--danger-tint)", borderRadius: "12px 12px 0 0", padding: "14px 20px", border: `1px solid ${noi >= 0 ? "var(--success-border)" : "var(--danger-border)"}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                             <p style={{ fontWeight: 700, fontSize: 14, color: "var(--text-primary)" }}>Net Operating Income — {MONTH_NAMES[ownerMonth]} {taxYear}</p>
                             <p style={{ fontWeight: 800, fontSize: 20, color: noi >= 0 ? "#15803d" : "#b91c1c" }}>{noi >= 0 ? "+" : "-"}{fmt(Math.abs(noi))}</p>
                           </div>
@@ -6001,9 +6019,9 @@ function Reports() {
                               </div>
                             )}
                           </div>
-                          <div style={{ background: "#eff6ff", borderRadius: "0 0 12px 12px", padding: "14px 20px", border: "1px solid #bfdbfe", borderTop: "2px solid #3b82f6", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                            <p style={{ fontWeight: 700, fontSize: 14, color: "#1e40af" }}>Owner Distribution (Cash Flow)</p>
-                            <p style={{ fontWeight: 800, fontSize: 20, color: cashFlow >= 0 ? "#1e40af" : "#b91c1c" }}>{cashFlow >= 0 ? "+" : "-"}{fmt(Math.abs(cashFlow))}</p>
+                          <div style={{ background: "var(--info-tint)", borderRadius: "0 0 12px 12px", padding: "14px 20px", border: "1px solid var(--info-border)", borderTop: "2px solid #3b82f6", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                            <p style={{ fontWeight: 700, fontSize: 14, color: "#3b82f6" }}>Owner Distribution (Cash Flow)</p>
+                            <p style={{ fontWeight: 800, fontSize: 20, color: cashFlow >= 0 ? "#3b82f6" : "#b91c1c" }}>{cashFlow >= 0 ? "+" : "-"}{fmt(Math.abs(cashFlow))}</p>
                           </div>
                         </div>
                       );
