@@ -542,7 +542,7 @@ function AttachmentList({ items, onRemove, compact = false }) {
         const Icon = iconForType(item.mimeType);
         return (
           <div key={item.id} style={{ display: "flex", alignItems: "center", gap: 10, background: "var(--surface-alt)", borderRadius: 10, padding: compact ? "6px 10px" : "8px 12px", border: "1px solid var(--border-subtle)" }}>
-            <Icon size={16} color="#64748b" style={{ flexShrink: 0 }} />
+            <Icon size={16} color="var(--text-secondary)" style={{ flexShrink: 0 }} />
             <div style={{ flex: 1, minWidth: 0 }}>
               <p style={{ fontSize: 12, fontWeight: 600, color: "var(--text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.name}</p>
               {item.size && <p style={{ fontSize: 11, color: "var(--text-muted)" }}>{item.size}</p>}
@@ -726,7 +726,7 @@ function DocumentsPanel({ documents, onAdd, onDelete, entityLabel = "item" }) {
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
               <h3 style={{ fontSize: 18, fontWeight: 700, color: "var(--text-primary)" }}>Add Document</h3>
               <button onClick={() => { setShowModal(false); setPendingFiles([]); setDocForm({ name: "", type: "other" }); }}
-                style={{ background: "var(--surface-muted)", border: "none", borderRadius: 8, padding: 6, cursor: "pointer", display: "flex" }}><X size={16} color="#64748b" /></button>
+                style={{ background: "var(--surface-muted)", border: "none", borderRadius: 8, padding: 6, cursor: "pointer", display: "flex" }}><X size={16} color="var(--text-secondary)" /></button>
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
               <div>
@@ -1103,11 +1103,11 @@ function QuickPayInline({ tenant, defaultDate, onConfirm }) {
     <div style={{ padding: "8px 10px 12px", borderTop: "1px solid var(--border)" }}>
       <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
         <button onClick={() => { setMode("full"); setAmt(String(tenant?.rent || "")); }}
-          style={{ flex: 1, padding: "7px 0", borderRadius: 8, border: mode === "full" ? "1.5px solid #10b981" : "1.5px solid var(--border)", background: mode === "full" ? "#dcfce7" : "#fff", color: mode === "full" ? "#15803d" : "#64748b", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
+          style={{ flex: 1, padding: "7px 0", borderRadius: 8, border: mode === "full" ? "1.5px solid #10b981" : "1.5px solid var(--border)", background: mode === "full" ? "#dcfce7" : "var(--surface)", color: mode === "full" ? "#15803d" : "var(--text-secondary)", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
           Full — {fmt(tenant?.rent || 0)}
         </button>
         <button onClick={() => { setMode("partial"); setAmt(""); }}
-          style={{ flex: 1, padding: "7px 0", borderRadius: 8, border: mode === "partial" ? "1.5px solid #e95e00" : "1.5px solid var(--border)", background: mode === "partial" ? "#ffedd5" : "#fff", color: mode === "partial" ? "#9a3412" : "#64748b", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
+          style={{ flex: 1, padding: "7px 0", borderRadius: 8, border: mode === "partial" ? "1.5px solid #e95e00" : "1.5px solid var(--border)", background: mode === "partial" ? "#ffedd5" : "var(--surface)", color: mode === "partial" ? "#9a3412" : "var(--text-secondary)", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
           Partial
         </button>
       </div>
@@ -1155,13 +1155,13 @@ function WizardShell({ steps, currentStep, onStepClick, title, subtitle, onExit,
           return (
             <React.Fragment key={i}>
               <div onClick={() => i < currentStep && onStepClick(i)} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, cursor: i < currentStep ? "pointer" : "default", minWidth: 100 }}>
-                <div style={{ width: 36, height: 36, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", background: done ? "#10b981" : active ? "#e95e00" : "#f1f5f9", color: done || active ? "#fff" : "#94a3b8", fontSize: 14, fontWeight: 700, transition: "all 0.2s" }}>
+                <div style={{ width: 36, height: 36, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", background: done ? "#10b981" : active ? "#e95e00" : "var(--surface-muted)", color: done || active ? "#fff" : "#94a3b8", fontSize: 14, fontWeight: 700, transition: "all 0.2s" }}>
                   {done ? <CheckCircle size={18} /> : i + 1}
                 </div>
-                <span style={{ fontSize: 12, fontWeight: active ? 700 : 500, color: active ? "#041830" : done ? "#10b981" : "#94a3b8", textAlign: "center" }}>{step}</span>
+                <span style={{ fontSize: 12, fontWeight: active ? 700 : 500, color: active ? "var(--text-primary)" : done ? "#10b981" : "var(--text-muted)", textAlign: "center" }}>{step}</span>
               </div>
               {i < steps.length - 1 && (
-                <div style={{ height: 2, width: 60, background: done ? "#10b981" : "#e2e8f0", marginBottom: 20, transition: "background 0.2s" }} />
+                <div style={{ height: 2, width: 60, background: done ? "#10b981" : "var(--border)", marginBottom: 20, transition: "background 0.2s" }} />
               )}
             </React.Fragment>
           );
@@ -1194,7 +1194,7 @@ function WizardNav({ onBack, onNext, onSkip, nextLabel, backLabel, nextDisabled 
           </button>
         )}
         <button onClick={onNext} disabled={nextDisabled}
-          style={{ display: "flex", alignItems: "center", gap: 6, padding: "10px 24px", borderRadius: 10, border: "none", background: nextDisabled ? "#cbd5e1" : "#e95e00", color: "#fff", fontSize: 14, fontWeight: 700, cursor: nextDisabled ? "not-allowed" : "pointer", transition: "background 0.15s" }}>
+          style={{ display: "flex", alignItems: "center", gap: 6, padding: "10px 24px", borderRadius: 10, border: "none", background: nextDisabled ? "var(--border-strong)" : "#e95e00", color: "#fff", fontSize: 14, fontWeight: 700, cursor: nextDisabled ? "not-allowed" : "pointer", transition: "background 0.15s" }}>
           {nextLabel || "Continue"} {nextLabel !== "Add to Portfolio" && nextLabel !== "Add to Pipeline" && <ArrowRight size={16} />}
         </button>
       </div>
@@ -1417,10 +1417,10 @@ function RentalWizard({ onComplete, onExit }) {
           </p>
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             {tenants.slice(0, unitCount).map((t, i) => (
-              <div key={i} style={{ borderRadius: 12, border: t.vacant ? "1.5px dashed #cbd5e1" : "1px solid var(--border)", padding: 20, background: t.vacant ? "#f8fafc" : "#fff", transition: "all 0.15s" }}>
+              <div key={i} style={{ borderRadius: 12, border: t.vacant ? "1.5px dashed #cbd5e1" : "1px solid var(--border)", padding: 20, background: t.vacant ? "var(--surface-alt)" : "var(--surface)", transition: "all 0.15s" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: t.vacant ? 0 : 16 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <div style={{ width: 28, height: 28, borderRadius: 8, background: t.vacant ? "#f1f5f9" : "#eff6ff", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <div style={{ width: 28, height: 28, borderRadius: 8, background: t.vacant ? "var(--surface-muted)" : "#eff6ff", display: "flex", alignItems: "center", justifyContent: "center" }}>
                       {t.vacant ? <Home size={14} color="#94a3b8" /> : <User size={14} color="#3b82f6" />}
                     </div>
                     <span style={{ fontSize: 14, fontWeight: 600, color: "var(--text-primary)" }}>{t.unit}</span>
@@ -2131,7 +2131,7 @@ function PortfolioDashboard({ onNavigate, onSelectProperty, onSelectFlip, onNavi
             {rentalSnapshots.map(p => (
               <div key={p.id} onClick={() => onSelectProperty(p)}
                 style={{ display: "flex", alignItems: "center", gap: 12, padding: 12, borderRadius: 10, background: "var(--surface-alt)", border: "1px solid var(--border)", cursor: "pointer", transition: "all 0.15s" }}
-                onMouseEnter={e => { e.currentTarget.style.background = "var(--surface-muted)"; e.currentTarget.style.borderColor = "#cbd5e1"; }}
+                onMouseEnter={e => { e.currentTarget.style.background = "var(--surface-muted)"; e.currentTarget.style.borderColor = "var(--border-strong)"; }}
                 onMouseLeave={e => { e.currentTarget.style.background = "var(--surface-alt)"; e.currentTarget.style.borderColor = "var(--border)"; }}>
                 <div style={{ width: 32, height: 32, borderRadius: 10, background: PROP_COLORS[p.color] || p.color, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 600, fontSize: 12, flexShrink: 0 }}>
                   {p.image?.slice(0, 1) || "P"}
@@ -2168,7 +2168,7 @@ function PortfolioDashboard({ onNavigate, onSelectProperty, onSelectFlip, onNavi
             {dealStageData.map(f => (
               <div key={f.id} onClick={() => onSelectFlip(f)}
                 style={{ display: "flex", alignItems: "center", gap: 12, padding: 12, borderRadius: 10, background: "var(--surface-alt)", border: "1px solid var(--border)", cursor: "pointer", transition: "all 0.15s" }}
-                onMouseEnter={e => { e.currentTarget.style.background = "var(--surface-muted)"; e.currentTarget.style.borderColor = "#cbd5e1"; }}
+                onMouseEnter={e => { e.currentTarget.style.background = "var(--surface-muted)"; e.currentTarget.style.borderColor = "var(--border-strong)"; }}
                 onMouseLeave={e => { e.currentTarget.style.background = "var(--surface-alt)"; e.currentTarget.style.borderColor = "var(--border)"; }}>
                 <div style={{ width: 32, height: 32, borderRadius: 10, background: DEAL_COLORS[f.color] || f.color, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 600, fontSize: 12, flexShrink: 0 }}>
                   {f.image?.slice(0, 1) || "F"}
@@ -2551,7 +2551,7 @@ function Dashboard({ onNavigate, onNavigateToTx, onSelectProperty, onNavigateToT
                   const prop = PROPERTIES.find(p => p.id === t.propertyId);
                   const isExpanded = quickPay?.id === t.id;
                   return (
-                    <div key={t.id} style={{ borderRadius: 10, border: isExpanded ? "1.5px solid #dbeafe" : "1px solid transparent", background: isExpanded ? "#f8fafc" : "transparent", transition: "all 0.15s" }}>
+                    <div key={t.id} style={{ borderRadius: 10, border: isExpanded ? "1.5px solid #dbeafe" : "1px solid transparent", background: isExpanded ? "var(--surface-alt)" : "transparent", transition: "all 0.15s" }}>
                       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 10px" }}>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>{t.name}</p>
@@ -2560,7 +2560,7 @@ function Dashboard({ onNavigate, onNavigateToTx, onSelectProperty, onNavigateToT
                         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                           <span style={{ fontSize: 14, fontWeight: 700, color: "#b91c1c" }}>{fmt(t.rent)}</span>
                           <button onClick={e => { e.stopPropagation(); isExpanded ? setQuickPay(null) : handleMarkPaid(t); }}
-                            style={{ padding: "5px 10px", borderRadius: 8, border: "none", background: isExpanded ? "#e2e8f0" : "#10b981", color: isExpanded ? "#475569" : "#fff", fontSize: 12, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap", transition: "all 0.15s" }}>
+                            style={{ padding: "5px 10px", borderRadius: 8, border: "none", background: isExpanded ? "var(--surface-muted)" : "#10b981", color: isExpanded ? "var(--text-label)" : "#fff", fontSize: 12, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap", transition: "all 0.15s" }}>
                             {isExpanded ? "Cancel" : "Mark Paid"}
                           </button>
                         </div>
@@ -2602,7 +2602,7 @@ function Dashboard({ onNavigate, onNavigateToTx, onSelectProperty, onNavigateToT
             {propSnapshots.map(p => (
               <div key={p.id} onClick={() => onSelectProperty && onSelectProperty(p)} style={{ display: "flex", alignItems: "center", gap: 14, padding: "14px 12px", borderRadius: 12, border: "1px solid var(--border-subtle)", cursor: "pointer", transition: "all 0.15s" }}
                 onMouseEnter={e => { e.currentTarget.style.background = "var(--surface-alt)"; e.currentTarget.style.borderColor = "var(--border)"; }}
-                onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.borderColor = "#f1f5f9"; }}>
+                onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.borderColor = "var(--border-subtle)"; }}>
                 <div style={{ width: 40, height: 40, borderRadius: 10, background: p.color + "18", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                   <Building2 size={18} color={p.color} />
                 </div>
@@ -2800,7 +2800,7 @@ function Properties({ onSelect, editPropertyId, onClearEditId, convertDealData, 
         </button>
         <div style={{ display: "flex", background: "var(--surface-muted)", borderRadius: 10, padding: 3 }}>
           {["grid", "list"].map(v => (
-            <button key={v} onClick={() => setView(v)} style={{ padding: "7px 14px", borderRadius: 8, border: "none", background: view === v ? "#fff" : "transparent", color: view === v ? "#041830" : "#64748b", fontWeight: 600, fontSize: 13, cursor: "pointer", boxShadow: view === v ? "0 1px 3px rgba(0,0,0,0.1)" : "none" }}>
+            <button key={v} onClick={() => setView(v)} style={{ padding: "7px 14px", borderRadius: 8, border: "none", background: view === v ? "var(--surface)" : "transparent", color: view === v ? "var(--text-primary)" : "var(--text-secondary)", fontWeight: 600, fontSize: 13, cursor: "pointer", boxShadow: view === v ? "0 1px 3px rgba(0,0,0,0.1)" : "none" }}>
               {v === "grid" ? "#" : "="}
             </button>
           ))}
@@ -2901,14 +2901,14 @@ function Properties({ onSelect, editPropertyId, onClearEditId, convertDealData, 
                 const tHealth = getPropertyHealth(p, TRANSACTIONS);
                 const tBadge = healthBadge(tHealth);
                 return (
-                <tr key={p.id} onClick={() => onSelect(p)} style={{ borderTop: "1px solid var(--border-subtle)", cursor: "pointer", background: i % 2 === 0 ? "#fff" : "#fafafa" }}
+                <tr key={p.id} onClick={() => onSelect(p)} style={{ borderTop: "1px solid var(--border-subtle)", cursor: "pointer", background: i % 2 === 0 ? "var(--surface)" : "var(--surface-alt)" }}
                   onMouseEnter={e => e.currentTarget.style.background = "#f0f9ff"}
-                  onMouseLeave={e => e.currentTarget.style.background = i % 2 === 0 ? "#fff" : "#fafafa"}>
+                  onMouseLeave={e => e.currentTarget.style.background = i % 2 === 0 ? "var(--surface)" : "var(--surface-alt)"}>
                   <td style={{ padding: "16px 20px" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                       <div style={{ width: 36, height: 36, borderRadius: 10, background: p.color, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 12, fontWeight: 700, position: "relative" }}>
                         {p.image}
-                        {tHealth.length > 0 && <span style={{ position: "absolute", top: -3, right: -3, width: 10, height: 10, borderRadius: "50%", background: tBadge.color, border: "2px solid #fff" }} />}
+                        {tHealth.length > 0 && <span style={{ position: "absolute", top: -3, right: -3, width: 10, height: 10, borderRadius: "50%", background: tBadge.color, border: "2px solid var(--surface)" }} />}
                       </div>
                       <div>
                         <p style={{ fontSize: 14, fontWeight: 600, color: "var(--text-primary)" }}>{p.name}</p>
@@ -2967,7 +2967,7 @@ function Properties({ onSelect, editPropertyId, onClearEditId, convertDealData, 
             <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 8 }}>Property Photo</label>
             <div
               onClick={() => document.getElementById("propPhotoInput").click()}
-              style={{ position: "relative", height: form.photo ? 160 : 100, borderRadius: 14, border: "2px dashed var(--border)", overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", background: form.photo ? "transparent" : "#f8fafc", transition: "border-color 0.15s" }}
+              style={{ position: "relative", height: form.photo ? 160 : 100, borderRadius: 14, border: "2px dashed var(--border)", overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", background: form.photo ? "transparent" : "var(--surface-alt)", transition: "border-color 0.15s" }}
               onMouseEnter={e => e.currentTarget.style.borderColor = "#3b82f6"}
               onMouseLeave={e => e.currentTarget.style.borderColor = "var(--border)"}
             >
@@ -3520,11 +3520,11 @@ function PropertyDetail({ property, onBack, backLabel, onEditProperty, onGoToTra
           const active = activeTab === tab.id;
           return (
             <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-              style={{ display: "flex", alignItems: "center", gap: 7, padding: "12px 20px", border: "none", background: "none", color: active ? "#e95e00" : "#64748b", fontWeight: active ? 700 : 500, fontSize: 14, cursor: "pointer", borderBottom: active ? "2px solid #e95e00" : "2px solid transparent", marginBottom: -2, transition: "all 0.15s" }}>
+              style={{ display: "flex", alignItems: "center", gap: 7, padding: "12px 20px", border: "none", background: "none", color: active ? "#e95e00" : "var(--text-secondary)", fontWeight: active ? 700 : 500, fontSize: 14, cursor: "pointer", borderBottom: active ? "2px solid #e95e00" : "2px solid transparent", marginBottom: -2, transition: "all 0.15s" }}>
               <tab.icon size={15} />
               {tab.label}
               {tab.count !== undefined && (
-                <span style={{ background: active ? "#ffedd5" : "#f1f5f9", color: active ? "#c2410c" : "#94a3b8", borderRadius: 10, padding: "1px 7px", fontSize: 11, fontWeight: 600 }}>{tab.count}</span>
+                <span style={{ background: active ? "#ffedd5" : "var(--surface-muted)", color: active ? "#c2410c" : "var(--text-muted)", borderRadius: 10, padding: "1px 7px", fontSize: 11, fontWeight: 600 }}>{tab.count}</span>
               )}
             </button>
           );
@@ -3703,9 +3703,9 @@ function PropertyDetail({ property, onBack, backLabel, onEditProperty, onGoToTra
                   {filteredTx.map((t, i) => (
                     <tr key={t.id}
                       onClick={() => setTxDetailItem(t)}
-                      style={{ borderTop: "1px solid var(--border-subtle)", background: i % 2 === 0 ? "#fff" : "#fafafa", transition: "background 0.15s", cursor: "pointer" }}
+                      style={{ borderTop: "1px solid var(--border-subtle)", background: i % 2 === 0 ? "var(--surface)" : "var(--surface-alt)", transition: "background 0.15s", cursor: "pointer" }}
                       onMouseEnter={e => e.currentTarget.style.background = "#f0f9ff"}
-                      onMouseLeave={e => e.currentTarget.style.background = i % 2 === 0 ? "#fff" : "#fafafa"}>
+                      onMouseLeave={e => e.currentTarget.style.background = i % 2 === 0 ? "var(--surface)" : "var(--surface-alt)"}>
                       <td style={{ padding: "12px 16px", fontSize: 13, color: "var(--text-secondary)" }}>{t.date}</td>
                       <td style={{ padding: "12px 16px" }}>
                         {(() => { const group = txParentOf(t.category, t.type); return group && group !== t.category ? <p style={{ fontSize: 10, color: "var(--text-muted)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.03em", marginBottom: 2 }}>{group}</p> : null; })()}
@@ -3952,9 +3952,9 @@ function PropertyDetail({ property, onBack, backLabel, onEditProperty, onGoToTra
                 const daysLeft = t.leaseEnd ? Math.round((new Date(t.leaseEnd) - new Date()) / 86400000) : null;
                 return (
                   <div key={t.id} id={"tenant-" + t.id} onClick={() => onNavigateToTenant && onNavigateToTenant(t.id)}
-                    style={{ background: flashTenantId === t.id ? "#ede9fe" : "#fff", borderRadius: 14, padding: "18px 22px", boxShadow: flashTenantId === t.id ? "0 0 0 2px #8b5cf6" : "0 1px 3px rgba(0,0,0,0.06)", border: `1px solid ${flashTenantId === t.id ? "#8b5cf6" : isVacant ? "#fee2e2" : "#f1f5f9"}`, cursor: "pointer", transition: "all 0.4s ease" }}
+                    style={{ background: flashTenantId === t.id ? "#ede9fe" : "var(--surface)", borderRadius: 14, padding: "18px 22px", boxShadow: flashTenantId === t.id ? "0 0 0 2px #8b5cf6" : "0 1px 3px rgba(0,0,0,0.06)", border: `1px solid ${flashTenantId === t.id ? "#8b5cf6" : isVacant ? "#fee2e2" : "var(--border-subtle)"}`, cursor: "pointer", transition: "all 0.4s ease" }}
                     onMouseEnter={e => { if (flashTenantId !== t.id) { e.currentTarget.style.background = "#f0f9ff"; e.currentTarget.style.borderColor = "#bfdbfe"; } }}
-                    onMouseLeave={e => { if (flashTenantId !== t.id) { e.currentTarget.style.background = flashTenantId === t.id ? "#ede9fe" : "#fff"; e.currentTarget.style.borderColor = flashTenantId === t.id ? "#8b5cf6" : isVacant ? "#fee2e2" : "#f1f5f9"; } }}>
+                    onMouseLeave={e => { if (flashTenantId !== t.id) { e.currentTarget.style.background = flashTenantId === t.id ? "#ede9fe" : "var(--surface)"; e.currentTarget.style.borderColor = flashTenantId === t.id ? "#8b5cf6" : isVacant ? "#fee2e2" : "var(--border-subtle)"; } }}>
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                         <div style={{ width: 38, height: 38, borderRadius: 10, background: isVacant ? "#fef2f2" : "#f0f9ff", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -4008,7 +4008,7 @@ function PropertyDetail({ property, onBack, backLabel, onEditProperty, onGoToTra
               <p style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 16 }}>Previous tenants who have moved out</p>
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 {propPastTenants.map(t => (
-                  <div key={t.id} style={{ background: "#fafafa", borderRadius: 12, padding: "14px 18px", border: "1px solid var(--border-subtle)" }}>
+                  <div key={t.id} style={{ background: "var(--surface-alt)", borderRadius: 12, padding: "14px 18px", border: "1px solid var(--border-subtle)" }}>
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                         <div style={{ width: 34, height: 34, borderRadius: 9, background: "var(--surface-muted)", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -4355,7 +4355,7 @@ function Transactions({ highlightTxId, onBack, onClearHighlight, backLabel }) {
         {/* Income / Expense toggle */}
         <div style={{ display: "flex", gap: 6 }}>
           {[["all", "All"], ["income", "Income"], ["expense", "Expenses"]].map(([f, label]) => (
-            <button key={f} onClick={() => setFilter(f)} style={{ padding: "9px 16px", borderRadius: 10, border: filter === f ? "none" : "1px solid var(--border)", background: filter === f ? (f === "income" ? "#dcfce7" : f === "expense" ? "#fee2e2" : "#3b82f6") : "#fff", color: filter === f ? (f === "income" ? "#15803d" : f === "expense" ? "#b91c1c" : "#fff") : "#475569", fontWeight: 600, fontSize: 13, cursor: "pointer", whiteSpace: "nowrap" }}>
+            <button key={f} onClick={() => setFilter(f)} style={{ padding: "9px 16px", borderRadius: 10, border: filter === f ? "none" : "1px solid var(--border)", background: filter === f ? (f === "income" ? "#dcfce7" : f === "expense" ? "#fee2e2" : "#3b82f6") : "var(--surface)", color: filter === f ? (f === "income" ? "#15803d" : f === "expense" ? "#b91c1c" : "#fff") : "var(--text-label)", fontWeight: 600, fontSize: 13, cursor: "pointer", whiteSpace: "nowrap" }}>
               {label}
             </button>
           ))}
@@ -4396,9 +4396,9 @@ function Transactions({ highlightTxId, onBack, onClearHighlight, backLabel }) {
             {filtered.map((t, i) => (
               <tr key={t.id} ref={t.id === flashId ? highlightRef : undefined}
                 onClick={() => setDetailTx(t)}
-                style={{ borderTop: "1px solid var(--border-subtle)", background: t.id === flashId ? "#dbeafe" : i % 2 === 0 ? "#fff" : "#fafafa", transition: "background 1.5s ease", cursor: "pointer" }}
+                style={{ borderTop: "1px solid var(--border-subtle)", background: t.id === flashId ? "#dbeafe" : i % 2 === 0 ? "var(--surface)" : "var(--surface-alt)", transition: "background 1.5s ease", cursor: "pointer" }}
                 onMouseEnter={e => { if (t.id !== flashId) e.currentTarget.style.background = "#f0f9ff"; }}
-                onMouseLeave={e => { e.currentTarget.style.background = t.id === flashId ? "#dbeafe" : i % 2 === 0 ? "#fff" : "#fafafa"; }}>
+                onMouseLeave={e => { e.currentTarget.style.background = t.id === flashId ? "#dbeafe" : i % 2 === 0 ? "var(--surface)" : "var(--surface-alt)"; }}>
                 <td style={{ padding: "14px 20px", fontSize: 13, color: "var(--text-secondary)" }}>{t.date}</td>
                 <td style={{ padding: "14px 20px", fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>{(PROPERTIES.find(p => p.id === t.propertyId)?.name || "Unknown").split(" ").slice(0, 2).join(" ")}</td>
                 <td style={{ padding: "14px 20px" }}>
@@ -4521,7 +4521,7 @@ function Transactions({ highlightTxId, onBack, onClearHighlight, backLabel }) {
                           <p style={{ fontSize: 12, color: "var(--text-muted)" }}>Add loan terms to this property for auto-calculation, or enter manually below</p>
                         ) : null}
                       </div>
-                      <button onClick={() => setForm(f => ({ ...f, piOverride: !f.piOverride, piPrincipal: f.piOverride ? "" : String(autoPrincipal ?? ""), piInterest: f.piOverride ? "" : String(autoInterest ?? "") }))} style={{ background: form.piOverride ? "#dbeafe" : "#fff", border: "1px solid #bae6fd", borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 600, color: "#3b82f6", cursor: "pointer", whiteSpace: "nowrap" }}>
+                      <button onClick={() => setForm(f => ({ ...f, piOverride: !f.piOverride, piPrincipal: f.piOverride ? "" : String(autoPrincipal ?? ""), piInterest: f.piOverride ? "" : String(autoInterest ?? "") }))} style={{ background: form.piOverride ? "#dbeafe" : "var(--surface)", border: "1px solid #bae6fd", borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 600, color: "#3b82f6", cursor: "pointer", whiteSpace: "nowrap" }}>
                         {form.piOverride ? "Use Auto" : "Override"}
                       </button>
                     </div>
@@ -5117,7 +5117,7 @@ function Analytics() {
                   const sc = scMap[t.status] || scMap["active-lease"];
                   const expiring = t.daysUntilExpiry !== null && t.daysUntilExpiry <= 60;
                   return (
-                    <div key={t.id} style={{ background: "var(--surface-alt)", borderRadius: 14, padding: 18, border: `1px solid ${expiring ? "#fdba74" : "#f1f5f9"}` }}>
+                    <div key={t.id} style={{ background: "var(--surface-alt)", borderRadius: 14, padding: 18, border: `1px solid ${expiring ? "#fdba74" : "var(--border-subtle)"}` }}>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
                         <div>
                           <p style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)" }}>{t.unit || "Unit"}</p>
@@ -5644,14 +5644,14 @@ function Reports() {
         <div style={{ background: "var(--surface)", borderRadius: 16, padding: 10, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)", height: "fit-content" }}>
           <p style={{ fontSize: 10, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", padding: "8px 14px 4px" }}>Tax Reports</p>
           {taxReports.map(r => (
-            <button key={r.id} onClick={() => setActiveReport(r.id)} style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "11px 14px", borderRadius: 10, border: "none", background: activeReport === r.id ? "#eff6ff" : "transparent", color: activeReport === r.id ? "#3b82f6" : "#475569", fontWeight: activeReport === r.id ? 700 : 500, fontSize: 14, cursor: "pointer", marginBottom: 2, textAlign: "left" }}>
+            <button key={r.id} onClick={() => setActiveReport(r.id)} style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "11px 14px", borderRadius: 10, border: "none", background: activeReport === r.id ? "#eff6ff" : "transparent", color: activeReport === r.id ? "#3b82f6" : "var(--text-label)", fontWeight: activeReport === r.id ? 700 : 500, fontSize: 14, cursor: "pointer", marginBottom: 2, textAlign: "left" }}>
               <r.icon size={16} /> {r.label}
             </button>
           ))}
           <div style={{ borderTop: "1px solid var(--border-subtle)", margin: "8px 14px", paddingTop: 0 }} />
           <p style={{ fontSize: 10, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", padding: "4px 14px 4px" }}>Financial Reports</p>
           {financialReports.map(r => (
-            <button key={r.id} onClick={() => setActiveReport(r.id)} style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "11px 14px", borderRadius: 10, border: "none", background: activeReport === r.id ? "#eff6ff" : "transparent", color: activeReport === r.id ? "#3b82f6" : "#475569", fontWeight: activeReport === r.id ? 700 : 500, fontSize: 14, cursor: "pointer", marginBottom: 2, textAlign: "left" }}>
+            <button key={r.id} onClick={() => setActiveReport(r.id)} style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "11px 14px", borderRadius: 10, border: "none", background: activeReport === r.id ? "#eff6ff" : "transparent", color: activeReport === r.id ? "#3b82f6" : "var(--text-label)", fontWeight: activeReport === r.id ? 700 : 500, fontSize: 14, cursor: "pointer", marginBottom: 2, textAlign: "left" }}>
               <r.icon size={16} /> {r.label}
             </button>
           ))}
@@ -5718,7 +5718,7 @@ function Reports() {
                         {filledLines.map((l, i) => {
                           const val = l.income ? grossRent : (lines[l.n] || 0);
                           return (
-                            <tr key={l.n} style={{ background: i % 2 === 0 ? "#fff" : "#fafafa" }}>
+                            <tr key={l.n} style={{ background: i % 2 === 0 ? "var(--surface)" : "var(--surface-alt)" }}>
                               <td style={{ ...tdStyle, color: "var(--text-muted)", fontWeight: 700, width: 50 }}>{l.n}</td>
                               <td style={{ ...tdStyle, color: "var(--text-label)" }}>{l.label}</td>
                               <td style={{ ...tdStyle, textAlign: "right", fontWeight: 700, color: l.income ? "#15803d" : "#b91c1c" }}>
@@ -5816,10 +5816,10 @@ function Reports() {
                     {monthlyData.map((m, i) => {
                       const margin = m.income > 0 ? ((m.net / m.income) * 100).toFixed(0) : 0;
                       return (
-                        <tr key={i} style={{ background: i % 2 === 0 ? "#fff" : "#fafafa" }}>
+                        <tr key={i} style={{ background: i % 2 === 0 ? "var(--surface)" : "var(--surface-alt)" }}>
                           <td style={{ ...tdStyle, fontWeight: 600 }}>{m.month}</td>
                           <td style={tdStyle}>
-                            <span style={{ fontSize: 11, fontWeight: 700, borderRadius: 6, padding: "3px 8px", background: m.isActual ? "#dcfce7" : "#f1f5f9", color: m.isActual ? "#15803d" : "#94a3b8" }}>
+                            <span style={{ fontSize: 11, fontWeight: 700, borderRadius: 6, padding: "3px 8px", background: m.isActual ? "#dcfce7" : "var(--surface-muted)", color: m.isActual ? "#15803d" : "var(--text-muted)" }}>
                               {m.isActual ? "Actual" : "Est."}
                             </span>
                           </td>
@@ -6014,11 +6014,11 @@ function Reports() {
                 <tbody>
                   {lenderData.map(({ p, noi, bal, mds, dscr, ltv, equity, capRate, grm, perUnit }, i) => {
                     const dscrColor = dscr === null ? "#94a3b8" : dscr >= 1.25 ? "#15803d" : dscr >= 1.0 ? "#d97706" : "#b91c1c";
-                    const dscrBg   = dscr === null ? "#f8fafc" : dscr >= 1.25 ? "#dcfce7" : dscr >= 1.0 ? "#fff7ed" : "#fee2e2";
+                    const dscrBg   = dscr === null ? "var(--surface-alt)" : dscr >= 1.25 ? "#dcfce7" : dscr >= 1.0 ? "#fff7ed" : "#fee2e2";
                     const ltvColor = ltv < 70 ? "#15803d" : ltv < 80 ? "#d97706" : "#b91c1c";
                     const capColor = capRate >= 6 ? "#15803d" : capRate >= 4 ? "#d97706" : "#b91c1c";
                     return (
-                      <tr key={p.id} style={{ background: i % 2 === 0 ? "#fff" : "#fafafa" }}>
+                      <tr key={p.id} style={{ background: i % 2 === 0 ? "var(--surface)" : "var(--surface-alt)" }}>
                         <td style={{ ...tdStyle, fontWeight: 600 }}>
                           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                             <div style={{ width: 22, height: 22, borderRadius: 6, background: p.color, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 10, fontWeight: 700, flexShrink: 0 }}>{p.image}</div>
@@ -6111,7 +6111,7 @@ function Reports() {
                 </thead>
                 <tbody>
                   {deprRows.map(({ p, basis, annual, yearsHeld, cumul, remaining, deprLife, estimated, landValue }, i) => (
-                    <tr key={p.id} style={{ background: i % 2 === 0 ? "#fff" : "#fafafa" }}>
+                    <tr key={p.id} style={{ background: i % 2 === 0 ? "var(--surface)" : "var(--surface-alt)" }}>
                       <td style={{ ...tdStyle, fontWeight: 600 }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                           <div style={{ width: 22, height: 22, borderRadius: 6, background: p.color, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 10, fontWeight: 700, flexShrink: 0 }}>{p.image}</div>
@@ -6121,7 +6121,7 @@ function Reports() {
                       <td style={tdStyle}>{p.purchaseDate || "—"}</td>
                       <td style={tdStyle}>{fmt(p.purchasePrice)}</td>
                       <td style={tdStyle}>
-                        <span style={{ color: estimated ? "#c2410c" : "#64748b" }}>
+                        <span style={{ color: estimated ? "#c2410c" : "var(--text-secondary)" }}>
                           {fmt(landValue)}{estimated ? " *" : ""}
                         </span>
                       </td>
@@ -6219,8 +6219,8 @@ function Reports() {
                       { label: hasAnyEstimatedDepr ? "Depreciation — straight-line (some land values estimated *)" : "Depreciation — straight-line", value: totDepr },
                       { label: propTaxHasActual ? "Property Taxes (from transactions)" : "Property Taxes (no transactions logged)", value: propTaxActual, note: !propTaxHasActual },
                     ].map((row, i) => (
-                      <tr key={i} style={{ borderBottom: "1px solid var(--border-subtle)", background: row.isInfo ? "#f8fafc" : "transparent" }}>
-                        <td style={{ padding: "10px 0", fontSize: row.isInfo ? 13 : 14, color: row.isInfo ? "#64748b" : "#041830", paddingLeft: row.isInfo ? 16 : 0 }}>
+                      <tr key={i} style={{ borderBottom: "1px solid var(--border-subtle)", background: row.isInfo ? "var(--surface-alt)" : "transparent" }}>
+                        <td style={{ padding: "10px 0", fontSize: row.isInfo ? 13 : 14, color: row.isInfo ? "var(--text-secondary)" : "var(--text-primary)", paddingLeft: row.isInfo ? 16 : 0 }}>
                           {row.label}
                           {row.note && <span style={{ color: "#e95e00", fontSize: 12, marginLeft: 8 }}>— log property tax payments for accuracy</span>}
                         </td>
@@ -6370,7 +6370,7 @@ function Reports() {
                   { id: "lastYear",  label: "Last Year" },
                   { id: "all",       label: "All Time" },
                 ].map(p => (
-                  <button key={p.id} onClick={() => applyPreset(p.id)} style={{ padding: "7px 14px", borderRadius: 8, border: txDatePreset === p.id ? "2px solid #3b82f6" : "1px solid var(--border)", background: txDatePreset === p.id ? "#eff6ff" : "#fff", color: txDatePreset === p.id ? "#3b82f6" : "#475569", fontWeight: txDatePreset === p.id ? 700 : 500, fontSize: 12, cursor: "pointer" }}>
+                  <button key={p.id} onClick={() => applyPreset(p.id)} style={{ padding: "7px 14px", borderRadius: 8, border: txDatePreset === p.id ? "2px solid #3b82f6" : "1px solid var(--border)", background: txDatePreset === p.id ? "#eff6ff" : "var(--surface)", color: txDatePreset === p.id ? "#3b82f6" : "var(--text-label)", fontWeight: txDatePreset === p.id ? 700 : 500, fontSize: 12, cursor: "pointer" }}>
                     {p.label}
                   </button>
                 ))}
@@ -6437,7 +6437,7 @@ function Reports() {
                     ) : sorted.slice(0, 200).map((t, i) => {
                       const isIncome = t.type === "income";
                       return (
-                        <tr key={t.id || i} style={{ background: i % 2 === 0 ? "#fff" : "#fafafa" }}>
+                        <tr key={t.id || i} style={{ background: i % 2 === 0 ? "var(--surface)" : "var(--surface-alt)" }}>
                           <td style={{ ...tdStyle, fontSize: 12, whiteSpace: "nowrap" }}>{new Date(t.date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</td>
                           <td style={{ ...tdStyle, fontSize: 12 }}>
                             <span style={{ fontWeight: 600 }}>{(PROPERTIES.find(p => p.id === t.propertyId)?.name || "Unknown").split(" ").slice(0, 2).join(" ")}</span>
@@ -6508,7 +6508,7 @@ function Reports() {
 // ---------------------------------------------
 
 function StageBadge({ stage }) {
-  const s = STAGE_COLORS[stage] || { bg: "#f1f5f9", text: "#475569", dot: "#94a3b8" };
+  const s = STAGE_COLORS[stage] || { bg: "var(--surface-muted)", text: "var(--text-label)", dot: "var(--text-muted)" };
   return (
     <span style={{ display: "inline-flex", alignItems: "center", gap: 5, background: s.bg, color: s.text, borderRadius: 20, padding: "3px 10px", fontSize: 12, fontWeight: 600 }}>
       <span style={{ width: 6, height: 6, borderRadius: "50%", background: s.dot, display: "inline-block" }} />
@@ -6526,7 +6526,7 @@ function RehabProgress({ items }) {
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
         <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>{pct}% complete</span>
-        <span style={{ fontSize: 13, color: over ? "#b91c1c" : "#64748b", fontWeight: over ? 700 : 400 }}>
+        <span style={{ fontSize: 13, color: over ? "#b91c1c" : "var(--text-secondary)", fontWeight: over ? 700 : 400 }}>
           {fmt(totalSpent)} / {fmt(totalBudget)} {over && "(!) Over budget"}
         </span>
       </div>
@@ -6568,7 +6568,7 @@ function DealCard({ deal, onSelect }) {
         ].map((m, i) => (
           <div key={i} style={{ background: "var(--surface-alt)", borderRadius: 8, padding: "8px 10px" }}>
             <p style={{ color: "var(--text-muted)", fontSize: 10, fontWeight: 600, textTransform: "uppercase", marginBottom: 2 }}>{m.label}</p>
-            <p style={{ color: m.color || "#041830", fontSize: 13, fontWeight: 700 }}>{m.value}</p>
+            <p style={{ color: m.color || "var(--text-primary)", fontSize: 13, fontWeight: 700 }}>{m.value}</p>
           </div>
         ))}
       </div>
@@ -6657,7 +6657,7 @@ function DealPipeline({ onSelect, onGuidedSetup }) {
           {["all", ...STAGE_ORDER].map(s => {
             const active = activeStage === s;
             return (
-              <button key={s} onClick={() => setActiveStage(s)} style={{ padding: "7px 14px", borderRadius: 8, border: "none", background: active ? "#e95e00" : "transparent", color: active ? "#fff" : "#64748b", fontWeight: active ? 700 : 500, fontSize: 12, cursor: "pointer", whiteSpace: "nowrap", transition: "all 0.15s" }}>
+              <button key={s} onClick={() => setActiveStage(s)} style={{ padding: "7px 14px", borderRadius: 8, border: "none", background: active ? "#e95e00" : "transparent", color: active ? "#fff" : "var(--text-secondary)", fontWeight: active ? 700 : 500, fontSize: 12, cursor: "pointer", whiteSpace: "nowrap", transition: "all 0.15s" }}>
                 {s === "all" ? `All (${DEALS.length})` : `${s} (${DEALS.filter(f => f.stage === s).length})`}
               </button>
             );
@@ -7154,7 +7154,7 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
   const rehabTotalSpent = rehabItems.reduce((s, i) => s + i.spent, 0);
   const statusIcons = { "complete": "v", "in-progress": "~", "pending": "o" };
   const statusColors = { "complete": "#15803d", "in-progress": "#9a3412", "pending": "#94a3b8" };
-  const statusBg = { "complete": "#dcfce7", "in-progress": "#fff7ed", "pending": "#f1f5f9" };
+  const statusBg = { "complete": "#dcfce7", "in-progress": "#fff7ed", "pending": "var(--surface-muted)" };
 
   const flipContractors = conData;
   // Expense date filter
@@ -7300,7 +7300,7 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
         {tabs.map(t => {
           const active = activeTab === t.id;
           return (
-            <button key={t.id} onClick={() => setActiveTab(t.id)} style={{ display: "flex", alignItems: "center", gap: 7, padding: "10px 18px", borderRadius: 10, border: "none", background: active ? "#e95e00" : "transparent", color: active ? "#fff" : "#64748b", fontWeight: active ? 700 : 500, fontSize: 13, cursor: "pointer", boxShadow: active ? "0 2px 8px rgba(245,158,11,0.3)" : "none", whiteSpace: "nowrap", transition: "all 0.15s ease" }}>
+            <button key={t.id} onClick={() => setActiveTab(t.id)} style={{ display: "flex", alignItems: "center", gap: 7, padding: "10px 18px", borderRadius: 10, border: "none", background: active ? "#e95e00" : "transparent", color: active ? "#fff" : "var(--text-secondary)", fontWeight: active ? 700 : 500, fontSize: 13, cursor: "pointer", boxShadow: active ? "0 2px 8px rgba(245,158,11,0.3)" : "none", whiteSpace: "nowrap", transition: "all 0.15s ease" }}>
               <t.icon size={14} />
               {t.label}
             </button>
@@ -7350,7 +7350,7 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
               ].map((m, i) => (
                 <div key={i} style={{ background: "var(--surface-alt)", borderRadius: 8, padding: "10px 12px" }}>
                   <p style={{ color: "var(--text-muted)", fontSize: 10, fontWeight: 600, textTransform: "uppercase", marginBottom: 2, display: "flex", alignItems: "center" }}>{m.label}<InfoTip text={m.tip} /></p>
-                  <p style={{ color: m.color || "#041830", fontSize: 14, fontWeight: 700 }}>{m.value}</p>
+                  <p style={{ color: m.color || "var(--text-primary)", fontSize: 14, fontWeight: 700 }}>{m.value}</p>
                 </div>
               ))}
             </div>
@@ -7371,7 +7371,7 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
               { label: "Close", date: deal.closeDate || deal.projectedCloseDate },
             ].filter(t => t.date).map((t, i) => (
               <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
-                <div style={{ width: 8, height: 8, borderRadius: "50%", background: t.date ? "#3b82f6" : "#e2e8f0", flexShrink: 0 }} />
+                <div style={{ width: 8, height: 8, borderRadius: "50%", background: t.date ? "#3b82f6" : "var(--border)", flexShrink: 0 }} />
                 <div style={{ flex: 1, display: "flex", justifyContent: "space-between" }}>
                   <span style={{ fontSize: 13, color: "var(--text-label)" }}>{t.label}</span>
                   <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>{t.date}</span>
@@ -7406,7 +7406,7 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
           </div>
           <div style={{ flex: 1, background: "var(--surface-alt)", borderRadius: 10, padding: "10px 14px", textAlign: "center" }}>
             <p style={{ color: "var(--text-muted)", fontSize: 11, fontWeight: 600, textTransform: "uppercase", marginBottom: 2, display: "flex", alignItems: "center", justifyContent: "center" }}>Spent<InfoTip text="Sum of amounts spent to date across all rehab line items. Red if over budget." /></p>
-            <p style={{ color: rehabTotalSpent > rehabTotalBudget ? "#b91c1c" : "#041830", fontSize: 16, fontWeight: 700 }}>{fmt(rehabTotalSpent)}</p>
+            <p style={{ color: rehabTotalSpent > rehabTotalBudget ? "#b91c1c" : "var(--text-primary)", fontSize: 16, fontWeight: 700 }}>{fmt(rehabTotalSpent)}</p>
           </div>
           <div style={{ flex: 1, background: "var(--surface-alt)", borderRadius: 10, padding: "10px 14px", textAlign: "center" }}>
             <p style={{ color: "var(--text-muted)", fontSize: 11, fontWeight: 600, textTransform: "uppercase", marginBottom: 2, display: "flex", alignItems: "center", justifyContent: "center" }}>Remaining<InfoTip text="Budget − Spent. Shown as 0 if over budget (see Spent for overage)." /></p>
@@ -7605,7 +7605,7 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
                           </div>
                         ) : (
                           <button onClick={() => setAssignTA({ rowIdx: i, query: "" })}
-                            style={{ border: "1.5px dashed #cbd5e1", borderRadius: 8, padding: "5px 10px", fontSize: 12, color: "var(--text-muted)", background: "#fafafa", cursor: "pointer" }}>
+                            style={{ border: "1.5px dashed #cbd5e1", borderRadius: 8, padding: "5px 10px", fontSize: 12, color: "var(--text-muted)", background: "var(--surface-alt)", cursor: "pointer" }}>
                             {assigned.length > 0 ? "+ Add" : "+ Assign contractor"}
                           </button>
                         )}
@@ -7641,7 +7641,7 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
             <div style={{ background: "var(--surface)", borderRadius: 20, width: 480, padding: 28 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
                 <h2 style={{ color: "var(--text-primary)", fontSize: 18, fontWeight: 700 }}>{editingRehabIdx !== null ? "Edit Rehab Item" : "Add Rehab Item"}</h2>
-                <button onClick={() => { setShowAddRehab(false); setRehabForm(emptyRehab); setEditingRehabIdx(null); }} style={{ background: "var(--surface-muted)", border: "none", borderRadius: 8, width: 32, height: 32, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><X size={16} color="#64748b" /></button>
+                <button onClick={() => { setShowAddRehab(false); setRehabForm(emptyRehab); setEditingRehabIdx(null); }} style={{ background: "var(--surface-muted)", border: "none", borderRadius: 8, width: 32, height: 32, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><X size={16} color="var(--text-secondary)" /></button>
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
                 <div style={{ position: "relative" }}>
@@ -7781,7 +7781,7 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
               return (
                 <div key={group} style={{ background: "var(--surface)", borderRadius: 12, padding: "12px 16px", boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)", minWidth: 130, flex: "1 0 auto" }}>
                   <p style={{ color: "var(--text-muted)", fontSize: 10, fontWeight: 600, textTransform: "uppercase", marginBottom: 4, whiteSpace: "nowrap", display: "flex", alignItems: "center" }}>{group}<InfoTip text={`Sum of ${group} expenses for this deal. Includes categories: ${subs.join(", ")}.`} /></p>
-                  <p style={{ color: total > 0 ? "#041830" : "#cbd5e1", fontSize: 16, fontWeight: 700 }}>{total > 0 ? fmt(total) : "-"}</p>
+                  <p style={{ color: total > 0 ? "var(--text-primary)" : "var(--border-strong)", fontSize: 16, fontWeight: 700 }}>{total > 0 ? fmt(total) : "-"}</p>
                 </div>
               );
             })}
@@ -7860,9 +7860,9 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
                 </thead>
                 <tbody>
                   {flipExpenses.map((e, i) => (
-                    <tr key={e.id} onClick={() => setExpDetailItem(e)} style={{ borderTop: "1px solid var(--border-subtle)", background: i % 2 === 0 ? "#fff" : "#fafafa", cursor: "pointer", transition: "background 0.15s" }}
+                    <tr key={e.id} onClick={() => setExpDetailItem(e)} style={{ borderTop: "1px solid var(--border-subtle)", background: i % 2 === 0 ? "var(--surface)" : "var(--surface-alt)", cursor: "pointer", transition: "background 0.15s" }}
                       onMouseEnter={ev => { ev.currentTarget.style.background = "#f0f9ff"; }}
-                      onMouseLeave={ev => { ev.currentTarget.style.background = i % 2 === 0 ? "#fff" : "#fafafa"; }}>
+                      onMouseLeave={ev => { ev.currentTarget.style.background = i % 2 === 0 ? "var(--surface)" : "var(--surface-alt)"; }}>
                       <td style={{ padding: "13px 18px", fontSize: 13, color: "var(--text-secondary)" }}>{e.date}</td>
                       <td style={{ padding: "13px 18px", fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
                         {e.vendor}
@@ -8055,12 +8055,12 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
                     ref={el => { if (el && isHighlighted) { el.scrollIntoView({ behavior: "smooth", block: "center" }); } }}
                     onClick={() => onNavigateToContractor && onNavigateToContractor(c)}
                     onMouseEnter={e => { if (onNavigateToContractor && !isHighlighted) { e.currentTarget.style.background = "var(--surface-alt)"; e.currentTarget.style.borderColor = "var(--border)"; } }}
-                    onMouseLeave={e => { if (!isHighlighted) { e.currentTarget.style.background = "var(--surface)"; e.currentTarget.style.borderColor = "#f1f5f9"; } }}
+                    onMouseLeave={e => { if (!isHighlighted) { e.currentTarget.style.background = "var(--surface)"; e.currentTarget.style.borderColor = "var(--border-subtle)"; } }}
                     style={{ background: isHighlighted ? "#fff7ed" : "#fff", borderRadius: 16, padding: 20, boxShadow: isHighlighted ? "0 0 0 3px #fed7aa, 0 4px 14px rgba(233,94,0,0.15)" : "0 1px 3px rgba(0,0,0,0.06)", border: isHighlighted ? "1px solid #fdba74" : "1px solid var(--border-subtle)", cursor: onNavigateToContractor ? "pointer" : "default", transition: "background 0.3s, border-color 0.3s, box-shadow 0.3s" }}>
                     <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 14 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                         <div style={{ width: 42, height: 42, borderRadius: 12, background: "var(--surface-muted)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                          <UserCheck size={20} color="#64748b" />
+                          <UserCheck size={20} color="var(--text-secondary)" />
                         </div>
                         <div>
                           <p style={{ fontSize: 15, fontWeight: 700, color: "var(--text-primary)" }}>{c.name}</p>
@@ -8082,7 +8082,7 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
                         <p style={{ color: "var(--text-muted)", fontSize: 10, fontWeight: 600, textTransform: "uppercase", marginBottom: 3, display: "flex", alignItems: "center" }}>Total Bid<InfoTip text="Sum of all accepted bid amounts from this contractor on this deal." /></p>
                         <p style={{ color: "var(--text-primary)", fontSize: 13, fontWeight: 700 }}>{fmt(t.totalBid)}</p>
                       </div>
-                      <div style={{ background: t.owed > 0 ? "#fff7ed" : t.totalBid > 0 ? "#dcfce7" : "#f8fafc", borderRadius: 10, padding: "10px 12px" }}>
+                      <div style={{ background: t.owed > 0 ? "#fff7ed" : t.totalBid > 0 ? "#dcfce7" : "var(--surface-alt)", borderRadius: 10, padding: "10px 12px" }}>
                         <p style={{ color: "var(--text-muted)", fontSize: 10, fontWeight: 600, textTransform: "uppercase", marginBottom: 3, display: "flex", alignItems: "center" }}>Balance Owed<InfoTip text="Total Bid − Paid to Date. What you still owe this contractor on this deal." /></p>
                         <p style={{ color: t.owed > 0 ? "#9a3412" : "#15803d", fontSize: 13, fontWeight: 700 }}>{t.totalBid > 0 ? (t.owed > 0 ? fmt(t.owed) : "Paid in full") : "—"}</p>
                       </div>
@@ -8343,11 +8343,11 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
                       <button onClick={() => setCompletingMsIdx(null)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)", padding: 0 }}><X size={14} /></button>
                     </div>
                   ) : (
-                    <div key={i} onMouseEnter={e => { e.currentTarget.style.background = m.done ? "#f0fdf4" : overdue ? "#fef2f2" : "#f1f5f9"; }} onMouseLeave={e => { e.currentTarget.style.background = m.done ? "#f0fdf4" : overdue ? "#fef2f2" : "#f8fafc"; }} style={{ display: "flex", alignItems: "center", gap: 12, padding: "8px 10px", borderRadius: 8, background: m.done ? "#f0fdf4" : overdue ? "#fef2f2" : "#f8fafc", border: `1px solid ${m.done ? "#bbf7d0" : overdue ? "#fecaca" : "#f1f5f9"}`, transition: "all 0.15s ease" }}>
+                    <div key={i} onMouseEnter={e => { e.currentTarget.style.background = m.done ? "#f0fdf4" : overdue ? "#fef2f2" : "var(--surface-muted)"; }} onMouseLeave={e => { e.currentTarget.style.background = m.done ? "#f0fdf4" : overdue ? "#fef2f2" : "var(--surface-alt)"; }} style={{ display: "flex", alignItems: "center", gap: 12, padding: "8px 10px", borderRadius: 8, background: m.done ? "#f0fdf4" : overdue ? "#fef2f2" : "var(--surface-alt)", border: `1px solid ${m.done ? "#bbf7d0" : overdue ? "#fecaca" : "var(--border-subtle)"}`, transition: "all 0.15s ease" }}>
                       <button onClick={() => m.done ? (() => { const updated = milestones.map((item, idx) => idx === i ? { ...item, done: false, date: null } : item); setMilestones(updated); })() : (() => { setCompletingMsIdx(i); setMsCompletionDate(today); })()} style={{ background: "none", border: "none", cursor: "pointer", padding: 0, display: "flex", flexShrink: 0 }}>
                         {m.done ? <CheckCircle size={18} color="#10b981" /> : <Circle size={18} color={overdue ? "#ef4444" : "#cbd5e1"} />}
                       </button>
-                      <span style={{ flex: 1, fontSize: 13, fontWeight: 500, color: m.done ? "#6b7280" : "#041830", textDecoration: m.done ? "line-through" : "none" }}>{m.label}</span>
+                      <span style={{ flex: 1, fontSize: 13, fontWeight: 500, color: m.done ? "var(--text-secondary)" : "var(--text-primary)", textDecoration: m.done ? "line-through" : "none" }}>{m.label}</span>
                       {m.targetDate && !m.done && (
                         <span style={{ fontSize: 11, color: overdue ? "#ef4444" : "#94a3b8", fontWeight: overdue ? 600 : 400, flexShrink: 0 }}>
                           {overdue ? "Overdue: " : "Target: "}{new Date(m.targetDate).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
@@ -8926,7 +8926,7 @@ function TenantManagement({ onBack, highlightTenantId, onClearHighlight, prefill
     "active-lease":   { bg: "#dcfce7", text: "#15803d" },
     "month-to-month": { bg: "#fff7ed", text: "#9a3412" },
     "vacant":         { bg: "#fee2e2", text: "#b91c1c" },
-    "past":           { bg: "#f1f5f9", text: "#64748b" },
+    "past":           { bg: "var(--surface-muted)", text: "var(--text-secondary)" },
   };
 
   const STATUS_LABELS = { "active-lease": "Active Lease", "month-to-month": "Month-to-Month", "vacant": "Vacant", "past": "Past Tenant" };
@@ -9008,7 +9008,7 @@ function TenantManagement({ onBack, highlightTenantId, onClearHighlight, prefill
             const active = statusFilter === val;
             const count = val === "expiring" ? expiringIn90.length : val === "past" ? pastTenants.filter(t => propFilter === "all" || t.propertyId === Number(propFilter)).length : 0;
             return (
-              <button key={val} onClick={() => setStatusFilter(val)} style={{ padding: "7px 14px", borderRadius: 8, border: "none", background: active ? "#e95e00" : "transparent", color: active ? "#fff" : "#64748b", fontWeight: active ? 700 : 500, fontSize: 12, cursor: "pointer", whiteSpace: "nowrap", transition: "all 0.15s" }}>
+              <button key={val} onClick={() => setStatusFilter(val)} style={{ padding: "7px 14px", borderRadius: 8, border: "none", background: active ? "#e95e00" : "transparent", color: active ? "#fff" : "var(--text-secondary)", fontWeight: active ? 700 : 500, fontSize: 12, cursor: "pointer", whiteSpace: "nowrap", transition: "all 0.15s" }}>
                 {label}{(val === "expiring" || val === "past") && count > 0 ? ` (${count})` : ""}
               </button>
             );
@@ -9067,7 +9067,7 @@ function TenantManagement({ onBack, highlightTenantId, onClearHighlight, prefill
 
               if (isPastView) {
                 return (
-                  <tr key={t.id} style={{ borderTop: "1px solid var(--border-subtle)", background: i % 2 === 0 ? "#fff" : "#fafafa" }}>
+                  <tr key={t.id} style={{ borderTop: "1px solid var(--border-subtle)", background: i % 2 === 0 ? "var(--surface)" : "var(--surface-alt)" }}>
                     <td style={{ padding: "14px 16px" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                         <div style={{ width: 8, height: 8, borderRadius: "50%", background: prop?.color || "#94a3b8", flexShrink: 0 }} />
@@ -9101,7 +9101,7 @@ function TenantManagement({ onBack, highlightTenantId, onClearHighlight, prefill
               }
 
               return (
-                <tr key={t.id} ref={isFlash ? highlightRef : null} style={{ borderTop: "1px solid var(--border-subtle)", background: isFlash ? "#ffedd5" : i % 2 === 0 ? "#fff" : "#fafafa", transition: "background 2.5s ease" }}>
+                <tr key={t.id} ref={isFlash ? highlightRef : null} style={{ borderTop: "1px solid var(--border-subtle)", background: isFlash ? "#ffedd5" : i % 2 === 0 ? "var(--surface)" : "var(--surface-alt)", transition: "background 2.5s ease" }}>
                   <td style={{ padding: "14px 16px" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                       <div style={{ width: 8, height: 8, borderRadius: "50%", background: prop?.color || "#94a3b8", flexShrink: 0 }} />
@@ -9121,7 +9121,7 @@ function TenantManagement({ onBack, highlightTenantId, onClearHighlight, prefill
                       </div>
                     )}
                   </td>
-                  <td style={{ padding: "14px 16px", fontSize: 14, fontWeight: 700, color: t.status === "vacant" ? "#94a3b8" : "#041830" }}>{fmt(t.rent)}</td>
+                  <td style={{ padding: "14px 16px", fontSize: 14, fontWeight: 700, color: t.status === "vacant" ? "var(--text-muted)" : "var(--text-primary)" }}>{fmt(t.rent)}</td>
                   <td style={{ padding: "14px 16px", fontSize: 13, color: "var(--text-secondary)" }}>{t.leaseStart || "-"}</td>
                   <td style={{ padding: "14px 16px", fontSize: 13, color: "var(--text-secondary)" }}>{t.leaseEnd || "-"}</td>
                   <td style={{ padding: "14px 16px" }}>
@@ -9203,7 +9203,7 @@ function TenantManagement({ onBack, highlightTenantId, onClearHighlight, prefill
                       <p style={{ color: "var(--text-muted)", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>Turnover Rate</p>
                       <InfoTip text="Past tenants / (past + current active tenants). Higher rates may indicate tenant satisfaction issues." />
                     </div>
-                    <p style={{ color: Number(turnoverRate) > 50 ? "#ef4444" : "#041830", fontSize: 22, fontWeight: 700 }}>{turnoverRate}%</p>
+                    <p style={{ color: Number(turnoverRate) > 50 ? "#ef4444" : "var(--text-primary)", fontSize: 22, fontWeight: 700 }}>{turnoverRate}%</p>
                     <p style={{ color: "var(--text-muted)", fontSize: 11 }}>{relevantPast.length} past · {relevantActive.length} active</p>
                   </div>
                   <div style={{ background: "var(--surface-alt)", borderRadius: 12, padding: "16px 18px", border: "1px solid var(--border-subtle)" }}>
@@ -9211,7 +9211,7 @@ function TenantManagement({ onBack, highlightTenantId, onClearHighlight, prefill
                       <p style={{ color: "var(--text-muted)", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>Avg Vacancy Gap</p>
                       <InfoTip text="Average days between a tenant moving out and the next tenant's lease starting on the same unit." />
                     </div>
-                    <p style={{ color: avgVacancy !== null && avgVacancy > 30 ? "#e95e00" : "#041830", fontSize: 22, fontWeight: 700 }}>{avgVacancy !== null ? `${avgVacancy} days` : "—"}</p>
+                    <p style={{ color: avgVacancy !== null && avgVacancy > 30 ? "#e95e00" : "var(--text-primary)", fontSize: 22, fontWeight: 700 }}>{avgVacancy !== null ? `${avgVacancy} days` : "—"}</p>
                     <p style={{ color: "var(--text-muted)", fontSize: 11 }}>{vacancyDays.length > 0 ? `Based on ${vacancyDays.length} transition${vacancyDays.length !== 1 ? "s" : ""}` : "No transition data yet"}</p>
                   </div>
                   <div style={{ background: "var(--surface-alt)", borderRadius: 12, padding: "16px 18px", border: "1px solid var(--border-subtle)" }}>
@@ -9219,7 +9219,7 @@ function TenantManagement({ onBack, highlightTenantId, onClearHighlight, prefill
                       <p style={{ color: "var(--text-muted)", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>Avg Rent Growth</p>
                       <InfoTip text="Average rent increase (%) when a new tenant replaces a previous tenant on the same unit." />
                     </div>
-                    <p style={{ color: avgRentGrowth !== null && parseFloat(avgRentGrowth) > 0 ? "#10b981" : "#041830", fontSize: 22, fontWeight: 700 }}>
+                    <p style={{ color: avgRentGrowth !== null && parseFloat(avgRentGrowth) > 0 ? "#10b981" : "var(--text-primary)", fontSize: 22, fontWeight: 700 }}>
                       {avgRentGrowth !== null ? `${parseFloat(avgRentGrowth) > 0 ? "+" : ""}${avgRentGrowth}%` : "—"}
                     </p>
                     <p style={{ color: "var(--text-muted)", fontSize: 11 }}>{rentChanges.length > 0 ? `Across ${rentChanges.length} unit${rentChanges.length !== 1 ? "s" : ""}` : "No comparable data"}</p>
@@ -9232,7 +9232,7 @@ function TenantManagement({ onBack, highlightTenantId, onClearHighlight, prefill
                     <p style={{ color: "var(--text-secondary)", fontSize: 13, fontWeight: 600, marginBottom: 10 }}>Rent Growth by Unit</p>
                     <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                       {rentChanges.map((r, i) => (
-                        <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", background: "#fafafa", borderRadius: 10, border: "1px solid var(--border-subtle)" }}>
+                        <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", background: "var(--surface-alt)", borderRadius: 10, border: "1px solid var(--border-subtle)" }}>
                           <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-label)", minWidth: 120 }}>{r.property} · {r.unit}</span>
                           <span style={{ fontSize: 12, color: "var(--text-muted)" }}>{fmt(r.from)}</span>
                           <ArrowRight size={12} color="#94a3b8" />
@@ -9618,7 +9618,7 @@ function RehabItemDetail({ deal, itemIdx, onBack, backLabel, onNavigateToContrac
           <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--text-primary)" }}>Assigned Contractors</h3>
           {unassigned.length > 0 && (
             <select value="" onChange={e => { if (e.target.value) { addContractor(parseInt(e.target.value)); e.target.value = ""; } }}
-              style={{ border: "1.5px dashed #cbd5e1", borderRadius: 10, padding: "8px 12px", fontSize: 13, color: "var(--text-secondary)", background: "#fafafa", cursor: "pointer", outline: "none" }}>
+              style={{ border: "1.5px dashed #cbd5e1", borderRadius: 10, padding: "8px 12px", fontSize: 13, color: "var(--text-secondary)", background: "var(--surface-alt)", cursor: "pointer", outline: "none" }}>
               <option value="">+ Assign contractor</option>
               {unassigned.map(c => <option key={c.id} value={c.id}>{c.name} ({c.trade})</option>)}
             </select>
@@ -9766,7 +9766,7 @@ function RehabItemDetail({ deal, itemIdx, onBack, backLabel, onNavigateToContrac
           <div style={{ background: "var(--surface)", borderRadius: 20, padding: 28, width: 480, boxShadow: "0 25px 60px rgba(0,0,0,0.2)" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
               <h2 style={{ color: "var(--text-primary)", fontSize: 20, fontWeight: 700 }}>Edit Rehab Item</h2>
-              <button onClick={() => setShowEdit(false)} style={{ background: "var(--surface-muted)", border: "none", borderRadius: 8, width: 32, height: 32, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><X size={16} color="#64748b" /></button>
+              <button onClick={() => setShowEdit(false)} style={{ background: "var(--surface-muted)", border: "none", borderRadius: 8, width: 32, height: 32, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><X size={16} color="var(--text-secondary)" /></button>
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
               <div style={{ position: "relative" }}>
@@ -9981,7 +9981,7 @@ function TenantDetail({ tenant, onBack, backLabel, onTenantUpdated, onSelectTena
   };
   const daysLeft = getDaysLeft(tenant.leaseEnd);
   const isActive = tenant.status === "active-lease" || tenant.status === "month-to-month";
-  const leaseStatusStyle = { "active-lease": { bg: "#dcfce7", text: "#15803d", label: "Active Lease" }, "month-to-month": { bg: "#fff7ed", text: "#9a3412", label: "Month-to-Month" }, "vacant": { bg: "#fee2e2", text: "#b91c1c", label: "Vacant" }, "past": { bg: "#f1f5f9", text: "#64748b", label: "Past Tenant" } };
+  const leaseStatusStyle = { "active-lease": { bg: "#dcfce7", text: "#15803d", label: "Active Lease" }, "month-to-month": { bg: "#fff7ed", text: "#9a3412", label: "Month-to-Month" }, "vacant": { bg: "#fee2e2", text: "#b91c1c", label: "Vacant" }, "past": { bg: "var(--surface-muted)", text: "var(--text-secondary)", label: "Past Tenant" } };
   const s = leaseStatusStyle[tenant.status] || leaseStatusStyle["vacant"];
 
   const totalPaid = payments.reduce((sum, p) => sum + p.amount, 0);
@@ -10040,7 +10040,7 @@ function TenantDetail({ tenant, onBack, backLabel, onTenantUpdated, onSelectTena
         {tabs.map(t => {
           const active = activeTab === t.id;
           return (
-            <button key={t.id} onClick={() => setActiveTab(t.id)} style={{ display: "flex", alignItems: "center", gap: 7, padding: "9px 18px", borderRadius: 8, border: "none", background: active ? "#e95e00" : "transparent", color: active ? "#fff" : "#64748b", fontWeight: active ? 700 : 500, fontSize: 13, cursor: "pointer", transition: "all 0.15s" }}>
+            <button key={t.id} onClick={() => setActiveTab(t.id)} style={{ display: "flex", alignItems: "center", gap: 7, padding: "9px 18px", borderRadius: 8, border: "none", background: active ? "#e95e00" : "transparent", color: active ? "#fff" : "var(--text-secondary)", fontWeight: active ? 700 : 500, fontSize: 13, cursor: "pointer", transition: "all 0.15s" }}>
               <t.icon size={14} /> {t.label}
             </button>
           );
@@ -10181,7 +10181,7 @@ function TenantDetail({ tenant, onBack, backLabel, onTenantUpdated, onSelectTena
               </thead>
               <tbody>
                 {payments.map((p, i) => (
-                  <tr key={p.id} style={{ borderTop: "1px solid var(--border-subtle)", background: i % 2 === 0 ? "#fff" : "#fafafa" }}>
+                  <tr key={p.id} style={{ borderTop: "1px solid var(--border-subtle)", background: i % 2 === 0 ? "var(--surface)" : "var(--surface-alt)" }}>
                     <td style={{ padding: "14px 16px", fontSize: 13, color: "var(--text-primary)", fontWeight: 600 }}>{p.date}</td>
                     <td style={{ padding: "14px 16px", fontSize: 14, fontWeight: 700, color: "#10b981" }}>{fmt(p.amount)}</td>
                     <td style={{ padding: "14px 16px", fontSize: 13, color: "var(--text-secondary)" }}>{p.description}</td>
@@ -10256,7 +10256,7 @@ function TenantDetail({ tenant, onBack, backLabel, onTenantUpdated, onSelectTena
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {requests.sort((a, b) => b.createdAt.localeCompare(a.createdAt)).map(r => {
-              const prioStyle = { high: { bg: "#fee2e2", text: "#b91c1c" }, medium: { bg: "#fff7ed", text: "#9a3412" }, low: { bg: "#f1f5f9", text: "#64748b" } };
+              const prioStyle = { high: { bg: "#fee2e2", text: "#b91c1c" }, medium: { bg: "#fff7ed", text: "#9a3412" }, low: { bg: "var(--surface-muted)", text: "var(--text-secondary)" } };
               const statusStyle = { open: { bg: "#fee2e2", text: "#b91c1c" }, scheduled: { bg: "#dbeafe", text: "#1d4ed8" }, resolved: { bg: "#dcfce7", text: "#15803d" } };
               const ps = prioStyle[r.priority] || prioStyle.medium;
               const ss = statusStyle[r.status] || statusStyle.open;
@@ -10590,7 +10590,7 @@ function MileageTracker() {
           {[["all", "All Purposes"], ["Rental", "Rental"], ["Deal", "Deal"], ["Business", "Business"]].map(([val, label]) => {
             const active = purposeFilter === val;
             return (
-              <button key={val} onClick={() => setPurposeFilter(val)} style={{ padding: "7px 14px", borderRadius: 8, border: "none", background: active ? "#e95e00" : "transparent", color: active ? "#fff" : "#64748b", fontWeight: active ? 700 : 500, fontSize: 12, cursor: "pointer", whiteSpace: "nowrap", transition: "all 0.15s" }}>
+              <button key={val} onClick={() => setPurposeFilter(val)} style={{ padding: "7px 14px", borderRadius: 8, border: "none", background: active ? "#e95e00" : "transparent", color: active ? "#fff" : "var(--text-secondary)", fontWeight: active ? 700 : 500, fontSize: 12, cursor: "pointer", whiteSpace: "nowrap", transition: "all 0.15s" }}>
                 {label}
               </button>
             );
@@ -10646,14 +10646,14 @@ function MileageTracker() {
               <tr><td colSpan={8} style={{ padding: "40px 18px", textAlign: "center", color: "var(--text-muted)", fontSize: 14 }}>No trips match your filters.</td></tr>
             )}
             {filteredTrips.map((t, i) => (
-              <tr key={t.id} style={{ borderTop: "1px solid var(--border-subtle)", background: i % 2 === 0 ? "#fff" : "#fafafa" }}>
+              <tr key={t.id} style={{ borderTop: "1px solid var(--border-subtle)", background: i % 2 === 0 ? "var(--surface)" : "var(--surface-alt)" }}>
                 <td style={{ padding: "13px 18px", fontSize: 13, color: "var(--text-secondary)" }}>{t.date}</td>
                 <td style={{ padding: "13px 18px", fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>{t.description}</td>
                 <td style={{ padding: "13px 18px", fontSize: 12, color: "var(--text-label)" }}>{t.from}  /  {t.to.split(",")[0]}</td>
-                <td style={{ padding: "13px 18px", fontSize: 12, color: t.linkedTo ? "#475569" : "#cbd5e1" }}>{t.linkedTo || "—"}</td>
+                <td style={{ padding: "13px 18px", fontSize: 12, color: t.linkedTo ? "var(--text-label)" : "var(--text-muted)" }}>{t.linkedTo || "—"}</td>
                 <td style={{ padding: "13px 18px", fontSize: 14, fontWeight: 700, color: "var(--text-primary)" }}>{t.miles} mi</td>
                 <td style={{ padding: "13px 18px" }}>
-                  <span style={{ background: (purposeColors[t.purpose] || "#94a3b8") + "20", color: purposeColors[t.purpose] || "#475569", borderRadius: 20, padding: "3px 10px", fontSize: 12, fontWeight: 700 }}>{t.purpose}</span>
+                  <span style={{ background: (purposeColors[t.purpose] || "#94a3b8") + "20", color: purposeColors[t.purpose] || "var(--text-label)", borderRadius: 20, padding: "3px 10px", fontSize: 12, fontWeight: 700 }}>{t.purpose}</span>
                 </td>
                 <td style={{ padding: "13px 18px", fontSize: 13, fontWeight: 700, color: "#15803d" }}>{fmt(t.miles * IRS_RATE * t.businessPct / 100)}</td>
                 <td style={{ padding: "13px 18px" }}>
@@ -10788,7 +10788,7 @@ function DealAnalyzer() {
         {[{ id: "deal", label: "Fix & Flip", icon: Hammer }, { id: "rental", label: "Buy & Hold", icon: Building2 }].map(m => {
           const active = mode === m.id;
           return (
-            <button key={m.id} onClick={() => setMode(m.id)} style={{ display: "flex", alignItems: "center", gap: 7, padding: "10px 22px", borderRadius: 8, border: "none", background: active ? "#e95e00" : "transparent", color: active ? "#fff" : "#64748b", fontWeight: active ? 700 : 500, fontSize: 14, cursor: "pointer", transition: "all 0.15s" }}>
+            <button key={m.id} onClick={() => setMode(m.id)} style={{ display: "flex", alignItems: "center", gap: 7, padding: "10px 22px", borderRadius: 8, border: "none", background: active ? "#e95e00" : "transparent", color: active ? "#fff" : "var(--text-secondary)", fontWeight: active ? 700 : 500, fontSize: 14, cursor: "pointer", transition: "all 0.15s" }}>
               <m.icon size={15} /> {m.label}
             </button>
           );
@@ -11087,7 +11087,7 @@ function MentionTextarea({ value, onChange, placeholder, mentions, onMentionsCha
           {filteredMembers.map((m, i) => (
             <div key={m.id}
               onMouseDown={(e) => { e.preventDefault(); insertMention(m); }}
-              style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 12px", cursor: "pointer", background: i === dropdownIdx ? "#f1f5f9" : "transparent", transition: "background 0.1s" }}
+              style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 12px", cursor: "pointer", background: i === dropdownIdx ? "var(--surface-muted)" : "transparent", transition: "background 0.1s" }}
               onMouseEnter={() => setDropdownIdx(i)}>
               <div style={{ width: 28, height: 28, borderRadius: 8, background: m.color + "18", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 700, color: m.color }}>{m.initials}</div>
               <div>
@@ -11327,7 +11327,7 @@ function UnifiedNotes({ highlightNoteId, highlightDealNoteId, onBack, onClearHig
           <button key={t.id} onClick={() => { setActiveTab(t.id); setPropFilter("all"); setFlipFilter("all"); }}
             style={{ padding: "7px 14px", borderRadius: 8, border: "none", background: activeTab === t.id ? "#f59e0b" : "transparent", color: activeTab === t.id ? "#fff" : "#64748b", fontWeight: 600, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 5, transition: "all 0.15s" }}>
             {t.label}
-            <span style={{ background: activeTab === t.id ? "rgba(255,255,255,0.3)" : "#e2e8f0", color: activeTab === t.id ? "#fff" : "#94a3b8", fontSize: 11, fontWeight: 700, padding: "1px 6px", borderRadius: 6, minWidth: 18, textAlign: "center" }}>{t.count}</span>
+            <span style={{ background: activeTab === t.id ? "rgba(255,255,255,0.3)" : "var(--surface-muted)", color: activeTab === t.id ? "#fff" : "var(--text-muted)", fontSize: 11, fontWeight: 700, padding: "1px 6px", borderRadius: 6, minWidth: 18, textAlign: "center" }}>{t.count}</span>
           </button>
         ))}
       </div>
@@ -11633,7 +11633,7 @@ function GlobalSearch({ onNavigate }) {
 
   return (
     <div ref={ref} style={{ position: "relative" }}>
-      <div style={{ background: focused ? "#fff" : "#f1f5f9", borderRadius: 10, padding: "8px 14px", display: "flex", alignItems: "center", gap: 8, border: focused ? "1px solid var(--border)" : "1px solid transparent", boxShadow: focused ? "0 4px 16px rgba(0,0,0,0.08)" : "none", transition: "all 0.15s" }}>
+      <div style={{ background: focused ? "var(--surface)" : "var(--surface-muted)", borderRadius: 10, padding: "8px 14px", display: "flex", alignItems: "center", gap: 8, border: focused ? "1px solid var(--border)" : "1px solid transparent", boxShadow: focused ? "0 4px 16px rgba(0,0,0,0.08)" : "none", transition: "all 0.15s" }}>
         <Search size={14} color="#94a3b8" />
         <input ref={inputRef} value={query} onChange={e => setQuery(e.target.value)} onFocus={() => setFocused(true)} placeholder="Search everything…" style={{ border: "none", background: "transparent", fontSize: 14, color: "var(--text-primary)", outline: "none", width: 200 }} />
         {!query && <kbd style={{ fontSize: 10, color: "var(--text-muted)", background: "var(--surface-muted)", border: "1px solid var(--border)", borderRadius: 4, padding: "1px 5px", fontFamily: "inherit" }}>{navigator.platform?.includes("Mac") ? "⌘" : "Ctrl+"}K</kbd>}
@@ -11798,7 +11798,7 @@ function AppShell() {
 
   return (
     <div style={{ display: "flex", minHeight: "100vh", background: "var(--surface-alt)", fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>
-      <div style={{ width: 240, background: "#041830", display: "flex", flexDirection: "column", position: "fixed", top: 0, bottom: 0, left: 0, zIndex: 100 }}>
+      <div style={{ width: 240, background: "var(--sidebar-bg)", display: "flex", flexDirection: "column", position: "fixed", top: 0, bottom: 0, left: 0, zIndex: 100 }}>
         <div style={{ padding: "24px 20px", borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
           <div style={{ display: "flex", alignItems: "center" }}>
             <img src={propbooksLogo} alt="PropBooks" style={{ height: 40, objectFit: "contain" }} />
