@@ -179,6 +179,14 @@ function ThemeProvider({ children }) {
           --tooltip-bg: #ffffff;
           --tooltip-border: #e2e8f0;
           --tooltip-text: #041830;
+          --warning-bg: #fff7ed;
+          --warning-border: #fdba74;
+          --warning-text: #9a3412;
+          --warning-text-secondary: #c2410c;
+          --warning-btn-bg: #ffedd5;
+          --warning-btn-bg-hover: #fdba74;
+          --warning-btn-text: #c2410c;
+          --warning-btn-text-hover: #9a3412;
         }
         :root[data-theme="dark"] {
           --surface: #1e293b;
@@ -200,6 +208,14 @@ function ThemeProvider({ children }) {
           --tooltip-bg: #1e293b;
           --tooltip-border: #334155;
           --tooltip-text: #f1f5f9;
+          --warning-bg: rgba(245, 158, 11, 0.08);
+          --warning-border: rgba(245, 158, 11, 0.25);
+          --warning-text: #fbbf24;
+          --warning-text-secondary: #d97706;
+          --warning-btn-bg: rgba(245, 158, 11, 0.12);
+          --warning-btn-bg-hover: rgba(245, 158, 11, 0.25);
+          --warning-btn-text: #fbbf24;
+          --warning-btn-text-hover: #fde68a;
         }
         :root[data-theme="dark"] body { background: var(--page-bg); }
         :root[data-theme="dark"] input, :root[data-theme="dark"] select, :root[data-theme="dark"] textarea {
@@ -3536,21 +3552,21 @@ function PropertyDetail({ property, onBack, backLabel, onEditProperty, onGoToTra
         <div>
           {/* Recommended Updates Banner */}
           {detailHealth.length > 0 && (
-            <div style={{ background: "#fff7ed", border: "1px solid #fdba74", borderRadius: 14, padding: healthOpen ? "16px 20px" : "12px 20px", marginBottom: 20, transition: "all 0.2s" }}>
+            <div style={{ background: "var(--warning-bg)", border: "1px solid var(--warning-border)", borderRadius: 14, padding: healthOpen ? "16px 20px" : "12px 20px", marginBottom: 20, transition: "all 0.2s" }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer" }} onClick={() => setHealthOpen(h => !h)}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <AlertCircle size={16} color="#c2410c" />
-                  <span style={{ color: "#9a3412", fontSize: 14, fontWeight: 700 }}>
+                  <AlertCircle size={16} color="var(--warning-text-secondary)" />
+                  <span style={{ color: "var(--warning-text)", fontSize: 14, fontWeight: 700 }}>
                     {detailHealth.length} Recommended Update{detailHealth.length > 1 ? "s" : ""}
                   </span>
-                  <span style={{ color: "#c2410c", fontSize: 12 }}>— improve the accuracy of your analytics</span>
+                  <span style={{ color: "var(--warning-text-secondary)", fontSize: 12 }}>— improve the accuracy of your analytics</span>
                 </div>
-                <ChevronDown size={16} color="#c2410c" style={{ transform: healthOpen ? "rotate(180deg)" : "rotate(0)", transition: "transform 0.2s" }} />
+                <ChevronDown size={16} color="var(--warning-text-secondary)" style={{ transform: healthOpen ? "rotate(180deg)" : "rotate(0)", transition: "transform 0.2s" }} />
               </div>
               {healthOpen && (
                 <div style={{ marginTop: 14, display: "flex", flexDirection: "column", gap: 10 }}>
                   {detailHealth.map(item => (
-                    <div key={item.key} style={{ display: "flex", alignItems: "flex-start", gap: 12, background: "var(--surface)", borderRadius: 10, padding: "12px 16px", border: "1px solid #fdba74" }}>
+                    <div key={item.key} style={{ display: "flex", alignItems: "flex-start", gap: 12, background: "var(--surface)", borderRadius: 10, padding: "12px 16px", border: "1px solid var(--warning-border)" }}>
                       <span style={{
                         width: 8, height: 8, borderRadius: "50%", marginTop: 5, flexShrink: 0,
                         background: item.severity === "high" ? "#dc2626" : item.severity === "medium" ? "#e95e00" : "#6366f1"
@@ -3560,11 +3576,11 @@ function PropertyDetail({ property, onBack, backLabel, onEditProperty, onGoToTra
                         <p style={{ color: "var(--text-secondary)", fontSize: 12, lineHeight: 1.5 }}>{item.detail}</p>
                       </div>
                       <button onClick={e => { e.stopPropagation(); item.field ? onEditProperty && onEditProperty(property) : onGoToTransactions && onGoToTransactions(); }} style={{
-                        fontSize: 11, fontWeight: 600, color: "#c2410c", background: "#ffedd5", borderRadius: 6, padding: "5px 12px", whiteSpace: "nowrap", flexShrink: 0,
-                        border: "1px solid #fdba74", cursor: "pointer", transition: "all 0.15s",
+                        fontSize: 11, fontWeight: 600, color: "var(--warning-btn-text)", background: "var(--warning-btn-bg)", borderRadius: 6, padding: "5px 12px", whiteSpace: "nowrap", flexShrink: 0,
+                        border: "1px solid var(--warning-border)", cursor: "pointer", transition: "all 0.15s",
                       }}
-                      onMouseEnter={e => { e.currentTarget.style.background = "#fdba74"; e.currentTarget.style.color = "#9a3412"; }}
-                      onMouseLeave={e => { e.currentTarget.style.background = "#ffedd5"; e.currentTarget.style.color = "#c2410c"; }}
+                      onMouseEnter={e => { e.currentTarget.style.background = "var(--warning-btn-bg-hover)"; e.currentTarget.style.color = "var(--warning-btn-text-hover)"; }}
+                      onMouseLeave={e => { e.currentTarget.style.background = "var(--warning-btn-bg)"; e.currentTarget.style.color = "var(--warning-btn-text)"; }}
                       >{item.field ? "Edit Property" : "Go to Transactions"}</button>
                     </div>
                   ))}
