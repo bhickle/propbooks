@@ -335,7 +335,7 @@ export function DealDashboard({ onSelect, onNavigateToNote, onNavigateToExpense,
                     <td style={{ padding: "12px 0" }}>
                       <button onClick={() => onSelect && onSelect(f)} style={{ background: "none", border: "none", cursor: "pointer", textAlign: "left", padding: 0 }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                          <div style={{ width: 32, height: 32, borderRadius: 8, background: f.color + "20", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, color: f.color }}>{f.image}</div>
+                          <div style={{ width: 32, height: 32, borderRadius: 8, background: "#1e3a5f", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, color: "#fff" }}>{f.image}</div>
                           <div>
                             <p style={{ color: "var(--text-primary)", fontSize: 13, fontWeight: 600 }}>{f.name}</p>
                             <p style={{ color: "var(--text-muted)", fontSize: 11 }}>{f.address.split(",")[1]?.trim()}</p>
@@ -662,7 +662,7 @@ export function RehabTracker({ onSelectRehabItem } = {}) {
               {/* Deal header */}
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <div style={{ width: 36, height: 36, borderRadius: 9, background: f.color + "20", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, color: f.color }}>{f.image}</div>
+                  <div style={{ width: 36, height: 36, borderRadius: 9, background: "#1e3a5f", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, color: "#fff" }}>{f.image}</div>
                   <div>
                     <p style={{ color: "var(--text-primary)", fontWeight: 700, fontSize: 15 }}>{f.name}</p>
                     <p style={{ color: "var(--text-muted)", fontSize: 12 }}>
@@ -1062,7 +1062,7 @@ function ExpDetailPanel({ exp, onClose, onEdit, onDelete }) {
                 <div style={{ width: 28, height: 28, borderRadius: 8, background: "var(--surface-muted)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 2 }}><Hammer size={14} color="var(--text-muted)" /></div>
                 <div>
                   <p style={{ fontSize: 11, fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 3 }}>Deal</p>
-                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}><span style={{ width: 8, height: 8, borderRadius: "50%", background: deal.color, display: "inline-block" }} /><p style={{ fontSize: 14, color: "var(--text-primary)", fontWeight: 500 }}>{deal.name}</p></div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}><span style={{ width: 8, height: 8, borderRadius: "50%", background: "#94a3b8", display: "inline-block" }} /><p style={{ fontSize: 14, color: "var(--text-primary)", fontWeight: 500 }}>{deal.name}</p></div>
                 </div>
               </div>
             )}
@@ -1385,7 +1385,7 @@ export function DealExpenses({ highlightExpId, onBack, onClearHighlight, backLab
                   <td style={{ padding: "12px 16px" }}>
                     {deal && (
                       <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-                        <span style={{ width: 8, height: 8, borderRadius: "50%", background: deal.color }} />
+                        <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#94a3b8" }} />
                         <span style={{ fontSize: 13, color: "var(--text-dim)", fontWeight: 500 }}>{deal.name}</span>
                       </span>
                     )}
@@ -2824,7 +2824,7 @@ export function DealAnalytics() {
             return (
               <div key={i} style={{ display: "flex", alignItems: "center", gap: 14 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, width: 120, flexShrink: 0 }}>
-                  <div style={{ width: 28, height: 28, borderRadius: 7, background: d.color + "20", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 700, color: d.color }}>{d.name}</div>
+                  <div style={{ width: 28, height: 28, borderRadius: 7, background: "#1e3a5f", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 700, color: "#fff" }}>{d.image}</div>
                   <div>
                     <p style={{ fontSize: 12, fontWeight: 600, color: "var(--text-primary)", lineHeight: 1.2 }}>{d.fullName.split(" ")[0]}</p>
                     <p style={{ fontSize: 10, color: "var(--text-muted)" }}>{d.stage}</p>
@@ -2872,7 +2872,7 @@ export function DealAnalytics() {
                 <tr key={deal.id} style={{ borderTop: "1px solid var(--border-subtle)" }}>
                   <td style={{ padding: "12px 16px" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <div style={{ width: 28, height: 28, borderRadius: 7, background: deal.color + "20", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 700, color: deal.color }}>{deal.image}</div>
+                      <div style={{ width: 28, height: 28, borderRadius: 7, background: "#1e3a5f", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 700, color: "#fff" }}>{deal.image}</div>
                       <span style={{ color: "var(--text-primary)", fontSize: 13, fontWeight: 600 }}>{deal.name}</span>
                     </div>
                   </td>
@@ -3093,7 +3093,7 @@ export function DealMilestones({ highlightMilestoneKey, onBack, onClearHighlight
           <div key={deal.id} style={{ ...sectionS }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <div style={{ width: 32, height: 32, borderRadius: 8, background: deal.color + "20", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, color: deal.color }}>{deal.image}</div>
+                <div style={{ width: 32, height: 32, borderRadius: 8, background: "#1e3a5f", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, color: "#fff" }}>{deal.image}</div>
                 <div>
                   <p style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)" }}>{deal.name}</p>
                   <p style={{ fontSize: 12, color: "var(--text-muted)" }}>{deal.stage}</p>
@@ -3390,7 +3390,7 @@ export function DealNotes({ highlightNoteId, onBack, onClearHighlight }) {
               <div key={n.id} id={"dealnote-" + n.id} onMouseEnter={e => { if (flashId !== n.id) e.currentTarget.style.background = "var(--surface-alt)"; }} onMouseLeave={e => { if (flashId !== n.id) e.currentTarget.style.background = "var(--surface)"; }} style={{ ...sectionS, marginBottom: 0, padding: 18, transition: "all 0.4s ease", ...(flashId === n.id ? { background: "#ede9fe", boxShadow: "0 0 0 2px #8b5cf6", border: "1px solid #8b5cf6" } : {}) }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <div style={{ width: 26, height: 26, borderRadius: 7, background: n.dealColor + "20", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, fontWeight: 700, color: n.dealColor }}>{n.dealImage}</div>
+                    <div style={{ width: 26, height: 26, borderRadius: 7, background: "#1e3a5f", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, fontWeight: 700, color: "#fff" }}>{n.dealImage}</div>
                     <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>{n.dealName}</span>
                   </div>
                   <div style={{ display: "flex", gap: 4 }}>

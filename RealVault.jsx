@@ -2089,7 +2089,7 @@ function PortfolioDashboard({ onNavigate, onSelectProperty, onSelectFlip, onNavi
   const recentActivity = recentItems.sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 10);
 
   const sectionS = { background: "var(--surface)", borderRadius: 16, padding: 24, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)" };
-  const qaBtnS = (color, bg) => ({ display: "flex", flexDirection: "column", alignItems: "center", gap: 8, padding: "16px 12px", borderRadius: 12, border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", transition: "all 0.15s", flex: 1 });
+  const qaBtnS = { display: "flex", flexDirection: "column", alignItems: "center", gap: 8, padding: "16px 12px", borderRadius: 12, border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", transition: "all 0.15s", flex: 1 };
 
   return (
     <div>
@@ -2110,17 +2110,17 @@ function PortfolioDashboard({ onNavigate, onSelectProperty, onSelectFlip, onNavi
       {/* Row 2: Quick Actions */}
       <div style={{ display: "flex", gap: 12, marginBottom: 28 }}>
         {[
-          { label: "Log Rental Transaction", icon: ArrowUpDown, color: "#10b981", bg: "var(--success-badge)", action: () => onNavigate("transactions") },
-          { label: "Log Deal Expense", icon: Hammer, color: "#e95e00", bg: "var(--warning-btn-bg)", action: () => onNavigate("dealexpenses") },
-          { label: "Add Property", icon: Building2, color: "#e95e00", bg: "var(--warning-bg)", action: () => onNavigate("rentalWizard") },
-          { label: "Add Deal", icon: Target, color: "#8b5cf6", bg: "var(--purple-tint)", action: () => onNavigate("flipWizard") },
-          { label: "Add Note", icon: MessageSquare, color: "#6366f1", bg: "#eef2ff", action: () => onNavigate("notes-add") },
+          { label: "Log Rental Transaction", icon: ArrowUpDown, action: () => onNavigate("transactions") },
+          { label: "Log Deal Expense", icon: Hammer, action: () => onNavigate("dealexpenses") },
+          { label: "Add Property", icon: Building2, action: () => onNavigate("rentalWizard") },
+          { label: "Add Deal", icon: Target, action: () => onNavigate("flipWizard") },
+          { label: "Add Note", icon: MessageSquare, action: () => onNavigate("notes-add") },
         ].map((qa, i) => (
-          <button key={i} onClick={qa.action} style={qaBtnS(qa.color, qa.bg)}
-            onMouseEnter={e => { e.currentTarget.style.background = qa.bg; e.currentTarget.style.borderColor = qa.color + "40"; }}
-            onMouseLeave={e => { e.currentTarget.style.background = "var(--surface)"; e.currentTarget.style.borderColor = "var(--border)"; }}>
-            <div style={{ width: 40, height: 40, borderRadius: 12, background: qa.bg, display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <qa.icon size={18} color={qa.color} />
+          <button key={i} onClick={qa.action} style={qaBtnS}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = "#e95e00"; e.currentTarget.style.background = "rgba(233,94,0,0.04)"; }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.background = "var(--surface)"; }}>
+            <div style={{ width: 40, height: 40, borderRadius: 12, background: "#1e3a5f", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <qa.icon size={18} color="#e95e00" />
             </div>
             <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-label)" }}>{qa.label}</span>
           </button>
@@ -2177,7 +2177,7 @@ function PortfolioDashboard({ onNavigate, onSelectProperty, onSelectFlip, onNavi
                 style={{ display: "flex", alignItems: "center", gap: 12, padding: 12, borderRadius: 10, background: "var(--surface-alt)", border: "1px solid var(--border)", cursor: "pointer", transition: "all 0.15s" }}
                 onMouseEnter={e => { e.currentTarget.style.background = "var(--surface-muted)"; e.currentTarget.style.borderColor = "var(--border-strong)"; }}
                 onMouseLeave={e => { e.currentTarget.style.background = "var(--surface-alt)"; e.currentTarget.style.borderColor = "var(--border)"; }}>
-                <div style={{ width: 32, height: 32, borderRadius: 10, background: PROP_COLORS[p.color] || p.color, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 600, fontSize: 12, flexShrink: 0 }}>
+                <div style={{ width: 32, height: 32, borderRadius: 10, background: "#1e3a5f", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 600, fontSize: 12, flexShrink: 0 }}>
                   {p.image?.slice(0, 1) || "P"}
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
@@ -2647,8 +2647,8 @@ function Dashboard({ onNavigate, onNavigateToTx, onSelectProperty, onNavigateToT
               <div key={p.id} onClick={() => onSelectProperty && onSelectProperty(p)} style={{ display: "flex", alignItems: "center", gap: 14, padding: "14px 12px", borderRadius: 12, border: "1px solid var(--border-subtle)", cursor: "pointer", transition: "all 0.15s" }}
                 onMouseEnter={e => { e.currentTarget.style.background = "var(--surface-alt)"; e.currentTarget.style.borderColor = "var(--border)"; }}
                 onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.borderColor = "var(--border-subtle)"; }}>
-                <div style={{ width: 40, height: 40, borderRadius: 10, background: p.color + "18", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                  <Building2 size={18} color={p.color} />
+                <div style={{ width: 40, height: 40, borderRadius: 10, background: "#1e3a5f", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, color: "#fff", fontSize: 13, fontWeight: 700 }}>
+                  {p.image}
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
@@ -2865,10 +2865,10 @@ function Properties({ onSelect, editPropertyId, onClearEditId, convertDealData, 
               <div key={p.id} onClick={() => onSelect(p)} style={{ background: "var(--surface)", borderRadius: 16, overflow: "hidden", boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)", cursor: "pointer", transition: "transform 0.15s, box-shadow 0.15s" }}
                 onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-3px)"; e.currentTarget.style.boxShadow = "0 8px 24px rgba(0,0,0,0.1)"; }}
                 onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "0 1px 3px rgba(0,0,0,0.06)"; }}>
-                <div style={{ height: 130, background: p.photo ? "transparent" : `linear-gradient(135deg, ${p.color}22, ${p.color}44)`, display: "flex", alignItems: "center", justifyContent: "center", position: "relative", overflow: "hidden" }}>
+                <div style={{ height: 130, background: p.photo ? "transparent" : "linear-gradient(135deg, #1e3a5f, #0a2240)", display: "flex", alignItems: "center", justifyContent: "center", position: "relative", overflow: "hidden" }}>
                   {p.photo
                     ? <img src={p.photo} alt={p.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                    : <div style={{ width: 56, height: 56, borderRadius: 16, background: p.color, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 18, fontWeight: 800 }}>{p.image}</div>
+                    : <div style={{ width: 56, height: 56, borderRadius: 16, background: "rgba(255,255,255,0.12)", border: "1.5px solid rgba(255,255,255,0.18)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 18, fontWeight: 800 }}>{p.image}</div>
                   }
                   <div style={{ position: "absolute", top: 10, left: 10 }}>
                     <span style={{ fontSize: 10, fontWeight: 700, borderRadius: 20, padding: "3px 9px", background: pBadge.bg, color: pBadge.color, backdropFilter: "blur(4px)" }}>{pBadge.label}</span>
@@ -2950,7 +2950,7 @@ function Properties({ onSelect, editPropertyId, onClearEditId, convertDealData, 
                   onMouseLeave={e => e.currentTarget.style.background = i % 2 === 0 ? "var(--surface)" : "var(--surface-alt)"}>
                   <td style={{ padding: "16px 20px" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                      <div style={{ width: 36, height: 36, borderRadius: 10, background: p.color, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 12, fontWeight: 700, position: "relative" }}>
+                      <div style={{ width: 36, height: 36, borderRadius: 10, background: "#1e3a5f", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 12, fontWeight: 700, position: "relative" }}>
                         {p.image}
                         {tHealth.length > 0 && <span style={{ position: "absolute", top: -3, right: -3, width: 10, height: 10, borderRadius: "50%", background: tBadge.color, border: "2px solid var(--surface)" }} />}
                       </div>
@@ -3276,7 +3276,7 @@ function ExpDetailPanel({ exp, onClose, onEdit, onDelete }) {
                 <div style={{ width: 28, height: 28, borderRadius: 8, background: "var(--surface-muted)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 2 }}><Hammer size={14} color="#94a3b8" /></div>
                 <div>
                   <p style={{ fontSize: 11, fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 3 }}>Deal</p>
-                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}><span style={{ width: 8, height: 8, borderRadius: "50%", background: deal.color, display: "inline-block" }} /><p style={{ fontSize: 14, color: "var(--text-primary)", fontWeight: 500 }}>{deal.name}</p></div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}><span style={{ width: 8, height: 8, borderRadius: "50%", background: "#94a3b8", display: "inline-block" }} /><p style={{ fontSize: 14, color: "var(--text-primary)", fontWeight: 500 }}>{deal.name}</p></div>
                 </div>
               </div>
             )}
@@ -3526,12 +3526,12 @@ function PropertyDetail({ property, onBack, backLabel, onEditProperty, onGoToTra
       </button>
 
       {/* Property header card */}
-      <div style={{ background: `linear-gradient(135deg, ${property.color}18, ${property.color}30)`, borderRadius: 20, padding: 28, marginBottom: 24, border: `1px solid ${property.color}30` }}>
+      <div style={{ background: "linear-gradient(135deg, #f0f4f8, #e8edf5)", borderRadius: 20, padding: 28, marginBottom: 24, border: "1px solid #e2e8f0" }}>
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
             {property.photo
-              ? <img src={property.photo} alt={property.name} style={{ width: 72, height: 72, borderRadius: 16, objectFit: "cover", border: `3px solid ${property.color}40` }} />
-              : <div style={{ width: 64, height: 64, borderRadius: 18, background: property.color, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 22, fontWeight: 800 }}>{property.image}</div>
+              ? <img src={property.photo} alt={property.name} style={{ width: 72, height: 72, borderRadius: 16, objectFit: "cover", border: "3px solid rgba(30,58,95,0.2)" }} />
+              : <div style={{ width: 64, height: 64, borderRadius: 18, background: "#1e3a5f", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 22, fontWeight: 800 }}>{property.image}</div>
             }
             <div>
               <h1 style={{ color: "var(--text-primary)", fontSize: 24, fontWeight: 800, marginBottom: 4 }}>{property.name}</h1>
@@ -4916,11 +4916,11 @@ function Analytics() {
                 const daysSinceUpdate = p.valueUpdatedAt ? Math.round((new Date() - new Date(p.valueUpdatedAt)) / (1000 * 60 * 60 * 24)) : 999;
                 const isStale = daysSinceUpdate > 90;
                 return (
-                  <div key={p.id} onClick={() => setSelectedPropId(String(p.id))} style={{ background: "var(--surface-alt)", borderRadius: 14, padding: 20, border: `2px solid ${p.color}30`, cursor: "pointer", transition: "all 0.15s" }}
-                    onMouseEnter={e => { e.currentTarget.style.borderColor = p.color; e.currentTarget.style.transform = "translateY(-2px)"; }}
-                    onMouseLeave={e => { e.currentTarget.style.borderColor = `${p.color}30`; e.currentTarget.style.transform = "translateY(0)"; }}>
+                  <div key={p.id} onClick={() => setSelectedPropId(String(p.id))} style={{ background: "var(--surface-alt)", borderRadius: 14, padding: 20, border: "2px solid var(--border)", cursor: "pointer", transition: "all 0.15s" }}
+                    onMouseEnter={e => { e.currentTarget.style.borderColor = "#e95e00"; e.currentTarget.style.transform = "translateY(-2px)"; }}
+                    onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.transform = "translateY(0)"; }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
-                      <div style={{ width: 36, height: 36, borderRadius: 10, background: p.color, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 13, fontWeight: 700 }}>{p.image}</div>
+                      <div style={{ width: 36, height: 36, borderRadius: 10, background: "#1e3a5f", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 13, fontWeight: 700 }}>{p.image}</div>
                       <div>
                         <p style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)", lineHeight: 1.3 }}>{p.name}</p>
                         <p style={{ fontSize: 11, color: "var(--text-muted)" }}>{p.type} · {p.units} unit{p.units > 1 ? "s" : ""}</p>
@@ -5000,7 +5000,7 @@ function Analytics() {
           {/* 1. Return Scorecard — now with DSCR and Occupancy */}
           <div style={{ ...sectionS, marginBottom: 20 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
-              <div style={{ width: 38, height: 38, borderRadius: 10, background: selectedProp.color, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 18 }}>{selectedProp.image}</div>
+              <div style={{ width: 38, height: 38, borderRadius: 10, background: "#1e3a5f", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 18 }}>{selectedProp.image}</div>
               <div>
                 <h3 style={{ color: "var(--text-primary)", fontSize: 16, fontWeight: 700, marginBottom: 2 }}>Return Scorecard</h3>
                 <p style={{ color: "var(--text-muted)", fontSize: 13 }}>How this property stacks up against your portfolio</p>
@@ -5737,7 +5737,7 @@ function Reports() {
                 return (
                   <div key={p.id} style={{ border: "1px solid var(--border-subtle)", borderRadius: 14, padding: 20, marginBottom: 16 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
-                      <div style={{ width: 30, height: 30, borderRadius: 8, background: p.color, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 11, fontWeight: 700 }}>{p.image}</div>
+                      <div style={{ width: 30, height: 30, borderRadius: 8, background: "#1e3a5f", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 11, fontWeight: 700 }}>{p.image}</div>
                       <div>
                         <p style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)" }}>{p.name}</p>
                         <p style={{ fontSize: 12, color: "var(--text-muted)" }}>{p.address}</p>
@@ -5924,7 +5924,7 @@ function Reports() {
                 return (
                   <div>
                     <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 24 }}>
-                      <div style={{ width: 36, height: 36, borderRadius: 10, background: p.color, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 700 }}>{p.image}</div>
+                      <div style={{ width: 36, height: 36, borderRadius: 10, background: "#1e3a5f", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 700 }}>{p.image}</div>
                       <div>
                         <p style={{ fontWeight: 700, color: "var(--text-primary)", fontSize: 15 }}>{p.name}</p>
                         <p style={{ color: "var(--text-muted)", fontSize: 13 }}>{p.address}</p>
@@ -6065,7 +6065,7 @@ function Reports() {
                       <tr key={p.id} style={{ background: i % 2 === 0 ? "var(--surface)" : "var(--surface-alt)" }}>
                         <td style={{ ...tdStyle, fontWeight: 600 }}>
                           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                            <div style={{ width: 22, height: 22, borderRadius: 6, background: p.color, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 10, fontWeight: 700, flexShrink: 0 }}>{p.image}</div>
+                            <div style={{ width: 22, height: 22, borderRadius: 6, background: "#1e3a5f", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 10, fontWeight: 700, flexShrink: 0 }}>{p.image}</div>
                             {p.name.split(" ").slice(0, 2).join(" ")}
                           </div>
                         </td>
@@ -6158,7 +6158,7 @@ function Reports() {
                     <tr key={p.id} style={{ background: i % 2 === 0 ? "var(--surface)" : "var(--surface-alt)" }}>
                       <td style={{ ...tdStyle, fontWeight: 600 }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                          <div style={{ width: 22, height: 22, borderRadius: 6, background: p.color, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 10, fontWeight: 700, flexShrink: 0 }}>{p.image}</div>
+                          <div style={{ width: 22, height: 22, borderRadius: 6, background: "#1e3a5f", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 10, fontWeight: 700, flexShrink: 0 }}>{p.image}</div>
                           {p.name.split(" ").slice(0, 2).join(" ")}
                         </div>
                       </td>
@@ -6595,7 +6595,7 @@ function DealCard({ deal, onSelect }) {
       onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "0 1px 3px rgba(0,0,0,0.06)"; }}>
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 14 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <div style={{ width: 40, height: 40, borderRadius: 12, background: deal.color, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 13, fontWeight: 800 }}>{deal.image}</div>
+          <div style={{ width: 40, height: 40, borderRadius: 12, background: "#1e3a5f", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 13, fontWeight: 800 }}>{deal.image}</div>
           <div>
             <p style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)", marginBottom: 2 }}>{deal.name}</p>
             <p style={{ fontSize: 11, color: "var(--text-muted)" }}>{deal.address.split(",")[1]?.trim()}</p>
@@ -7256,10 +7256,10 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
       <button onClick={onBack} style={{ display: "flex", alignItems: "center", gap: 6, color: "#e95e00", fontWeight: 600, fontSize: 14, background: "none", border: "none", cursor: "pointer", marginBottom: 20 }}>
         {backLabel || "Back to Deals"}
       </button>
-      <div style={{ background: `linear-gradient(135deg, ${deal.color}18, ${deal.color}30)`, borderRadius: 20, padding: 28, marginBottom: 20, border: `1px solid ${deal.color}30` }}>
+      <div style={{ background: "linear-gradient(135deg, #f0f4f8, #e8edf5)", borderRadius: 20, padding: 28, marginBottom: 20, border: "1px solid #e2e8f0" }}>
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-            <div style={{ width: 60, height: 60, borderRadius: 18, background: deal.color, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 20, fontWeight: 800 }}>{deal.image}</div>
+            <div style={{ width: 60, height: 60, borderRadius: 18, background: "#1e3a5f", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 20, fontWeight: 800 }}>{deal.image}</div>
             <div>
               <h1 style={{ color: "var(--text-primary)", fontSize: 24, fontWeight: 800, marginBottom: 4 }}>{deal.name}</h1>
               <p style={{ color: "var(--text-secondary)", fontSize: 14, display: "flex", alignItems: "center", gap: 4 }}><MapPin size={13} /> {deal.address}</p>
@@ -9114,7 +9114,7 @@ function TenantManagement({ onBack, highlightTenantId, onClearHighlight, prefill
                   <tr key={t.id} style={{ borderTop: "1px solid var(--border-subtle)", background: i % 2 === 0 ? "var(--surface)" : "var(--surface-alt)" }}>
                     <td style={{ padding: "14px 16px" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <div style={{ width: 8, height: 8, borderRadius: "50%", background: prop?.color || "#94a3b8", flexShrink: 0 }} />
+                        <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#94a3b8", flexShrink: 0 }} />
                         <div>
                           <p style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)" }}>{prop?.name.split(" ").slice(0,2).join(" ")}</p>
                           <p style={{ fontSize: 11, color: "var(--text-muted)" }}>{t.unit}</p>
@@ -9148,7 +9148,7 @@ function TenantManagement({ onBack, highlightTenantId, onClearHighlight, prefill
                 <tr key={t.id} ref={isFlash ? highlightRef : null} style={{ borderTop: "1px solid var(--border-subtle)", background: isFlash ? "var(--warning-btn-bg)" : i % 2 === 0 ? "var(--surface)" : "var(--surface-alt)", transition: "background 2.5s ease" }}>
                   <td style={{ padding: "14px 16px" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <div style={{ width: 8, height: 8, borderRadius: "50%", background: prop?.color || "#94a3b8", flexShrink: 0 }} />
+                      <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#94a3b8", flexShrink: 0 }} />
                       <div>
                         <p style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)" }}>{prop?.name.split(" ").slice(0,2).join(" ")}</p>
                         <p style={{ fontSize: 11, color: "var(--text-muted)" }}>{t.unit}</p>
@@ -10053,7 +10053,7 @@ function TenantDetail({ tenant, onBack, backLabel, onTenantUpdated, onSelectTena
       {/* Header */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24 }}>
         <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
-          <div style={{ width: 56, height: 56, borderRadius: 16, background: property?.color || "#3b82f6", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 20, fontWeight: 800 }}>
+          <div style={{ width: 56, height: 56, borderRadius: 16, background: "#1e3a5f", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 20, fontWeight: 800 }}>
             {tenant.name?.charAt(0) || "?"}
           </div>
           <div>
@@ -11369,7 +11369,7 @@ function UnifiedNotes({ highlightNoteId, highlightDealNoteId, onBack, onClearHig
       <div style={{ display: "flex", gap: 6, background: "var(--surface-alt)", borderRadius: 10, padding: 4, border: "1px solid var(--border)", marginBottom: 16, width: "fit-content" }}>
         {tabs.map(t => (
           <button key={t.id} onClick={() => { setActiveTab(t.id); setPropFilter("all"); setFlipFilter("all"); }}
-            style={{ padding: "7px 14px", borderRadius: 8, border: "none", background: activeTab === t.id ? "#f59e0b" : "transparent", color: activeTab === t.id ? "#fff" : "#64748b", fontWeight: 600, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 5, transition: "all 0.15s" }}>
+            style={{ padding: "7px 14px", borderRadius: 8, border: "none", background: activeTab === t.id ? "#e95e00" : "transparent", color: activeTab === t.id ? "#fff" : "#64748b", fontWeight: 600, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 5, transition: "all 0.15s" }}>
             {t.label}
             <span style={{ background: activeTab === t.id ? "rgba(255,255,255,0.3)" : "var(--surface-muted)", color: activeTab === t.id ? "#fff" : "var(--text-muted)", fontSize: 11, fontWeight: 700, padding: "1px 6px", borderRadius: 6, minWidth: 18, textAlign: "center" }}>{t.count}</span>
           </button>
@@ -11430,7 +11430,7 @@ function UnifiedNotes({ highlightNoteId, highlightDealNoteId, onBack, onClearHig
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                       {n.entityImage ? (
-                        <div style={{ width: 26, height: 26, borderRadius: 7, background: n.entityColor + "20", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, fontWeight: 700, color: n.entityColor }}>{n.entityImage}</div>
+                        <div style={{ width: 26, height: 26, borderRadius: 7, background: "#1e3a5f", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, fontWeight: 700, color: "#fff" }}>{n.entityImage}</div>
                       ) : (
                         <div style={{ width: 26, height: 26, borderRadius: 7, background: n.entityColor + "20", display: "flex", alignItems: "center", justifyContent: "center" }}>
                           <MessageSquare size={12} color={n.entityColor} />
@@ -11702,8 +11702,8 @@ function GlobalSearch({ onNavigate }) {
                       style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 16px", cursor: "pointer", transition: "background 0.1s" }}
                       onMouseEnter={e => e.currentTarget.style.background = "var(--surface-alt)"}
                       onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
-                      <div style={{ width: 30, height: 30, borderRadius: 8, background: (item.color || "#64748b") + "18", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                        {item.image ? <span style={{ fontSize: 10, fontWeight: 700, color: item.color }}>{item.image}</span> : <item.icon size={14} color={item.color || "#64748b"} />}
+                      <div style={{ width: 30, height: 30, borderRadius: 8, background: item.image ? "#1e3a5f" : (item.color || "#64748b") + "18", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                        {item.image ? <span style={{ fontSize: 10, fontWeight: 700, color: "#fff" }}>{item.image}</span> : <item.icon size={14} color={item.color || "#64748b"} />}
                       </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.title}</p>
