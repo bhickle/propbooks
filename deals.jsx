@@ -43,7 +43,7 @@ function DealAttachmentZone({ onFiles, accept = "image/*,.pdf", label = "Drop fi
   return (
     <div onDragOver={e => { e.preventDefault(); setDragOver(true); }} onDragLeave={() => setDragOver(false)} onDrop={handleDrop}
       onClick={() => inputRef.current?.click()}
-      style={{ border: `2px dashed ${dragOver ? "#3b82f6" : "var(--border)"}`, borderRadius: 12, padding: compact ? "12px 16px" : "20px 24px", textAlign: "center", cursor: "pointer", background: dragOver ? "#eff6ff" : "var(--surface-alt)", transition: "all 0.15s", display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }}>
+      style={{ border: `2px dashed ${dragOver ? "var(--c-blue)" : "var(--border)"}`, borderRadius: 12, padding: compact ? "12px 16px" : "20px 24px", textAlign: "center", cursor: "pointer", background: dragOver ? "#eff6ff" : "var(--surface-alt)", transition: "all 0.15s", display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }}>
       <input ref={inputRef} type="file" accept={accept} multiple onChange={handleChange} style={{ display: "none" }} />
       <UploadCloud size={compact ? 16 : 20} color="var(--text-muted)" />
       <span style={{ fontSize: compact ? 12 : 13, color: "var(--text-secondary)" }}>{label}</span>
@@ -69,7 +69,7 @@ function DealAttachmentList({ items, onRemove, compact = false }) {
             {onRemove && (
               <button onClick={e => { e.stopPropagation(); onRemove(item.id); }}
                 style={{ background: "none", border: "none", cursor: "pointer", padding: 4, borderRadius: 6, display: "flex", color: "var(--text-muted)" }}
-                onMouseEnter={e => e.currentTarget.style.color = "#ef4444"} onMouseLeave={e => e.currentTarget.style.color = "var(--text-muted)"}>
+                onMouseEnter={e => e.currentTarget.style.color = "var(--c-red)"} onMouseLeave={e => e.currentTarget.style.color = "var(--text-muted)"}>
                 <X size={14} />
               </button>
             )}
@@ -126,9 +126,15 @@ function StageDot({ stage }) {
   );
 }
 
-function StatCard({ icon: Icon, label, value, sub, color = "#3b82f6", semantic = false, trend, trendVal, tip }) {
+function colorWithAlpha(color, alpha) {
+  if (color.startsWith("var(")) return `color-mix(in srgb, ${color} ${Math.round(alpha * 100)}%, transparent)`;
+  const n = parseInt(color.replace("#", ""), 16);
+  return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${alpha})`;
+}
+
+function StatCard({ icon: Icon, label, value, sub, color = "var(--c-blue)", semantic = false, trend, trendVal, tip }) {
   const up = trend === "up";
-  const iconBg = semantic ? color + "18" : "#1e3a5f";
+  const iconBg = semantic ? colorWithAlpha(color, 0.1) : "#1e3a5f";
   const iconColor = semantic ? color : "#e95e00";
   return (
     <div style={{ background: "var(--surface)", borderRadius: 16, padding: "20px 22px", boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)" }}>
@@ -138,7 +144,7 @@ function StatCard({ icon: Icon, label, value, sub, color = "#3b82f6", semantic =
             <p style={{ color: "var(--text-muted)", fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 6 }}>{label}</p>
             {tip && <InfoTip text={tip} />}
           </div>
-          <p style={{ color: "var(--text-primary)", fontSize: 26, fontWeight: 800, lineHeight: 1 }}>{value}</p>
+          <p style={{ color: "var(--text-primary)", fontSize: 26, fontWeight: 800, lineHeight: 1, fontFamily: "var(--font-display)" }}>{value}</p>
           {sub && <p style={{ color: "var(--text-secondary)", fontSize: 12, marginTop: 4 }}>{sub}</p>}
         </div>
         <div style={{ background: iconBg, borderRadius: 12, padding: 10 }}>
@@ -147,8 +153,8 @@ function StatCard({ icon: Icon, label, value, sub, color = "#3b82f6", semantic =
       </div>
       {trendVal && (
         <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 14, paddingTop: 14, borderTop: "1px solid var(--border-subtle)" }}>
-          {up ? <ArrowUp size={13} color="#10b981" /> : <ArrowDown size={13} color="#ef4444" />}
-          <span style={{ fontSize: 12, fontWeight: 600, color: up ? "#10b981" : "#ef4444" }}>{trendVal}</span>
+          {up ? <ArrowUp size={13} color="var(--c-green)" /> : <ArrowDown size={13} color="var(--c-red)" />}
+          <span style={{ fontSize: 12, fontWeight: 600, color: up ? "var(--c-green)" : "var(--c-red)" }}>{trendVal}</span>
           <span style={{ fontSize: 12, color: "var(--text-muted)" }}>vs last quarter</span>
         </div>
       )}
@@ -243,7 +249,7 @@ export function DealDashboard({ onSelect, onNavigateToNote, onNavigateToExpense,
             milestoneKey: f.id + "-" + m.label, milestoneDone: m.done,
             text: `${shortName(f)} – ${m.label}`,
             icon: isSold ? Star : m.label.toLowerCase().includes("inspect") ? Flag : CheckCircle,
-            color: isSold ? "#6b7280" : "#10b981",
+            color: isSold ? "#6b7280" : "var(--c-green)",
           });
         }
       });
@@ -256,7 +262,7 @@ export function DealDashboard({ onSelect, onNavigateToNote, onNavigateToExpense,
         items.push({
           dealId: f.id, deal: f, date: e.date, tab: "expenses", expenseId: e.id,
           text: `${shortName(f)} – ${e.description || e.category}`,
-          icon: Receipt, color: "#3b82f6",
+          icon: Receipt, color: "var(--c-blue)",
         });
       });
     });
@@ -268,7 +274,7 @@ export function DealDashboard({ onSelect, onNavigateToNote, onNavigateToExpense,
         items.push({
           dealId: f.id, deal: f, date: n.date, tab: "notes", noteId: n.id,
           text: `${shortName(f)} – ${n.text.length > 50 ? n.text.slice(0, 50) + "…" : n.text}`,
-          icon: MessageSquare, color: "#8b5cf6",
+          icon: MessageSquare, color: "var(--c-purple)",
         });
       });
     });
@@ -289,9 +295,9 @@ export function DealDashboard({ onSelect, onNavigateToNote, onNavigateToExpense,
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 20 }}>
         <StatCard icon={Hammer}     label="Active Deals"     value={active.length}              sub={isFiltered ? "Filtered" : "In pipeline"}        color="#e95e00" trend={!isFiltered ? "up" : undefined} trendVal="+1 this quarter" tip="Number of deals in active pipeline stages (not Sold)." />
-        <StatCard icon={DollarSign} label="Capital Deployed" value={fmtK(totalDeployed)}        sub={isFiltered ? "Filtered" : "Purchase + rehab"}   color="#3b82f6" tip="Total Purchase Price + Rehab Budget across active deals." />
-        <StatCard icon={TrendingUp} label="Projected Profit" value={fmtK(Math.round(projectedProfit))} sub={isFiltered ? "Filtered" : "Active deals"}  color="#10b981" tip="ARV − Purchase − Rehab Budget − Estimated Holding & Selling Costs for all active deals." />
-        <StatCard icon={Star}       label="Realized Profit"  value={fmt(realizedProfit)}        sub={isFiltered ? "Filtered" : "Closed deals YTD"}   color="#8b5cf6" trend={!isFiltered ? "up" : undefined} trendVal="+$61K YTD" tip="Actual profit from closed/sold deals this year." />
+        <StatCard icon={DollarSign} label="Capital Deployed" value={fmtK(totalDeployed)}        sub={isFiltered ? "Filtered" : "Purchase + rehab"}   color="var(--c-blue)" tip="Total Purchase Price + Rehab Budget across active deals." />
+        <StatCard icon={TrendingUp} label="Projected Profit" value={fmtK(Math.round(projectedProfit))} sub={isFiltered ? "Filtered" : "Active deals"}  color="var(--c-green)" tip="ARV − Purchase − Rehab Budget − Estimated Holding & Selling Costs for all active deals." />
+        <StatCard icon={Star}       label="Realized Profit"  value={fmt(realizedProfit)}        sub={isFiltered ? "Filtered" : "Closed deals YTD"}   color="var(--c-purple)" trend={!isFiltered ? "up" : undefined} trendVal="+$61K YTD" tip="Actual profit from closed/sold deals this year." />
       </div>
 
       {/* Filter bar */}
@@ -348,10 +354,10 @@ export function DealDashboard({ onSelect, onNavigateToNote, onNavigateToExpense,
                     <td style={{ padding: "12px 0" }}><StageDot stage={f.stage} /></td>
                     <td style={{ padding: "12px 0", color: "var(--text-primary)", fontSize: 13, fontWeight: 500 }}>{f.daysOwned}d</td>
                     <td style={{ padding: "12px 0" }}>
-                      <span style={{ color: budgetLeft < 0 ? "#ef4444" : "var(--text-primary)", fontSize: 13, fontWeight: 600 }}>{fmt(budgetLeft)}</span>
+                      <span style={{ color: budgetLeft < 0 ? "var(--c-red)" : "var(--text-primary)", fontSize: 13, fontWeight: 600 }}>{fmt(budgetLeft)}</span>
                     </td>
                     <td style={{ padding: "12px 0" }}>
-                      <span style={{ color: proj > 0 ? "#10b981" : "#ef4444", fontSize: 13, fontWeight: 600 }}>{fmt(Math.round(proj))}</span>
+                      <span style={{ color: proj > 0 ? "var(--c-green)" : "var(--c-red)", fontSize: 13, fontWeight: 600 }}>{fmt(Math.round(proj))}</span>
                     </td>
                   </tr>
                 );
@@ -380,7 +386,7 @@ export function DealDashboard({ onSelect, onNavigateToNote, onNavigateToExpense,
             )}
             {recentActivity.map((a, i) => (
               <div key={i} onClick={() => { if (a.tab === "notes" && a.noteId && onNavigateToNote) onNavigateToNote(a.noteId); else if (a.tab === "expenses" && a.expenseId && onNavigateToExpense) onNavigateToExpense(a.expenseId); else if (a.tab === "milestones" && a.milestoneKey && onNavigateToMilestone) onNavigateToMilestone(a.milestoneKey, a.milestoneDone); else if (onSelect) onSelect(a.deal, a.tab); }} style={{ display: "flex", gap: 10, marginBottom: 12, cursor: "pointer", padding: "6px 8px", marginLeft: -8, marginRight: -8, borderRadius: 10, transition: "background 0.15s" }} onMouseEnter={e => e.currentTarget.style.background = "var(--surface-alt)"} onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
-                <div style={{ width: 28, height: 28, borderRadius: 8, background: a.color + "18", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                <div style={{ width: 28, height: 28, borderRadius: 8, background: colorWithAlpha(a.color, 0.1), display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                   <a.icon size={13} color={a.color} />
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
@@ -399,8 +405,8 @@ export function DealDashboard({ onSelect, onNavigateToNote, onNavigateToExpense,
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
           <p style={{ color: "var(--text-primary)", fontSize: 16, fontWeight: 700 }}>Rehab Budget Overview</p>
           <div style={{ display: "flex", gap: 16 }}>
-            <span style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--text-secondary)" }}><span style={{ width: 10, height: 10, borderRadius: 2, background: "#3b82f6", display: "inline-block" }} />Budgeted</span>
-            <span style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--text-secondary)" }}><span style={{ width: 10, height: 10, borderRadius: 2, background: "#10b981", display: "inline-block" }} />Spent</span>
+            <span style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--text-secondary)" }}><span style={{ width: 10, height: 10, borderRadius: 2, background: "var(--c-blue)", display: "inline-block" }} />Budgeted</span>
+            <span style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--text-secondary)" }}><span style={{ width: 10, height: 10, borderRadius: 2, background: "var(--c-green)", display: "inline-block" }} />Spent</span>
           </div>
         </div>
         <ResponsiveContainer width="100%" height={180}>
@@ -409,8 +415,8 @@ export function DealDashboard({ onSelect, onNavigateToNote, onNavigateToExpense,
             <XAxis dataKey="name" tick={{ fontSize: 12, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
             <YAxis tick={{ fontSize: 12, fill: "#94a3b8" }} axisLine={false} tickLine={false} tickFormatter={v => `$${(v/1000).toFixed(0)}K`} />
             <Tooltip formatter={v => fmt(v)} contentStyle={{ borderRadius: 10, border: "1px solid var(--border)", fontSize: 12 }} />
-            <Bar dataKey="budget" fill="#3b82f6" radius={[6, 6, 0, 0]} name="Budgeted" />
-            <Bar dataKey="spent"  fill="#10b981" radius={[6, 6, 0, 0]} name="Spent" />
+            <Bar dataKey="budget" fill="var(--c-blue)" radius={[6, 6, 0, 0]} name="Budgeted" />
+            <Bar dataKey="spent"  fill="var(--c-green)" radius={[6, 6, 0, 0]} name="Spent" />
           </BarChart>
         </ResponsiveContainer>
       </div>
@@ -624,10 +630,10 @@ export function RehabTracker({ onSelectRehabItem } = {}) {
       />
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 24 }}>
-        <StatCard icon={Target}      label="Total Budget"  value={fmtK(totalBudget)} sub="Active deals"   color="#3b82f6" tip="Sum of rehab budgets across all active deals." />
+        <StatCard icon={Target}      label="Total Budget"  value={fmtK(totalBudget)} sub="Active deals"   color="var(--c-blue)" tip="Sum of rehab budgets across all active deals." />
         <StatCard icon={Receipt}     label="Total Spent"   value={fmt(totalSpent)}   sub="To date"        color="#e95e00" tip="Total amount spent on rehab across all deals to date." />
-        <StatCard icon={DollarSign}  label="Budget Left"   value={fmt(totalLeft)}    sub={totalLeft < 0 ? "OVER BUDGET" : "Remaining"} color={totalLeft < 0 ? "#ef4444" : "#10b981"} semantic tip="Total Budget − Total Spent. Negative means over budget." />
-        <StatCard icon={CheckCircle} label="Tasks Done"    value={`${complete}/${allItems.length}`} sub={`${inProgress} in progress`} color="#8b5cf6" tip="Completed rehab line items out of total across all deals." />
+        <StatCard icon={DollarSign}  label="Budget Left"   value={fmt(totalLeft)}    sub={totalLeft < 0 ? "OVER BUDGET" : "Remaining"} color={totalLeft < 0 ? "var(--c-red)" : "var(--c-green)"} semantic tip="Total Budget − Total Spent. Negative means over budget." />
+        <StatCard icon={CheckCircle} label="Tasks Done"    value={`${complete}/${allItems.length}`} sub={`${inProgress} in progress`} color="var(--c-purple)" tip="Completed rehab line items out of total across all deals." />
       </div>
 
       {/* Filters */}
@@ -677,7 +683,7 @@ export function RehabTracker({ onSelectRehabItem } = {}) {
 
               {/* Progress bar */}
               <div style={{ background: "var(--surface-muted)", borderRadius: 4, height: 6, marginBottom: 16, overflow: "hidden" }}>
-                <div style={{ height: "100%", width: `${pct}%`, background: pct > 95 ? "#ef4444" : "#10b981", borderRadius: 4, transition: "width 0.3s" }} />
+                <div style={{ height: "100%", width: `${pct}%`, background: pct > 95 ? "var(--c-red)" : "var(--c-green)", borderRadius: 4, transition: "width 0.3s" }} />
               </div>
 
               {/* Line items table */}
@@ -726,7 +732,7 @@ export function RehabTracker({ onSelectRehabItem } = {}) {
                                     <X size={10} />
                                   </button>
                                   {mm1 && <span title={`${con.name} still marked active`} style={{ cursor: "help" }}><AlertCircle size={12} color="#e95e00" /></span>}
-                                  {mm2 && <span title={`${con.name} is complete but item isn't`} style={{ cursor: "help" }}><AlertCircle size={12} color="#3b82f6" /></span>}
+                                  {mm2 && <span title={`${con.name} is complete but item isn't`} style={{ cursor: "help" }}><AlertCircle size={12} color="var(--c-blue)" /></span>}
                                 </div>
                               );
                             })}
@@ -818,7 +824,7 @@ export function RehabTracker({ onSelectRehabItem } = {}) {
 
                         {/* Variance */}
                         <td style={{ padding: "10px 0", paddingRight: 8 }}>
-                          <span style={{ color: variance < 0 ? "#ef4444" : "#10b981", fontSize: 13, fontWeight: 600 }}>
+                          <span style={{ color: variance < 0 ? "var(--c-red)" : "var(--c-green)", fontSize: 13, fontWeight: 600 }}>
                             {variance < 0 ? "−" : "+"}{fmt(Math.abs(variance))}
                           </span>
                         </td>
@@ -827,7 +833,7 @@ export function RehabTracker({ onSelectRehabItem } = {}) {
                         <td onClick={e => e.stopPropagation()} style={{ padding: "10px 0", whiteSpace: "nowrap" }}>
                           {isEditing ? (
                             <div style={{ display: "flex", gap: 6 }}>
-                              <button onClick={saveEditItem} style={{ background: "#10b981", color: "#fff", border: "none", borderRadius: 7, padding: "4px 10px", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>Save</button>
+                              <button onClick={saveEditItem} style={{ background: "var(--c-green)", color: "#fff", border: "none", borderRadius: 7, padding: "4px 10px", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>Save</button>
                               <button onClick={() => setEditingItem(null)} style={{ background: "var(--surface-muted)", color: "var(--text-secondary)", border: "none", borderRadius: 7, padding: "4px 10px", fontSize: 12, cursor: "pointer" }}>Cancel</button>
                             </div>
                           ) : (
@@ -840,7 +846,7 @@ export function RehabTracker({ onSelectRehabItem } = {}) {
                                 <Pencil size={13} />
                               </button>
                               <button onClick={() => setDeleteConfirm({ dealId: f.id, idx: item._idx, category: item.category, budgeted: item.budgeted, spent: item.spent })}
-                                style={{ background: "#fee2e2", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "#ef4444", display: "flex", alignItems: "center" }}
+                                style={{ background: "#fee2e2", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "var(--c-red)", display: "flex", alignItems: "center" }}
                                 title="Delete">
                                 <Trash2 size={13} />
                               </button>
@@ -971,7 +977,7 @@ export function RehabTracker({ onSelectRehabItem } = {}) {
             <p style={{ color: "var(--text-muted)", fontSize: 12, marginBottom: 18 }}>This action cannot be undone.</p>
             <div style={{ display: "flex", gap: 10 }}>
               <button onClick={() => setDeleteConfirm(null)} style={{ flex: 1, padding: "12px", border: "1px solid var(--border)", borderRadius: 10, background: "var(--surface)", color: "var(--text-label)", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
-              <button onClick={() => { deleteLineItem(deleteConfirm.dealId, deleteConfirm.idx); setDeleteConfirm(null); }} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "#ef4444", color: "#fff", fontWeight: 700, cursor: "pointer" }}>Delete</button>
+              <button onClick={() => { deleteLineItem(deleteConfirm.dealId, deleteConfirm.idx); setDeleteConfirm(null); }} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "var(--c-red)", color: "#fff", fontWeight: 700, cursor: "pointer" }}>Delete</button>
             </div>
           </div>
         </div>
@@ -1095,7 +1101,7 @@ function ExpDetailPanel({ exp, onClose, onEdit, onDelete }) {
             )}
             {contractor && (
               <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
-                <div style={{ width: 28, height: 28, borderRadius: 8, background: "#dbeafe", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 2 }}><UserCheck size={14} color="#3b82f6" /></div>
+                <div style={{ width: 28, height: 28, borderRadius: 8, background: "#dbeafe", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 2 }}><UserCheck size={14} color="var(--c-blue)" /></div>
                 <div>
                   <p style={{ fontSize: 11, fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 3 }}>Linked Contractor</p>
                   <p style={{ fontSize: 14, color: "var(--text-primary)", fontWeight: 500 }}>{contractor.name}</p>
@@ -1118,7 +1124,7 @@ function ExpDetailPanel({ exp, onClose, onEdit, onDelete }) {
                 {receipts.map(r => (
                   <div key={r.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", background: "var(--surface-alt)", borderRadius: 10, border: "1px solid var(--border)" }}>
                     <div style={{ width: 36, height: 36, borderRadius: 8, background: r.mimeType?.includes("pdf") ? "#fee2e2" : "#fff7ed", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                      {r.mimeType?.includes("pdf") ? <FileText size={16} color="#ef4444" /> : <FileImage size={16} color="#e95e00" />}
+                      {r.mimeType?.includes("pdf") ? <FileText size={16} color="var(--c-red)" /> : <FileImage size={16} color="#e95e00" />}
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)", marginBottom: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.name}</p>
@@ -1138,7 +1144,7 @@ function ExpDetailPanel({ exp, onClose, onEdit, onDelete }) {
         </div>
         <div style={{ padding: "18px 28px", borderTop: "1px solid var(--border-subtle)", display: "flex", gap: 10, background: "var(--surface)" }}>
           <button onClick={() => { onClose(); onEdit(exp); }} style={{ flex: 1, padding: "11px 0", background: "var(--surface-muted)", border: "none", borderRadius: 10, cursor: "pointer", fontSize: 14, fontWeight: 600, color: "var(--text-label)", display: "flex", alignItems: "center", justifyContent: "center", gap: 7 }}><Pencil size={14} /> Edit</button>
-          <button onClick={() => { onClose(); onDelete(exp); }} style={{ padding: "11px 18px", background: "#fee2e2", border: "none", borderRadius: 10, cursor: "pointer", fontSize: 14, fontWeight: 600, color: "#ef4444", display: "flex", alignItems: "center", justifyContent: "center", gap: 7 }}><Trash2 size={14} /> Delete</button>
+          <button onClick={() => { onClose(); onDelete(exp); }} style={{ padding: "11px 18px", background: "#fee2e2", border: "none", borderRadius: 10, cursor: "pointer", fontSize: 14, fontWeight: 600, color: "var(--c-red)", display: "flex", alignItems: "center", justifyContent: "center", gap: 7 }}><Trash2 size={14} /> Delete</button>
         </div>
       </div>
     </>
@@ -1309,7 +1315,7 @@ export function DealExpenses({ highlightExpId, onBack, onClearHighlight, backLab
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, marginBottom: 24 }}>
         <StatCard icon={Receipt}    label="Total Expenses"    value={fmt(total)}     sub={`${filtered.length} transactions`} color="#e95e00" tip="Sum of all expenses matching the current filters." />
         <StatCard icon={TrendingUp}  label="Largest Expense"   value={highestExp ? fmt(highestExp.amount) : "—"} sub={highestExp ? `${highestExp.description || highestExp.category}` : "No expenses"} color="#e95e00" tip="The single highest expense in the current filtered view." />
-        <StatCard icon={Hammer}     label="Largest Category"  value={catTotals[0]?.cat || "—"} sub={catTotals[0] ? fmt(catTotals[0].total) : ""}  color="#8b5cf6" tip="The expense category with the highest total spend." />
+        <StatCard icon={Hammer}     label="Largest Category"  value={catTotals[0]?.cat || "—"} sub={catTotals[0] ? fmt(catTotals[0].total) : ""}  color="var(--c-purple)" tip="The expense category with the highest total spend." />
       </div>
 
       {/* Filter bar */}
@@ -1401,7 +1407,7 @@ export function DealExpenses({ highlightExpId, onBack, onClearHighlight, backLab
                   <td style={{ padding: "12px 16px" }}>
                     <div style={{ display: "flex", gap: 4 }}>
                       <button onClick={ev => { ev.stopPropagation(); openEdit(e); }} style={{ background: "var(--surface-muted)", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "var(--text-label)", display: "flex", alignItems: "center" }} title="Edit"><Pencil size={13} /></button>
-                      <button onClick={ev => { ev.stopPropagation(); setDeleteConfirm(e); }} style={{ background: "#fee2e2", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "#ef4444", display: "flex", alignItems: "center" }} title="Delete"><Trash2 size={13} /></button>
+                      <button onClick={ev => { ev.stopPropagation(); setDeleteConfirm(e); }} style={{ background: "#fee2e2", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "var(--c-red)", display: "flex", alignItems: "center" }} title="Delete"><Trash2 size={13} /></button>
                     </div>
                   </td>
                 </tr>
@@ -1469,8 +1475,8 @@ export function DealExpenses({ highlightExpId, onBack, onClearHighlight, backLab
                     {!vendorFocus && !form.vendor && <p style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4, fontStyle: "italic" }}>Type to search previous entries or add new</p>}
                     {linkedCon && (
                       <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 6 }}>
-                        <UserCheck size={12} color="#3b82f6" />
-                        <span style={{ fontSize: 12, color: "#3b82f6", fontWeight: 600 }}>Linked to {linkedCon.name}{linkedCon.trade ? ` (${linkedCon.trade})` : ""}</span>
+                        <UserCheck size={12} color="var(--c-blue)" />
+                        <span style={{ fontSize: 12, color: "var(--c-blue)", fontWeight: 600 }}>Linked to {linkedCon.name}{linkedCon.trade ? ` (${linkedCon.trade})` : ""}</span>
                         <button onMouseDown={e => { e.preventDefault(); setForm(f => ({ ...f, contractorId: "" })); }} style={{ background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", fontSize: 11, textDecoration: "underline" }}>unlink</button>
                       </div>
                     )}
@@ -1487,9 +1493,9 @@ export function DealExpenses({ highlightExpId, onBack, onClearHighlight, backLab
                             return (
                               <button key={v} onMouseDown={() => { pickVendor(v); setVendorFocus(false); }}
                                 style={{ width: "100%", padding: "10px 14px", background: "none", border: "none", borderBottom: "1px solid var(--border-subtle)", textAlign: "left", cursor: "pointer", fontSize: 13, color: "var(--text-primary)", display: "flex", alignItems: "center", gap: 8 }}>
-                                {isContractor ? <UserCheck size={13} style={{ color: "#3b82f6", flexShrink: 0 }} /> : <Users size={13} style={{ color: "var(--text-muted)", flexShrink: 0 }} />}
+                                {isContractor ? <UserCheck size={13} style={{ color: "var(--c-blue)", flexShrink: 0 }} /> : <Users size={13} style={{ color: "var(--text-muted)", flexShrink: 0 }} />}
                                 <span>{v}</span>
-                                {isContractor && <span style={{ marginLeft: "auto", fontSize: 10, color: "#3b82f6", fontWeight: 600, textTransform: "uppercase" }}>Contractor</span>}
+                                {isContractor && <span style={{ marginLeft: "auto", fontSize: 10, color: "var(--c-blue)", fontWeight: 600, textTransform: "uppercase" }}>Contractor</span>}
                               </button>
                             );
                           })}
@@ -1592,7 +1598,7 @@ export function DealExpenses({ highlightExpId, onBack, onClearHighlight, backLab
             <p style={{ color: "var(--text-muted)", fontSize: 12, marginBottom: 18 }}>This action cannot be undone.</p>
             <div style={{ display: "flex", gap: 10 }}>
               <button onClick={() => setDeleteConfirm(null)} style={{ flex: 1, padding: "12px", border: "1px solid var(--border)", borderRadius: 10, background: "var(--surface)", color: "var(--text-label)", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
-              <button onClick={() => { setExpenses(prev => prev.filter(x => x.id !== deleteConfirm.id)); const gi = _FE.findIndex(e => e.id === deleteConfirm.id); if (gi !== -1) _FE.splice(gi, 1); setDeleteConfirm(null); }} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "#ef4444", color: "#fff", fontWeight: 700, cursor: "pointer" }}>Delete</button>
+              <button onClick={() => { setExpenses(prev => prev.filter(x => x.id !== deleteConfirm.id)); const gi = _FE.findIndex(e => e.id === deleteConfirm.id); if (gi !== -1) _FE.splice(gi, 1); setDeleteConfirm(null); }} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "var(--c-red)", color: "#fff", fontWeight: 700, cursor: "pointer" }}>Delete</button>
             </div>
           </div>
         </div>
@@ -1671,7 +1677,7 @@ export function DealContractors({ onSelectContractor }) {
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 24 }}>
         <StatCard icon={Users} label="Contractors" value={filtered.length} sub={filterDeal !== "all" ? `of ${_CON.length} total` : `${_CON.filter(c => (c.dealIds || []).length > 0).length} with active deals`} color="#e95e00" tip="Number of contractors matching the current filters." />
         <StatCard icon={DollarSign} label="Accepted Bids" value={fmt(totalBids)} sub={`${filtered.length} contractor${filtered.length !== 1 ? "s" : ""}`} color="#e95e00" tip="Sum of all accepted bid amounts for contractors in the current view." />
-        <StatCard icon={CheckCircle} label="Total Paid" value={fmt(totalPaid)} sub="Disbursed to date" color="#10b981" tip="Total payments disbursed to contractors in the current view." />
+        <StatCard icon={CheckCircle} label="Total Paid" value={fmt(totalPaid)} sub="Disbursed to date" color="var(--c-green)" tip="Total payments disbursed to contractors in the current view." />
         <StatCard icon={AlertCircle} label="Outstanding" value={fmt(outstanding)} sub="Remaining balance" color={outstanding > 0 ? "#e95e00" : "#94a3b8"} semantic tip="Accepted Bids − Total Paid. Amount still owed to contractors in the current view." />
       </div>
 
@@ -1726,7 +1732,7 @@ export function DealContractors({ onSelectContractor }) {
                 <span style={{ fontSize: 12, color: "var(--text-primary)", fontWeight: 600 }}>{fmt(totalConPaid)} paid</span>
               </div>
               <div style={{ background: "var(--surface-muted)", borderRadius: 4, height: 5, overflow: "hidden" }}>
-                <div style={{ height: "100%", width: `${pct}%`, background: "#10b981", borderRadius: 4 }} />
+                <div style={{ height: "100%", width: `${pct}%`, background: "var(--c-green)", borderRadius: 4 }} />
               </div>
               <div style={{ display: "flex", gap: 12, marginTop: 10, fontSize: 11, color: "var(--text-muted)" }}>
                 <span>{conBids.length} bid{conBids.length !== 1 ? "s" : ""}</span>
@@ -1808,7 +1814,7 @@ export function DealContractors({ onSelectContractor }) {
             <p style={{ color: "var(--text-muted)", fontSize: 12, marginBottom: 18 }}>This action cannot be undone.</p>
             <div style={{ display: "flex", gap: 10 }}>
               <button onClick={() => setDeleteConfirm(null)} style={{ flex: 1, padding: "12px", border: "1px solid var(--border)", borderRadius: 10, background: "var(--surface)", color: "var(--text-label)", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
-              <button onClick={() => handleDelete(deleteConfirm)} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "#ef4444", color: "#fff", fontWeight: 700, cursor: "pointer" }}>Delete</button>
+              <button onClick={() => handleDelete(deleteConfirm)} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "var(--c-red)", color: "#fff", fontWeight: 700, cursor: "pointer" }}>Delete</button>
             </div>
           </div>
         </div>
@@ -1953,7 +1959,7 @@ export function ContractorDetail({ contractor, onBack, initialTab }) {
   }, []);
 
   const DOC_TYPES = { contract: "Contract", w9: "W-9", insurance: "Insurance", lienWaiver: "Lien Waiver", changeOrder: "Change Order", warranty: "Warranty", invoice: "Invoice", other: "Other" };
-  const DOC_COLORS = { contract: "#3b82f6", w9: "#8b5cf6", insurance: "#10b981", lienWaiver: "#e95e00", changeOrder: "#ef4444", warranty: "#06b6d4", invoice: "#ec4899", other: "#64748b" };
+  const DOC_COLORS = { contract: "var(--c-blue)", w9: "var(--c-purple)", insurance: "var(--c-green)", lienWaiver: "#e95e00", changeOrder: "var(--c-red)", warranty: "#06b6d4", invoice: "#ec4899", other: "#64748b" };
 
   return (
     <div>
@@ -1987,8 +1993,8 @@ export function ContractorDetail({ contractor, onBack, initialTab }) {
         <div style={{ display: "flex", gap: 24, marginTop: 16, paddingTop: 16, borderTop: "1px solid var(--border-subtle)" }}>
           <div><span style={{ fontSize: 11, color: "var(--text-muted)", textTransform: "uppercase", fontWeight: 600 }}>Accepted Bids</span><p style={{ fontSize: 18, fontWeight: 700, color: "var(--text-primary)", margin: "2px 0 0" }}>{fmt(totalAccepted)}</p></div>
           <div><span style={{ fontSize: 11, color: "var(--text-muted)", textTransform: "uppercase", fontWeight: 600 }}>Pending Bids</span><p style={{ fontSize: 18, fontWeight: 700, color: "#e95e00", margin: "2px 0 0" }}>{fmt(totalPending)}</p></div>
-          <div><span style={{ fontSize: 11, color: "var(--text-muted)", textTransform: "uppercase", fontWeight: 600 }}>Total Paid</span><p style={{ fontSize: 18, fontWeight: 700, color: "#10b981", margin: "2px 0 0" }}>{fmt(totalPaidAmt)}</p></div>
-          <div><span style={{ fontSize: 11, color: "var(--text-muted)", textTransform: "uppercase", fontWeight: 600 }}>Outstanding</span><p style={{ fontSize: 18, fontWeight: 700, color: totalAccepted - totalPaidAmt > 0 ? "#ef4444" : "#10b981", margin: "2px 0 0" }}>{fmt(totalAccepted - totalPaidAmt)}</p></div>
+          <div><span style={{ fontSize: 11, color: "var(--text-muted)", textTransform: "uppercase", fontWeight: 600 }}>Total Paid</span><p style={{ fontSize: 18, fontWeight: 700, color: "var(--c-green)", margin: "2px 0 0" }}>{fmt(totalPaidAmt)}</p></div>
+          <div><span style={{ fontSize: 11, color: "var(--text-muted)", textTransform: "uppercase", fontWeight: 600 }}>Outstanding</span><p style={{ fontSize: 18, fontWeight: 700, color: totalAccepted - totalPaidAmt > 0 ? "var(--c-red)" : "var(--c-green)", margin: "2px 0 0" }}>{fmt(totalAccepted - totalPaidAmt)}</p></div>
         </div>
       </div>
 
@@ -2038,7 +2044,7 @@ export function ContractorDetail({ contractor, onBack, initialTab }) {
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}><Phone size={14} color="var(--text-muted)" /><span style={{ fontSize: 13, color: "var(--text-primary)" }}>{con.phone || "—"}</span></div>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}><Mail size={14} color="var(--text-muted)" /><span style={{ fontSize: 13, color: "var(--text-primary)" }}>{con.email || "—"}</span></div>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}><Shield size={14} color="var(--text-muted)" /><span style={{ fontSize: 13, color: "var(--text-primary)" }}>License: {con.license || "—"}</span></div>
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}><FileCheck size={14} color="var(--text-muted)" /><span style={{ fontSize: 13, color: con.insuranceExpiry && con.insuranceExpiry < new Date().toISOString().slice(0, 10) ? "#ef4444" : "var(--text-primary)" }}>Insurance: {con.insuranceExpiry || "—"}{con.insuranceExpiry && con.insuranceExpiry < new Date().toISOString().slice(0, 10) ? " (EXPIRED)" : ""}</span></div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}><FileCheck size={14} color="var(--text-muted)" /><span style={{ fontSize: 13, color: con.insuranceExpiry && con.insuranceExpiry < new Date().toISOString().slice(0, 10) ? "var(--c-red)" : "var(--text-primary)" }}>Insurance: {con.insuranceExpiry || "—"}{con.insuranceExpiry && con.insuranceExpiry < new Date().toISOString().slice(0, 10) ? " (EXPIRED)" : ""}</span></div>
               {con.notes && <div style={{ gridColumn: "1/-1", marginTop: 8, padding: 14, background: "var(--surface-alt)", borderRadius: 10, fontSize: 13, color: "var(--text-label)", lineHeight: 1.5 }}>{con.notes}</div>}
             </div>
           )}
@@ -2076,7 +2082,7 @@ export function ContractorDetail({ contractor, onBack, initialTab }) {
                   </button>
                   <span style={{ fontSize: 12, color: "var(--text-muted)", minWidth: 80 }}>{b.date}</span>
                   <button onClick={(e) => { e.stopPropagation(); openEditBid(b); }} style={{ background: "var(--surface-muted)", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "var(--text-label)", display: "flex", alignItems: "center" }} title="Edit"><Pencil size={13} /></button>
-                  <button onClick={(e) => { e.stopPropagation(); setDeleteConfirm({ type: "bid", id: b.id, label: b.rehabItem }); }} style={{ background: "#fee2e2", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "#ef4444", display: "flex", alignItems: "center" }} title="Delete"><Trash2 size={13} /></button>
+                  <button onClick={(e) => { e.stopPropagation(); setDeleteConfirm({ type: "bid", id: b.id, label: b.rehabItem }); }} style={{ background: "#fee2e2", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "var(--c-red)", display: "flex", alignItems: "center" }} title="Delete"><Trash2 size={13} /></button>
                 </div>
               );
             })}
@@ -2105,7 +2111,7 @@ export function ContractorDetail({ contractor, onBack, initialTab }) {
                     </div>
                     <div style={{ display: "flex", gap: 4 }}>
                       <button onClick={() => openEditDoc(d)} style={{ background: "var(--surface-muted)", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "var(--text-label)", display: "flex", alignItems: "center" }} title="Edit"><Pencil size={13} /></button>
-                      <button onClick={() => setDeleteConfirm({ type: "doc", id: d.id, label: d.name })} style={{ background: "#fee2e2", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "#ef4444", display: "flex", alignItems: "center" }} title="Delete"><Trash2 size={13} /></button>
+                      <button onClick={() => setDeleteConfirm({ type: "doc", id: d.id, label: d.name })} style={{ background: "#fee2e2", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "var(--c-red)", display: "flex", alignItems: "center" }} title="Delete"><Trash2 size={13} /></button>
                     </div>
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
@@ -2146,28 +2152,28 @@ export function ContractorDetail({ contractor, onBack, initialTab }) {
                   </div>
                   <div style={{ display: "flex", gap: 20, fontSize: 13 }}>
                     <div><span style={{ color: "var(--text-muted)" }}>Bids: </span><span style={{ fontWeight: 600, color: "var(--text-primary)" }}>{fmt(dealBidTotal)} ({dealBids.length})</span></div>
-                    <div><span style={{ color: "var(--text-muted)" }}>Paid: </span><span style={{ fontWeight: 600, color: "#10b981" }}>{fmt(dealPaidTotal)}</span></div>
+                    <div><span style={{ color: "var(--text-muted)" }}>Paid: </span><span style={{ fontWeight: 600, color: "var(--c-green)" }}>{fmt(dealPaidTotal)}</span></div>
                     <div><span style={{ color: "var(--text-muted)" }}>Docs: </span><span style={{ fontWeight: 600, color: "var(--text-primary)" }}>{dealDocs.length}</span></div>
                   </div>
                   {dealPayments.length > 0 && (
                     <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid var(--border-subtle)" }}>
                       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
                         <span style={{ fontSize: 11, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em" }}>Payments ({dealPayments.length})</span>
-                        <span style={{ fontSize: 11, color: "var(--text-muted)" }}>Total <span style={{ fontWeight: 700, color: "#10b981" }}>{fmt(dealPaidTotal)}</span></span>
+                        <span style={{ fontSize: 11, color: "var(--text-muted)" }}>Total <span style={{ fontWeight: 700, color: "var(--c-green)" }}>{fmt(dealPaidTotal)}</span></span>
                       </div>
                       <div style={{ background: "var(--surface-alt)", borderRadius: 10, border: "1px solid var(--border-subtle)", padding: "4px 12px" }}>
                         {dealPayments.map((p, i) => (
                           <div key={p.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", fontSize: 13, borderBottom: i < dealPayments.length - 1 ? "1px solid var(--border-subtle)" : "none" }}>
                             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                               <div style={{ width: 28, height: 28, borderRadius: 8, background: "#dcfce7", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                                <DollarSign size={14} color="#10b981" />
+                                <DollarSign size={14} color="var(--c-green)" />
                               </div>
                               <div>
                                 <p style={{ color: "var(--text-primary)", fontWeight: 600, fontSize: 13 }}>{p.note || "Payment"}</p>
                                 <p style={{ color: "var(--text-muted)", fontSize: 11 }}>{p.date}</p>
                               </div>
                             </div>
-                            <span style={{ fontWeight: 700, color: "#10b981", fontSize: 14 }}>{fmt(p.amount)}</span>
+                            <span style={{ fontWeight: 700, color: "var(--c-green)", fontSize: 14 }}>{fmt(p.amount)}</span>
                           </div>
                         ))}
                       </div>
@@ -2339,7 +2345,7 @@ export function ContractorDetail({ contractor, onBack, initialTab }) {
             <p style={{ color: "var(--text-label)", fontSize: 14, marginBottom: 18 }}>Remove &ldquo;{deleteConfirm.label}&rdquo;? This cannot be undone.</p>
             <div style={{ display: "flex", gap: 10 }}>
               <button onClick={() => setDeleteConfirm(null)} style={{ flex: 1, padding: "12px", border: "1px solid var(--border)", borderRadius: 10, background: "var(--surface)", color: "var(--text-label)", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
-              <button onClick={() => deleteConfirm.type === "bid" ? deleteBid(deleteConfirm.id) : deleteDoc(deleteConfirm.id)} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "#ef4444", color: "#fff", fontWeight: 700, cursor: "pointer" }}>Delete</button>
+              <button onClick={() => deleteConfirm.type === "bid" ? deleteBid(deleteConfirm.id) : deleteDoc(deleteConfirm.id)} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "var(--c-red)", color: "#fff", fontWeight: 700, cursor: "pointer" }}>Delete</button>
             </div>
           </div>
         </div>
@@ -2381,7 +2387,7 @@ export function DealAnalytics() {
     return acc;
   }, {});
   const catChartData = Object.entries(catSpend).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value);
-  const COLORS = ["#e95e00", "#3b82f6", "#10b981", "#8b5cf6", "#ef4444", "#06b6d4"];
+  const COLORS = ["#e95e00", "var(--c-blue)", "var(--c-green)", "var(--c-purple)", "var(--c-red)", "#06b6d4"];
 
   // Monthly expense trend – group all deal expenses by month
   const monthlyTrend = useMemo(() => {
@@ -2485,8 +2491,8 @@ export function DealAnalytics() {
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, marginBottom: 16 }}>
             {[
-              { label: "Projected ROI", value: `${dealROI?.roi || 0}%`, color: "#10b981", sub: singleDeal.stage === "Sold" ? "Realized return" : "Estimated return", tip: "Return on Investment = (Sale Price \u2212 Total Cost) \u00f7 Total Cost \u00d7 100. Total Cost includes purchase, rehab, holding, and selling costs." },
-              { label: "Projected Profit", value: fmt(dealROI?.profit || 0), color: "#8b5cf6", sub: singleDeal.stage === "Sold" ? "Realized" : "Based on ARV", tip: "ARV (or Sale Price) minus all costs: purchase price, rehab, holding costs, and estimated 6% selling costs." },
+              { label: "Projected ROI", value: `${dealROI?.roi || 0}%`, color: "var(--c-green)", sub: singleDeal.stage === "Sold" ? "Realized return" : "Estimated return", tip: "Return on Investment = (Sale Price \u2212 Total Cost) \u00f7 Total Cost \u00d7 100. Total Cost includes purchase, rehab, holding, and selling costs." },
+              { label: "Projected Profit", value: fmt(dealROI?.profit || 0), color: "var(--c-purple)", sub: singleDeal.stage === "Sold" ? "Realized" : "Based on ARV", tip: "ARV (or Sale Price) minus all costs: purchase price, rehab, holding costs, and estimated 6% selling costs." },
               { label: "Cost Per Day", value: dealCostPerDay > 0 ? `${fmt(dealCostPerDay)}/day` : "N/A", color: "#e95e00", sub: `${singleDeal.daysOwned || 0} days owned`, tip: "Total spend (rehab + holding costs) divided by days owned. Helps quantify the daily burn rate on this deal." },
             ].map((m, i) => (
               <div key={i} style={{ background: "var(--surface-alt)", borderRadius: 14, padding: "18px 16px", border: "1px solid var(--border-subtle)" }}>
@@ -2530,7 +2536,7 @@ export function DealAnalytics() {
                   <XAxis dataKey="date" tick={{ fontSize: 11, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
                   <YAxis tick={{ fontSize: 12, fill: "#94a3b8" }} axisLine={false} tickLine={false} tickFormatter={v => `$${(v/1000).toFixed(0)}K`} />
                   <Tooltip formatter={v => fmt(v)} contentStyle={{ borderRadius: 10, border: "1px solid var(--border)", fontSize: 12 }} />
-                  <ReferenceLine y={singleDeal.rehabBudget} stroke="#ef4444" strokeDasharray="6 4" label={{ value: "Budget", position: "right", fontSize: 11, fill: "#ef4444" }} />
+                  <ReferenceLine y={singleDeal.rehabBudget} stroke="var(--c-red)" strokeDasharray="6 4" label={{ value: "Budget", position: "right", fontSize: 11, fill: "var(--c-red)" }} />
                   <Area type="monotone" dataKey="spent" stroke="#e95e00" strokeWidth={2.5} fill="url(#spendGrad)" dot={{ fill: "#e95e00", r: 3 }} />
                 </AreaChart>
               </ResponsiveContainer>
@@ -2583,9 +2589,9 @@ export function DealAnalytics() {
               return (
                 <div style={{ display: "flex", gap: 16 }}>
                   {[
-                    { color: "#10b981", label: `${done} Complete` },
+                    { color: "var(--c-green)", label: `${done} Complete` },
                     { color: "#e95e00", label: `${rehabProgress.length - done - over} In Progress` },
-                    ...(over > 0 ? [{ color: "#ef4444", label: `${over} Over Budget` }] : []),
+                    ...(over > 0 ? [{ color: "var(--c-red)", label: `${over} Over Budget` }] : []),
                   ].map(l => (
                     <div key={l.label} style={{ display: "flex", alignItems: "center", gap: 5 }}>
                       <div style={{ width: 8, height: 8, borderRadius: 2, background: l.color, flexShrink: 0 }} />
@@ -2600,7 +2606,7 @@ export function DealAnalytics() {
             <div style={{ display: "grid", gap: 14 }}>
               {rehabProgress.map((item, i) => {
                 const overBudget = item.pct > 100;
-                const barColor = item.status === "complete" ? "#10b981" : overBudget ? "#ef4444" : "#e95e00";
+                const barColor = item.status === "complete" ? "var(--c-green)" : overBudget ? "var(--c-red)" : "#e95e00";
                 const statusIcon = item.status === "complete" ? CheckCircle : item.status === "in-progress" ? Clock : AlertCircle;
                 const StatusIcon = statusIcon;
                 const remaining = item.budgeted - item.spent;
@@ -2623,7 +2629,7 @@ export function DealAnalytics() {
                       </div>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                         <span style={{ fontSize: 10, color: "var(--text-muted)" }}>{fmt(item.spent)} of {fmt(item.budgeted)}</span>
-                        <span style={{ fontSize: 10, color: overBudget ? "#ef4444" : "var(--text-muted)", fontWeight: overBudget ? 600 : 400 }}>
+                        <span style={{ fontSize: 10, color: overBudget ? "var(--c-red)" : "var(--text-muted)", fontWeight: overBudget ? 600 : 400 }}>
                           {overBudget ? `${fmt(Math.abs(remaining))} over` : remaining > 0 ? `${fmt(remaining)} left` : "On budget"}
                         </span>
                       </div>
@@ -2677,9 +2683,9 @@ export function DealAnalytics() {
       {/* KPI cards with InfoTips — matches rental Analytics pattern */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 24 }}>
         {[
-          { label: "Avg ROI", value: `${avgROI}%`, color: "#10b981", sub: "All deals", tip: "Average Return on Investment across all deals. ROI = (Sale/ARV \u2212 Total Cost) \u00f7 Total Cost \u00d7 100. Active deals use projected ARV and estimated costs." },
-          { label: "Avg Hold Time", value: `${avgDays} days`, color: "#3b82f6", sub: "Active deals", tip: "Average number of days properties have been owned. Shorter hold times mean less carrying cost and faster capital recycling." },
-          { label: "Total Realized", value: fmt(totalProfit), color: "#8b5cf6", sub: "Closed deals", tip: "Sum of net profit from all sold deals. Net Profit = Sale Price \u2212 Purchase Price \u2212 Rehab Spent \u2212 Holding Costs \u2212 Selling Costs." },
+          { label: "Avg ROI", value: `${avgROI}%`, color: "var(--c-green)", sub: "All deals", tip: "Average Return on Investment across all deals. ROI = (Sale/ARV \u2212 Total Cost) \u00f7 Total Cost \u00d7 100. Active deals use projected ARV and estimated costs." },
+          { label: "Avg Hold Time", value: `${avgDays} days`, color: "var(--c-blue)", sub: "Active deals", tip: "Average number of days properties have been owned. Shorter hold times mean less carrying cost and faster capital recycling." },
+          { label: "Total Realized", value: fmt(totalProfit), color: "var(--c-purple)", sub: "Closed deals", tip: "Sum of net profit from all sold deals. Net Profit = Sale Price \u2212 Purchase Price \u2212 Rehab Spent \u2212 Holding Costs \u2212 Selling Costs." },
           { label: "Deals Analyzed", value: deals.length, color: "#e95e00", sub: `${sold.length} closed`, tip: "Total number of deals in your pipeline. Includes active, listed, under contract, and sold properties." },
         ].map((m, i) => (
           <div key={i} style={cardS}>
@@ -2746,7 +2752,7 @@ export function DealAnalytics() {
             <YAxis tick={{ fontSize: 12, fill: "#94a3b8" }} axisLine={false} tickLine={false} tickFormatter={v => `$${(v/1000).toFixed(0)}K`} />
             <Tooltip formatter={v => fmt(v)} contentStyle={{ borderRadius: 10, border: "1px solid var(--border)", fontSize: 12 }} />
             <Legend />
-            <Bar dataKey="budget" fill="#3b82f6" name="Budgeted" radius={[6, 6, 0, 0]} />
+            <Bar dataKey="budget" fill="var(--c-blue)" name="Budgeted" radius={[6, 6, 0, 0]} />
             <Bar dataKey="actual" fill="#e95e00" name="Actual"   radius={[6, 6, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
@@ -2799,11 +2805,11 @@ export function DealAnalytics() {
           </div>
           <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
             {[
-              { color: "#3b82f6", label: "Purchase" },
+              { color: "var(--c-blue)", label: "Purchase" },
               { color: "#e95e00", label: "Rehab" },
-              { color: "#8b5cf6", label: "Holding" },
+              { color: "var(--c-purple)", label: "Holding" },
               { color: "var(--text-muted)", label: "Selling" },
-              { color: "#10b981", label: "Profit" },
+              { color: "var(--c-green)", label: "Profit" },
             ].map(l => (
               <div key={l.label} style={{ display: "flex", alignItems: "center", gap: 5 }}>
                 <div style={{ width: 8, height: 8, borderRadius: 2, background: l.color, flexShrink: 0 }} />
@@ -2816,9 +2822,9 @@ export function DealAnalytics() {
           {profitBreakdown.map((d, i) => {
             const maxVal = Math.max(...profitBreakdown.map(x => x.sale));
             const segments = [
-              { key: "purchase", value: d.purchase, color: "#3b82f6", label: "Purchase" },
+              { key: "purchase", value: d.purchase, color: "var(--c-blue)", label: "Purchase" },
               { key: "rehab", value: d.rehab, color: "#e95e00", label: "Rehab" },
-              { key: "holding", value: d.holding, color: "#8b5cf6", label: "Holding" },
+              { key: "holding", value: d.holding, color: "var(--c-purple)", label: "Holding" },
               { key: "selling", value: d.selling, color: "var(--text-muted)", label: "Selling" },
             ];
             const profitPct = maxVal > 0 ? (Math.max(d.profit, 0) / maxVal) * 100 : 0;
@@ -2841,11 +2847,11 @@ export function DealAnalytics() {
                     );
                   })}
                   {d.profit > 0 && (
-                    <div title={`Net Profit: ${fmt(d.profit)}`} style={{ width: `${profitPct}%`, height: "100%", background: "#10b981", borderRadius: "0 6px 6px 0", transition: "width 0.3s", cursor: "default", minWidth: 2 }} />
+                    <div title={`Net Profit: ${fmt(d.profit)}`} style={{ width: `${profitPct}%`, height: "100%", background: "var(--c-green)", borderRadius: "0 6px 6px 0", transition: "width 0.3s", cursor: "default", minWidth: 2 }} />
                   )}
                 </div>
                 <div style={{ width: 100, textAlign: "right", flexShrink: 0 }}>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: d.profit > 0 ? "#10b981" : "#ef4444" }}>{fmt(d.profit)}</span>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: d.profit > 0 ? "var(--c-green)" : "var(--c-red)" }}>{fmt(d.profit)}</span>
                   <p style={{ fontSize: 10, color: "var(--text-muted)", marginTop: 1 }}>{d.margin}% margin</p>
                 </div>
               </div>
@@ -2883,10 +2889,10 @@ export function DealAnalytics() {
                   <td style={{ padding: "12px 16px", color: "var(--text-primary)", fontSize: 13 }}>{fmt(deal.rehabBudget)}</td>
                   <td style={{ padding: "12px 16px", color: "var(--text-primary)", fontSize: 13 }}>{fmt(deal.stage === "Sold" ? deal.salePrice : deal.arv)}</td>
                   <td style={{ padding: "12px 16px" }}>
-                    <span style={{ color: d.profit > 0 ? "#10b981" : "#ef4444", fontWeight: 700, fontSize: 13 }}>{fmt(d.profit)}</span>
+                    <span style={{ color: d.profit > 0 ? "var(--c-green)" : "var(--c-red)", fontWeight: 700, fontSize: 13 }}>{fmt(d.profit)}</span>
                   </td>
                   <td style={{ padding: "12px 16px" }}>
-                    <span style={{ color: d.roi > 0 ? "#10b981" : "#ef4444", fontWeight: 700, fontSize: 13 }}>{d.roi}%</span>
+                    <span style={{ color: d.roi > 0 ? "var(--c-green)" : "var(--c-red)", fontWeight: 700, fontSize: 13 }}>{d.roi}%</span>
                   </td>
                 </tr>
               );
@@ -3060,9 +3066,9 @@ export function DealMilestones({ highlightMilestoneKey, onBack, onClearHighlight
       />
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, marginBottom: 24 }}>
-        <StatCard icon={CheckCircle} label="Completed" value={totalDone} sub={`of ${filtered.length} total`} color="#10b981" tip="Milestones marked as done across all deals." />
-        <StatCard icon={Clock} label="Upcoming" value={totalUpcoming} sub="Not yet done" color="#3b82f6" tip="Milestones not yet completed and within their target date." />
-        <StatCard icon={AlertCircle} label="Overdue" value={totalOverdue} sub="Past target date" color={totalOverdue > 0 ? "#ef4444" : "#94a3b8"} semantic tip="Milestones past their target date that haven't been completed." />
+        <StatCard icon={CheckCircle} label="Completed" value={totalDone} sub={`of ${filtered.length} total`} color="var(--c-green)" tip="Milestones marked as done across all deals." />
+        <StatCard icon={Clock} label="Upcoming" value={totalUpcoming} sub="Not yet done" color="var(--c-blue)" tip="Milestones not yet completed and within their target date." />
+        <StatCard icon={AlertCircle} label="Overdue" value={totalOverdue} sub="Past target date" color={totalOverdue > 0 ? "var(--c-red)" : "#94a3b8"} semantic tip="Milestones past their target date that haven't been completed." />
       </div>
 
       {/* Filter bar */}
@@ -3108,7 +3114,7 @@ export function DealMilestones({ highlightMilestoneKey, onBack, onClearHighlight
             </div>
             {/* Progress bar */}
             <div style={{ background: "var(--surface-muted)", borderRadius: 6, height: 6, marginBottom: 16, overflow: "hidden" }}>
-              <div style={{ height: "100%", width: `${pct}%`, background: "#10b981", borderRadius: 6, transition: "width 0.3s" }} />
+              <div style={{ height: "100%", width: `${pct}%`, background: "var(--c-green)", borderRadius: 6, transition: "width 0.3s" }} />
             </div>
             {/* Milestone rows */}
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
@@ -3136,32 +3142,32 @@ export function DealMilestones({ highlightMilestoneKey, onBack, onClearHighlight
                   </div>
                 ) : isCompleting ? (
                   <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", borderRadius: 8, background: "#f0fdf4", border: "1px solid #bbf7d0" }}>
-                    <CheckCircle size={18} color="#10b981" />
+                    <CheckCircle size={18} color="var(--c-green)" />
                     <span style={{ fontSize: 13, fontWeight: 500, color: "var(--text-primary)", flex: 1 }}>{m.label}</span>
                     <span style={{ fontSize: 11, color: "var(--text-secondary)" }}>Completed:</span>
                     <input type="date" value={completionDate} onChange={e => setCompletionDate(e.target.value)} style={{ ...iS, width: 140, padding: "5px 10px", fontSize: 12 }} />
-                    <button onClick={confirmComplete} style={{ background: "#10b981", color: "#fff", border: "none", borderRadius: 6, padding: "5px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>Confirm</button>
+                    <button onClick={confirmComplete} style={{ background: "var(--c-green)", color: "#fff", border: "none", borderRadius: 6, padding: "5px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>Confirm</button>
                     <button onClick={() => setCompletingItem(null)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)", padding: 0 }}><X size={14} /></button>
                   </div>
                 ) : (
                   <div key={i} id={"ms-" + deal.id + "-" + m.label} className="ms-row" onMouseEnter={e => { if (flashKey !== (deal.id + "-" + m.label)) e.currentTarget.style.background = "var(--surface-alt)"; }} onMouseLeave={e => { if (flashKey !== (deal.id + "-" + m.label)) e.currentTarget.style.background = m.done ? "#f0fdf4" : overdue ? "#fef2f2" : "var(--surface-alt)"; }} style={{ display: "flex", alignItems: "center", gap: 12, padding: "8px 10px", borderRadius: 8, background: flashKey === (deal.id + "-" + m.label) ? "#fff7ed" : m.done ? "#f0fdf4" : overdue ? "#fef2f2" : "var(--surface-alt)", border: `1px solid ${flashKey === (deal.id + "-" + m.label) ? "#e95e00" : m.done ? "#bbf7d0" : overdue ? "#fecaca" : "var(--border-subtle)"}`, boxShadow: flashKey === (deal.id + "-" + m.label) ? "0 0 0 2px #e95e00" : "none", position: "relative", transition: "all 0.4s ease" }}>
                     <button onClick={() => m.done ? uncomplete(deal.id, m._idx) : startComplete(deal.id, m._idx)} style={{ background: "none", border: "none", cursor: "pointer", padding: 0, display: "flex", flexShrink: 0 }}>
-                      {m.done ? <CheckCircle size={18} color="#10b981" /> : <Circle size={18} color={overdue ? "#ef4444" : "#cbd5e1"} />}
+                      {m.done ? <CheckCircle size={18} color="var(--c-green)" /> : <Circle size={18} color={overdue ? "var(--c-red)" : "#cbd5e1"} />}
                     </button>
                     <span style={{ flex: 1, fontSize: 13, fontWeight: 500, color: m.done ? "#6b7280" : "var(--text-primary)", textDecoration: m.done ? "line-through" : "none" }}>{m.label}</span>
                     {m.targetDate && (
-                      <span style={{ fontSize: 11, color: overdue ? "#ef4444" : "#94a3b8", fontWeight: overdue ? 600 : 400, flexShrink: 0 }}>
+                      <span style={{ fontSize: 11, color: overdue ? "var(--c-red)" : "#94a3b8", fontWeight: overdue ? 600 : 400, flexShrink: 0 }}>
                         {overdue ? "Overdue: " : "Target: "}{new Date(m.targetDate).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
                       </span>
                     )}
                     {m.done && m.date && (
-                      <span style={{ fontSize: 11, color: "#10b981", flexShrink: 0 }}>
+                      <span style={{ fontSize: 11, color: "var(--c-green)", flexShrink: 0 }}>
                         {new Date(m.date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
                       </span>
                     )}
                     <div style={{ display: "flex", gap: 4, flexShrink: 0, marginLeft: 4 }}>
                       <button onClick={() => startEdit(deal.id, m._idx, m)} style={{ background: "var(--surface-muted)", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "var(--text-label)", display: "flex", alignItems: "center" }} title="Edit"><Pencil size={13} /></button>
-                      <button onClick={() => setDeleteConfirm({ dealId: deal.id, idx: m._idx, label: m.label })} style={{ background: "#fee2e2", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "#ef4444", display: "flex", alignItems: "center" }} title="Delete"><Trash2 size={13} /></button>
+                      <button onClick={() => setDeleteConfirm({ dealId: deal.id, idx: m._idx, label: m.label })} style={{ background: "#fee2e2", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "var(--c-red)", display: "flex", alignItems: "center" }} title="Delete"><Trash2 size={13} /></button>
                     </div>
                   </div>
                 );
@@ -3243,7 +3249,7 @@ export function DealMilestones({ highlightMilestoneKey, onBack, onClearHighlight
             </div>
             <p style={{ color: "var(--text-muted)", fontSize: 12, marginBottom: 18 }}>This action cannot be undone.</p>
             <div style={{ display: "flex", gap: 10 }}>
-              <button onClick={deleteMilestone} style={{ flex: 1, padding: 11, borderRadius: 10, border: "none", background: "#ef4444", color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer" }}>Delete</button>
+              <button onClick={deleteMilestone} style={{ flex: 1, padding: 11, borderRadius: 10, border: "none", background: "var(--c-red)", color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer" }}>Delete</button>
               <button onClick={() => setDeleteConfirm(null)} style={{ padding: "11px 18px", borderRadius: 10, border: "1.5px solid var(--border)", background: "var(--surface)", fontWeight: 600, fontSize: 14, cursor: "pointer", color: "var(--text-secondary)" }}>Cancel</button>
             </div>
           </div>
@@ -3397,7 +3403,7 @@ export function DealNotes({ highlightNoteId, onBack, onClearHighlight }) {
                   </div>
                   <div style={{ display: "flex", gap: 4 }}>
                     <button onClick={() => openEdit(n)} style={{ background: "var(--surface-muted)", border: "none", borderRadius: 7, padding: "4px 7px", cursor: "pointer", color: "var(--text-label)", display: "flex", alignItems: "center" }} title="Edit"><Pencil size={12} /></button>
-                    <button onClick={() => setDeleteConfirm(n)} style={{ background: "#fee2e2", border: "none", borderRadius: 7, padding: "4px 7px", cursor: "pointer", color: "#ef4444", display: "flex", alignItems: "center" }} title="Delete"><Trash2 size={12} /></button>
+                    <button onClick={() => setDeleteConfirm(n)} style={{ background: "#fee2e2", border: "none", borderRadius: 7, padding: "4px 7px", cursor: "pointer", color: "var(--c-red)", display: "flex", alignItems: "center" }} title="Delete"><Trash2 size={12} /></button>
                   </div>
                 </div>
                 <p style={{ fontSize: 13, color: "var(--text-label)", lineHeight: 1.6 }}>{n.text}</p>
@@ -3448,7 +3454,7 @@ export function DealNotes({ highlightNoteId, onBack, onClearHighlight }) {
             <p style={{ color: "var(--text-muted)", fontSize: 12, marginBottom: 18 }}>This action cannot be undone.</p>
             <div style={{ display: "flex", gap: 10 }}>
               <button onClick={() => setDeleteConfirm(null)} style={{ flex: 1, padding: "12px", border: "1px solid var(--border)", borderRadius: 10, background: "var(--surface)", color: "var(--text-label)", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
-              <button onClick={() => handleDelete(deleteConfirm)} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "#ef4444", color: "#fff", fontWeight: 700, cursor: "pointer" }}>Delete</button>
+              <button onClick={() => handleDelete(deleteConfirm)} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "var(--c-red)", color: "#fff", fontWeight: 700, cursor: "pointer" }}>Delete</button>
             </div>
           </div>
         </div>
