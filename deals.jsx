@@ -126,8 +126,10 @@ function StageDot({ stage }) {
   );
 }
 
-function StatCard({ icon: Icon, label, value, sub, color = "#3b82f6", trend, trendVal, tip }) {
+function StatCard({ icon: Icon, label, value, sub, color = "#3b82f6", semantic = false, trend, trendVal, tip }) {
   const up = trend === "up";
+  const iconBg = semantic ? color + "18" : "#1e3a5f";
+  const iconColor = semantic ? color : "#e95e00";
   return (
     <div style={{ background: "var(--surface)", borderRadius: 16, padding: "20px 22px", boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
@@ -139,8 +141,8 @@ function StatCard({ icon: Icon, label, value, sub, color = "#3b82f6", trend, tre
           <p style={{ color: "var(--text-primary)", fontSize: 26, fontWeight: 800, lineHeight: 1 }}>{value}</p>
           {sub && <p style={{ color: "var(--text-secondary)", fontSize: 12, marginTop: 4 }}>{sub}</p>}
         </div>
-        <div style={{ background: color + "18", borderRadius: 12, padding: 10 }}>
-          <Icon size={20} color={color} />
+        <div style={{ background: iconBg, borderRadius: 12, padding: 10 }}>
+          <Icon size={20} color={iconColor} />
         </div>
       </div>
       {trendVal && (
@@ -624,7 +626,7 @@ export function RehabTracker({ onSelectRehabItem } = {}) {
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 24 }}>
         <StatCard icon={Target}      label="Total Budget"  value={fmtK(totalBudget)} sub="Active deals"   color="#3b82f6" tip="Sum of rehab budgets across all active deals." />
         <StatCard icon={Receipt}     label="Total Spent"   value={fmt(totalSpent)}   sub="To date"        color="#e95e00" tip="Total amount spent on rehab across all deals to date." />
-        <StatCard icon={DollarSign}  label="Budget Left"   value={fmt(totalLeft)}    sub={totalLeft < 0 ? "OVER BUDGET" : "Remaining"} color={totalLeft < 0 ? "#ef4444" : "#10b981"} tip="Total Budget − Total Spent. Negative means over budget." />
+        <StatCard icon={DollarSign}  label="Budget Left"   value={fmt(totalLeft)}    sub={totalLeft < 0 ? "OVER BUDGET" : "Remaining"} color={totalLeft < 0 ? "#ef4444" : "#10b981"} semantic tip="Total Budget − Total Spent. Negative means over budget." />
         <StatCard icon={CheckCircle} label="Tasks Done"    value={`${complete}/${allItems.length}`} sub={`${inProgress} in progress`} color="#8b5cf6" tip="Completed rehab line items out of total across all deals." />
       </div>
 
@@ -1670,7 +1672,7 @@ export function DealContractors({ onSelectContractor }) {
         <StatCard icon={Users} label="Contractors" value={filtered.length} sub={filterDeal !== "all" ? `of ${_CON.length} total` : `${_CON.filter(c => (c.dealIds || []).length > 0).length} with active deals`} color="#e95e00" tip="Number of contractors matching the current filters." />
         <StatCard icon={DollarSign} label="Accepted Bids" value={fmt(totalBids)} sub={`${filtered.length} contractor${filtered.length !== 1 ? "s" : ""}`} color="#e95e00" tip="Sum of all accepted bid amounts for contractors in the current view." />
         <StatCard icon={CheckCircle} label="Total Paid" value={fmt(totalPaid)} sub="Disbursed to date" color="#10b981" tip="Total payments disbursed to contractors in the current view." />
-        <StatCard icon={AlertCircle} label="Outstanding" value={fmt(outstanding)} sub="Remaining balance" color={outstanding > 0 ? "#e95e00" : "#94a3b8"} tip="Accepted Bids − Total Paid. Amount still owed to contractors in the current view." />
+        <StatCard icon={AlertCircle} label="Outstanding" value={fmt(outstanding)} sub="Remaining balance" color={outstanding > 0 ? "#e95e00" : "#94a3b8"} semantic tip="Accepted Bids − Total Paid. Amount still owed to contractors in the current view." />
       </div>
 
       <div style={{ display: "flex", gap: 10, marginBottom: 18 }}>
@@ -3060,7 +3062,7 @@ export function DealMilestones({ highlightMilestoneKey, onBack, onClearHighlight
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, marginBottom: 24 }}>
         <StatCard icon={CheckCircle} label="Completed" value={totalDone} sub={`of ${filtered.length} total`} color="#10b981" tip="Milestones marked as done across all deals." />
         <StatCard icon={Clock} label="Upcoming" value={totalUpcoming} sub="Not yet done" color="#3b82f6" tip="Milestones not yet completed and within their target date." />
-        <StatCard icon={AlertCircle} label="Overdue" value={totalOverdue} sub="Past target date" color={totalOverdue > 0 ? "#ef4444" : "#94a3b8"} tip="Milestones past their target date that haven't been completed." />
+        <StatCard icon={AlertCircle} label="Overdue" value={totalOverdue} sub="Past target date" color={totalOverdue > 0 ? "#ef4444" : "#94a3b8"} semantic tip="Milestones past their target date that haven't been completed." />
       </div>
 
       {/* Filter bar */}

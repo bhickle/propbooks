@@ -831,8 +831,10 @@ function DocumentsPanel({ documents, onAdd, onDelete, entityLabel = "item" }) {
   );
 }
 
-function StatCard({ icon: Icon, label, value, sub, trend, trendVal, color = "#3b82f6", tip }) {
+function StatCard({ icon: Icon, label, value, sub, trend, trendVal, color = "#3b82f6", semantic = false, tip }) {
   const up = trend === "up";
+  const iconBg = semantic ? color + "18" : "#1e3a5f";
+  const iconColor = semantic ? color : "#e95e00";
   return (
     <div style={{ background: "var(--surface)", borderRadius: 16, padding: "24px", boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)", border: "1px solid var(--border-subtle)" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
@@ -844,8 +846,8 @@ function StatCard({ icon: Icon, label, value, sub, trend, trendVal, color = "#3b
           <p style={{ color: "var(--text-primary)", fontSize: 28, fontWeight: 700, lineHeight: 1 }}>{value}</p>
           {sub && <p style={{ color: "var(--text-secondary)", fontSize: 13, marginTop: 6 }}>{sub}</p>}
         </div>
-        <div style={{ background: color + "18", borderRadius: 12, padding: 12 }}>
-          <Icon size={22} color={color} />
+        <div style={{ background: iconBg, borderRadius: 12, padding: 12 }}>
+          <Icon size={22} color={iconColor} />
         </div>
       </div>
       {trendVal && (
@@ -2494,8 +2496,8 @@ function Dashboard({ onNavigate, onNavigateToTx, onSelectProperty, onNavigateToT
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 20, marginBottom: 28 }}>
         <StatCard icon={DollarSign} label="Monthly Cash Flow" value={fmt(netCashFlow)} sub={`${fmt(monthlyIncome)} in · ${fmt(monthlyExpenses)} out`} color="#10b981" tip="Total Monthly Income − Total Monthly Expenses across all properties." />
         <StatCard icon={Wallet} label="Total Equity" value={fmtK(totalEquity)} sub={`Portfolio value ${fmtK(totalValue)}`} color="#3b82f6" tip="Current Value − Mortgage Balance, summed across all properties." />
-        <StatCard icon={Users} label="Occupancy" value={`${occupancyPct}%`} sub={`${occupiedUnits} of ${totalUnits} units occupied`} color={occupancyPct >= 90 ? "#10b981" : occupancyPct >= 70 ? "#e95e00" : "#ef4444"} tip="Occupied units ÷ total units across all properties." />
-        <StatCard icon={CheckCircle} label="Rent Collected" value={`${collectionPct}%`} sub={`${fmt(collectedRent)} of ${fmt(expectedRent)} this month`} color={collectionPct >= 100 ? "#10b981" : collectionPct >= 75 ? "#e95e00" : "#ef4444"} tip="Rent received this month ÷ total expected rent from active tenants." />
+        <StatCard icon={Users} label="Occupancy" value={`${occupancyPct}%`} sub={`${occupiedUnits} of ${totalUnits} units occupied`} color={occupancyPct >= 90 ? "#10b981" : occupancyPct >= 70 ? "#e95e00" : "#ef4444"} semantic tip="Occupied units ÷ total units across all properties." />
+        <StatCard icon={CheckCircle} label="Rent Collected" value={`${collectionPct}%`} sub={`${fmt(collectedRent)} of ${fmt(expectedRent)} this month`} color={collectionPct >= 100 ? "#10b981" : collectionPct >= 75 ? "#e95e00" : "#ef4444"} semantic tip="Rent received this month ÷ total expected rent from active tenants." />
       </div>
 
       {/* Rent Roll + Rent Collection Row */}
@@ -6689,8 +6691,8 @@ function DealPipeline({ onSelect, onGuidedSetup }) {
                 <p style={{ color: "var(--text-primary)", fontSize: 24, fontWeight: 800 }}>{m.value}</p>
                 {m.sub && <p style={{ color: "var(--text-muted)", fontSize: 12, marginTop: 2 }}>{m.sub}</p>}
               </div>
-              <div style={{ background: m.color + "18", borderRadius: 10, padding: 10 }}>
-                <m.icon size={20} color={m.color} />
+              <div style={{ background: "#1e3a5f", borderRadius: 10, padding: 10 }}>
+                <m.icon size={20} color="#e95e00" />
               </div>
             </div>
           </div>
@@ -7500,7 +7502,7 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
             <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 24 }}>
               <StatCard icon={Target}      label="Total Budget"  value={fmt(rehabTotalBudget)} sub="This deal"                                     color="#3b82f6" tip="Sum of budgeted amounts across all rehab line items for this deal." />
               <StatCard icon={Receipt}     label="Total Spent"   value={fmt(rehabTotalSpent)}  sub="To date"                                       color="#e95e00" tip="Sum of amounts spent to date across all rehab line items for this deal." />
-              <StatCard icon={DollarSign}  label="Budget Left"   value={fmt(rehabBudgetLeft)}  sub={rehabBudgetLeft < 0 ? "OVER BUDGET" : "Remaining"} color={rehabBudgetLeft < 0 ? "#ef4444" : "#10b981"} tip="Total Budget − Total Spent. Negative means over budget." />
+              <StatCard icon={DollarSign}  label="Budget Left"   value={fmt(rehabBudgetLeft)}  sub={rehabBudgetLeft < 0 ? "OVER BUDGET" : "Remaining"} color={rehabBudgetLeft < 0 ? "#ef4444" : "#10b981"} semantic tip="Total Budget − Total Spent. Negative means over budget." />
               <StatCard icon={CheckCircle} label="Tasks Done"    value={`${rehabComplete}/${rehabItems.length}`} sub={`${rehabInProgress} in progress`} color="#8b5cf6" tip="Completed rehab line items out of the total for this deal." />
             </div>
           );
@@ -9018,7 +9020,7 @@ function TenantManagement({ onBack, highlightTenantId, onClearHighlight, prefill
         {[
           { label: "Total Units", value: totalUnits, sub: "Across portfolio", color: "#3b82f6", icon: Home, tip: "Count of all active unit records (excludes past tenants)" },
           { label: "Occupied", value: `${occupied}/${totalUnits}`, sub: `${100 - Number(vacancyRate)}% occupancy`, color: "#10b981", icon: CheckSquare, tip: "Units with an active-lease or month-to-month tenant divided by total units" },
-          { label: "Vacancy Rate", value: `${vacancyRate}%`, sub: `${totalUnits - occupied} unit${totalUnits - occupied !== 1 ? "s" : ""} vacant`, color: Number(vacancyRate) > 10 ? "#ef4444" : "#e95e00", icon: AlertCircle, tip: "Vacant units / total units. Red when above 10%" },
+          { label: "Vacancy Rate", value: `${vacancyRate}%`, sub: `${totalUnits - occupied} unit${totalUnits - occupied !== 1 ? "s" : ""} vacant`, color: Number(vacancyRate) > 10 ? "#ef4444" : "#e95e00", icon: AlertCircle, semantic: true, tip: "Vacant units / total units. Red when above 10%" },
           { label: "Gross Monthly Rent", value: fmt(grossRent), sub: "Occupied units only", color: "#8b5cf6", icon: DollarSign, tip: "Sum of monthly rent for all occupied units (excludes vacant)" },
         ].map((m, i) => (
           <div key={i} style={{ background: "var(--surface)", borderRadius: 16, padding: 20, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)" }}>
@@ -9031,8 +9033,8 @@ function TenantManagement({ onBack, highlightTenantId, onClearHighlight, prefill
                 <p style={{ color: "var(--text-primary)", fontSize: 24, fontWeight: 800 }}>{m.value}</p>
                 <p style={{ color: "var(--text-muted)", fontSize: 12, marginTop: 2 }}>{m.sub}</p>
               </div>
-              <div style={{ background: m.color + "18", borderRadius: 10, padding: 10 }}>
-                <m.icon size={20} color={m.color} />
+              <div style={{ background: m.semantic ? m.color + "18" : "#1e3a5f", borderRadius: 10, padding: 10 }}>
+                <m.icon size={20} color={m.semantic ? m.color : "#e95e00"} />
               </div>
             </div>
           </div>
@@ -10621,8 +10623,8 @@ function MileageTracker() {
                 <p style={{ color: "var(--text-primary)", fontSize: 22, fontWeight: 800 }}>{m.value}</p>
                 <p style={{ color: "var(--text-muted)", fontSize: 12, marginTop: 2 }}>{m.sub}</p>
               </div>
-              <div style={{ background: m.color + "18", borderRadius: 10, padding: 10 }}>
-                <m.icon size={20} color={m.color} />
+              <div style={{ background: "#1e3a5f", borderRadius: 10, padding: 10 }}>
+                <m.icon size={20} color="#e95e00" />
               </div>
             </div>
           </div>
