@@ -138,18 +138,16 @@ function StatCard({ icon: Icon, label, value, sub, color = "var(--c-blue)", sema
   const iconColor = semantic ? color : "#e95e00";
   return (
     <div style={{ background: "var(--surface)", borderRadius: 16, padding: "20px 22px", boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-        <div>
-          <div style={{ display: "flex", alignItems: "center" }}>
-            <p style={{ color: "var(--text-muted)", fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 6 }}>{label}</p>
-            {tip && <InfoTip text={tip} />}
-          </div>
-          <p style={{ color: "var(--text-primary)", fontSize: 26, fontWeight: 800, lineHeight: 1, fontFamily: "var(--font-display)" }}>{value}</p>
-          {sub && <p style={{ color: "var(--text-secondary)", fontSize: 12, marginTop: 4 }}>{sub}</p>}
-        </div>
-        <div style={{ background: iconBg, borderRadius: 12, padding: 10 }}>
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center" }}>
+        <div style={{ background: iconBg, borderRadius: 12, padding: 10, marginBottom: 12 }}>
           <Icon size={20} color={iconColor} />
         </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 6 }}>
+          <p style={{ color: "var(--text-muted)", fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.04em" }}>{label}</p>
+          {tip && <InfoTip text={tip} />}
+        </div>
+        <p style={{ color: "var(--text-primary)", fontSize: 26, fontWeight: 800, lineHeight: 1, fontFamily: "var(--font-display)" }}>{value}</p>
+        {sub && <p style={{ color: "var(--text-secondary)", fontSize: 12, marginTop: 4 }}>{sub}</p>}
       </div>
       {trendVal && (
         <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 14, paddingTop: 14, borderTop: "1px solid var(--border-subtle)" }}>
@@ -414,7 +412,7 @@ export function DealDashboard({ onSelect, onNavigateToNote, onNavigateToExpense,
             <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
             <XAxis dataKey="name" tick={{ fontSize: 12, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
             <YAxis tick={{ fontSize: 12, fill: "#94a3b8" }} axisLine={false} tickLine={false} tickFormatter={v => `$${(v/1000).toFixed(0)}K`} />
-            <Tooltip formatter={v => fmt(v)} contentStyle={{ borderRadius: 10, border: "1px solid var(--border)", fontSize: 12 }} />
+            <Tooltip formatter={v => fmt(v)} cursor={{ fill: "transparent" }} contentStyle={{ borderRadius: 10, border: "1px solid var(--border)", fontSize: 12, background: "var(--tooltip-bg)", color: "var(--tooltip-text)" }} />
             <Bar dataKey="budget" fill="var(--c-blue)" radius={[6, 6, 0, 0]} name="Budgeted" />
             <Bar dataKey="spent"  fill="var(--c-green)" radius={[6, 6, 0, 0]} name="Spent" />
           </BarChart>
@@ -2535,7 +2533,7 @@ export function DealAnalytics() {
                   <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                   <XAxis dataKey="date" tick={{ fontSize: 11, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
                   <YAxis tick={{ fontSize: 12, fill: "#94a3b8" }} axisLine={false} tickLine={false} tickFormatter={v => `$${(v/1000).toFixed(0)}K`} />
-                  <Tooltip formatter={v => fmt(v)} contentStyle={{ borderRadius: 10, border: "1px solid var(--border)", fontSize: 12 }} />
+                  <Tooltip formatter={v => fmt(v)} cursor={{ fill: "transparent" }} contentStyle={{ borderRadius: 10, border: "1px solid var(--border)", fontSize: 12, background: "var(--tooltip-bg)", color: "var(--tooltip-text)" }} />
                   <ReferenceLine y={singleDeal.rehabBudget} stroke="var(--c-red)" strokeDasharray="6 4" label={{ value: "Budget", position: "right", fontSize: 11, fill: "var(--c-red)" }} />
                   <Area type="monotone" dataKey="spent" stroke="#e95e00" strokeWidth={2.5} fill="url(#spendGrad)" dot={{ fill: "#e95e00", r: 3 }} />
                 </AreaChart>
@@ -2706,7 +2704,7 @@ export function DealAnalytics() {
               <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
               <XAxis dataKey="name" tick={{ fontSize: 12, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fontSize: 12, fill: "#94a3b8" }} axisLine={false} tickLine={false} tickFormatter={v => `${v}%`} />
-              <Tooltip formatter={(v, n, p) => [`${v}%`, "ROI"]} contentStyle={{ borderRadius: 10, border: "1px solid var(--border)", fontSize: 12 }} />
+              <Tooltip formatter={(v, n, p) => [`${v}%`, "ROI"]} cursor={{ fill: "transparent" }} contentStyle={{ borderRadius: 10, border: "1px solid var(--border)", fontSize: 12, background: "var(--tooltip-bg)", color: "var(--tooltip-text)" }} />
               <Bar dataKey="roi" radius={[6, 6, 0, 0]}>
                 {roiData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
               </Bar>
@@ -2750,7 +2748,7 @@ export function DealAnalytics() {
             <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
             <XAxis dataKey="name" tick={{ fontSize: 12, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
             <YAxis tick={{ fontSize: 12, fill: "#94a3b8" }} axisLine={false} tickLine={false} tickFormatter={v => `$${(v/1000).toFixed(0)}K`} />
-            <Tooltip formatter={v => fmt(v)} contentStyle={{ borderRadius: 10, border: "1px solid var(--border)", fontSize: 12 }} />
+            <Tooltip formatter={v => fmt(v)} cursor={{ fill: "transparent" }} contentStyle={{ borderRadius: 10, border: "1px solid var(--border)", fontSize: 12, background: "var(--tooltip-bg)", color: "var(--tooltip-text)" }} />
             <Legend />
             <Bar dataKey="budget" fill="var(--c-blue)" name="Budgeted" radius={[6, 6, 0, 0]} />
             <Bar dataKey="actual" fill="#e95e00" name="Actual"   radius={[6, 6, 0, 0]} />
@@ -2768,7 +2766,7 @@ export function DealAnalytics() {
               <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" horizontal={false} />
               <XAxis type="number" tick={{ fontSize: 12, fill: "#94a3b8" }} axisLine={false} tickLine={false} tickFormatter={v => `${v}d`} />
               <YAxis type="category" dataKey="name" tick={{ fontSize: 12, fill: "#94a3b8" }} axisLine={false} tickLine={false} width={40} />
-              <Tooltip formatter={v => [`${v} days`, "Hold Time"]} contentStyle={{ borderRadius: 10, border: "1px solid var(--border)", fontSize: 12 }} />
+              <Tooltip formatter={v => [`${v} days`, "Hold Time"]} cursor={{ fill: "transparent" }} contentStyle={{ borderRadius: 10, border: "1px solid var(--border)", fontSize: 12, background: "var(--tooltip-bg)", color: "var(--tooltip-text)" }} />
               <Bar dataKey="days" radius={[0, 6, 6, 0]}>
                 {timelineData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
               </Bar>
@@ -2786,7 +2784,7 @@ export function DealAnalytics() {
                 <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                 <XAxis dataKey="month" tick={{ fontSize: 11, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fontSize: 12, fill: "#94a3b8" }} axisLine={false} tickLine={false} tickFormatter={v => `$${(v/1000).toFixed(0)}K`} />
-                <Tooltip formatter={v => [fmt(v), "Spent"]} contentStyle={{ borderRadius: 10, border: "1px solid var(--border)", fontSize: 12 }} />
+                <Tooltip formatter={v => [fmt(v), "Spent"]} cursor={{ fill: "transparent" }} contentStyle={{ borderRadius: 10, border: "1px solid var(--border)", fontSize: 12, background: "var(--tooltip-bg)", color: "var(--tooltip-text)" }} />
                 <Line type="monotone" dataKey="total" stroke="#e95e00" strokeWidth={2.5} dot={{ fill: "#e95e00", r: 4 }} activeDot={{ r: 6 }} />
               </LineChart>
             </ResponsiveContainer>
