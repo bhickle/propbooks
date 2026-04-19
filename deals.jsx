@@ -101,11 +101,11 @@ function DealOcrPrompt({ attachment, onResult, onDismiss }) {
     );
   }
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", background: "#f0f9ff", borderRadius: 10, border: "1px solid #bae6fd", marginTop: 6 }}>
-      <ScanLine size={15} color="#0284c7" />
-      <span style={{ fontSize: 12, color: "#0c4a6e", flex: 1 }}>Auto-fill from this receipt?</span>
+    <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", background: "var(--info-tint-alt)", borderRadius: 10, border: "1px solid var(--info-border-alt)", marginTop: 6 }}>
+      <ScanLine size={15} color="var(--c-blue)" />
+      <span style={{ fontSize: 12, color: "var(--text-primary)", flex: 1 }}>Auto-fill from this receipt?</span>
       <button onClick={runOcr}
-        style={{ display: "flex", alignItems: "center", gap: 5, padding: "5px 12px", borderRadius: 8, border: "none", background: "#0284c7", color: "#fff", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>
+        style={{ display: "flex", alignItems: "center", gap: 5, padding: "5px 12px", borderRadius: 8, border: "none", background: "#1e3a5f", color: "#fff", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>
         <Star size={12} /> Auto-fill
       </button>
       <button onClick={() => { setDismissed(true); if (onDismiss) onDismiss(); }}
@@ -386,8 +386,8 @@ export function DealDashboard({ onSelect, onNavigateToNote, onNavigateToExpense,
             )}
             {recentActivity.map((a, i) => (
               <div key={i} onClick={() => { if (a.tab === "notes" && a.noteId && onNavigateToNote) onNavigateToNote(a.noteId); else if (a.tab === "expenses" && a.expenseId && onNavigateToExpense) onNavigateToExpense(a.expenseId); else if (a.tab === "milestones" && a.milestoneKey && onNavigateToMilestone) onNavigateToMilestone(a.milestoneKey, a.milestoneDone); else if (onSelect) onSelect(a.deal, a.tab); }} style={{ display: "flex", gap: 10, marginBottom: 12, cursor: "pointer", padding: "6px 8px", marginLeft: -8, marginRight: -8, borderRadius: 10, transition: "background 0.15s" }} onMouseEnter={e => e.currentTarget.style.background = "var(--surface-alt)"} onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
-                <div style={{ width: 28, height: 28, borderRadius: 8, background: colorWithAlpha(a.color, 0.1), display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                  <a.icon size={13} color={a.color} />
+                <div style={{ width: 28, height: 28, borderRadius: 8, background: "rgba(30,58,95,0.08)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                  <a.icon size={13} color="#475569" />
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <p style={{ color: "var(--text-dim)", fontSize: 12, lineHeight: 1.4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.text}</p>
@@ -405,18 +405,18 @@ export function DealDashboard({ onSelect, onNavigateToNote, onNavigateToExpense,
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
           <p style={{ color: "var(--text-primary)", fontSize: 16, fontWeight: 700 }}>Rehab Budget Overview</p>
           <div style={{ display: "flex", gap: 16 }}>
-            <span style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--text-secondary)" }}><span style={{ width: 10, height: 10, borderRadius: 2, background: "var(--c-blue)", display: "inline-block" }} />Budgeted</span>
-            <span style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--text-secondary)" }}><span style={{ width: 10, height: 10, borderRadius: 2, background: "var(--c-green)", display: "inline-block" }} />Spent</span>
+            <span style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--text-secondary)" }}><span style={{ width: 10, height: 10, borderRadius: 2, background: "#1e3a5f", display: "inline-block" }} />Budgeted</span>
+            <span style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--text-secondary)" }}><span style={{ width: 10, height: 10, borderRadius: 2, background: "#e95e00", display: "inline-block" }} />Spent</span>
           </div>
         </div>
         <ResponsiveContainer width="100%" height={180}>
-          <BarChart data={active.map(f => ({ name: f.image, budget: f.rehabBudget, spent: f.rehabSpent }))}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-            <XAxis dataKey="name" tick={{ fontSize: 12, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
-            <YAxis tick={{ fontSize: 12, fill: "#94a3b8" }} axisLine={false} tickLine={false} tickFormatter={v => `$${(v/1000).toFixed(0)}K`} />
+          <BarChart data={active.map(f => ({ name: f.name, budget: f.rehabBudget, spent: f.rehabSpent }))}>
+            <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
+            <XAxis dataKey="name" tick={{ fontSize: 12, fill: "var(--chart-axis)" }} axisLine={false} tickLine={false} />
+            <YAxis tick={{ fontSize: 12, fill: "var(--chart-axis)" }} axisLine={false} tickLine={false} tickFormatter={v => `$${(v/1000).toFixed(0)}K`} />
             <Tooltip formatter={v => fmt(v)} cursor={{ fill: "transparent" }} contentStyle={{ borderRadius: 10, border: "1px solid var(--border)", fontSize: 12, background: "var(--tooltip-bg)", color: "var(--tooltip-text)" }} />
-            <Bar dataKey="budget" fill="var(--c-blue)" radius={[6, 6, 0, 0]} name="Budgeted" />
-            <Bar dataKey="spent"  fill="var(--c-green)" radius={[6, 6, 0, 0]} name="Spent" />
+            <Bar dataKey="budget" fill="#1e3a5f" radius={[6, 6, 0, 0]} name="Budgeted" />
+            <Bar dataKey="spent"  fill="#e95e00" radius={[6, 6, 0, 0]} name="Spent" />
           </BarChart>
         </ResponsiveContainer>
       </div>
@@ -1101,7 +1101,7 @@ function ExpDetailPanel({ exp, onClose, onEdit, onDelete }) {
             )}
             {contractor && (
               <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
-                <div style={{ width: 28, height: 28, borderRadius: 8, background: "#dbeafe", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 2 }}><UserCheck size={14} color="var(--c-blue)" /></div>
+                <div style={{ width: 28, height: 28, borderRadius: 8, background: "var(--info-tint)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 2 }}><UserCheck size={14} color="var(--c-blue)" /></div>
                 <div>
                   <p style={{ fontSize: 11, fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 3 }}>Linked Contractor</p>
                   <p style={{ fontSize: 14, color: "var(--text-primary)", fontWeight: 500 }}>{contractor.name}</p>
@@ -1435,9 +1435,9 @@ export function DealExpenses({ highlightExpId, onBack, onClearHighlight, backLab
               <button onClick={() => { setShowModal(false); setEditId(null); }} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)" }}><X size={20} /></button>
             </div>
             {dealReceipts.length === 0 && (
-              <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 14px", background: "#f0f9ff", borderRadius: 10, border: "1px solid #bae6fd", marginBottom: 16 }}>
-                <ScanLine size={16} color="#0284c7" />
-                <p style={{ fontSize: 12, color: "#0c4a6e", margin: 0 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 14px", background: "var(--info-tint-alt)", borderRadius: 10, border: "1px solid var(--info-border-alt)", marginBottom: 16 }}>
+                <ScanLine size={16} color="var(--c-blue)" />
+                <p style={{ fontSize: 12, color: "var(--text-primary)", margin: 0 }}>
                   <strong>Have a receipt?</strong> Attach it below and we can auto-fill the details for you.
                 </p>
               </div>
@@ -1611,7 +1611,7 @@ export function DealExpenses({ highlightExpId, onBack, onClearHighlight, backLab
 // 4. CONTRACTORS
 // ---------------------------------------------------------------------------
 const STATUS_STYLES = {
-  active:   { bg: "#dbeafe", text: "#1d4ed8", label: "Active"   },
+  active:   { bg: "var(--info-tint)", text: "var(--c-blue)", label: "Active"   },
   complete: { bg: "#dcfce7", text: "#15803d", label: "Complete" },
   pending:  { bg: "#f1f5f9", text: "#64748b", label: "Pending"  },
 };

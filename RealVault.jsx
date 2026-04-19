@@ -121,7 +121,7 @@ function ToastProvider({ children }) {
       {children}
       <div style={{ position: "fixed", bottom: 24, right: 24, zIndex: 9999, display: "flex", flexDirection: "column", gap: 8, pointerEvents: "none" }}>
         {toasts.map(t => {
-          const colors = { success: { bg: "var(--success-tint)", border: "var(--success-border)", text: "#15803d", icon: "✓" }, error: { bg: "var(--danger-tint)", border: "var(--danger-border)", text: "#b91c1c", icon: "✕" }, info: { bg: "var(--info-tint-alt)", border: "var(--info-border-alt)", text: "#0369a1", icon: "ℹ" }, warning: { bg: "var(--warning-bg)", border: "var(--warning-border)", text: "var(--warning-text)", icon: "⚠" } };
+          const colors = { success: { bg: "var(--success-tint)", border: "var(--success-border)", text: "var(--c-green)", icon: "✓" }, error: { bg: "var(--danger-tint)", border: "var(--danger-border)", text: "var(--c-red)", icon: "✕" }, info: { bg: "var(--info-tint-alt)", border: "var(--info-border-alt)", text: "var(--c-blue)", icon: "ℹ" }, warning: { bg: "var(--warning-bg)", border: "var(--warning-border)", text: "var(--warning-text)", icon: "⚠" } };
           const c = colors[t.type] || colors.success;
           return (
             <div key={t.id} style={{ background: c.bg, border: `1px solid ${c.border}`, borderRadius: 12, padding: "12px 18px", color: c.text, fontSize: 14, fontWeight: 600, boxShadow: "0 8px 24px rgba(0,0,0,0.12)", display: "flex", alignItems: "center", gap: 10, animation: "slideInRight 0.25s ease-out", pointerEvents: "auto", maxWidth: 360 }}>
@@ -662,10 +662,10 @@ function OcrPrompt({ attachment, onResult, onDismiss }) {
 
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", background: "var(--info-tint-alt)", borderRadius: 10, border: "1px solid var(--info-border-alt)", marginTop: 6 }}>
-      <ScanLine size={15} color="#0284c7" />
-      <span style={{ fontSize: 12, color: "#0c4a6e", flex: 1 }}>Auto-fill from this receipt?</span>
+      <ScanLine size={15} color="var(--c-blue)" />
+      <span style={{ fontSize: 12, color: "var(--text-primary)", flex: 1 }}>Auto-fill from this receipt?</span>
       <button onClick={runOcr}
-        style={{ display: "flex", alignItems: "center", gap: 5, padding: "5px 12px", borderRadius: 8, border: "none", background: "#0284c7", color: "#fff", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>
+        style={{ display: "flex", alignItems: "center", gap: 5, padding: "5px 12px", borderRadius: 8, border: "none", background: "#1e3a5f", color: "#fff", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>
         <Star size={12} /> Auto-fill
       </button>
       <button onClick={() => { setDismissed(true); if (onDismiss) onDismiss(); }}
@@ -2330,7 +2330,7 @@ function PortfolioDashboard({ onNavigate, onSelectProperty, onSelectFlip, onNavi
                 }
               };
               return (
-                <div key={a.id} style={{ borderRadius: 10, background: "var(--surface-alt)", border: isExpanded ? "1.5px solid #dbeafe" : "1px solid var(--border-subtle)", position: "relative", transition: "border 0.15s" }}>
+                <div key={a.id} style={{ borderRadius: 10, background: "var(--surface-alt)", border: isExpanded ? "1.5px solid var(--info-border)" : "1px solid var(--border-subtle)", position: "relative", transition: "border 0.15s" }}>
                   <div style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "10px 12px" }}>
                     <div style={{ width: 32, height: 32, borderRadius: 8, background: a.bg, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                       <Icon size={15} color={a.color} />
@@ -2622,7 +2622,7 @@ function Dashboard({ onNavigate, onNavigateToTx, onSelectProperty, onNavigateToT
                   const prop = PROPERTIES.find(p => p.id === t.propertyId);
                   const isExpanded = quickPay?.id === t.id;
                   return (
-                    <div key={t.id} style={{ borderRadius: 10, border: isExpanded ? "1.5px solid #dbeafe" : "1px solid transparent", background: isExpanded ? "var(--surface-alt)" : "transparent", transition: "all 0.15s" }}>
+                    <div key={t.id} style={{ borderRadius: 10, border: isExpanded ? "1.5px solid var(--info-border)" : "1px solid transparent", background: isExpanded ? "var(--surface-alt)" : "transparent", transition: "all 0.15s" }}>
                       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 10px" }}>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>{t.name}</p>
@@ -3108,7 +3108,7 @@ function Properties({ onSelect, editPropertyId, onClearEditId, convertDealData, 
 
           {/* Loan Details Section */}
           <div style={{ margin: "20px 0 14px", padding: "14px 16px", background: "var(--warning-bg)", borderRadius: 12, border: "1px solid var(--warning-border)" }}>
-            <p style={{ color: "#0369a1", fontSize: 13, fontWeight: 700, marginBottom: 12, display: "flex", alignItems: "center", gap: 6 }}>
+            <p style={{ color: "var(--c-blue)", fontSize: 13, fontWeight: 700, marginBottom: 12, display: "flex", alignItems: "center", gap: 6 }}>
               🏦 Loan Details — balance calculated automatically from these
             </p>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
@@ -3131,7 +3131,7 @@ function Properties({ onSelect, editPropertyId, onClearEditId, convertDealData, 
               {form.loanAmount && form.loanRate && form.loanTermYears && form.loanStartDate && (() => {
                 const b = calcLoanBalance(form.loanAmount, form.loanRate, form.loanTermYears, form.loanStartDate);
                 return b !== null ? (
-                  <div style={{ gridColumn: "1 / -1", background: "var(--surface)", borderRadius: 8, padding: "10px 14px", border: "1px solid #bae6fd", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <div style={{ gridColumn: "1 / -1", background: "var(--surface)", borderRadius: 8, padding: "10px 14px", border: "1px solid var(--info-border-alt)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                     <span style={{ color: "var(--text-secondary)", fontSize: 13 }}>Estimated current balance:</span>
                     <span style={{ color: "var(--text-primary)", fontSize: 15, fontWeight: 700 }}>{fmt(b)}</span>
                   </div>
@@ -3680,21 +3680,21 @@ function PropertyDetail({ property, onBack, backLabel, onEditProperty, onGoToTra
                 <p style={{ color: "var(--text-muted)", fontSize: 12, fontWeight: 600, textTransform: "uppercase" }}>Total Income</p>
                 <InfoTip text="Sum of all income transactions for this property (filtered if filters are active)." />
               </div>
-              <p style={{ color: "#15803d", fontSize: 24, fontWeight: 800 }}>+{fmt(totalIncome)}</p>
+              <p style={{ color: "var(--c-green)", fontSize: 24, fontWeight: 800, fontFamily: "var(--font-display)" }}>+{fmt(totalIncome)}</p>
             </div>
             <div style={{ background: "var(--surface)", borderRadius: 14, padding: 20, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 4 }}>
                 <p style={{ color: "var(--text-muted)", fontSize: 12, fontWeight: 600, textTransform: "uppercase" }}>Total Expenses</p>
                 <InfoTip text="Sum of all expense transactions for this property (filtered if filters are active)." />
               </div>
-              <p style={{ color: "#b91c1c", fontSize: 24, fontWeight: 800 }}>-{fmt(totalExpenses)}</p>
+              <p style={{ color: "var(--c-red)", fontSize: 24, fontWeight: 800, fontFamily: "var(--font-display)" }}>-{fmt(totalExpenses)}</p>
             </div>
             <div style={{ background: "var(--surface)", borderRadius: 14, padding: 20, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 4 }}>
                 <p style={{ color: "var(--text-muted)", fontSize: 12, fontWeight: 600, textTransform: "uppercase" }}>Net</p>
                 <InfoTip text="Total Income minus Total Expenses. Positive = profitable." />
               </div>
-              <p style={{ color: filteredTxTotal >= 0 ? "#15803d" : "#b91c1c", fontSize: 24, fontWeight: 800 }}>{filteredTxTotal >= 0 ? "+" : ""}{fmt(Math.abs(filteredTxTotal))}</p>
+              <p style={{ color: filteredTxTotal >= 0 ? "var(--c-green)" : "var(--c-red)", fontSize: 24, fontWeight: 800, fontFamily: "var(--font-display)" }}>{filteredTxTotal >= 0 ? "+" : ""}{fmt(Math.abs(filteredTxTotal))}</p>
             </div>
           </div>
 
@@ -3747,7 +3747,7 @@ function PropertyDetail({ property, onBack, backLabel, onEditProperty, onGoToTra
           {/* Filter chips */}
           {txHasFilters && (
             <div style={{ display: "flex", gap: 6, marginBottom: 16, flexWrap: "wrap", alignItems: "center" }}>
-              {txTypeFilter !== "all" && <span style={{ background: "var(--info-tint)", color: "#1d4ed8", borderRadius: 20, padding: "3px 10px", fontSize: 12, fontWeight: 600, display: "flex", alignItems: "center", gap: 4 }}>{txTypeFilter} <button onClick={() => setTxTypeFilter("all")} style={{ background: "none", border: "none", cursor: "pointer", color: "#1d4ed8", padding: 0 }}><X size={10} /></button></span>}
+              {txTypeFilter !== "all" && <span style={{ background: "var(--info-tint)", color: "var(--c-blue)", borderRadius: 20, padding: "3px 10px", fontSize: 12, fontWeight: 600, display: "flex", alignItems: "center", gap: 4 }}>{txTypeFilter} <button onClick={() => setTxTypeFilter("all")} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--c-blue)", padding: 0 }}><X size={10} /></button></span>}
               {txCatFilter !== "all" && <span style={{ background: "var(--success-badge)", color: "#15803d", borderRadius: 20, padding: "3px 10px", fontSize: 12, fontWeight: 600, display: "flex", alignItems: "center", gap: 4 }}>{txCatFilter} <button onClick={() => setTxCatFilter("all")} style={{ background: "none", border: "none", cursor: "pointer", color: "#15803d", padding: 0 }}><X size={10} /></button></span>}
               {txDateFilter !== "all" && <span style={{ background: "var(--warning-bg)", color: "var(--warning-text)", borderRadius: 20, padding: "3px 10px", fontSize: 12, fontWeight: 600, display: "flex", alignItems: "center", gap: 4 }}>{txDateFilter === "custom" ? `${txDateFrom || "..."} – ${txDateTo || "..."}` : txDateFilter} <button onClick={() => { setTxDateFilter("all"); setTxDateFrom(""); setTxDateTo(""); }} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--warning-text)", padding: 0 }}><X size={10} /></button></span>}
               {txSearch && <span style={{ background: "var(--surface-muted)", color: "var(--text-label)", borderRadius: 20, padding: "3px 10px", fontSize: 12, fontWeight: 600, display: "flex", alignItems: "center", gap: 4 }}>"{txSearch}" <button onClick={() => setTxSearch("")} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-label)", padding: 0 }}><X size={10} /></button></span>}
@@ -3864,8 +3864,8 @@ function PropertyDetail({ property, onBack, backLabel, onEditProperty, onGoToTra
                 {/* OCR hint — expense only, hides once a receipt is attached */}
                 {!isIncome && txReceipts.length === 0 && (
                   <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 14px", background: "var(--info-tint-alt)", borderRadius: 10, border: "1px solid var(--info-border-alt)", marginBottom: 16 }}>
-                    <ScanLine size={16} color="#0284c7" />
-                    <p style={{ fontSize: 12, color: "#0c4a6e", margin: 0 }}>
+                    <ScanLine size={16} color="var(--c-blue)" />
+                    <p style={{ fontSize: 12, color: "var(--text-primary)", margin: 0 }}>
                       <strong>Have a receipt?</strong> Attach it below and we can auto-fill the details for you.
                     </p>
                   </div>
@@ -4124,7 +4124,7 @@ function PropertyDetail({ property, onBack, backLabel, onEditProperty, onGoToTra
               onChange={e => setNoteText(e.target.value)}
               placeholder="Write a note about this property..."
               rows={3}
-              style={{ width: "100%", padding: "10px 12px", border: "1.5px solid var(--border)", borderRadius: 10, fontSize: 14, color: "#0f172a", resize: "vertical", outline: "none", boxSizing: "border-box", fontFamily: "inherit" }}
+              style={{ width: "100%", padding: "10px 12px", border: "1.5px solid var(--border)", borderRadius: 10, fontSize: 14, color: "var(--text-primary)", resize: "vertical", outline: "none", boxSizing: "border-box", fontFamily: "inherit" }}
             />
             <div style={{ display: "flex", gap: 8, marginTop: 10, justifyContent: "flex-end" }}>
               {noteEditId && (
@@ -4174,7 +4174,7 @@ function PropertyDetail({ property, onBack, backLabel, onEditProperty, onGoToTra
                       </button>
                     </div>
                   </div>
-                  <p style={{ fontSize: 14, color: "#0f172a", margin: 0, lineHeight: 1.6, whiteSpace: "pre-wrap" }}>{n.text}</p>
+                  <p style={{ fontSize: 14, color: "var(--text-primary)", margin: 0, lineHeight: 1.6, whiteSpace: "pre-wrap" }}>{n.text}</p>
                 </div>
               ))}
             </div>
@@ -4184,7 +4184,7 @@ function PropertyDetail({ property, onBack, backLabel, onEditProperty, onGoToTra
           {noteDeleteConfirm && (
             <div style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 500 }}>
               <div style={{ background: "var(--surface)", borderRadius: 16, padding: 28, width: 360, boxShadow: "0 25px 60px rgba(0,0,0,0.2)" }}>
-                <h3 style={{ fontSize: 17, fontWeight: 700, color: "#0f172a", margin: "0 0 8px 0" }}>Delete Note?</h3>
+                <h3 style={{ fontSize: 17, fontWeight: 700, color: "var(--text-primary)", margin: "0 0 8px 0" }}>Delete Note?</h3>
                 <p style={{ fontSize: 13, color: "var(--text-secondary)", margin: "0 0 20px 0" }}>This cannot be undone.</p>
                 <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
                   <button onClick={() => setNoteDeleteConfirm(null)} style={{ padding: "8px 16px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text-label)", fontWeight: 600, fontSize: 13, cursor: "pointer" }}>Cancel</button>
@@ -4553,8 +4553,8 @@ function Transactions({ highlightTxId, onBack, onClearHighlight, backLabel }) {
             {/* OCR hint — expense only, hides once a receipt is attached */}
             {!isIncome && mainReceipts.length === 0 && (
               <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 14px", background: "var(--info-tint-alt)", borderRadius: 10, border: "1px solid var(--info-border-alt)", marginBottom: 16 }}>
-                <ScanLine size={16} color="#0284c7" />
-                <p style={{ fontSize: 12, color: "#0c4a6e", margin: 0 }}>
+                <ScanLine size={16} color="var(--c-blue)" />
+                <p style={{ fontSize: 12, color: "var(--text-primary)", margin: 0 }}>
                   <strong>Have a receipt?</strong> Attach it below and we can auto-fill the details for you.
                 </p>
               </div>
@@ -4592,7 +4592,7 @@ function Transactions({ highlightTxId, onBack, onClearHighlight, backLabel }) {
                           <p style={{ fontSize: 12, color: "var(--text-muted)" }}>Add loan terms to this property for auto-calculation, or enter manually below</p>
                         ) : null}
                       </div>
-                      <button onClick={() => setForm(f => ({ ...f, piOverride: !f.piOverride, piPrincipal: f.piOverride ? "" : String(autoPrincipal ?? ""), piInterest: f.piOverride ? "" : String(autoInterest ?? "") }))} style={{ background: form.piOverride ? "var(--info-tint)" : "var(--surface)", border: "1px solid #bae6fd", borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 600, color: "var(--c-blue)", cursor: "pointer", whiteSpace: "nowrap" }}>
+                      <button onClick={() => setForm(f => ({ ...f, piOverride: !f.piOverride, piPrincipal: f.piOverride ? "" : String(autoPrincipal ?? ""), piInterest: f.piOverride ? "" : String(autoInterest ?? "") }))} style={{ background: form.piOverride ? "var(--info-tint)" : "var(--surface)", border: "1px solid var(--info-border-alt)", borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 600, color: "var(--c-blue)", cursor: "pointer", whiteSpace: "nowrap" }}>
                         {form.piOverride ? "Use Auto" : "Override"}
                       </button>
                     </div>
@@ -4852,8 +4852,8 @@ function Analytics() {
               { label: "Portfolio Cap Rate", value: `${avgCapRate}%`, color: "var(--c-blue)", yoy: yoyCapRate, tip: "Average Cap Rate across all properties. Cap Rate = Annual NOI \u00f7 Current Property Value." },
               { label: "Avg Cash-on-Cash", value: `${avgCoC}%`, color: "var(--c-purple)", yoy: yoyCoC, tip: "Average Cash-on-Cash return. CoC = (Annual NOI \u2212 Annual Debt Service) \u00f7 (Down Payment + Closing Costs). Down payment derived from Purchase Price \u2212 Loan Amount." },
             ].map((m, i) => (
-              <div key={i} style={{ ...cardS, textAlign: "center" }}>
-                <p style={{ color: "var(--text-muted)", fontSize: 12, fontWeight: 600, textTransform: "uppercase", marginBottom: 6, display: "flex", alignItems: "center", justifyContent: "center" }}>{m.label}<InfoTip text={m.tip} /></p>
+              <div key={i} style={cardS}>
+                <p style={{ color: "var(--text-muted)", fontSize: 12, fontWeight: 600, textTransform: "uppercase", marginBottom: 6, display: "flex", alignItems: "center" }}>{m.label}<InfoTip text={m.tip} /></p>
                 <p style={{ color: "var(--text-primary)", fontSize: 22, fontWeight: 800, fontFamily: "var(--font-display)" }}>{m.value}</p>
                 <YoY val={m.yoy} />
               </div>
@@ -4866,8 +4866,8 @@ function Analytics() {
               { label: "Occupancy Rate", value: `${occupancyRate}%`, desc: `${totalUnits - vacantUnits} / ${totalUnits} units occupied`, tip: "Occupied Units \u00f7 Total Units \u00d7 100. Based on current tenant records." },
               { label: "DSCR", value: portfolioDSCR, desc: parseFloat(portfolioDSCR) >= 1.25 ? "Healthy coverage" : parseFloat(portfolioDSCR) >= 1.0 ? "Adequate" : "Below target", tip: "Debt Service Coverage Ratio = Annual NOI \u00f7 Annual Mortgage Payments. Above 1.25 is healthy; below 1.0 means income doesn\u2019t cover debt." },
             ].map((m, i) => (
-              <div key={i} style={{ ...cardS, textAlign: "center" }}>
-                <p style={{ color: "var(--text-muted)", fontSize: 12, fontWeight: 600, textTransform: "uppercase", marginBottom: 6, display: "flex", alignItems: "center", justifyContent: "center" }}>{m.label}<InfoTip text={m.tip} /></p>
+              <div key={i} style={cardS}>
+                <p style={{ color: "var(--text-muted)", fontSize: 12, fontWeight: 600, textTransform: "uppercase", marginBottom: 6, display: "flex", alignItems: "center" }}>{m.label}<InfoTip text={m.tip} /></p>
                 <p style={{ color: "var(--text-primary)", fontSize: 22, fontWeight: 800, fontFamily: "var(--font-display)" }}>{m.value}</p>
                 {m.yoy !== undefined ? <YoY val={m.yoy} /> : <p style={{ color: "var(--text-muted)", fontSize: 11, marginTop: 6 }}>{m.desc}</p>}
               </div>
@@ -4888,7 +4888,7 @@ function Analytics() {
                 ].map((m, i) => (
                   <div key={i} style={{ textAlign: "right" }}>
                     <p style={{ color: "var(--text-muted)", fontSize: 11, fontWeight: 600, textTransform: "uppercase" }}>{m.label}</p>
-                    <p style={{ color: m.color, fontSize: 18, fontWeight: 800 }}>{m.value}</p>
+                    <p style={{ color: "var(--text-primary)", fontSize: 18, fontWeight: 800, fontFamily: "var(--font-display)" }}>{m.value}</p>
                   </div>
                 ))}
               </div>
@@ -4995,14 +4995,12 @@ function Analytics() {
               <h3 style={{ color: "var(--text-primary)", fontSize: 16, fontWeight: 700, marginBottom: 4 }}>Cap Rate Comparison</h3>
               <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 20 }}>Annual net operating income / property value</p>
               <ResponsiveContainer width="100%" height={220}>
-                <BarChart data={PROPERTIES.map(p => ({ name: p.image, rate: calcCapRate(p), fill: p.color }))}>
+                <BarChart data={PROPERTIES.map(p => ({ name: p.name, rate: calcCapRate(p) }))}>
                   <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
                   <XAxis dataKey="name" tick={{ fontSize: 12, fill: "var(--chart-axis)" }} axisLine={false} tickLine={false} />
                   <YAxis tick={{ fontSize: 12, fill: "var(--chart-axis)" }} axisLine={false} tickLine={false} domain={[0, 12]} tickFormatter={v => `${v}%`} />
                   <Tooltip formatter={(v) => [`${v}%`, "Cap Rate"]} cursor={{ fill: "transparent" }} contentStyle={{ borderRadius: 10, border: "1px solid var(--tooltip-border)", fontSize: 12, background: "var(--tooltip-bg)", color: "var(--tooltip-text)" }} />
-                  <Bar dataKey="rate" radius={[6, 6, 0, 0]}>
-                    {PROPERTIES.map((p, i) => <Cell key={i} fill={p.color} />)}
-                  </Bar>
+                  <Bar dataKey="rate" radius={[6, 6, 0, 0]} fill="#1e3a5f" />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -5015,7 +5013,7 @@ function Analytics() {
                   <XAxis dataKey="name" tick={{ fontSize: 12, fill: "var(--chart-axis)" }} axisLine={false} tickLine={false} />
                   <YAxis tick={{ fontSize: 12, fill: "var(--chart-axis)" }} axisLine={false} tickLine={false} domain={[0, 14]} tickFormatter={v => `${v}%`} />
                   <Tooltip formatter={(v) => [`${v}%`, "CoC Return"]} cursor={{ fill: "transparent" }} contentStyle={{ borderRadius: 10, border: "1px solid var(--tooltip-border)", fontSize: 12, background: "var(--tooltip-bg)", color: "var(--tooltip-text)" }} />
-                  <Bar dataKey="coc" radius={[6, 6, 0, 0]} fill="var(--c-purple)" />
+                  <Bar dataKey="coc" radius={[6, 6, 0, 0]} fill="#e95e00" />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -5057,8 +5055,8 @@ function Analytics() {
                   };
                 })(),
               ].map((m, i) => (
-                <div key={i} style={{ background: "var(--surface-alt)", borderRadius: 14, padding: "18px 16px", border: "1px solid var(--border-subtle)", textAlign: "center" }}>
-                  <p style={{ color: "var(--text-muted)", fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6, display: "flex", alignItems: "center", justifyContent: "center" }}>{m.label}<InfoTip text={m.tip} /></p>
+                <div key={i} style={{ background: "var(--surface-alt)", borderRadius: 14, padding: "18px 16px", border: "1px solid var(--border-subtle)" }}>
+                  <p style={{ color: "var(--text-muted)", fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6, display: "flex", alignItems: "center" }}>{m.label}<InfoTip text={m.tip} /></p>
                   <p style={{ color: "var(--text-primary)", fontSize: 26, fontWeight: 800, marginBottom: 4, fontFamily: "var(--font-display)" }}>{m.value}</p>
                   <p style={{ color: "var(--text-muted)", fontSize: 11 }}>{m.sub}</p>
                 </div>
@@ -5087,8 +5085,8 @@ function Analytics() {
                   tip: "Occupied Units \u00f7 Total Units \u00d7 100. Based on current tenant lease status records.",
                 },
               ].map((m, i) => (
-                <div key={i} style={{ background: "var(--surface-alt)", borderRadius: 14, padding: "18px 16px", border: "1px solid var(--border-subtle)", textAlign: "center" }}>
-                  <p style={{ color: "var(--text-muted)", fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6, display: "flex", alignItems: "center", justifyContent: "center" }}>{m.label}<InfoTip text={m.tip} /></p>
+                <div key={i} style={{ background: "var(--surface-alt)", borderRadius: 14, padding: "18px 16px", border: "1px solid var(--border-subtle)" }}>
+                  <p style={{ color: "var(--text-muted)", fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6, display: "flex", alignItems: "center" }}>{m.label}<InfoTip text={m.tip} /></p>
                   <p style={{ color: "var(--text-primary)", fontSize: 26, fontWeight: 800, marginBottom: 4, fontFamily: "var(--font-display)" }}>{m.value}</p>
                   <p style={{ color: "var(--text-muted)", fontSize: 11 }}>{m.sub}</p>
                 </div>
@@ -5111,7 +5109,7 @@ function Analytics() {
                 ].map((m, i) => (
                   <div key={i} style={{ textAlign: "right" }}>
                     <p style={{ color: "var(--text-muted)", fontSize: 11, fontWeight: 600, textTransform: "uppercase" }}>{m.label}</p>
-                    <p style={{ color: m.color, fontSize: 20, fontWeight: 800 }}>{m.value}</p>
+                    <p style={{ color: "var(--text-primary)", fontSize: 20, fontWeight: 800, fontFamily: "var(--font-display)" }}>{m.value}</p>
                   </div>
                 ))}
               </div>
@@ -5696,15 +5694,15 @@ function Reports() {
           }, 0);
           const actualPct = Math.round((allCalc.filter(c => c.hasActual).length / Math.max(1, allCalc.length)) * 100);
           return [
-            { label: "Gross Rental Income", value: fmt(tRent), color: "#15803d", bg: "var(--success-tint)" },
-            { label: "Total Expenses", value: fmt(tExp), color: "#b91c1c", bg: "var(--danger-tint)" },
-            { label: isTaxReport ? "Net Taxable Income" : "Net Operating Income", value: fmt(tNet), color: tNet >= 0 ? "#15803d" : "#b91c1c", bg: "var(--info-tint-alt)" },
+            { label: "Gross Rental Income", value: fmt(tRent), color: "var(--c-green)", bg: "var(--success-tint)" },
+            { label: "Total Expenses", value: fmt(tExp), color: "var(--c-red)", bg: "var(--danger-tint)" },
+            { label: isTaxReport ? "Net Taxable Income" : "Net Operating Income", value: fmt(tNet), color: tNet >= 0 ? "var(--c-green)" : "var(--c-red)", bg: "var(--info-tint-alt)" },
             { label: isTaxReport ? "Annual Depreciation" : "Portfolio Properties", value: isTaxReport ? fmt(tDepr) : String(reportProps.length), color: isTaxReport ? "var(--c-purple)" : "var(--c-purple)", bg: "var(--purple-tint)" },
             { label: "Actual Data Coverage", value: `${actualPct}%`, color: "var(--c-blue)", bg: "var(--info-tint)" },
           ].map((m, i) => (
-            <div key={i} style={{ background: m.bg, borderRadius: 14, padding: "14px 16px", border: "1px solid var(--border-subtle)" }}>
+            <div key={i} style={{ background: "var(--surface)", borderRadius: 14, padding: "14px 16px", border: "1px solid var(--border-subtle)" }}>
               <p style={{ color: "var(--text-secondary)", fontSize: 10, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6 }}>{m.label}</p>
-              <p style={{ color: m.color, fontSize: 20, fontWeight: 800 }}>{m.value}</p>
+              <p style={{ color: "var(--text-primary)", fontSize: 20, fontWeight: 800, fontFamily: "var(--font-display)" }}>{m.value}</p>
             </div>
           ));
         })()}
@@ -5798,8 +5796,8 @@ function Reports() {
                             </tr>
                           );
                         })}
-                        <tr style={{ background: "var(--info-tint-alt)", borderTop: "2px solid #bae6fd" }}>
-                          <td style={{ ...tdStyle, fontWeight: 800, color: "#0c4a6e" }} colSpan={2}>26. Total Expenses &amp; Net Income / (Loss)</td>
+                        <tr style={{ background: "var(--info-tint-alt)", borderTop: "2px solid var(--info-border-alt)" }}>
+                          <td style={{ ...tdStyle, fontWeight: 800, color: "var(--text-primary)" }} colSpan={2}>26. Total Expenses &amp; Net Income / (Loss)</td>
                           <td style={{ ...tdStyle, textAlign: "right", fontWeight: 800, fontSize: 15, color: net >= 0 ? "#15803d" : "#b91c1c" }}>
                             {net >= 0 ? "+" : "-"}{fmt(Math.abs(net))}
                           </td>
@@ -5809,8 +5807,8 @@ function Reports() {
                   </div>
                 );
               })}
-              <div style={{ background: "var(--info-tint-alt)", borderRadius: 14, padding: 20, border: "1px solid #bae6fd" }}>
-                <h3 style={{ color: "#0c4a6e", fontSize: 14, fontWeight: 700, marginBottom: 14 }}>Portfolio Totals</h3>
+              <div style={{ background: "var(--info-tint-alt)", borderRadius: 14, padding: 20, border: "1px solid var(--info-border-alt)" }}>
+                <h3 style={{ color: "var(--text-primary)", fontSize: 14, fontWeight: 700, marginBottom: 14 }}>Portfolio Totals</h3>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14 }}>
                   {(() => {
                     const allCalc = reportProps.map(p => calcPropLines(p));
@@ -5910,13 +5908,13 @@ function Reports() {
                     })}
                   </tbody>
                   <tfoot>
-                    <tr style={{ background: "var(--info-tint-alt)", borderTop: "2px solid #bae6fd" }}>
-                      <td style={{ ...tdStyle, fontWeight: 800, color: "#0c4a6e" }}>Full Year</td>
+                    <tr style={{ background: "var(--info-tint-alt)", borderTop: "2px solid var(--info-border-alt)" }}>
+                      <td style={{ ...tdStyle, fontWeight: 800, color: "var(--text-primary)" }}>Full Year</td>
                       <td style={tdStyle} />
-                      <td style={{ ...tdStyle, fontWeight: 800, color: "#15803d" }}>+{fmt(monthlyData.reduce((s, m) => s + m.income, 0))}</td>
-                      <td style={{ ...tdStyle, fontWeight: 800, color: "#b91c1c" }}>-{fmt(monthlyData.reduce((s, m) => s + m.expenses, 0))}</td>
-                      <td style={{ ...tdStyle, fontWeight: 800, color: "#15803d" }}>{fmt(monthlyData.reduce((s, m) => s + m.net, 0))}</td>
-                      <td style={{ ...tdStyle, fontWeight: 700, color: "#0c4a6e" }}>{((monthlyData.reduce((s, m) => s + m.net, 0) / Math.max(1, monthlyData.reduce((s, m) => s + m.income, 0))) * 100).toFixed(0)}% avg</td>
+                      <td style={{ ...tdStyle, fontWeight: 800, color: "var(--c-green)" }}>+{fmt(monthlyData.reduce((s, m) => s + m.income, 0))}</td>
+                      <td style={{ ...tdStyle, fontWeight: 800, color: "var(--c-red)" }}>-{fmt(monthlyData.reduce((s, m) => s + m.expenses, 0))}</td>
+                      <td style={{ ...tdStyle, fontWeight: 800, color: "var(--c-green)" }}>{fmt(monthlyData.reduce((s, m) => s + m.net, 0))}</td>
+                      <td style={{ ...tdStyle, fontWeight: 700, color: "var(--text-primary)" }}>{((monthlyData.reduce((s, m) => s + m.net, 0) / Math.max(1, monthlyData.reduce((s, m) => s + m.income, 0))) * 100).toFixed(0)}% avg</td>
                     </tr>
                   </tfoot>
                 </table>
@@ -6116,7 +6114,7 @@ function Reports() {
                   })}
                 </tbody>
                 <tfoot>
-                  <tr style={{ background: "var(--info-tint-alt)", borderTop: "2px solid #bae6fd" }}>
+                  <tr style={{ background: "var(--info-tint-alt)", borderTop: "2px solid var(--info-border-alt)" }}>
                     <td style={{ ...tdStyle, fontWeight: 800, color: "#0c4a6e" }}>Portfolio Total</td>
                     <td style={{ ...tdStyle, fontWeight: 800, color: "#15803d" }}>{fmt(lenderData.reduce((s, d) => s + d.noi, 0))}</td>
                     <td style={{ ...tdStyle, fontWeight: 700 }}>{fmt(lenderData.reduce((s, d) => s + d.p.currentValue, 0))}</td>
@@ -6206,7 +6204,7 @@ function Reports() {
                   ))}
                 </tbody>
                 <tfoot>
-                  <tr style={{ background: "var(--info-tint-alt)", borderTop: "2px solid #bae6fd" }}>
+                  <tr style={{ background: "var(--info-tint-alt)", borderTop: "2px solid var(--info-border-alt)" }}>
                     <td colSpan={6} style={{ ...tdStyle, fontWeight: 800, color: "#0c4a6e" }}>Portfolio Total</td>
                     <td style={{ ...tdStyle, fontWeight: 800, color: "#b91c1c" }}>-{fmt(deprRows.reduce((s, r) => s + r.annual, 0))}</td>
                     <td style={tdStyle} />
@@ -6529,7 +6527,7 @@ function Reports() {
                   </tbody>
                   {sorted.length > 0 && (
                     <tfoot>
-                      <tr style={{ background: "var(--info-tint-alt)", borderTop: "2px solid #bae6fd" }}>
+                      <tr style={{ background: "var(--info-tint-alt)", borderTop: "2px solid var(--info-border-alt)" }}>
                         <td colSpan={5} style={{ ...tdStyle, fontWeight: 800, color: "#0c4a6e" }}>
                           {sorted.length > 200 ? `Showing 200 of ${sorted.length}` : `${sorted.length} transaction${sorted.length !== 1 ? "s" : ""}`}
                         </td>
@@ -7450,7 +7448,7 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
               </div>
             ))}
             {deal.daysOwned > 0 && (
-              <div style={{ marginTop: 8, background: "var(--info-tint)", borderRadius: 8, padding: "8px 12px", fontSize: 12, color: "#1d4ed8", fontWeight: 600 }}>
+              <div style={{ marginTop: 8, background: "var(--info-tint)", borderRadius: 8, padding: "8px 12px", fontSize: 12, color: "var(--c-blue)", fontWeight: 600 }}>
                 <Clock size={12} style={{ display: "inline", marginRight: 4 }} />
                 Day {deal.daysOwned} . Est. {Math.round(deal.holdingCostsPerMonth / 30)}/day in holding costs
               </div>
@@ -8376,7 +8374,7 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
                     updated[i] = { ...updated[i], targetDate: d.toISOString().split("T")[0] };
                   });
                   setMilestones(updated);
-                }} style={{ background: "var(--info-tint)", color: "var(--c-blue)", border: "1px solid #bfdbfe", borderRadius: 10, padding: "10px 16px", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
+                }} style={{ background: "var(--info-tint)", color: "var(--c-blue)", border: "1px solid var(--info-border)", borderRadius: 10, padding: "10px 16px", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
                   <Calendar size={15} /> Auto-Fill Dates
                 </button>
               )}
@@ -8646,9 +8644,9 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
                 </div>
               </button>
               {onConvertToRental && (
-                <button onClick={() => setCloseDealStep("convert")} style={{ display: "flex", alignItems: "center", gap: 14, padding: 18, background: "var(--info-tint-alt)", border: "2px solid #bae6fd", borderRadius: 14, cursor: "pointer", textAlign: "left", transition: "border-color 0.15s" }} onMouseEnter={e => e.currentTarget.style.borderColor = "#0ea5e9"} onMouseLeave={e => e.currentTarget.style.borderColor = "var(--info-border-alt)"}>
+                <button onClick={() => setCloseDealStep("convert")} style={{ display: "flex", alignItems: "center", gap: 14, padding: 18, background: "var(--info-tint-alt)", border: "2px solid var(--info-border-alt)", borderRadius: 14, cursor: "pointer", textAlign: "left", transition: "border-color 0.15s" }} onMouseEnter={e => e.currentTarget.style.borderColor = "var(--c-blue)"} onMouseLeave={e => e.currentTarget.style.borderColor = "var(--info-border-alt)"}>
                   <div style={{ width: 44, height: 44, borderRadius: 12, background: "#e0f2fe", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                    <Home size={22} color="#0369a1" />
+                    <Home size={22} color="var(--c-blue)" />
                   </div>
                   <div>
                     <p style={{ fontSize: 15, fontWeight: 700, color: "var(--text-primary)", marginBottom: 3 }}>Convert to Rental</p>
@@ -8805,7 +8803,7 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
                 if (onDealUpdated) onDealUpdated();
                 showToast("Converting to rental — review the property details");
                 setShowCloseDeal(false);
-              }} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "#0369a1", color: "#fff", fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+              }} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "#1e3a5f", color: "#fff", fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
                 <Home size={14} /> Convert to Rental
               </button>
             </div>
@@ -9653,29 +9651,29 @@ function RehabItemDetail({ deal, itemIdx, onBack, backLabel, onNavigateToContrac
 
       {/* Stat cards */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 20 }}>
-        <div style={{ ...cardS, textAlign: "center" }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, marginBottom: 8 }}>
+        <div style={cardS}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
             <p style={{ fontSize: 11, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em" }}>Budget</p>
             <InfoTip text="The amount budgeted for this rehab scope. Edit via the Edit button." />
           </div>
           <p style={{ fontSize: 22, fontWeight: 700, color: "var(--text-primary)", fontFamily: "var(--font-display)" }}>{fmt(item.budgeted || 0)}</p>
         </div>
-        <div style={{ ...cardS, textAlign: "center" }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, marginBottom: 8 }}>
+        <div style={cardS}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
             <p style={{ fontSize: 11, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em" }}>Spent</p>
             <InfoTip text="Total spent on this scope. Updated manually or from linked expenses." />
           </div>
           <p style={{ fontSize: 22, fontWeight: 700, color: "var(--text-primary)", fontFamily: "var(--font-display)" }}>{fmt(item.spent || 0)}</p>
         </div>
-        <div style={{ ...cardS, textAlign: "center" }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, marginBottom: 8 }}>
+        <div style={cardS}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
             <p style={{ fontSize: 11, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em" }}>{over ? "Over Budget" : "Remaining"}</p>
             <InfoTip text="Budget minus Spent. Negative means over budget." />
           </div>
           <p style={{ fontSize: 22, fontWeight: 700, color: over ? "var(--c-red)" : "var(--c-green)", fontFamily: "var(--font-display)" }}>{over ? `-${fmt(Math.abs(remaining))}` : fmt(remaining)}</p>
         </div>
-        <div style={{ ...cardS, textAlign: "center" }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, marginBottom: 8 }}>
+        <div style={cardS}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
             <p style={{ fontSize: 11, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em" }}>Contractors</p>
             <InfoTip text="Number of contractors assigned to this scope." />
           </div>
@@ -10328,7 +10326,7 @@ function TenantDetail({ tenant, onBack, backLabel, onTenantUpdated, onSelectTena
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {requests.sort((a, b) => b.createdAt.localeCompare(a.createdAt)).map(r => {
               const prioStyle = { high: { bg: "var(--danger-badge)", text: "#b91c1c" }, medium: { bg: "var(--warning-bg)", text: "#9a3412" }, low: { bg: "var(--surface-muted)", text: "var(--text-secondary)" } };
-              const statusStyle = { open: { bg: "var(--danger-badge)", text: "#b91c1c" }, scheduled: { bg: "var(--info-tint)", text: "#1d4ed8" }, resolved: { bg: "var(--success-badge)", text: "#15803d" } };
+              const statusStyle = { open: { bg: "var(--danger-badge)", text: "var(--c-red)" }, scheduled: { bg: "var(--info-tint)", text: "var(--c-blue)" }, resolved: { bg: "var(--success-badge)", text: "var(--c-green)" } };
               const ps = prioStyle[r.priority] || prioStyle.medium;
               const ss = statusStyle[r.status] || statusStyle.open;
               return (
@@ -11465,7 +11463,7 @@ function UnifiedNotes({ highlightNoteId, highlightDealNoteId, onBack, onClearHig
                       )}
                       <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>{n.entityName}</span>
                       {n.tenantName && (
-                        <span style={{ fontSize: 10, fontWeight: 600, background: "var(--info-tint)", color: "#1d4ed8", padding: "2px 7px", borderRadius: 5 }}>{n.tenantName}</span>
+                        <span style={{ fontSize: 10, fontWeight: 600, background: "var(--info-tint)", color: "var(--c-blue)", padding: "2px 7px", borderRadius: 5 }}>{n.tenantName}</span>
                       )}
                       {n.rehabScope && (
                         <span style={{ fontSize: 10, fontWeight: 600, background: "var(--warning-btn-bg)", color: "#c2410c", padding: "2px 7px", borderRadius: 5, display: "inline-flex", alignItems: "center", gap: 3 }}>
