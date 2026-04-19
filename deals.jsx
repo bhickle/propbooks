@@ -138,16 +138,18 @@ function StatCard({ icon: Icon, label, value, sub, color = "var(--c-blue)", sema
   const iconColor = semantic ? color : "#e95e00";
   return (
     <div style={{ background: "var(--surface)", borderRadius: 16, padding: "20px 22px", boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)" }}>
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center" }}>
-        <div style={{ background: iconBg, borderRadius: 12, padding: 10, marginBottom: 12 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+        <div>
+          <div style={{ display: "flex", alignItems: "center" }}>
+            <p style={{ color: "var(--text-muted)", fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 6 }}>{label}</p>
+            {tip && <InfoTip text={tip} />}
+          </div>
+          <p style={{ color: "var(--text-primary)", fontSize: 26, fontWeight: 800, lineHeight: 1, fontFamily: "var(--font-display)" }}>{value}</p>
+          {sub && <p style={{ color: "var(--text-secondary)", fontSize: 12, marginTop: 4 }}>{sub}</p>}
+        </div>
+        <div style={{ background: iconBg, borderRadius: 12, padding: 10 }}>
           <Icon size={20} color={iconColor} />
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 6 }}>
-          <p style={{ color: "var(--text-muted)", fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.04em" }}>{label}</p>
-          {tip && <InfoTip text={tip} />}
-        </div>
-        <p style={{ color: "var(--text-primary)", fontSize: 26, fontWeight: 800, lineHeight: 1, fontFamily: "var(--font-display)" }}>{value}</p>
-        {sub && <p style={{ color: "var(--text-secondary)", fontSize: 12, marginTop: 4 }}>{sub}</p>}
       </div>
       {trendVal && (
         <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 14, paddingTop: 14, borderTop: "1px solid var(--border-subtle)" }}>
@@ -2686,9 +2688,9 @@ export function DealAnalytics() {
           { label: "Total Realized", value: fmt(totalProfit), color: "var(--c-purple)", sub: "Closed deals", tip: "Sum of net profit from all sold deals. Net Profit = Sale Price \u2212 Purchase Price \u2212 Rehab Spent \u2212 Holding Costs \u2212 Selling Costs." },
           { label: "Deals Analyzed", value: deals.length, color: "#e95e00", sub: `${sold.length} closed`, tip: "Total number of deals in your pipeline. Includes active, listed, under contract, and sold properties." },
         ].map((m, i) => (
-          <div key={i} style={cardS}>
-            <p style={{ color: "var(--text-muted)", fontSize: 12, fontWeight: 600, textTransform: "uppercase", marginBottom: 6, display: "flex", alignItems: "center" }}>{m.label}<InfoTip text={m.tip} /></p>
-            <p style={{ color: m.color, fontSize: 22, fontWeight: 800 }}>{m.value}</p>
+          <div key={i} style={{ ...cardS, textAlign: "center" }}>
+            <p style={{ color: "var(--text-muted)", fontSize: 12, fontWeight: 600, textTransform: "uppercase", marginBottom: 6, display: "flex", alignItems: "center", justifyContent: "center" }}>{m.label}<InfoTip text={m.tip} /></p>
+            <p style={{ color: "var(--text-primary)", fontSize: 22, fontWeight: 800, fontFamily: "var(--font-display)" }}>{m.value}</p>
             <p style={{ color: "var(--text-muted)", fontSize: 11, marginTop: 6 }}>{m.sub}</p>
           </div>
         ))}

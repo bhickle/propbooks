@@ -862,16 +862,18 @@ function StatCard({ icon: Icon, label, value, sub, trend, trendVal, color = "var
   const iconColor = semantic ? color : "#e95e00";
   return (
     <div style={{ background: "var(--surface)", borderRadius: 16, padding: "24px", boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)", border: "1px solid var(--border-subtle)" }}>
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center" }}>
-        <div style={{ background: iconBg, borderRadius: 12, padding: 12, marginBottom: 12 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+        <div>
+          <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 8 }}>
+            <p style={{ color: "var(--text-muted)", fontSize: 13, fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.05em" }}>{label}</p>
+            {tip && <InfoTip text={tip} />}
+          </div>
+          <p style={{ color: "var(--text-primary)", fontSize: 28, fontWeight: 700, lineHeight: 1, fontFamily: "var(--font-display)" }}>{value}</p>
+          {sub && <p style={{ color: "var(--text-secondary)", fontSize: 13, marginTop: 6 }}>{sub}</p>}
+        </div>
+        <div style={{ background: iconBg, borderRadius: 12, padding: 12 }}>
           <Icon size={22} color={iconColor} />
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 6 }}>
-          <p style={{ color: "var(--text-muted)", fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>{label}</p>
-          {tip && <InfoTip text={tip} />}
-        </div>
-        <p style={{ color: "var(--text-primary)", fontSize: 28, fontWeight: 700, lineHeight: 1, fontFamily: "var(--font-display)" }}>{value}</p>
-        {sub && <p style={{ color: "var(--text-secondary)", fontSize: 13, marginTop: 6 }}>{sub}</p>}
       </div>
       {trendVal && (
         <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 16, paddingTop: 16, borderTop: "1px solid var(--border-subtle)" }}>
@@ -4850,8 +4852,8 @@ function Analytics() {
               { label: "Portfolio Cap Rate", value: `${avgCapRate}%`, color: "var(--c-blue)", yoy: yoyCapRate, tip: "Average Cap Rate across all properties. Cap Rate = Annual NOI \u00f7 Current Property Value." },
               { label: "Avg Cash-on-Cash", value: `${avgCoC}%`, color: "var(--c-purple)", yoy: yoyCoC, tip: "Average Cash-on-Cash return. CoC = (Annual NOI \u2212 Annual Debt Service) \u00f7 (Down Payment + Closing Costs). Down payment derived from Purchase Price \u2212 Loan Amount." },
             ].map((m, i) => (
-              <div key={i} style={cardS}>
-                <p style={{ color: "var(--text-muted)", fontSize: 12, fontWeight: 600, textTransform: "uppercase", marginBottom: 6, display: "flex", alignItems: "center" }}>{m.label}<InfoTip text={m.tip} /></p>
+              <div key={i} style={{ ...cardS, textAlign: "center" }}>
+                <p style={{ color: "var(--text-muted)", fontSize: 12, fontWeight: 600, textTransform: "uppercase", marginBottom: 6, display: "flex", alignItems: "center", justifyContent: "center" }}>{m.label}<InfoTip text={m.tip} /></p>
                 <p style={{ color: "var(--text-primary)", fontSize: 22, fontWeight: 800, fontFamily: "var(--font-display)" }}>{m.value}</p>
                 <YoY val={m.yoy} />
               </div>
@@ -4864,8 +4866,8 @@ function Analytics() {
               { label: "Occupancy Rate", value: `${occupancyRate}%`, desc: `${totalUnits - vacantUnits} / ${totalUnits} units occupied`, tip: "Occupied Units \u00f7 Total Units \u00d7 100. Based on current tenant records." },
               { label: "DSCR", value: portfolioDSCR, desc: parseFloat(portfolioDSCR) >= 1.25 ? "Healthy coverage" : parseFloat(portfolioDSCR) >= 1.0 ? "Adequate" : "Below target", tip: "Debt Service Coverage Ratio = Annual NOI \u00f7 Annual Mortgage Payments. Above 1.25 is healthy; below 1.0 means income doesn\u2019t cover debt." },
             ].map((m, i) => (
-              <div key={i} style={cardS}>
-                <p style={{ color: "var(--text-muted)", fontSize: 12, fontWeight: 600, textTransform: "uppercase", marginBottom: 6, display: "flex", alignItems: "center" }}>{m.label}<InfoTip text={m.tip} /></p>
+              <div key={i} style={{ ...cardS, textAlign: "center" }}>
+                <p style={{ color: "var(--text-muted)", fontSize: 12, fontWeight: 600, textTransform: "uppercase", marginBottom: 6, display: "flex", alignItems: "center", justifyContent: "center" }}>{m.label}<InfoTip text={m.tip} /></p>
                 <p style={{ color: "var(--text-primary)", fontSize: 22, fontWeight: 800, fontFamily: "var(--font-display)" }}>{m.value}</p>
                 {m.yoy !== undefined ? <YoY val={m.yoy} /> : <p style={{ color: "var(--text-muted)", fontSize: 11, marginTop: 6 }}>{m.desc}</p>}
               </div>
@@ -5055,9 +5057,9 @@ function Analytics() {
                   };
                 })(),
               ].map((m, i) => (
-                <div key={i} style={{ background: "var(--surface-alt)", borderRadius: 14, padding: "18px 16px", border: "1px solid var(--border-subtle)" }}>
-                  <p style={{ color: "var(--text-muted)", fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6, display: "flex", alignItems: "center" }}>{m.label}<InfoTip text={m.tip} /></p>
-                  <p style={{ color: m.color, fontSize: 26, fontWeight: 800, marginBottom: 4 }}>{m.value}</p>
+                <div key={i} style={{ background: "var(--surface-alt)", borderRadius: 14, padding: "18px 16px", border: "1px solid var(--border-subtle)", textAlign: "center" }}>
+                  <p style={{ color: "var(--text-muted)", fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6, display: "flex", alignItems: "center", justifyContent: "center" }}>{m.label}<InfoTip text={m.tip} /></p>
+                  <p style={{ color: "var(--text-primary)", fontSize: 26, fontWeight: 800, marginBottom: 4, fontFamily: "var(--font-display)" }}>{m.value}</p>
                   <p style={{ color: "var(--text-muted)", fontSize: 11 }}>{m.sub}</p>
                 </div>
               ))}
@@ -5085,9 +5087,9 @@ function Analytics() {
                   tip: "Occupied Units \u00f7 Total Units \u00d7 100. Based on current tenant lease status records.",
                 },
               ].map((m, i) => (
-                <div key={i} style={{ background: "var(--surface-alt)", borderRadius: 14, padding: "18px 16px", border: "1px solid var(--border-subtle)" }}>
-                  <p style={{ color: "var(--text-muted)", fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6, display: "flex", alignItems: "center" }}>{m.label}<InfoTip text={m.tip} /></p>
-                  <p style={{ color: m.color, fontSize: 26, fontWeight: 800, marginBottom: 4 }}>{m.value}</p>
+                <div key={i} style={{ background: "var(--surface-alt)", borderRadius: 14, padding: "18px 16px", border: "1px solid var(--border-subtle)", textAlign: "center" }}>
+                  <p style={{ color: "var(--text-muted)", fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6, display: "flex", alignItems: "center", justifyContent: "center" }}>{m.label}<InfoTip text={m.tip} /></p>
+                  <p style={{ color: "var(--text-primary)", fontSize: 26, fontWeight: 800, marginBottom: 4, fontFamily: "var(--font-display)" }}>{m.value}</p>
                   <p style={{ color: "var(--text-muted)", fontSize: 11 }}>{m.sub}</p>
                 </div>
               ))}
@@ -9651,33 +9653,33 @@ function RehabItemDetail({ deal, itemIdx, onBack, backLabel, onNavigateToContrac
 
       {/* Stat cards */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 20 }}>
-        <div style={cardS}>
-          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
+        <div style={{ ...cardS, textAlign: "center" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, marginBottom: 8 }}>
             <p style={{ fontSize: 11, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em" }}>Budget</p>
             <InfoTip text="The amount budgeted for this rehab scope. Edit via the Edit button." />
           </div>
-          <p style={{ fontSize: 22, fontWeight: 700, color: "var(--text-primary)" }}>{fmt(item.budgeted || 0)}</p>
+          <p style={{ fontSize: 22, fontWeight: 700, color: "var(--text-primary)", fontFamily: "var(--font-display)" }}>{fmt(item.budgeted || 0)}</p>
         </div>
-        <div style={cardS}>
-          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
+        <div style={{ ...cardS, textAlign: "center" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, marginBottom: 8 }}>
             <p style={{ fontSize: 11, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em" }}>Spent</p>
             <InfoTip text="Total spent on this scope. Updated manually or from linked expenses." />
           </div>
-          <p style={{ fontSize: 22, fontWeight: 700, color: "#e95e00" }}>{fmt(item.spent || 0)}</p>
+          <p style={{ fontSize: 22, fontWeight: 700, color: "var(--text-primary)", fontFamily: "var(--font-display)" }}>{fmt(item.spent || 0)}</p>
         </div>
-        <div style={cardS}>
-          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
+        <div style={{ ...cardS, textAlign: "center" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, marginBottom: 8 }}>
             <p style={{ fontSize: 11, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em" }}>{over ? "Over Budget" : "Remaining"}</p>
             <InfoTip text="Budget minus Spent. Negative means over budget." />
           </div>
-          <p style={{ fontSize: 22, fontWeight: 700, color: over ? "#b91c1c" : "#15803d" }}>{over ? `-${fmt(Math.abs(remaining))}` : fmt(remaining)}</p>
+          <p style={{ fontSize: 22, fontWeight: 700, color: over ? "var(--c-red)" : "var(--c-green)", fontFamily: "var(--font-display)" }}>{over ? `-${fmt(Math.abs(remaining))}` : fmt(remaining)}</p>
         </div>
-        <div style={cardS}>
-          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
+        <div style={{ ...cardS, textAlign: "center" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, marginBottom: 8 }}>
             <p style={{ fontSize: 11, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em" }}>Contractors</p>
             <InfoTip text="Number of contractors assigned to this scope." />
           </div>
-          <p style={{ fontSize: 22, fontWeight: 700, color: "var(--c-blue)" }}>{assigned.length}</p>
+          <p style={{ fontSize: 22, fontWeight: 700, color: "var(--text-primary)", fontFamily: "var(--font-display)" }}>{assigned.length}</p>
         </div>
       </div>
 
