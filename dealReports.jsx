@@ -160,7 +160,7 @@ export function DealReports() {
 // ═══════════════════════════════════════════════════════════════════════════════
 function ProfitabilityReport({ deals }) {
   const sorted = [...deals].sort((a, b) => b.m.profit - a.m.profit);
-  const chartData = sorted.map(d => ({ name: d.name.split(" ").slice(0, 2).join(" "), profit: d.m.profit, invested: d.m.totalInvested }));
+  const chartData = sorted.map(d => ({ name: d.image || d.name.split(" ").map(w => w[0]).join("").slice(0, 3), fullName: d.name, profit: d.m.profit, invested: d.m.totalInvested }));
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
@@ -184,7 +184,7 @@ function ProfitabilityReport({ deals }) {
                   <tr key={d.id}>
                     <td style={{ ...tdS, fontWeight: 600 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <span style={{ width: 8, height: 8, borderRadius: "50%", background: d.color, flexShrink: 0 }} />
+                        <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#1e3a5f", flexShrink: 0 }} />
                         {d.name}
                       </div>
                     </td>
@@ -231,7 +231,7 @@ function ProfitabilityReport({ deals }) {
               <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
               <XAxis dataKey="name" tick={{ fontSize: 12, fill: "var(--chart-axis)" }} />
               <YAxis tickFormatter={v => fmtK(v)} tick={{ fontSize: 12, fill: "var(--chart-axis)" }} />
-              <Tooltip formatter={v => fmt(v)} cursor={{ fill: "transparent" }} contentStyle={{ borderRadius: 10, border: "1px solid var(--tooltip-border)", fontSize: 12, background: "var(--tooltip-bg)", color: "var(--tooltip-text)" }} />
+              <Tooltip formatter={v => fmt(v)} labelFormatter={(label, payload) => payload?.[0]?.payload?.fullName || label} cursor={{ fill: "transparent" }} contentStyle={{ borderRadius: 10, border: "1px solid var(--tooltip-border)", fontSize: 12, background: "var(--tooltip-bg)", color: "var(--tooltip-text)" }} itemStyle={{ color: "var(--tooltip-text)" }} />
               <Bar dataKey="profit" name="Profit" radius={[6, 6, 0, 0]}>
                 {chartData.map((d, i) => <Cell key={i} fill={d.profit >= 0 ? "#10b981" : "#ef4444"} />)}
               </Bar>
@@ -265,7 +265,7 @@ function RehabBudgetReport({ deals }) {
           <div key={d.id} style={sectionS}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <span style={{ width: 10, height: 10, borderRadius: "50%", background: d.color }} />
+                <span style={{ width: 10, height: 10, borderRadius: "50%", background: "#1e3a5f" }} />
                 <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--text-primary)" }}>{d.name}</h3>
                 <span style={{ background: STAGE_COLORS[d.stage]?.bg || "var(--surface-muted)", color: STAGE_COLORS[d.stage]?.text || "var(--text-secondary)", borderRadius: 20, padding: "2px 10px", fontSize: 11, fontWeight: 600, whiteSpace: "nowrap" }}>{d.stage}</span>
               </div>
@@ -319,8 +319,8 @@ function RehabBudgetReport({ deals }) {
                   <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
                   <XAxis dataKey="name" tick={{ fontSize: 11, fill: "var(--chart-axis)" }} />
                   <YAxis tickFormatter={v => fmtK(v)} tick={{ fontSize: 11, fill: "var(--chart-axis)" }} />
-                  <Tooltip formatter={v => fmt(v)} cursor={{ fill: "transparent" }} contentStyle={{ borderRadius: 10, border: "1px solid var(--tooltip-border)", fontSize: 12, background: "var(--tooltip-bg)", color: "var(--tooltip-text)" }} />
-                  <Bar dataKey="budgeted" name="Budgeted" fill="#1e3a5f" radius={[6, 6, 0, 0]} />
+                  <Tooltip formatter={v => fmt(v)} cursor={{ fill: "transparent" }} contentStyle={{ borderRadius: 10, border: "1px solid var(--tooltip-border)", fontSize: 12, background: "var(--tooltip-bg)", color: "var(--tooltip-text)" }} itemStyle={{ color: "var(--tooltip-text)" }} />
+                  <Bar dataKey="budgeted" name="Budgeted" fill="var(--chart-bar-primary)" radius={[6, 6, 0, 0]} />
                   <Bar dataKey="spent" name="Spent" fill="#e95e00" radius={[6, 6, 0, 0]} />
                   <Legend wrapperStyle={{ fontSize: 12 }} />
                 </BarChart>
@@ -339,7 +339,7 @@ function RehabBudgetReport({ deals }) {
 // ═══════════════════════════════════════════════════════════════════════════════
 function HoldingCostsReport({ deals }) {
   const sorted = [...deals].sort((a, b) => b.m.totalHolding - a.m.totalHolding);
-  const chartData = sorted.map(d => ({ name: d.name.split(" ").slice(0, 2).join(" "), holding: d.m.totalHolding, daily: d.m.holdPerMonth > 0 ? Math.round(d.m.holdPerMonth / 30) : 0 }));
+  const chartData = sorted.map(d => ({ name: d.image || d.name.split(" ").map(w => w[0]).join("").slice(0, 3), fullName: d.name, holding: d.m.totalHolding, daily: d.m.holdPerMonth > 0 ? Math.round(d.m.holdPerMonth / 30) : 0 }));
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
@@ -365,7 +365,7 @@ function HoldingCostsReport({ deals }) {
                 <tr key={d.id}>
                   <td style={{ ...tdS, fontWeight: 600 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <span style={{ width: 8, height: 8, borderRadius: "50%", background: d.color, flexShrink: 0 }} />
+                      <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#1e3a5f", flexShrink: 0 }} />
                       {d.name}
                     </div>
                   </td>
@@ -392,8 +392,8 @@ function HoldingCostsReport({ deals }) {
               <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
               <XAxis dataKey="name" tick={{ fontSize: 12, fill: "var(--chart-axis)" }} />
               <YAxis tickFormatter={v => fmtK(v)} tick={{ fontSize: 12, fill: "var(--chart-axis)" }} />
-              <Tooltip formatter={v => fmt(v)} cursor={{ fill: "transparent" }} contentStyle={{ borderRadius: 10, border: "1px solid var(--tooltip-border)", fontSize: 12, background: "var(--tooltip-bg)", color: "var(--tooltip-text)" }} />
-              <Bar dataKey="holding" name="Total Holding" fill="#1e3a5f" radius={[6, 6, 0, 0]} />
+              <Tooltip formatter={v => fmt(v)} labelFormatter={(label, payload) => payload?.[0]?.payload?.fullName || label} cursor={{ fill: "transparent" }} contentStyle={{ borderRadius: 10, border: "1px solid var(--tooltip-border)", fontSize: 12, background: "var(--tooltip-bg)", color: "var(--tooltip-text)" }} itemStyle={{ color: "var(--tooltip-text)" }} />
+              <Bar dataKey="holding" name="Total Holding" fill="var(--chart-bar-primary)" radius={[6, 6, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -528,7 +528,7 @@ function ContractorPaymentsReport({ dealFilter }) {
                 labelLine={{ stroke: "var(--text-muted)", strokeWidth: 1 }}>
                 {pieData.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
               </Pie>
-              <Tooltip formatter={v => fmt(v)} cursor={{ fill: "transparent" }} contentStyle={{ borderRadius: 10, border: "1px solid var(--tooltip-border)", fontSize: 12, background: "var(--tooltip-bg)", color: "var(--tooltip-text)" }} />
+              <Tooltip formatter={v => fmt(v)} cursor={{ fill: "transparent" }} contentStyle={{ borderRadius: 10, border: "1px solid var(--tooltip-border)", fontSize: 12, background: "var(--tooltip-bg)", color: "var(--tooltip-text)" }} itemStyle={{ color: "var(--tooltip-text)" }} />
               <Legend wrapperStyle={{ fontSize: 12, paddingTop: 12 }} />
             </PieChart>
           </ResponsiveContainer>
@@ -670,7 +670,7 @@ function CashFlowReport({ deals }) {
             <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
             <XAxis dataKey="month" tick={{ fontSize: 12, fill: "var(--chart-axis)" }} />
             <YAxis tickFormatter={v => fmtK(v)} tick={{ fontSize: 12, fill: "var(--chart-axis)" }} />
-            <Tooltip formatter={v => fmt(v)} cursor={{ fill: "transparent" }} contentStyle={{ borderRadius: 10, border: "1px solid var(--tooltip-border)", fontSize: 12, background: "var(--tooltip-bg)", color: "var(--tooltip-text)" }} />
+            <Tooltip formatter={v => fmt(v)} cursor={{ fill: "transparent" }} contentStyle={{ borderRadius: 10, border: "1px solid var(--tooltip-border)", fontSize: 12, background: "var(--tooltip-bg)", color: "var(--tooltip-text)" }} itemStyle={{ color: "var(--tooltip-text)" }} />
             <Bar dataKey="sales" name="Sales" fill="#10b981" radius={[6, 6, 0, 0]} />
             <Bar dataKey="totalOut" name="Cash Out" fill="#ef4444" radius={[6, 6, 0, 0]} />
             <Legend wrapperStyle={{ fontSize: 12 }} />
@@ -801,7 +801,7 @@ function PipelineReport({ deals }) {
                   labelLine={{ stroke: "var(--text-muted)", strokeWidth: 1 }}>
                   {pieData.map((d, i) => <Cell key={i} fill={PIE_COLORS[d.name] || "#64748b"} />)}
                 </Pie>
-                <Tooltip formatter={v => fmt(v)} cursor={{ fill: "transparent" }} contentStyle={{ borderRadius: 10, border: "1px solid var(--tooltip-border)", fontSize: 12, background: "var(--tooltip-bg)", color: "var(--tooltip-text)" }} />
+                <Tooltip formatter={v => fmt(v)} cursor={{ fill: "transparent" }} contentStyle={{ borderRadius: 10, border: "1px solid var(--tooltip-border)", fontSize: 12, background: "var(--tooltip-bg)", color: "var(--tooltip-text)" }} itemStyle={{ color: "var(--tooltip-text)" }} />
                 <Legend wrapperStyle={{ fontSize: 12, paddingTop: 8 }} />
               </PieChart>
             </ResponsiveContainer>
@@ -829,7 +829,7 @@ function PipelineReport({ deals }) {
                 <tr key={d.id}>
                   <td style={{ ...tdS, fontWeight: 600 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <span style={{ width: 8, height: 8, borderRadius: "50%", background: d.color, flexShrink: 0 }} />
+                      <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#1e3a5f", flexShrink: 0 }} />
                       {d.name}
                     </div>
                   </td>

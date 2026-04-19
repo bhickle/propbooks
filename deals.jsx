@@ -414,8 +414,8 @@ export function DealDashboard({ onSelect, onNavigateToNote, onNavigateToExpense,
             <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
             <XAxis dataKey="name" tick={{ fontSize: 12, fill: "var(--chart-axis)" }} axisLine={false} tickLine={false} />
             <YAxis tick={{ fontSize: 12, fill: "var(--chart-axis)" }} axisLine={false} tickLine={false} tickFormatter={v => `$${(v/1000).toFixed(0)}K`} />
-            <Tooltip formatter={v => fmt(v)} cursor={{ fill: "transparent" }} contentStyle={{ borderRadius: 10, border: "1px solid var(--border)", fontSize: 12, background: "var(--tooltip-bg)", color: "var(--tooltip-text)" }} />
-            <Bar dataKey="budget" fill="#1e3a5f" radius={[6, 6, 0, 0]} name="Budgeted" />
+            <Tooltip formatter={v => fmt(v)} cursor={{ fill: "transparent" }} contentStyle={{ borderRadius: 10, border: "1px solid var(--border)", fontSize: 12, background: "var(--tooltip-bg)", color: "var(--tooltip-text)" }} itemStyle={{ color: "var(--tooltip-text)" }} />
+            <Bar dataKey="budget" fill="var(--chart-bar-primary)" radius={[6, 6, 0, 0]} name="Budgeted" />
             <Bar dataKey="spent"  fill="#e95e00" radius={[6, 6, 0, 0]} name="Spent" />
           </BarChart>
         </ResponsiveContainer>
@@ -1721,7 +1721,7 @@ export function DealContractors({ onSelectContractor }) {
                 <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 10 }}>
                   {deals.map(fl => (
                     <span key={fl.id} style={{ display: "flex", alignItems: "center", gap: 4, background: "var(--surface-alt)", border: "1px solid var(--border-subtle)", borderRadius: 20, padding: "2px 8px", fontSize: 11, color: "var(--text-secondary)" }}>
-                      <span style={{ width: 6, height: 6, borderRadius: "50%", background: fl.color }} />{fl.name}
+                      <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#1e3a5f" }} />{fl.name}
                     </span>
                   ))}
                 </div>
@@ -1983,7 +1983,7 @@ export function ContractorDetail({ contractor, onBack, initialTab }) {
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
               {deals.map(fl => (
                 <span key={fl.id} style={{ display: "flex", alignItems: "center", gap: 4, background: "var(--surface-alt)", border: "1px solid var(--border-subtle)", borderRadius: 20, padding: "3px 10px", fontSize: 11, color: "var(--text-secondary)" }}>
-                  <span style={{ width: 6, height: 6, borderRadius: "50%", background: fl.color }} />{fl.name}
+                  <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#1e3a5f" }} />{fl.name}
                 </span>
               ))}
             </div>
@@ -2071,7 +2071,7 @@ export function ContractorDetail({ contractor, onBack, initialTab }) {
               return (
                 <div key={b.id} style={{ display: "flex", alignItems: "center", padding: "14px 20px", borderBottom: i < bids.length - 1 ? "1px solid var(--border-subtle)" : "none", gap: 12 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, flex: 1, minWidth: 0 }}>
-                    {fl && <span style={{ width: 8, height: 8, borderRadius: "50%", background: fl.color, flexShrink: 0 }} />}
+                    {fl && <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#1e3a5f", flexShrink: 0 }} />}
                     <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>{b.rehabItem}</span>
                     {fl && <span style={{ fontSize: 12, color: "var(--text-muted)" }}>· {fl.name}</span>}
                   </div>
@@ -2116,7 +2116,7 @@ export function ContractorDetail({ contractor, onBack, initialTab }) {
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
                     <span style={{ background: `${typeColor}15`, color: typeColor, borderRadius: 20, padding: "2px 8px", fontSize: 10, fontWeight: 600 }}>{DOC_TYPES[d.type] || d.type}</span>
-                    {fl && <span style={{ display: "flex", alignItems: "center", gap: 3, fontSize: 11, color: "var(--text-muted)" }}><span style={{ width: 5, height: 5, borderRadius: "50%", background: fl.color }} />{fl.name}</span>}
+                    {fl && <span style={{ display: "flex", alignItems: "center", gap: 3, fontSize: 11, color: "var(--text-muted)" }}><span style={{ width: 5, height: 5, borderRadius: "50%", background: "#1e3a5f" }} />{fl.name}</span>}
                     <span style={{ fontSize: 11, color: "var(--text-muted)" }}>{d.date}</span>
                     {d.size && <span style={{ fontSize: 11, color: "var(--text-muted)" }}>{d.size}</span>}
                   </div>
@@ -2145,7 +2145,7 @@ export function ContractorDetail({ contractor, onBack, initialTab }) {
                 <div key={fl.id} style={{ background: "var(--surface)", borderRadius: 14, padding: 20, border: "1px solid var(--border-subtle)" }}>
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                      <span style={{ width: 10, height: 10, borderRadius: "50%", background: fl.color }} />
+                      <span style={{ width: 10, height: 10, borderRadius: "50%", background: "#1e3a5f" }} />
                       <span style={{ fontSize: 15, fontWeight: 700, color: "var(--text-primary)" }}>{fl.name}</span>
                       <span style={{ background: stageStyle.bg, color: stageStyle.text, borderRadius: 20, padding: "2px 10px", fontSize: 11, fontWeight: 600 }}>{fl.stage}</span>
                     </div>
@@ -2369,16 +2369,16 @@ export function DealAnalytics() {
     const sale = f.stage === "Sold" ? f.salePrice : f.arv;
     const profit = sale - cost - (f.stage === "Sold" ? f.sellingCosts + f.totalHoldingCosts : (sale * ((f.sellingCostPct || 6) / 100)) + (f.holdingCostsPerMonth * (f.daysOwned || 0) / 30));
     const roi = cost > 0 ? ((profit / cost) * 100).toFixed(1) : 0;
-    return { name: f.image, fullName: f.name, roi: parseFloat(roi), profit: Math.round(profit), stage: f.stage, color: f.color };
+    return { name: f.image, fullName: f.name, roi: parseFloat(roi), profit: Math.round(profit), stage: f.stage, color: parseFloat(roi) >= 0 ? "var(--c-green)" : "var(--c-red)" };
   });
 
   const budgetVsActual = deals.filter(f => f.rehabSpent > 0).map(f => ({
-    name: f.image, budget: f.rehabBudget, actual: f.rehabSpent,
+    name: f.image, fullName: f.name, budget: f.rehabBudget, actual: f.rehabSpent,
     variance: f.rehabBudget - f.rehabSpent,
   }));
 
   const timelineData = deals.filter(f => f.daysOwned > 0).map(f => ({
-    name: f.image, days: f.daysOwned, stage: f.stage, color: f.color,
+    name: f.image, fullName: f.name, days: f.daysOwned, stage: f.stage, color: "#1e3a5f",
   }));
 
   const dealIdSet = new Set(deals.map(f => f.id));
@@ -2482,7 +2482,7 @@ export function DealAnalytics() {
         {/* Deal Return Scorecard — matches rental property scorecard */}
         <div style={{ ...sectionS, marginBottom: 20 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
-            <div style={{ width: 38, height: 38, borderRadius: 10, background: singleDeal.color + "20", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700, color: singleDeal.color }}>{singleDeal.image}</div>
+            <div style={{ width: 38, height: 38, borderRadius: 10, background: "#1e3a5f", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700, color: "#fff" }}>{singleDeal.image}</div>
             <div>
               <h3 style={{ color: "var(--text-primary)", fontSize: 16, fontWeight: 700, marginBottom: 2 }}>Deal Scorecard</h3>
               <p style={{ color: "var(--text-muted)", fontSize: 13, display: "flex", alignItems: "center", gap: 4 }}><MapPin size={11} /> {singleDeal.address}</p>
@@ -2535,7 +2535,7 @@ export function DealAnalytics() {
                   <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                   <XAxis dataKey="date" tick={{ fontSize: 11, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
                   <YAxis tick={{ fontSize: 12, fill: "#94a3b8" }} axisLine={false} tickLine={false} tickFormatter={v => `$${(v/1000).toFixed(0)}K`} />
-                  <Tooltip formatter={v => fmt(v)} cursor={{ fill: "transparent" }} contentStyle={{ borderRadius: 10, border: "1px solid var(--border)", fontSize: 12, background: "var(--tooltip-bg)", color: "var(--tooltip-text)" }} />
+                  <Tooltip formatter={v => fmt(v)} cursor={{ fill: "transparent" }} contentStyle={{ borderRadius: 10, border: "1px solid var(--border)", fontSize: 12, background: "var(--tooltip-bg)", color: "var(--tooltip-text)" }} itemStyle={{ color: "var(--tooltip-text)" }} />
                   <ReferenceLine y={singleDeal.rehabBudget} stroke="var(--c-red)" strokeDasharray="6 4" label={{ value: "Budget", position: "right", fontSize: 11, fill: "var(--c-red)" }} />
                   <Area type="monotone" dataKey="spent" stroke="#e95e00" strokeWidth={2.5} fill="url(#spendGrad)" dot={{ fill: "#e95e00", r: 3 }} />
                 </AreaChart>
@@ -2706,7 +2706,7 @@ export function DealAnalytics() {
               <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
               <XAxis dataKey="name" tick={{ fontSize: 12, fill: "var(--chart-axis)" }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fontSize: 12, fill: "var(--chart-axis)" }} axisLine={false} tickLine={false} tickFormatter={v => `${v}%`} />
-              <Tooltip formatter={(v, n, p) => [`${v}%`, "ROI"]} cursor={{ fill: "transparent" }} contentStyle={{ borderRadius: 10, border: "1px solid var(--border)", fontSize: 12, background: "var(--tooltip-bg)", color: "var(--tooltip-text)" }} />
+              <Tooltip formatter={(v, n, p) => [`${v}%`, "ROI"]} labelFormatter={(label, payload) => payload?.[0]?.payload?.fullName || label} cursor={{ fill: "transparent" }} contentStyle={{ borderRadius: 10, border: "1px solid var(--border)", fontSize: 12, background: "var(--tooltip-bg)", color: "var(--tooltip-text)" }} itemStyle={{ color: "var(--tooltip-text)" }} />
               <Bar dataKey="roi" radius={[6, 6, 0, 0]}>
                 {roiData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
               </Bar>
@@ -2750,9 +2750,9 @@ export function DealAnalytics() {
             <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
             <XAxis dataKey="name" tick={{ fontSize: 12, fill: "var(--chart-axis)" }} axisLine={false} tickLine={false} />
             <YAxis tick={{ fontSize: 12, fill: "var(--chart-axis)" }} axisLine={false} tickLine={false} tickFormatter={v => `$${(v/1000).toFixed(0)}K`} />
-            <Tooltip formatter={v => fmt(v)} cursor={{ fill: "transparent" }} contentStyle={{ borderRadius: 10, border: "1px solid var(--tooltip-border)", fontSize: 12, background: "var(--tooltip-bg)", color: "var(--tooltip-text)" }} />
+            <Tooltip formatter={v => fmt(v)} labelFormatter={(label, payload) => payload?.[0]?.payload?.fullName || label} cursor={{ fill: "transparent" }} contentStyle={{ borderRadius: 10, border: "1px solid var(--tooltip-border)", fontSize: 12, background: "var(--tooltip-bg)", color: "var(--tooltip-text)" }} itemStyle={{ color: "var(--tooltip-text)" }} />
             <Legend />
-            <Bar dataKey="budget" fill="#1e3a5f" name="Budgeted" radius={[6, 6, 0, 0]} />
+            <Bar dataKey="budget" fill="var(--chart-bar-primary)" name="Budgeted" radius={[6, 6, 0, 0]} />
             <Bar dataKey="actual" fill="#e95e00" name="Actual"   radius={[6, 6, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
@@ -2768,7 +2768,7 @@ export function DealAnalytics() {
               <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" horizontal={false} />
               <XAxis type="number" tick={{ fontSize: 12, fill: "var(--chart-axis)" }} axisLine={false} tickLine={false} tickFormatter={v => `${v}d`} />
               <YAxis type="category" dataKey="name" tick={{ fontSize: 12, fill: "var(--chart-axis)" }} axisLine={false} tickLine={false} width={40} />
-              <Tooltip formatter={v => [`${v} days`, "Hold Time"]} cursor={{ fill: "transparent" }} contentStyle={{ borderRadius: 10, border: "1px solid var(--border)", fontSize: 12, background: "var(--tooltip-bg)", color: "var(--tooltip-text)" }} />
+              <Tooltip formatter={v => [`${v} days`, "Hold Time"]} labelFormatter={(label, payload) => payload?.[0]?.payload?.fullName || label} cursor={{ fill: "transparent" }} contentStyle={{ borderRadius: 10, border: "1px solid var(--border)", fontSize: 12, background: "var(--tooltip-bg)", color: "var(--tooltip-text)" }} itemStyle={{ color: "var(--tooltip-text)" }} />
               <Bar dataKey="days" radius={[0, 6, 6, 0]}>
                 {timelineData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
               </Bar>
@@ -2786,7 +2786,7 @@ export function DealAnalytics() {
                 <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                 <XAxis dataKey="month" tick={{ fontSize: 11, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fontSize: 12, fill: "#94a3b8" }} axisLine={false} tickLine={false} tickFormatter={v => `$${(v/1000).toFixed(0)}K`} />
-                <Tooltip formatter={v => [fmt(v), "Spent"]} cursor={{ fill: "transparent" }} contentStyle={{ borderRadius: 10, border: "1px solid var(--border)", fontSize: 12, background: "var(--tooltip-bg)", color: "var(--tooltip-text)" }} />
+                <Tooltip formatter={v => [fmt(v), "Spent"]} cursor={{ fill: "transparent" }} contentStyle={{ borderRadius: 10, border: "1px solid var(--border)", fontSize: 12, background: "var(--tooltip-bg)", color: "var(--tooltip-text)" }} itemStyle={{ color: "var(--tooltip-text)" }} />
                 <Line type="monotone" dataKey="total" stroke="#e95e00" strokeWidth={2.5} dot={{ fill: "#e95e00", r: 4 }} activeDot={{ r: 6 }} />
               </LineChart>
             </ResponsiveContainer>

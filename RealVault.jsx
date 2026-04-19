@@ -182,6 +182,7 @@ function ThemeProvider({ children }) {
           --hover-surface: #f8fafc;
           --chart-axis: #94a3b8;
           --chart-grid: #f1f5f9;
+          --chart-bar-primary: #1e3a5f;
           --tooltip-bg: #ffffff;
           --tooltip-border: #e2e8f0;
           --tooltip-text: #041830;
@@ -233,6 +234,7 @@ function ThemeProvider({ children }) {
           --hover-surface: #334155;
           --chart-axis: #64748b;
           --chart-grid: #1e293b;
+          --chart-bar-primary: #4878a8;
           --tooltip-bg: #1e293b;
           --tooltip-border: #334155;
           --tooltip-text: #f1f5f9;
@@ -2168,7 +2170,7 @@ function PortfolioDashboard({ onNavigate, onSelectProperty, onSelectFlip, onNavi
             <BarChart data={cashFlowTrend} barGap={2}>
               <XAxis dataKey="month" tick={{ fontSize: 11, fill: "var(--chart-axis)" }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fontSize: 10, fill: "var(--chart-axis)" }} axisLine={false} tickLine={false} tickFormatter={v => v >= 1000 ? `$${(v / 1000).toFixed(0)}k` : `$${v}`} width={45} />
-              <Tooltip cursor={{ fill: "transparent" }} contentStyle={{ borderRadius: 10, border: "1px solid var(--tooltip-border)", fontSize: 12, background: "var(--tooltip-bg)", color: "var(--tooltip-text)" }} formatter={(v) => [fmt(v)]} />
+              <Tooltip cursor={{ fill: "transparent" }} contentStyle={{ borderRadius: 10, border: "1px solid var(--tooltip-border)", fontSize: 12, background: "var(--tooltip-bg)", color: "var(--tooltip-text)" }} itemStyle={{ color: "var(--tooltip-text)" }} formatter={(v) => [fmt(v)]} />
               <Bar dataKey="income" fill="var(--c-green)" radius={[6, 6, 0, 0]} name="Income" />
               <Bar dataKey="expenses" fill="var(--c-red)" radius={[6, 6, 0, 0]} name="Expenses" />
             </BarChart>
@@ -2241,7 +2243,7 @@ function PortfolioDashboard({ onNavigate, onSelectProperty, onSelectFlip, onNavi
                 style={{ display: "flex", alignItems: "center", gap: 12, padding: 12, borderRadius: 10, background: "var(--surface-alt)", border: "1px solid var(--border)", cursor: "pointer", transition: "all 0.15s" }}
                 onMouseEnter={e => { e.currentTarget.style.background = "var(--surface-muted)"; e.currentTarget.style.borderColor = "var(--border-strong)"; }}
                 onMouseLeave={e => { e.currentTarget.style.background = "var(--surface-alt)"; e.currentTarget.style.borderColor = "var(--border)"; }}>
-                <div style={{ width: 32, height: 32, borderRadius: 10, background: DEAL_COLORS[f.color] || f.color, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 600, fontSize: 12, flexShrink: 0 }}>
+                <div style={{ width: 32, height: 32, borderRadius: 10, background: "#1e3a5f", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 600, fontSize: 12, flexShrink: 0 }}>
                   {f.image?.slice(0, 1) || "F"}
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
@@ -2934,11 +2936,11 @@ function Properties({ onSelect, editPropertyId, onClearEditId, convertDealData, 
                     </div>
                     <div style={{ background: "var(--surface-alt)", borderRadius: 10, padding: "10px 12px" }}>
                       <p style={{ color: "var(--text-muted)", fontSize: 11, fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.04em" }}>Monthly CF</p>
-                      <p style={{ color: "var(--text-primary)", fontSize: 15, fontWeight: 700 }}>{fmt(monthlyNet)}</p>
+                      <p style={{ color: monthlyNet >= 0 ? "var(--c-green)" : "var(--c-red)", fontSize: 15, fontWeight: 700 }}>{fmt(monthlyNet)}</p>
                     </div>
                     <div style={{ background: "var(--surface-alt)", borderRadius: 10, padding: "10px 12px" }}>
                       <p style={{ color: "var(--text-muted)", fontSize: 11, fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.04em" }}>Cap Rate</p>
-                      <p style={{ color: "#e95e00", fontSize: 15, fontWeight: 700 }}>{calcCapRate(p)}%</p>
+                      <p style={{ color: "var(--text-primary)", fontSize: 15, fontWeight: 700 }}>{calcCapRate(p)}%</p>
                     </div>
                   </div>
                 </div>
@@ -3648,13 +3650,13 @@ function PropertyDetail({ property, onBack, backLabel, onEditProperty, onGoToTra
             {[
               { label: "Monthly Income", value: fmt(eff.monthlyIncome), color: "var(--c-green)", sub: eff.source === "transactions" ? `Avg from ${eff.months}mo of transactions` : "Manual estimate — log transactions for actuals", tip: "Average monthly rental income. Derived from transaction history when available, otherwise uses manually entered estimate." },
               { label: "Monthly Expenses", value: fmt(eff.monthlyExpenses), color: "var(--c-red)", sub: eff.source === "transactions" ? `Avg from ${eff.months}mo of transactions` : "Manual estimate — log transactions for actuals", tip: "Average monthly operating expenses. Derived from transaction history when available, otherwise uses manually entered estimate." },
-              { label: "Net Cash Flow", value: fmt(eff.monthlyIncome - eff.monthlyExpenses), color: "var(--text-primary)", tip: "Monthly Income − Monthly Expenses. Positive means the property cash-flows." },
-              { label: "Total Equity", value: fmt(equity), color: "var(--c-purple)", tip: "Current Property Value − Mortgage Balance." },
+              { label: "Net Cash Flow", value: fmt(eff.monthlyIncome - eff.monthlyExpenses), color: (eff.monthlyIncome - eff.monthlyExpenses) >= 0 ? "var(--c-green)" : "var(--c-red)", tip: "Monthly Income − Monthly Expenses. Positive means the property cash-flows." },
+              { label: "Total Equity", value: fmt(equity), color: "var(--text-primary)", tip: "Current Property Value − Mortgage Balance." },
               { label: "Purchase Price", value: fmt(property.purchasePrice), color: "var(--text-primary)", tip: "Original acquisition cost of the property." },
               { label: "Closing Costs", value: property.closingCosts ? fmt(property.closingCosts) : "—", color: "var(--text-secondary)", tip: "One-time costs paid at closing (title, legal, inspection, etc.)." },
-              { label: calcBal !== null ? "Est. Mortgage Balance" : "Mortgage Balance", value: fmt(effectiveMortgage), color: "#e95e00", sub: calcBal !== null ? "Calculated from loan terms" : null, tip: "Current outstanding loan balance. Calculated from loan terms if amortization data is available." },
-              { label: "Cap Rate", value: `${calcCapRate(property, TRANSACTIONS)}%`, color: "var(--c-purple)", tip: "Annual NOI ÷ Current Property Value × 100. Measures return independent of financing." },
-              { label: "Cash-on-Cash", value: `${calcCashOnCash(property, TRANSACTIONS)}%`, color: "var(--c-green)", tip: "Annual Cash Flow After Debt Service ÷ Total Cash Invested × 100." },
+              { label: calcBal !== null ? "Est. Mortgage Balance" : "Mortgage Balance", value: fmt(effectiveMortgage), color: "var(--text-primary)", sub: calcBal !== null ? "Calculated from loan terms" : null, tip: "Current outstanding loan balance. Calculated from loan terms if amortization data is available." },
+              { label: "Cap Rate", value: `${calcCapRate(property, TRANSACTIONS)}%`, color: "var(--text-primary)", tip: "Annual NOI ÷ Current Property Value × 100. Measures return independent of financing." },
+              { label: "Cash-on-Cash", value: `${calcCashOnCash(property, TRANSACTIONS)}%`, color: parseFloat(calcCashOnCash(property, TRANSACTIONS)) >= 0 ? "var(--c-green)" : "var(--c-red)", tip: "Annual Cash Flow After Debt Service ÷ Total Cash Invested × 100." },
             ].map((m, i) => (
               <div key={i} style={{ background: "var(--surface)", borderRadius: 12, padding: "16px 18px", boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 4 }}>
@@ -3988,7 +3990,7 @@ function PropertyDetail({ property, onBack, backLabel, onEditProperty, onGoToTra
               { label: "Total Units", value: propTenants.length || property.units, color: "var(--c-blue)", tip: "Number of units at this property based on tenant records." },
               { label: "Occupied", value: propTenants.filter(t => t.status !== "vacant").length, color: "var(--c-green)", tip: "Units with an active or month-to-month tenant." },
               { label: "Vacant", value: propTenants.filter(t => t.status === "vacant").length, color: propTenants.some(t => t.status === "vacant") ? "var(--c-red)" : "#94a3b8", tip: "Units without an active tenant. Vacant units don't generate rental income." },
-              { label: "Monthly Rent", value: fmt(propTenants.filter(t => t.status !== "vacant" && t.status !== "past").reduce((s, t) => s + (t.rent || 0), 0)), color: "#e95e00", tip: "Combined rent from all active tenants at this property." },
+              { label: "Monthly Rent", value: fmt(propTenants.filter(t => t.status !== "vacant" && t.status !== "past").reduce((s, t) => s + (t.rent || 0), 0)), color: "var(--c-green)", tip: "Combined rent from all active tenants at this property." },
             ].map((m, i) => (
               <div key={i} style={{ background: "var(--surface)", borderRadius: 12, padding: "16px 18px", boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 4 }}>
@@ -4908,7 +4910,7 @@ function Analytics() {
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
                 <XAxis dataKey="month" tick={{ fontSize: 11, fill: "var(--chart-axis)" }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fontSize: 11, fill: "var(--chart-axis)" }} axisLine={false} tickLine={false} tickFormatter={v => `$${(v / 1000).toFixed(0)}k`} />
-                <Tooltip formatter={(v, name) => [fmt(v), name === "income" ? "Income" : name === "expenses" ? "Expenses" : "Net"]} cursor={{ fill: "transparent" }} contentStyle={{ borderRadius: 10, border: "1px solid var(--tooltip-border)", fontSize: 12, background: "var(--tooltip-bg)", color: "var(--tooltip-text)" }} />
+                <Tooltip formatter={(v, name) => [fmt(v), name === "income" ? "Income" : name === "expenses" ? "Expenses" : "Net"]} cursor={{ fill: "transparent" }} contentStyle={{ borderRadius: 10, border: "1px solid var(--tooltip-border)", fontSize: 12, background: "var(--tooltip-bg)", color: "var(--tooltip-text)" }} itemStyle={{ color: "var(--tooltip-text)" }} />
                 <Area type="monotone" dataKey="income" stroke="var(--c-green)" strokeWidth={2.5} fill="url(#pIncGrad)" name="income" />
                 <Area type="monotone" dataKey="expenses" stroke="var(--c-red)" strokeWidth={2.5} fill="url(#pExpGrad)" name="expenses" />
                 <Area type="monotone" dataKey="net" stroke="var(--c-blue)" strokeWidth={2} strokeDasharray="5 5" fill="none" name="net" />
@@ -4999,8 +5001,8 @@ function Analytics() {
                   <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
                   <XAxis dataKey="name" tick={{ fontSize: 12, fill: "var(--chart-axis)" }} axisLine={false} tickLine={false} />
                   <YAxis tick={{ fontSize: 12, fill: "var(--chart-axis)" }} axisLine={false} tickLine={false} domain={[0, 12]} tickFormatter={v => `${v}%`} />
-                  <Tooltip formatter={(v) => [`${v}%`, "Cap Rate"]} labelFormatter={(label, payload) => payload?.[0]?.payload?.fullName || label} cursor={{ fill: "transparent" }} contentStyle={{ borderRadius: 10, border: "1px solid var(--tooltip-border)", fontSize: 12, background: "var(--tooltip-bg)", color: "var(--tooltip-text)" }} />
-                  <Bar dataKey="rate" radius={[6, 6, 0, 0]} fill="#1e3a5f" />
+                  <Tooltip formatter={(v) => [`${v}%`, "Cap Rate"]} labelFormatter={(label, payload) => payload?.[0]?.payload?.fullName || label} cursor={{ fill: "transparent" }} contentStyle={{ borderRadius: 10, border: "1px solid var(--tooltip-border)", fontSize: 12, background: "var(--tooltip-bg)", color: "var(--tooltip-text)" }} itemStyle={{ color: "var(--tooltip-text)" }} />
+                  <Bar dataKey="rate" radius={[6, 6, 0, 0]} fill="var(--chart-bar-primary)" />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -5012,7 +5014,7 @@ function Analytics() {
                   <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
                   <XAxis dataKey="name" tick={{ fontSize: 12, fill: "var(--chart-axis)" }} axisLine={false} tickLine={false} />
                   <YAxis tick={{ fontSize: 12, fill: "var(--chart-axis)" }} axisLine={false} tickLine={false} domain={[0, 14]} tickFormatter={v => `${v}%`} />
-                  <Tooltip formatter={(v) => [`${v}%`, "CoC Return"]} labelFormatter={(label, payload) => payload?.[0]?.payload?.fullName || label} cursor={{ fill: "transparent" }} contentStyle={{ borderRadius: 10, border: "1px solid var(--tooltip-border)", fontSize: 12, background: "var(--tooltip-bg)", color: "var(--tooltip-text)" }} />
+                  <Tooltip formatter={(v) => [`${v}%`, "CoC Return"]} labelFormatter={(label, payload) => payload?.[0]?.payload?.fullName || label} cursor={{ fill: "transparent" }} contentStyle={{ borderRadius: 10, border: "1px solid var(--tooltip-border)", fontSize: 12, background: "var(--tooltip-bg)", color: "var(--tooltip-text)" }} itemStyle={{ color: "var(--tooltip-text)" }} />
                   <Bar dataKey="coc" radius={[6, 6, 0, 0]} fill="#e95e00" />
                 </BarChart>
               </ResponsiveContainer>
@@ -5131,7 +5133,7 @@ function Analytics() {
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
                     <XAxis dataKey="month" tick={{ fontSize: 11, fill: "var(--chart-axis)" }} axisLine={false} tickLine={false} />
                     <YAxis tick={{ fontSize: 11, fill: "var(--chart-axis)" }} axisLine={false} tickLine={false} tickFormatter={v => `$${(v / 1000).toFixed(0)}k`} />
-                    <Tooltip formatter={(v, name) => [fmt(v), name === "income" ? "Income" : "Expenses"]} cursor={{ fill: "transparent" }} contentStyle={{ borderRadius: 10, border: "1px solid var(--tooltip-border)", fontSize: 12, background: "var(--tooltip-bg)", color: "var(--tooltip-text)" }} />
+                    <Tooltip formatter={(v, name) => [fmt(v), name === "income" ? "Income" : "Expenses"]} cursor={{ fill: "transparent" }} contentStyle={{ borderRadius: 10, border: "1px solid var(--tooltip-border)", fontSize: 12, background: "var(--tooltip-bg)", color: "var(--tooltip-text)" }} itemStyle={{ color: "var(--tooltip-text)" }} />
                     <Area type="monotone" dataKey="income" stroke="var(--c-green)" strokeWidth={2.5} fill="url(#incGrad)" name="income" />
                     <Area type="monotone" dataKey="expenses" stroke="var(--c-red)" strokeWidth={2.5} fill="url(#expGrad)" name="expenses" />
                   </AreaChart>
@@ -5151,7 +5153,7 @@ function Analytics() {
                       <Cell fill="var(--c-green)" />
                       <Cell fill="var(--c-red)" />
                     </Pie>
-                    <Tooltip formatter={v => fmt(v)} cursor={{ fill: "transparent" }} contentStyle={{ borderRadius: 10, border: "1px solid var(--tooltip-border)", fontSize: 12, background: "var(--tooltip-bg)", color: "var(--tooltip-text)" }} />
+                    <Tooltip formatter={v => fmt(v)} cursor={{ fill: "transparent" }} contentStyle={{ borderRadius: 10, border: "1px solid var(--tooltip-border)", fontSize: 12, background: "var(--tooltip-bg)", color: "var(--tooltip-text)" }} itemStyle={{ color: "var(--tooltip-text)" }} />
                   </PieChart>
                 </ResponsiveContainer>
                 <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 4 }}>
@@ -5862,10 +5864,10 @@ function Reports() {
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
                     <XAxis dataKey="month" tick={{ fontSize: 11, fill: "var(--chart-axis)" }} />
                     <YAxis tick={{ fontSize: 11, fill: "var(--chart-axis)" }} tickFormatter={v => `$${(v/1000).toFixed(0)}k`} />
-                    <Tooltip formatter={(v, name) => [`$${v.toLocaleString()}`, name]} cursor={{ fill: "transparent" }} contentStyle={{ borderRadius: 10, border: "1px solid var(--tooltip-border)", fontSize: 12, background: "var(--tooltip-bg)", color: "var(--tooltip-text)" }} />
+                    <Tooltip formatter={(v, name) => [`$${v.toLocaleString()}`, name]} cursor={{ fill: "transparent" }} contentStyle={{ borderRadius: 10, border: "1px solid var(--tooltip-border)", fontSize: 12, background: "var(--tooltip-bg)", color: "var(--tooltip-text)" }} itemStyle={{ color: "var(--tooltip-text)" }} />
                     <Bar dataKey="income" name="Income" fill="var(--c-green)" radius={[6, 6, 0, 0]} />
                     <Bar dataKey="expenses" name="Expenses" fill="var(--c-red)" radius={[6, 6, 0, 0]} />
-                    <Bar dataKey="net" name="Net" fill="#1e3a5f" radius={[6, 6, 0, 0]} />
+                    <Bar dataKey="net" name="Net" fill="var(--chart-bar-primary)" radius={[6, 6, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
@@ -11627,7 +11629,7 @@ function GlobalSearch({ onNavigate }) {
 
     // Properties
     const props = PROPERTIES.filter(p => p.name.toLowerCase().includes(q) || p.address.toLowerCase().includes(q) || p.type.toLowerCase().includes(q));
-    props.slice(0, MAX_PER).forEach(p => r.push({ type: "property", id: p.id, title: p.name, sub: p.address, icon: Building2, color: p.color, image: p.image, data: p }));
+    props.slice(0, MAX_PER).forEach(p => r.push({ type: "property", id: p.id, title: p.name, sub: p.address, icon: Building2, color: "#1e3a5f", image: p.image, data: p }));
 
     // Tenants
     const tenants = TENANTS.filter(t => t.name.toLowerCase().includes(q) || (t.email && t.email.toLowerCase().includes(q)) || (t.phone && t.phone.includes(q)));
@@ -11638,7 +11640,7 @@ function GlobalSearch({ onNavigate }) {
 
     // Deals (Flips)
     const deals = DEALS.filter(f => f.name.toLowerCase().includes(q) || f.address.toLowerCase().includes(q) || f.stage.toLowerCase().includes(q));
-    deals.slice(0, MAX_PER).forEach(f => r.push({ type: "deal", id: f.id, title: f.name, sub: `${f.stage} · ${f.address.split(",")[1]?.trim() || f.address}`, icon: Hammer, color: f.color, image: f.image, data: f }));
+    deals.slice(0, MAX_PER).forEach(f => r.push({ type: "deal", id: f.id, title: f.name, sub: `${f.stage} · ${f.address.split(",")[1]?.trim() || f.address}`, icon: Hammer, color: "#1e3a5f", image: f.image, data: f }));
 
     // Transactions
     const txs = TRANSACTIONS.filter(t => {
@@ -11658,7 +11660,7 @@ function GlobalSearch({ onNavigate }) {
     RENTAL_NOTES.forEach(n => {
       if (n.text.toLowerCase().includes(q)) {
         const prop = PROPERTIES.find(p => p.id === n.propertyId);
-        r.push({ type: "rental-note", id: n.id, title: n.text.length > 60 ? n.text.slice(0, 60) + "…" : n.text, sub: `${prop?.name || "Property"} · ${n.date}`, icon: MessageSquare, color: "#e95e00", data: { ...n, propId: n.propertyId } });
+        r.push({ type: "rental-note", id: n.id, title: n.text.length > 60 ? n.text.slice(0, 60) + "…" : n.text, sub: `${prop?.name || "Property"} · ${n.date}`, icon: MessageSquare, color: "#1e3a5f", data: { ...n, propId: n.propertyId } });
       }
     });
 
@@ -11666,7 +11668,7 @@ function GlobalSearch({ onNavigate }) {
     DEAL_NOTES.forEach(n => {
       if (n.text.toLowerCase().includes(q)) {
         const deal = DEALS.find(f => f.id === n.dealId);
-        r.push({ type: "deal-note", id: n.id, title: n.text.length > 60 ? n.text.slice(0, 60) + "…" : n.text, sub: `${deal?.name || "Deal"} · ${n.date}`, icon: MessageSquare, color: "#e95e00", data: { ...n, dealId: n.dealId } });
+        r.push({ type: "deal-note", id: n.id, title: n.text.length > 60 ? n.text.slice(0, 60) + "…" : n.text, sub: `${deal?.name || "Deal"} · ${n.date}`, icon: MessageSquare, color: "#1e3a5f", data: { ...n, dealId: n.dealId } });
       }
     });
 
