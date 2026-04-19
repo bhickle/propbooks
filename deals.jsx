@@ -2703,9 +2703,9 @@ export function DealAnalytics() {
           <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 20 }}>Actual (sold) vs projected (active)</p>
           <ResponsiveContainer width="100%" height={220}>
             <BarChart data={roiData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-              <XAxis dataKey="name" tick={{ fontSize: 12, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fontSize: 12, fill: "#94a3b8" }} axisLine={false} tickLine={false} tickFormatter={v => `${v}%`} />
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
+              <XAxis dataKey="name" tick={{ fontSize: 12, fill: "var(--chart-axis)" }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fontSize: 12, fill: "var(--chart-axis)" }} axisLine={false} tickLine={false} tickFormatter={v => `${v}%`} />
               <Tooltip formatter={(v, n, p) => [`${v}%`, "ROI"]} cursor={{ fill: "transparent" }} contentStyle={{ borderRadius: 10, border: "1px solid var(--border)", fontSize: 12, background: "var(--tooltip-bg)", color: "var(--tooltip-text)" }} />
               <Bar dataKey="roi" radius={[6, 6, 0, 0]}>
                 {roiData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
@@ -2747,12 +2747,12 @@ export function DealAnalytics() {
         <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 20 }}>How well rehab budgets are holding</p>
         <ResponsiveContainer width="100%" height={180}>
           <BarChart data={budgetVsActual}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-            <XAxis dataKey="name" tick={{ fontSize: 12, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
-            <YAxis tick={{ fontSize: 12, fill: "#94a3b8" }} axisLine={false} tickLine={false} tickFormatter={v => `$${(v/1000).toFixed(0)}K`} />
-            <Tooltip formatter={v => fmt(v)} cursor={{ fill: "transparent" }} contentStyle={{ borderRadius: 10, border: "1px solid var(--border)", fontSize: 12, background: "var(--tooltip-bg)", color: "var(--tooltip-text)" }} />
+            <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
+            <XAxis dataKey="name" tick={{ fontSize: 12, fill: "var(--chart-axis)" }} axisLine={false} tickLine={false} />
+            <YAxis tick={{ fontSize: 12, fill: "var(--chart-axis)" }} axisLine={false} tickLine={false} tickFormatter={v => `$${(v/1000).toFixed(0)}K`} />
+            <Tooltip formatter={v => fmt(v)} cursor={{ fill: "transparent" }} contentStyle={{ borderRadius: 10, border: "1px solid var(--tooltip-border)", fontSize: 12, background: "var(--tooltip-bg)", color: "var(--tooltip-text)" }} />
             <Legend />
-            <Bar dataKey="budget" fill="var(--c-blue)" name="Budgeted" radius={[6, 6, 0, 0]} />
+            <Bar dataKey="budget" fill="#1e3a5f" name="Budgeted" radius={[6, 6, 0, 0]} />
             <Bar dataKey="actual" fill="#e95e00" name="Actual"   radius={[6, 6, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
@@ -2765,9 +2765,9 @@ export function DealAnalytics() {
           <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 20 }}>Days owned per property{avgDays > 0 ? ` (avg ${avgDays}d)` : ""}</p>
           <ResponsiveContainer width="100%" height={200}>
             <BarChart data={timelineData} layout="vertical">
-              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" horizontal={false} />
-              <XAxis type="number" tick={{ fontSize: 12, fill: "#94a3b8" }} axisLine={false} tickLine={false} tickFormatter={v => `${v}d`} />
-              <YAxis type="category" dataKey="name" tick={{ fontSize: 12, fill: "#94a3b8" }} axisLine={false} tickLine={false} width={40} />
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" horizontal={false} />
+              <XAxis type="number" tick={{ fontSize: 12, fill: "var(--chart-axis)" }} axisLine={false} tickLine={false} tickFormatter={v => `${v}d`} />
+              <YAxis type="category" dataKey="name" tick={{ fontSize: 12, fill: "var(--chart-axis)" }} axisLine={false} tickLine={false} width={40} />
               <Tooltip formatter={v => [`${v} days`, "Hold Time"]} cursor={{ fill: "transparent" }} contentStyle={{ borderRadius: 10, border: "1px solid var(--border)", fontSize: 12, background: "var(--tooltip-bg)", color: "var(--tooltip-text)" }} />
               <Bar dataKey="days" radius={[0, 6, 6, 0]}>
                 {timelineData.map((entry, i) => <Cell key={i} fill={entry.color} />)}

@@ -4384,15 +4384,15 @@ function Transactions({ highlightTxId, onBack, onClearHighlight, backLabel }) {
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, marginBottom: 24 }}>
         <div style={{ background: "var(--surface)", borderRadius: 14, padding: 20, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)" }}>
           <p style={{ color: "var(--text-muted)", fontSize: 12, fontWeight: 600, textTransform: "uppercase" }}>Total Income</p>
-          <p style={{ color: "#15803d", fontSize: 24, fontWeight: 800, marginTop: 4 }}>+{fmt(totalIncome)}</p>
+          <p style={{ color: "var(--c-green)", fontSize: 24, fontWeight: 800, marginTop: 4, fontFamily: "var(--font-display)" }}>+{fmt(totalIncome)}</p>
         </div>
         <div style={{ background: "var(--surface)", borderRadius: 14, padding: 20, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)" }}>
           <p style={{ color: "var(--text-muted)", fontSize: 12, fontWeight: 600, textTransform: "uppercase" }}>Total Expenses</p>
-          <p style={{ color: "#b91c1c", fontSize: 24, fontWeight: 800, marginTop: 4 }}>-{fmt(totalExpenses)}</p>
+          <p style={{ color: "var(--c-red)", fontSize: 24, fontWeight: 800, marginTop: 4, fontFamily: "var(--font-display)" }}>-{fmt(totalExpenses)}</p>
         </div>
         <div style={{ background: "var(--surface)", borderRadius: 14, padding: 20, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)" }}>
           <p style={{ color: "var(--text-muted)", fontSize: 12, fontWeight: 600, textTransform: "uppercase" }}>Net</p>
-          <p style={{ color: totalIncome - totalExpenses >= 0 ? "#15803d" : "#b91c1c", fontSize: 24, fontWeight: 800, marginTop: 4 }}>{fmt(totalIncome - totalExpenses)}</p>
+          <p style={{ color: totalIncome - totalExpenses >= 0 ? "var(--c-green)" : "var(--c-red)", fontSize: 24, fontWeight: 800, marginTop: 4, fontFamily: "var(--font-display)" }}>{fmt(totalIncome - totalExpenses)}</p>
         </div>
       </div>
       {/* Filter bar */}
@@ -4995,11 +4995,11 @@ function Analytics() {
               <h3 style={{ color: "var(--text-primary)", fontSize: 16, fontWeight: 700, marginBottom: 4 }}>Cap Rate Comparison</h3>
               <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 20 }}>Annual net operating income / property value</p>
               <ResponsiveContainer width="100%" height={220}>
-                <BarChart data={PROPERTIES.map(p => ({ name: p.name, rate: calcCapRate(p) }))}>
+                <BarChart data={PROPERTIES.map(p => ({ name: p.image, fullName: p.name, rate: calcCapRate(p) }))}>
                   <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
                   <XAxis dataKey="name" tick={{ fontSize: 12, fill: "var(--chart-axis)" }} axisLine={false} tickLine={false} />
                   <YAxis tick={{ fontSize: 12, fill: "var(--chart-axis)" }} axisLine={false} tickLine={false} domain={[0, 12]} tickFormatter={v => `${v}%`} />
-                  <Tooltip formatter={(v) => [`${v}%`, "Cap Rate"]} cursor={{ fill: "transparent" }} contentStyle={{ borderRadius: 10, border: "1px solid var(--tooltip-border)", fontSize: 12, background: "var(--tooltip-bg)", color: "var(--tooltip-text)" }} />
+                  <Tooltip formatter={(v) => [`${v}%`, "Cap Rate"]} labelFormatter={(label, payload) => payload?.[0]?.payload?.fullName || label} cursor={{ fill: "transparent" }} contentStyle={{ borderRadius: 10, border: "1px solid var(--tooltip-border)", fontSize: 12, background: "var(--tooltip-bg)", color: "var(--tooltip-text)" }} />
                   <Bar dataKey="rate" radius={[6, 6, 0, 0]} fill="#1e3a5f" />
                 </BarChart>
               </ResponsiveContainer>
@@ -5008,11 +5008,11 @@ function Analytics() {
               <h3 style={{ color: "var(--text-primary)", fontSize: 16, fontWeight: 700, marginBottom: 4 }}>Cash-on-Cash Return</h3>
               <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 20 }}>Annual pre-tax cash flow / total cash invested</p>
               <ResponsiveContainer width="100%" height={220}>
-                <BarChart data={PROPERTIES.map(p => ({ name: p.image, coc: calcCashOnCash(p) }))}>
+                <BarChart data={PROPERTIES.map(p => ({ name: p.image, fullName: p.name, coc: calcCashOnCash(p) }))}>
                   <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
                   <XAxis dataKey="name" tick={{ fontSize: 12, fill: "var(--chart-axis)" }} axisLine={false} tickLine={false} />
                   <YAxis tick={{ fontSize: 12, fill: "var(--chart-axis)" }} axisLine={false} tickLine={false} domain={[0, 14]} tickFormatter={v => `${v}%`} />
-                  <Tooltip formatter={(v) => [`${v}%`, "CoC Return"]} cursor={{ fill: "transparent" }} contentStyle={{ borderRadius: 10, border: "1px solid var(--tooltip-border)", fontSize: 12, background: "var(--tooltip-bg)", color: "var(--tooltip-text)" }} />
+                  <Tooltip formatter={(v) => [`${v}%`, "CoC Return"]} labelFormatter={(label, payload) => payload?.[0]?.payload?.fullName || label} cursor={{ fill: "transparent" }} contentStyle={{ borderRadius: 10, border: "1px solid var(--tooltip-border)", fontSize: 12, background: "var(--tooltip-bg)", color: "var(--tooltip-text)" }} />
                   <Bar dataKey="coc" radius={[6, 6, 0, 0]} fill="#e95e00" />
                 </BarChart>
               </ResponsiveContainer>
@@ -5865,7 +5865,7 @@ function Reports() {
                     <Tooltip formatter={(v, name) => [`$${v.toLocaleString()}`, name]} cursor={{ fill: "transparent" }} contentStyle={{ borderRadius: 10, border: "1px solid var(--tooltip-border)", fontSize: 12, background: "var(--tooltip-bg)", color: "var(--tooltip-text)" }} />
                     <Bar dataKey="income" name="Income" fill="var(--c-green)" radius={[6, 6, 0, 0]} />
                     <Bar dataKey="expenses" name="Expenses" fill="var(--c-red)" radius={[6, 6, 0, 0]} />
-                    <Bar dataKey="net" name="Net" fill="var(--c-blue)" radius={[6, 6, 0, 0]} />
+                    <Bar dataKey="net" name="Net" fill="#1e3a5f" radius={[6, 6, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>

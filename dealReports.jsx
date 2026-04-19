@@ -103,15 +103,15 @@ export function DealReports() {
       {/* KPI Strip */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 14, marginBottom: 24 }}>
         {[
-          { label: "Total Invested",  value: fmt(totalInvested), color: "#3b82f6", bg: "var(--surface-alt)",   tip: "Purchase + rehab spent + holding costs + selling costs" },
-          { label: "Total Profit",    value: fmt(totalProfit),   color: totalProfit >= 0 ? "#15803d" : "#b91c1c", bg: "var(--surface-alt)", tip: "Sale price (or ARV) minus total invested" },
-          { label: "Avg ROI",         value: `${avgROI.toFixed(1)}%`, color: "#8b5cf6", bg: "var(--surface-alt)", tip: "Average return on investment across all deals" },
-          { label: "Rehab Spend",     value: fmt(totalRehab),    color: "#f59e0b", bg: "var(--surface-alt)",   tip: "Total rehab dollars spent across all deals" },
-          { label: "Budget Variance", value: `${totalBudget > 0 ? (((totalRehab - totalBudget) / totalBudget) * 100).toFixed(1) : 0}%`, color: totalRehab > totalBudget ? "#b91c1c" : "#15803d", bg: "var(--surface-alt)", tip: "How much total rehab spend is over/under total budget" },
+          { label: "Total Invested",  value: fmt(totalInvested), tip: "Purchase + rehab spent + holding costs + selling costs" },
+          { label: "Total Profit",    value: fmt(totalProfit),   tip: "Sale price (or ARV) minus total invested" },
+          { label: "Avg ROI",         value: `${avgROI.toFixed(1)}%`, tip: "Average return on investment across all deals" },
+          { label: "Rehab Spend",     value: fmt(totalRehab),    tip: "Total rehab dollars spent across all deals" },
+          { label: "Budget Variance", value: `${totalBudget > 0 ? (((totalRehab - totalBudget) / totalBudget) * 100).toFixed(1) : 0}%`, tip: "How much total rehab spend is over/under total budget" },
         ].map((m, i) => (
-          <div key={i} style={{ background: m.bg, borderRadius: 14, padding: "14px 16px", border: "1px solid var(--border-subtle)" }}>
-            <p style={{ color: "var(--text-secondary)", fontSize: 10, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6 }}>{m.label}<InfoTip text={m.tip} /></p>
-            <p style={{ color: m.color, fontSize: 20, fontWeight: 800 }}>{m.value}</p>
+          <div key={i} style={{ background: "var(--surface)", borderRadius: 14, padding: "14px 16px", border: "1px solid var(--border-subtle)", boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
+            <p style={{ color: "var(--text-muted)", fontSize: 10, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6, display: "flex", alignItems: "center" }}>{m.label}<InfoTip text={m.tip} /></p>
+            <p style={{ color: "var(--text-primary)", fontSize: 20, fontWeight: 800, fontFamily: "var(--font-display)" }}>{m.value}</p>
           </div>
         ))}
       </div>
@@ -121,14 +121,14 @@ export function DealReports() {
         <div style={{ background: "var(--surface)", borderRadius: 16, padding: 10, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)", height: "fit-content" }}>
           <p style={{ fontSize: 10, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", padding: "8px 14px 4px" }}>Profitability</p>
           {profitReports.map(r => (
-            <button key={r.id} onClick={() => setActiveReport(r.id)} style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "11px 14px", borderRadius: 10, border: "none", background: activeReport === r.id ? "#eff6ff" : "transparent", color: activeReport === r.id ? "#3b82f6" : "var(--text-label)", fontWeight: activeReport === r.id ? 700 : 500, fontSize: 14, cursor: "pointer", marginBottom: 2, textAlign: "left" }}>
+            <button key={r.id} onClick={() => setActiveReport(r.id)} style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "11px 14px", borderRadius: 10, border: "none", background: activeReport === r.id ? "var(--active-highlight)" : "transparent", color: activeReport === r.id ? "var(--c-blue)" : "var(--text-label)", fontWeight: activeReport === r.id ? 700 : 500, fontSize: 14, cursor: "pointer", marginBottom: 2, textAlign: "left" }}>
               <r.icon size={16} /> {r.label}
             </button>
           ))}
           <div style={{ borderTop: "1px solid var(--border-subtle)", margin: "8px 14px", paddingTop: 0 }} />
           <p style={{ fontSize: 10, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", padding: "4px 14px 4px" }}>Operational</p>
           {operationalReports.map(r => (
-            <button key={r.id} onClick={() => setActiveReport(r.id)} style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "11px 14px", borderRadius: 10, border: "none", background: activeReport === r.id ? "#eff6ff" : "transparent", color: activeReport === r.id ? "#3b82f6" : "var(--text-label)", fontWeight: activeReport === r.id ? 700 : 500, fontSize: 14, cursor: "pointer", marginBottom: 2, textAlign: "left" }}>
+            <button key={r.id} onClick={() => setActiveReport(r.id)} style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "11px 14px", borderRadius: 10, border: "none", background: activeReport === r.id ? "var(--active-highlight)" : "transparent", color: activeReport === r.id ? "var(--c-blue)" : "var(--text-label)", fontWeight: activeReport === r.id ? 700 : 500, fontSize: 14, cursor: "pointer", marginBottom: 2, textAlign: "left" }}>
               <r.icon size={16} /> {r.label}
             </button>
           ))}
@@ -231,7 +231,7 @@ function ProfitabilityReport({ deals }) {
               <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
               <XAxis dataKey="name" tick={{ fontSize: 12, fill: "var(--chart-axis)" }} />
               <YAxis tickFormatter={v => fmtK(v)} tick={{ fontSize: 12, fill: "var(--chart-axis)" }} />
-              <Tooltip formatter={v => fmt(v)} contentStyle={{ borderRadius: 10, border: "1px solid var(--tooltip-border)", fontSize: 12 }} />
+              <Tooltip formatter={v => fmt(v)} cursor={{ fill: "transparent" }} contentStyle={{ borderRadius: 10, border: "1px solid var(--tooltip-border)", fontSize: 12, background: "var(--tooltip-bg)", color: "var(--tooltip-text)" }} />
               <Bar dataKey="profit" name="Profit" radius={[6, 6, 0, 0]}>
                 {chartData.map((d, i) => <Cell key={i} fill={d.profit >= 0 ? "#10b981" : "#ef4444"} />)}
               </Bar>
@@ -319,9 +319,9 @@ function RehabBudgetReport({ deals }) {
                   <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
                   <XAxis dataKey="name" tick={{ fontSize: 11, fill: "var(--chart-axis)" }} />
                   <YAxis tickFormatter={v => fmtK(v)} tick={{ fontSize: 11, fill: "var(--chart-axis)" }} />
-                  <Tooltip formatter={v => fmt(v)} contentStyle={{ borderRadius: 10, border: "1px solid var(--tooltip-border)", fontSize: 12 }} />
-                  <Bar dataKey="budgeted" name="Budgeted" fill="#cbd5e1" radius={[6, 6, 0, 0]} />
-                  <Bar dataKey="spent" name="Spent" fill="#f59e0b" radius={[6, 6, 0, 0]} />
+                  <Tooltip formatter={v => fmt(v)} cursor={{ fill: "transparent" }} contentStyle={{ borderRadius: 10, border: "1px solid var(--tooltip-border)", fontSize: 12, background: "var(--tooltip-bg)", color: "var(--tooltip-text)" }} />
+                  <Bar dataKey="budgeted" name="Budgeted" fill="#1e3a5f" radius={[6, 6, 0, 0]} />
+                  <Bar dataKey="spent" name="Spent" fill="#e95e00" radius={[6, 6, 0, 0]} />
                   <Legend wrapperStyle={{ fontSize: 12 }} />
                 </BarChart>
               </ResponsiveContainer>
@@ -392,8 +392,8 @@ function HoldingCostsReport({ deals }) {
               <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
               <XAxis dataKey="name" tick={{ fontSize: 12, fill: "var(--chart-axis)" }} />
               <YAxis tickFormatter={v => fmtK(v)} tick={{ fontSize: 12, fill: "var(--chart-axis)" }} />
-              <Tooltip formatter={v => fmt(v)} contentStyle={{ borderRadius: 10, border: "1px solid var(--tooltip-border)", fontSize: 12 }} />
-              <Bar dataKey="holding" name="Total Holding" fill="#ef4444" radius={[6, 6, 0, 0]} />
+              <Tooltip formatter={v => fmt(v)} cursor={{ fill: "transparent" }} contentStyle={{ borderRadius: 10, border: "1px solid var(--tooltip-border)", fontSize: 12, background: "var(--tooltip-bg)", color: "var(--tooltip-text)" }} />
+              <Bar dataKey="holding" name="Total Holding" fill="#1e3a5f" radius={[6, 6, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -450,14 +450,14 @@ function ContractorPaymentsReport({ dealFilter }) {
       {/* Summary cards */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14 }}>
         {[
-          { label: "Total Bid Value",     value: fmt(totalBids),     color: "#3b82f6", tip: "Sum of all bids across all contractors" },
-          { label: "Accepted Bids",       value: fmt(totalAccepted), color: "#10b981", tip: "Total value of accepted bids only" },
-          { label: "Total Paid",          value: fmt(totalPaid),     color: "#f59e0b", tip: "Total payments disbursed to all contractors" },
-          { label: "Outstanding Balance", value: fmt(outstanding),   color: outstanding > 0 ? "#ef4444" : "#10b981", tip: "Accepted bids minus payments made" },
+          { label: "Total Bid Value",     value: fmt(totalBids),     tip: "Sum of all bids across all contractors" },
+          { label: "Accepted Bids",       value: fmt(totalAccepted), tip: "Total value of accepted bids only" },
+          { label: "Total Paid",          value: fmt(totalPaid),     tip: "Total payments disbursed to all contractors" },
+          { label: "Outstanding Balance", value: fmt(outstanding),   tip: "Accepted bids minus payments made" },
         ].map((m, i) => (
-          <div key={i} style={{ background: "var(--surface)", borderRadius: 16, padding: "18px 20px", border: "1px solid var(--border-subtle)" }}>
-            <p style={{ color: "var(--text-muted)", fontSize: 10, fontWeight: 600, textTransform: "uppercase", marginBottom: 4 }}>{m.label}<InfoTip text={m.tip} /></p>
-            <p style={{ color: m.color, fontSize: 22, fontWeight: 800 }}>{m.value}</p>
+          <div key={i} style={{ background: "var(--surface)", borderRadius: 16, padding: "18px 20px", border: "1px solid var(--border-subtle)", boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
+            <p style={{ color: "var(--text-muted)", fontSize: 10, fontWeight: 600, textTransform: "uppercase", marginBottom: 4, display: "flex", alignItems: "center" }}>{m.label}<InfoTip text={m.tip} /></p>
+            <p style={{ color: "var(--text-primary)", fontSize: 22, fontWeight: 800, fontFamily: "var(--font-display)" }}>{m.value}</p>
           </div>
         ))}
       </div>
@@ -528,7 +528,7 @@ function ContractorPaymentsReport({ dealFilter }) {
                 labelLine={{ stroke: "var(--text-muted)", strokeWidth: 1 }}>
                 {pieData.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
               </Pie>
-              <Tooltip formatter={v => fmt(v)} contentStyle={{ borderRadius: 10, border: "1px solid var(--tooltip-border)", fontSize: 12 }} />
+              <Tooltip formatter={v => fmt(v)} cursor={{ fill: "transparent" }} contentStyle={{ borderRadius: 10, border: "1px solid var(--tooltip-border)", fontSize: 12, background: "var(--tooltip-bg)", color: "var(--tooltip-text)" }} />
               <Legend wrapperStyle={{ fontSize: 12, paddingTop: 12 }} />
             </PieChart>
           </ResponsiveContainer>
@@ -670,7 +670,7 @@ function CashFlowReport({ deals }) {
             <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
             <XAxis dataKey="month" tick={{ fontSize: 12, fill: "var(--chart-axis)" }} />
             <YAxis tickFormatter={v => fmtK(v)} tick={{ fontSize: 12, fill: "var(--chart-axis)" }} />
-            <Tooltip formatter={v => fmt(v)} contentStyle={{ borderRadius: 10, border: "1px solid var(--tooltip-border)", fontSize: 12 }} />
+            <Tooltip formatter={v => fmt(v)} cursor={{ fill: "transparent" }} contentStyle={{ borderRadius: 10, border: "1px solid var(--tooltip-border)", fontSize: 12, background: "var(--tooltip-bg)", color: "var(--tooltip-text)" }} />
             <Bar dataKey="sales" name="Sales" fill="#10b981" radius={[6, 6, 0, 0]} />
             <Bar dataKey="totalOut" name="Cash Out" fill="#ef4444" radius={[6, 6, 0, 0]} />
             <Legend wrapperStyle={{ fontSize: 12 }} />
@@ -801,7 +801,7 @@ function PipelineReport({ deals }) {
                   labelLine={{ stroke: "var(--text-muted)", strokeWidth: 1 }}>
                   {pieData.map((d, i) => <Cell key={i} fill={PIE_COLORS[d.name] || "#64748b"} />)}
                 </Pie>
-                <Tooltip formatter={v => fmt(v)} contentStyle={{ borderRadius: 10, border: "1px solid var(--tooltip-border)", fontSize: 12 }} />
+                <Tooltip formatter={v => fmt(v)} cursor={{ fill: "transparent" }} contentStyle={{ borderRadius: 10, border: "1px solid var(--tooltip-border)", fontSize: 12, background: "var(--tooltip-bg)", color: "var(--tooltip-text)" }} />
                 <Legend wrapperStyle={{ fontSize: 12, paddingTop: 8 }} />
               </PieChart>
             </ResponsiveContainer>
