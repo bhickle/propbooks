@@ -4957,12 +4957,12 @@ function Analytics() {
                     </div>
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
                       {[
-                        { label: "Annual NOI", value: fmtK(NOI), color: "var(--c-green)" },
-                        { label: "Cap Rate", value: `${calcCapRate(p)}%`, color: "var(--c-blue)" },
-                        { label: "Cash-on-Cash", value: `${coC}%`, color: "var(--c-purple)" },
-                        { label: "Appreciation", value: `+${appreciation}%`, color: "#e95e00" },
-                        { label: "Expense Ratio", value: `${expRatio}%`, color: "var(--c-red)" },
-                        { label: "DSCR", value: pDSCR, color: "var(--c-blue)" },
+                        { label: "Annual NOI", value: fmtK(NOI), color: NOI >= 0 ? "var(--c-green)" : "var(--c-red)" },
+                        { label: "Cap Rate", value: `${calcCapRate(p)}%`, color: "var(--text-primary)" },
+                        { label: "Cash-on-Cash", value: `${coC}%`, color: parseFloat(coC) >= 0 ? "var(--c-green)" : "var(--c-red)" },
+                        { label: "Appreciation", value: `${parseFloat(appreciation) >= 0 ? "+" : ""}${appreciation}%`, color: parseFloat(appreciation) >= 0 ? "var(--c-green)" : "var(--c-red)" },
+                        { label: "Expense Ratio", value: `${expRatio}%`, color: "var(--text-primary)" },
+                        { label: "DSCR", value: pDSCR, color: pDSCR !== "N/A" ? (parseFloat(pDSCR) >= 1.0 ? "var(--c-green)" : "var(--c-red)") : "var(--text-muted)" },
                       ].map((m, i) => (
                         <div key={i}>
                           <p style={{ color: "var(--text-muted)", fontSize: 10, fontWeight: 600, textTransform: "uppercase", marginBottom: 1 }}>{m.label}</p>
@@ -5076,7 +5076,7 @@ function Analytics() {
                   label: "DSCR",
                   value: propDSCR,
                   sub: parseFloat(propDSCR) >= 1.25 ? "Healthy coverage" : parseFloat(propDSCR) >= 1.0 ? "Adequate" : "Below target",
-                  color: parseFloat(propDSCR) >= 1.25 ? "var(--c-green)" : parseFloat(propDSCR) >= 1.0 ? "#e95e00" : "var(--c-red)",
+                  color: parseFloat(propDSCR) >= 1.0 ? "var(--c-green)" : "var(--c-red)",
                   tip: "Debt Service Coverage Ratio = Annual NOI \u00f7 Annual Mortgage Payments. Lenders typically want 1.25+.",
                 },
                 {
