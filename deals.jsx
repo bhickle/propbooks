@@ -65,7 +65,7 @@ function DealAttachmentList({ items, onRemove, compact = false }) {
               <p style={{ fontSize: 12, fontWeight: 600, color: "var(--text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.name}</p>
               {item.size && <p style={{ fontSize: 11, color: "var(--text-muted)" }}>{item.size}</p>}
             </div>
-            {item.ocrData && <span style={{ fontSize: 10, fontWeight: 600, color: "#15803d", background: "#dcfce7", borderRadius: 6, padding: "2px 6px", flexShrink: 0 }}>OCR</span>}
+            {item.ocrData && <span style={{ fontSize: 10, fontWeight: 600, color: "#1a7a4a", background: "#cce8d8", borderRadius: 6, padding: "2px 6px", flexShrink: 0 }}>OCR</span>}
             {onRemove && (
               <button onClick={e => { e.stopPropagation(); onRemove(item.id); }}
                 style={{ background: "none", border: "none", cursor: "pointer", padding: 4, borderRadius: 6, display: "flex", color: "var(--text-muted)" }}
@@ -230,7 +230,7 @@ export function DealDashboard({ onSelect, onNavigateToNote, onNavigateToExpense,
 
   const stageBreakdown = STAGE_ORDER.map(s => ({
     stage: s, count: deals.filter(f => f.stage === s).length,
-    color: STAGE_COLORS[s]?.dot || "#94a3b8",
+    color: STAGE_COLORS[s]?.dot || "var(--text-muted)",
   }));
 
   // Derive recent activity from real data: milestones, expenses, notes
@@ -369,7 +369,7 @@ export function DealDashboard({ onSelect, onNavigateToNote, onNavigateToExpense,
         {/* Stage Breakdown + Recent Activity */}
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           <div style={{ background: "var(--surface)", borderRadius: 16, padding: 22, border: "1px solid var(--border-subtle)" }}>
-            <p style={{ color: "var(--text-primary)", fontSize: 15, fontWeight: 700, marginBottom: 14 }}>By Stage</p>
+            <p style={{ color: "var(--text-primary)", fontSize: 16, fontWeight: 700, marginBottom: 14 }}>By Stage</p>
             {stageBreakdown.map(s => (
               <div key={s.stage} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
                 <div style={{ width: 10, height: 10, borderRadius: "50%", background: s.color, flexShrink: 0 }} />
@@ -380,7 +380,7 @@ export function DealDashboard({ onSelect, onNavigateToNote, onNavigateToExpense,
           </div>
 
           <div style={{ background: "var(--surface)", borderRadius: 16, padding: 22, border: "1px solid var(--border-subtle)", flex: 1 }}>
-            <p style={{ color: "var(--text-primary)", fontSize: 15, fontWeight: 700, marginBottom: 14 }}>Recent Activity</p>
+            <p style={{ color: "var(--text-primary)", fontSize: 16, fontWeight: 700, marginBottom: 14 }}>Recent Activity</p>
             {recentActivity.length === 0 && (
               <p style={{ color: "var(--text-muted)", fontSize: 12 }}>No activity yet. Complete milestones, log expenses, or add notes to see updates here.</p>
             )}
@@ -464,9 +464,9 @@ export function RehabTracker({ onSelectRehabItem } = {}) {
   const inProgress  = filtered.filter(i => i.status === "in-progress").length;
 
   const statusStyle = {
-    "complete":    { bg: "#dcfce7", text: "#15803d", label: "Complete"    },
+    "complete":    { bg: "#cce8d8", text: "#1a7a4a", label: "Complete"    },
     "in-progress": { bg: "#fff7ed", text: "#9a3412", label: "In Progress" },
-    "pending":     { bg: "#f1f5f9", text: "#64748b", label: "Pending"     },
+    "pending":     { bg: "#f1f5f9", text: "var(--text-secondary)", label: "Pending"     },
   };
 
   // Assign a contractor to a rehab item — mutates DEALS directly so contractor
@@ -846,7 +846,7 @@ export function RehabTracker({ onSelectRehabItem } = {}) {
                                 <Pencil size={13} />
                               </button>
                               <button onClick={() => setDeleteConfirm({ dealId: f.id, idx: item._idx, category: item.category, budgeted: item.budgeted, spent: item.spent })}
-                                style={{ background: "#fee2e2", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "var(--c-red)", display: "flex", alignItems: "center" }}
+                                style={{ background: "#f5d0cc", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "var(--c-red)", display: "flex", alignItems: "center" }}
                                 title="Delete">
                                 <Trash2 size={13} />
                               </button>
@@ -1050,10 +1050,10 @@ function ExpDetailPanel({ exp, onClose, onEdit, onDelete }) {
       <div style={{ position: "fixed", top: 0, right: 0, bottom: 0, width: 460, background: "var(--surface)", boxShadow: "-8px 0 40px rgba(0,0,0,0.14)", zIndex: 1201, display: "flex", flexDirection: "column" }}>
         <div style={{ padding: "28px 28px 20px", background: "var(--surface-alt)", borderBottom: "1px solid var(--border-subtle)" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
-            <span style={{ background: isPaid ? "#dcfce7" : "#fff7ed", color: isPaid ? "#15803d" : "#9a3412", borderRadius: 20, padding: "3px 10px", fontSize: 12, fontWeight: 600 }}>{isPaid ? "Paid" : "Pending"}</span>
+            <span style={{ background: isPaid ? "#cce8d8" : "#fff7ed", color: isPaid ? "#1a7a4a" : "#9a3412", borderRadius: 20, padding: "3px 10px", fontSize: 12, fontWeight: 600 }}>{isPaid ? "Paid" : "Pending"}</span>
             <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)", padding: 4, borderRadius: 8, lineHeight: 1 }}><X size={20} /></button>
           </div>
-          <p style={{ fontSize: 32, fontWeight: 800, color: "#b91c1c", margin: "0 0 4px" }}>−{fmt(exp.amount)}</p>
+          <p style={{ fontSize: 32, fontWeight: 800, color: "#c0392b", margin: "0 0 4px" }}>−{fmt(exp.amount)}</p>
           <p style={{ fontSize: 13, color: "var(--text-secondary)" }}>{exp.date}</p>
         </div>
         <div style={{ flex: 1, padding: "24px 28px", display: "flex", flexDirection: "column", gap: 20, overflowY: "auto" }}>
@@ -1070,7 +1070,7 @@ function ExpDetailPanel({ exp, onClose, onEdit, onDelete }) {
                 <div style={{ width: 28, height: 28, borderRadius: 8, background: "var(--surface-muted)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 2 }}><Hammer size={14} color="var(--text-muted)" /></div>
                 <div>
                   <p style={{ fontSize: 11, fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 3 }}>Deal</p>
-                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}><span style={{ width: 8, height: 8, borderRadius: "50%", background: "#94a3b8", display: "inline-block" }} /><p style={{ fontSize: 14, color: "var(--text-primary)", fontWeight: 500 }}>{deal.name}</p></div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}><span style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--text-muted)", display: "inline-block" }} /><p style={{ fontSize: 14, color: "var(--text-primary)", fontWeight: 500 }}>{deal.name}</p></div>
                 </div>
               </div>
             )}
@@ -1094,7 +1094,7 @@ function ExpDetailPanel({ exp, onClose, onEdit, onDelete }) {
                   <p style={{ fontSize: 14, color: "var(--text-primary)", fontWeight: 500 }}>{rehabItem.category}</p>
                   <div style={{ display: "flex", gap: 12, marginTop: 4 }}>
                     <p style={{ fontSize: 12, color: "var(--text-secondary)" }}>Budget: <strong style={{ color: "var(--text-primary)" }}>{fmt(rehabItem.budgeted || 0)}</strong></p>
-                    <p style={{ fontSize: 12, color: "var(--text-secondary)" }}>Spent: <strong style={{ color: "#b91c1c" }}>{fmt(rehabItem.spent || 0)}</strong></p>
+                    <p style={{ fontSize: 12, color: "var(--text-secondary)" }}>Spent: <strong style={{ color: "#c0392b" }}>{fmt(rehabItem.spent || 0)}</strong></p>
                   </div>
                 </div>
               </div>
@@ -1123,7 +1123,7 @@ function ExpDetailPanel({ exp, onClose, onEdit, onDelete }) {
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 {receipts.map(r => (
                   <div key={r.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", background: "var(--surface-alt)", borderRadius: 10, border: "1px solid var(--border)" }}>
-                    <div style={{ width: 36, height: 36, borderRadius: 8, background: r.mimeType?.includes("pdf") ? "#fee2e2" : "#fff7ed", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                    <div style={{ width: 36, height: 36, borderRadius: 8, background: r.mimeType?.includes("pdf") ? "#f5d0cc" : "#fff7ed", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                       {r.mimeType?.includes("pdf") ? <FileText size={16} color="var(--c-red)" /> : <FileImage size={16} color="#e95e00" />}
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
@@ -1144,7 +1144,7 @@ function ExpDetailPanel({ exp, onClose, onEdit, onDelete }) {
         </div>
         <div style={{ padding: "18px 28px", borderTop: "1px solid var(--border-subtle)", display: "flex", gap: 10, background: "var(--surface)" }}>
           <button onClick={() => { onClose(); onEdit(exp); }} style={{ flex: 1, padding: "11px 0", background: "var(--surface-muted)", border: "none", borderRadius: 10, cursor: "pointer", fontSize: 14, fontWeight: 600, color: "var(--text-label)", display: "flex", alignItems: "center", justifyContent: "center", gap: 7 }}><Pencil size={14} /> Edit</button>
-          <button onClick={() => { onClose(); onDelete(exp); }} style={{ padding: "11px 18px", background: "#fee2e2", border: "none", borderRadius: 10, cursor: "pointer", fontSize: 14, fontWeight: 600, color: "var(--c-red)", display: "flex", alignItems: "center", justifyContent: "center", gap: 7 }}><Trash2 size={14} /> Delete</button>
+          <button onClick={() => { onClose(); onDelete(exp); }} style={{ padding: "11px 18px", background: "#f5d0cc", border: "none", borderRadius: 10, cursor: "pointer", fontSize: 14, fontWeight: 600, color: "var(--c-red)", display: "flex", alignItems: "center", justifyContent: "center", gap: 7 }}><Trash2 size={14} /> Delete</button>
         </div>
       </div>
     </>
@@ -1358,7 +1358,7 @@ export function DealExpenses({ highlightExpId, onBack, onClearHighlight, backLab
           <span style={{ fontSize: 12, color: "var(--text-muted)", fontWeight: 600 }}>Filtered:</span>
           {filterDeal !== "all" && <span style={{ background: "#fff7ed", color: "#e95e00", borderRadius: 20, padding: "3px 10px", fontSize: 12, fontWeight: 600 }}>{_DEALS.find(f => f.id === parseInt(filterDeal))?.name || filterDeal}</span>}
           {filterCat !== "all" && <span style={{ background: "#fff7ed", color: "#7c2d12", borderRadius: 20, padding: "3px 10px", fontSize: 12, fontWeight: 600 }}>{filterCat}</span>}
-          {dateFilter !== "all" && <span style={{ background: "#f0fdf4", color: "#15803d", borderRadius: 20, padding: "3px 10px", fontSize: 12, fontWeight: 600 }}>{{ thisMonth: "This Month", lastMonth: "Last Month", thisYear: "This Year", lastYear: "Last Year", custom: dateFrom && dateTo ? `${dateFrom} – ${dateTo}` : "Custom Range" }[dateFilter]}</span>}
+          {dateFilter !== "all" && <span style={{ background: "#edf7f2", color: "#1a7a4a", borderRadius: 20, padding: "3px 10px", fontSize: 12, fontWeight: 600 }}>{{ thisMonth: "This Month", lastMonth: "Last Month", thisYear: "This Year", lastYear: "Last Year", custom: dateFrom && dateTo ? `${dateFrom} – ${dateTo}` : "Custom Range" }[dateFilter]}</span>}
           {search && <span style={{ background: "var(--surface-muted)", color: "var(--text-label)", borderRadius: 20, padding: "3px 10px", fontSize: 12, fontWeight: 600 }}>&ldquo;{search}&rdquo;</span>}
           <button onClick={clearAllFilters} style={{ background: "none", border: "none", color: "var(--text-muted)", fontSize: 12, cursor: "pointer", textDecoration: "underline", padding: 0 }}>Clear all</button>
         </div>
@@ -1393,7 +1393,7 @@ export function DealExpenses({ highlightExpId, onBack, onClearHighlight, backLab
                   <td style={{ padding: "12px 16px" }}>
                     {deal && (
                       <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-                        <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#94a3b8" }} />
+                        <span style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--text-muted)" }} />
                         <span style={{ fontSize: 13, color: "var(--text-dim)", fontWeight: 500 }}>{deal.name}</span>
                       </span>
                     )}
@@ -1407,7 +1407,7 @@ export function DealExpenses({ highlightExpId, onBack, onClearHighlight, backLab
                   <td style={{ padding: "12px 16px" }}>
                     <div style={{ display: "flex", gap: 4 }}>
                       <button onClick={ev => { ev.stopPropagation(); openEdit(e); }} style={{ background: "var(--surface-muted)", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "var(--text-label)", display: "flex", alignItems: "center" }} title="Edit"><Pencil size={13} /></button>
-                      <button onClick={ev => { ev.stopPropagation(); setDeleteConfirm(e); }} style={{ background: "#fee2e2", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "var(--c-red)", display: "flex", alignItems: "center" }} title="Delete"><Trash2 size={13} /></button>
+                      <button onClick={ev => { ev.stopPropagation(); setDeleteConfirm(e); }} style={{ background: "#f5d0cc", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "var(--c-red)", display: "flex", alignItems: "center" }} title="Delete"><Trash2 size={13} /></button>
                     </div>
                   </td>
                 </tr>
@@ -1572,7 +1572,7 @@ export function DealExpenses({ highlightExpId, onBack, onClearHighlight, backLab
                   </div>
                 )}
                 {dealReceipts.some(r => r.ocrData) && (
-                  <p style={{ fontSize: 11, color: "#15803d", marginTop: 4, fontStyle: "italic" }}>
+                  <p style={{ fontSize: 11, color: "#1a7a4a", marginTop: 4, fontStyle: "italic" }}>
                     <CheckCircle size={11} style={{ verticalAlign: "middle", marginRight: 3 }} />
                     Fields auto-filled from receipt — please verify
                   </p>
@@ -1593,7 +1593,7 @@ export function DealExpenses({ highlightExpId, onBack, onClearHighlight, backLab
             <p style={{ color: "var(--text-label)", fontSize: 14, marginBottom: 8 }}>Are you sure you want to delete this expense?</p>
             <div style={{ background: "var(--surface-alt)", borderRadius: 10, padding: 14, marginBottom: 18 }}>
               <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>{deleteConfirm.description}</p>
-              <p style={{ fontSize: 12, color: "var(--text-secondary)", marginTop: 4 }}>{deleteConfirm.vendor} · {deleteConfirm.date} · <span style={{ color: "#b91c1c", fontWeight: 700 }}>${deleteConfirm.amount?.toLocaleString()}</span></p>
+              <p style={{ fontSize: 12, color: "var(--text-secondary)", marginTop: 4 }}>{deleteConfirm.vendor} · {deleteConfirm.date} · <span style={{ color: "#c0392b", fontWeight: 700 }}>${deleteConfirm.amount?.toLocaleString()}</span></p>
             </div>
             <p style={{ color: "var(--text-muted)", fontSize: 12, marginBottom: 18 }}>This action cannot be undone.</p>
             <div style={{ display: "flex", gap: 10 }}>
@@ -1612,8 +1612,8 @@ export function DealExpenses({ highlightExpId, onBack, onClearHighlight, backLab
 // ---------------------------------------------------------------------------
 const STATUS_STYLES = {
   active:   { bg: "var(--info-tint)", text: "var(--c-blue)", label: "Active"   },
-  complete: { bg: "#dcfce7", text: "#15803d", label: "Complete" },
-  pending:  { bg: "#f1f5f9", text: "#64748b", label: "Pending"  },
+  complete: { bg: "#cce8d8", text: "#1a7a4a", label: "Complete" },
+  pending:  { bg: "#f1f5f9", text: "var(--text-secondary)", label: "Pending"  },
 };
 
 export function DealContractors({ onSelectContractor }) {
@@ -1678,7 +1678,7 @@ export function DealContractors({ onSelectContractor }) {
         <StatCard icon={Users} label="Contractors" value={filtered.length} sub={filterDeal !== "all" ? `of ${_CON.length} total` : `${_CON.filter(c => (c.dealIds || []).length > 0).length} with active deals`} color="#e95e00" tip="Number of contractors matching the current filters." />
         <StatCard icon={DollarSign} label="Accepted Bids" value={fmt(totalBids)} sub={`${filtered.length} contractor${filtered.length !== 1 ? "s" : ""}`} color="#e95e00" tip="Sum of all accepted bid amounts for contractors in the current view." />
         <StatCard icon={CheckCircle} label="Total Paid" value={fmt(totalPaid)} sub="Disbursed to date" color="var(--c-green)" tip="Total payments disbursed to contractors in the current view." />
-        <StatCard icon={AlertCircle} label="Outstanding" value={fmt(outstanding)} sub="Remaining balance" color={outstanding > 0 ? "#e95e00" : "#94a3b8"} semantic tip="Accepted Bids − Total Paid. Amount still owed to contractors in the current view." />
+        <StatCard icon={AlertCircle} label="Outstanding" value={fmt(outstanding)} sub="Remaining balance" color={outstanding > 0 ? "#e95e00" : "var(--text-muted)"} semantic tip="Accepted Bids − Total Paid. Amount still owed to contractors in the current view." />
       </div>
 
       <div style={{ display: "flex", gap: 10, marginBottom: 18 }}>
@@ -1959,7 +1959,7 @@ export function ContractorDetail({ contractor, onBack, initialTab }) {
   }, []);
 
   const DOC_TYPES = { contract: "Contract", w9: "W-9", insurance: "Insurance", lienWaiver: "Lien Waiver", changeOrder: "Change Order", warranty: "Warranty", invoice: "Invoice", other: "Other" };
-  const DOC_COLORS = { contract: "var(--c-blue)", w9: "var(--c-purple)", insurance: "var(--c-green)", lienWaiver: "#e95e00", changeOrder: "var(--c-red)", warranty: "#06b6d4", invoice: "#ec4899", other: "#64748b" };
+  const DOC_COLORS = { contract: "var(--c-blue)", w9: "var(--c-purple)", insurance: "var(--c-green)", lienWaiver: "#e95e00", changeOrder: "var(--c-red)", warranty: "#06b6d4", invoice: "#ec4899", other: "var(--text-secondary)" };
 
   return (
     <div>
@@ -2077,12 +2077,12 @@ export function ContractorDetail({ contractor, onBack, initialTab }) {
                   </div>
                   <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)", minWidth: 80, textAlign: "right" }}>{fmt(b.amount)}</span>
                   <button onClick={(e) => { e.stopPropagation(); toggleBidStatus(b.id); }}
-                    style={{ background: b.status === "accepted" ? "#dcfce7" : "#fff7ed", color: b.status === "accepted" ? "#15803d" : "#9a3412", border: "none", borderRadius: 20, padding: "3px 12px", fontSize: 11, fontWeight: 600, cursor: "pointer", minWidth: 70 }}>
+                    style={{ background: b.status === "accepted" ? "#cce8d8" : "#fff7ed", color: b.status === "accepted" ? "#1a7a4a" : "#9a3412", border: "none", borderRadius: 20, padding: "3px 12px", fontSize: 11, fontWeight: 600, cursor: "pointer", minWidth: 70 }}>
                     {b.status === "accepted" ? "Accepted" : "Pending"}
                   </button>
                   <span style={{ fontSize: 12, color: "var(--text-muted)", minWidth: 80 }}>{b.date}</span>
                   <button onClick={(e) => { e.stopPropagation(); openEditBid(b); }} style={{ background: "var(--surface-muted)", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "var(--text-label)", display: "flex", alignItems: "center" }} title="Edit"><Pencil size={13} /></button>
-                  <button onClick={(e) => { e.stopPropagation(); setDeleteConfirm({ type: "bid", id: b.id, label: b.rehabItem }); }} style={{ background: "#fee2e2", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "var(--c-red)", display: "flex", alignItems: "center" }} title="Delete"><Trash2 size={13} /></button>
+                  <button onClick={(e) => { e.stopPropagation(); setDeleteConfirm({ type: "bid", id: b.id, label: b.rehabItem }); }} style={{ background: "#f5d0cc", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "var(--c-red)", display: "flex", alignItems: "center" }} title="Delete"><Trash2 size={13} /></button>
                 </div>
               );
             })}
@@ -2101,7 +2101,7 @@ export function ContractorDetail({ contractor, onBack, initialTab }) {
             {documents.length === 0 && <div style={{ gridColumn: "1/-1", padding: 40, textAlign: "center", color: "var(--text-muted)", fontSize: 14 }}>No documents yet.</div>}
             {documents.map(d => {
               const fl = d.dealId ? _DEALS.find(f => f.id === d.dealId) : null;
-              const typeColor = DOC_COLORS[d.type] || "#64748b";
+              const typeColor = DOC_COLORS[d.type] || "var(--text-secondary)";
               return (
                 <div key={d.id} style={{ background: "var(--surface)", borderRadius: 12, padding: 16, border: "1px solid var(--border-subtle)" }}>
                   <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 8 }}>
@@ -2111,7 +2111,7 @@ export function ContractorDetail({ contractor, onBack, initialTab }) {
                     </div>
                     <div style={{ display: "flex", gap: 4 }}>
                       <button onClick={() => openEditDoc(d)} style={{ background: "var(--surface-muted)", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "var(--text-label)", display: "flex", alignItems: "center" }} title="Edit"><Pencil size={13} /></button>
-                      <button onClick={() => setDeleteConfirm({ type: "doc", id: d.id, label: d.name })} style={{ background: "#fee2e2", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "var(--c-red)", display: "flex", alignItems: "center" }} title="Delete"><Trash2 size={13} /></button>
+                      <button onClick={() => setDeleteConfirm({ type: "doc", id: d.id, label: d.name })} style={{ background: "#f5d0cc", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "var(--c-red)", display: "flex", alignItems: "center" }} title="Delete"><Trash2 size={13} /></button>
                     </div>
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
@@ -2140,7 +2140,7 @@ export function ContractorDetail({ contractor, onBack, initialTab }) {
               const dealDocs = documents.filter(d => d.dealId === fl.id);
               const dealBidTotal = dealBids.reduce((s, b) => s + b.amount, 0);
               const dealPaidTotal = dealPayments.reduce((s, p) => s + p.amount, 0);
-              const stageStyle = STAGE_COLORS[fl.stage] || { bg: "#f1f5f9", text: "#64748b" };
+              const stageStyle = STAGE_COLORS[fl.stage] || { bg: "#f1f5f9", text: "var(--text-secondary)" };
               return (
                 <div key={fl.id} style={{ background: "var(--surface)", borderRadius: 14, padding: 20, border: "1px solid var(--border-subtle)" }}>
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
@@ -2165,7 +2165,7 @@ export function ContractorDetail({ contractor, onBack, initialTab }) {
                         {dealPayments.map((p, i) => (
                           <div key={p.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", fontSize: 13, borderBottom: i < dealPayments.length - 1 ? "1px solid var(--border-subtle)" : "none" }}>
                             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                              <div style={{ width: 28, height: 28, borderRadius: 8, background: "#dcfce7", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                              <div style={{ width: 28, height: 28, borderRadius: 8, background: "#cce8d8", display: "flex", alignItems: "center", justifyContent: "center" }}>
                                 <DollarSign size={14} color="var(--c-green)" />
                               </div>
                               <div>
@@ -2533,8 +2533,8 @@ export function DealAnalytics() {
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                  <XAxis dataKey="date" tick={{ fontSize: 11, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fontSize: 12, fill: "#94a3b8" }} axisLine={false} tickLine={false} tickFormatter={v => `$${(v/1000).toFixed(0)}K`} />
+                  <XAxis dataKey="date" tick={{ fontSize: 11, fill: "var(--text-muted)" }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 12, fill: "var(--text-muted)" }} axisLine={false} tickLine={false} tickFormatter={v => `$${(v/1000).toFixed(0)}K`} />
                   <Tooltip formatter={v => fmt(v)} cursor={{ fill: "transparent" }} contentStyle={{ borderRadius: 10, border: "1px solid var(--border)", fontSize: 12, background: "var(--tooltip-bg)", color: "var(--tooltip-text)" }} itemStyle={{ color: "var(--tooltip-text)" }} />
                   <ReferenceLine y={singleDeal.rehabBudget} stroke="var(--c-red)" strokeDasharray="6 4" label={{ value: "Budget", position: "right", fontSize: 11, fill: "var(--c-red)" }} />
                   <Area type="monotone" dataKey="spent" stroke="#e95e00" strokeWidth={2.5} fill="url(#spendGrad)" dot={{ fill: "#e95e00", r: 3 }} />
@@ -2614,8 +2614,8 @@ export function DealAnalytics() {
                   <div key={i} style={{ display: "flex", alignItems: "center", gap: 14 }}>
                     {/* Status icon + category name */}
                     <div style={{ display: "flex", alignItems: "center", gap: 8, width: 160, flexShrink: 0 }}>
-                      <div style={{ width: 28, height: 28, borderRadius: 7, background: item.status === "complete" ? "#dcfce7" : item.status === "in-progress" ? "#ffedd5" : "#f1f5f9", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                        <StatusIcon size={13} color={item.status === "complete" ? "#16a34a" : item.status === "in-progress" ? "#d97706" : "#94a3b8"} />
+                      <div style={{ width: 28, height: 28, borderRadius: 7, background: item.status === "complete" ? "#cce8d8" : item.status === "in-progress" ? "#ffedd5" : "#f1f5f9", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                        <StatusIcon size={13} color={item.status === "complete" ? "#16a34a" : item.status === "in-progress" ? "#d97706" : "var(--text-muted)"} />
                       </div>
                       <div style={{ minWidth: 0 }}>
                         <p style={{ fontSize: 12, fontWeight: 600, color: "var(--text-primary)", lineHeight: 1.2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }} title={item.fullName}>{item.fullName}</p>
@@ -2784,8 +2784,8 @@ export function DealAnalytics() {
             <ResponsiveContainer width="100%" height={200}>
               <LineChart data={monthlyTrend}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                <XAxis dataKey="month" tick={{ fontSize: 11, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 12, fill: "#94a3b8" }} axisLine={false} tickLine={false} tickFormatter={v => `$${(v/1000).toFixed(0)}K`} />
+                <XAxis dataKey="month" tick={{ fontSize: 11, fill: "var(--text-muted)" }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fontSize: 12, fill: "var(--text-muted)" }} axisLine={false} tickLine={false} tickFormatter={v => `$${(v/1000).toFixed(0)}K`} />
                 <Tooltip formatter={v => [fmt(v), "Spent"]} cursor={{ fill: "transparent" }} contentStyle={{ borderRadius: 10, border: "1px solid var(--border)", fontSize: 12, background: "var(--tooltip-bg)", color: "var(--tooltip-text)" }} itemStyle={{ color: "var(--tooltip-text)" }} />
                 <Line type="monotone" dataKey="total" stroke="#e95e00" strokeWidth={2.5} dot={{ fill: "#e95e00", r: 4 }} activeDot={{ r: 6 }} />
               </LineChart>
@@ -3068,7 +3068,7 @@ export function DealMilestones({ highlightMilestoneKey, onBack, onClearHighlight
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, marginBottom: 24 }}>
         <StatCard icon={CheckCircle} label="Completed" value={totalDone} sub={`of ${filtered.length} total`} color="var(--c-green)" tip="Milestones marked as done across all deals." />
         <StatCard icon={Clock} label="Upcoming" value={totalUpcoming} sub="Not yet done" color="var(--c-blue)" tip="Milestones not yet completed and within their target date." />
-        <StatCard icon={AlertCircle} label="Overdue" value={totalOverdue} sub="Past target date" color={totalOverdue > 0 ? "var(--c-red)" : "#94a3b8"} semantic tip="Milestones past their target date that haven't been completed." />
+        <StatCard icon={AlertCircle} label="Overdue" value={totalOverdue} sub="Past target date" color={totalOverdue > 0 ? "var(--c-red)" : "var(--text-muted)"} semantic tip="Milestones past their target date that haven't been completed." />
       </div>
 
       {/* Filter bar */}
@@ -3141,7 +3141,7 @@ export function DealMilestones({ highlightMilestoneKey, onBack, onClearHighlight
                     </div>
                   </div>
                 ) : isCompleting ? (
-                  <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", borderRadius: 8, background: "#f0fdf4", border: "1px solid #bbf7d0" }}>
+                  <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", borderRadius: 8, background: "#edf7f2", border: "1px solid #9fcfb4" }}>
                     <CheckCircle size={18} color="var(--c-green)" />
                     <span style={{ fontSize: 13, fontWeight: 500, color: "var(--text-primary)", flex: 1 }}>{m.label}</span>
                     <span style={{ fontSize: 11, color: "var(--text-secondary)" }}>Completed:</span>
@@ -3150,13 +3150,13 @@ export function DealMilestones({ highlightMilestoneKey, onBack, onClearHighlight
                     <button onClick={() => setCompletingItem(null)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)", padding: 0 }}><X size={14} /></button>
                   </div>
                 ) : (
-                  <div key={i} id={"ms-" + deal.id + "-" + m.label} className="ms-row" onMouseEnter={e => { if (flashKey !== (deal.id + "-" + m.label)) e.currentTarget.style.background = "var(--surface-alt)"; }} onMouseLeave={e => { if (flashKey !== (deal.id + "-" + m.label)) e.currentTarget.style.background = m.done ? "#f0fdf4" : overdue ? "#fef2f2" : "var(--surface-alt)"; }} style={{ display: "flex", alignItems: "center", gap: 12, padding: "8px 10px", borderRadius: 8, background: flashKey === (deal.id + "-" + m.label) ? "#fff7ed" : m.done ? "#f0fdf4" : overdue ? "#fef2f2" : "var(--surface-alt)", border: `1px solid ${flashKey === (deal.id + "-" + m.label) ? "#e95e00" : m.done ? "#bbf7d0" : overdue ? "#fecaca" : "var(--border-subtle)"}`, boxShadow: flashKey === (deal.id + "-" + m.label) ? "0 0 0 2px #e95e00" : "none", position: "relative", transition: "all 0.4s ease" }}>
+                  <div key={i} id={"ms-" + deal.id + "-" + m.label} className="ms-row" onMouseEnter={e => { if (flashKey !== (deal.id + "-" + m.label)) e.currentTarget.style.background = "var(--surface-alt)"; }} onMouseLeave={e => { if (flashKey !== (deal.id + "-" + m.label)) e.currentTarget.style.background = m.done ? "#edf7f2" : overdue ? "#faeeed" : "var(--surface-alt)"; }} style={{ display: "flex", alignItems: "center", gap: 12, padding: "8px 10px", borderRadius: 8, background: flashKey === (deal.id + "-" + m.label) ? "#fff7ed" : m.done ? "#edf7f2" : overdue ? "#faeeed" : "var(--surface-alt)", border: `1px solid ${flashKey === (deal.id + "-" + m.label) ? "#e95e00" : m.done ? "#9fcfb4" : overdue ? "#fecaca" : "var(--border-subtle)"}`, boxShadow: flashKey === (deal.id + "-" + m.label) ? "0 0 0 2px #e95e00" : "none", position: "relative", transition: "all 0.4s ease" }}>
                     <button onClick={() => m.done ? uncomplete(deal.id, m._idx) : startComplete(deal.id, m._idx)} style={{ background: "none", border: "none", cursor: "pointer", padding: 0, display: "flex", flexShrink: 0 }}>
                       {m.done ? <CheckCircle size={18} color="var(--c-green)" /> : <Circle size={18} color={overdue ? "var(--c-red)" : "#cbd5e1"} />}
                     </button>
                     <span style={{ flex: 1, fontSize: 13, fontWeight: 500, color: m.done ? "#6b7280" : "var(--text-primary)", textDecoration: m.done ? "line-through" : "none" }}>{m.label}</span>
                     {m.targetDate && (
-                      <span style={{ fontSize: 11, color: overdue ? "var(--c-red)" : "#94a3b8", fontWeight: overdue ? 600 : 400, flexShrink: 0 }}>
+                      <span style={{ fontSize: 11, color: overdue ? "var(--c-red)" : "var(--text-muted)", fontWeight: overdue ? 600 : 400, flexShrink: 0 }}>
                         {overdue ? "Overdue: " : "Target: "}{new Date(m.targetDate).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
                       </span>
                     )}
@@ -3167,7 +3167,7 @@ export function DealMilestones({ highlightMilestoneKey, onBack, onClearHighlight
                     )}
                     <div style={{ display: "flex", gap: 4, flexShrink: 0, marginLeft: 4 }}>
                       <button onClick={() => startEdit(deal.id, m._idx, m)} style={{ background: "var(--surface-muted)", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "var(--text-label)", display: "flex", alignItems: "center" }} title="Edit"><Pencil size={13} /></button>
-                      <button onClick={() => setDeleteConfirm({ dealId: deal.id, idx: m._idx, label: m.label })} style={{ background: "#fee2e2", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "var(--c-red)", display: "flex", alignItems: "center" }} title="Delete"><Trash2 size={13} /></button>
+                      <button onClick={() => setDeleteConfirm({ dealId: deal.id, idx: m._idx, label: m.label })} style={{ background: "#f5d0cc", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "var(--c-red)", display: "flex", alignItems: "center" }} title="Delete"><Trash2 size={13} /></button>
                     </div>
                   </div>
                 );
@@ -3403,7 +3403,7 @@ export function DealNotes({ highlightNoteId, onBack, onClearHighlight }) {
                   </div>
                   <div style={{ display: "flex", gap: 4 }}>
                     <button onClick={() => openEdit(n)} style={{ background: "var(--surface-muted)", border: "none", borderRadius: 7, padding: "4px 7px", cursor: "pointer", color: "var(--text-label)", display: "flex", alignItems: "center" }} title="Edit"><Pencil size={12} /></button>
-                    <button onClick={() => setDeleteConfirm(n)} style={{ background: "#fee2e2", border: "none", borderRadius: 7, padding: "4px 7px", cursor: "pointer", color: "var(--c-red)", display: "flex", alignItems: "center" }} title="Delete"><Trash2 size={12} /></button>
+                    <button onClick={() => setDeleteConfirm(n)} style={{ background: "#f5d0cc", border: "none", borderRadius: 7, padding: "4px 7px", cursor: "pointer", color: "var(--c-red)", display: "flex", alignItems: "center" }} title="Delete"><Trash2 size={12} /></button>
                   </div>
                 </div>
                 <p style={{ fontSize: 13, color: "var(--text-label)", lineHeight: 1.6 }}>{n.text}</p>

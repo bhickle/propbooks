@@ -19,7 +19,7 @@ import { DEALS as _DEALS, DEAL_EXPENSES as _FE, CONTRACTORS as _CON } from "./ap
 const iS = { width: "100%", padding: "10px 14px", borderRadius: 10, border: "1.5px solid var(--border)", fontSize: 14, color: "var(--text-primary)", background: "var(--surface)", outline: "none" };
 const thS = { padding: "11px 16px", textAlign: "left", color: "var(--text-muted)", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", background: "var(--surface-alt)" };
 const tdS = { padding: "12px 16px", fontSize: 13, color: "var(--text-primary)", borderTop: "1px solid var(--border-subtle)" };
-const sectionS = { background: "var(--surface)", borderRadius: 16, padding: 24, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)" };
+const sectionS = { background: "var(--surface)", borderRadius: 16, padding: 24, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)", marginBottom: 24 };
 
 // ─── InfoTip ─────────────────────────────────────────────────────────────────
 function InfoTip({ text }) {
@@ -121,14 +121,14 @@ export function DealReports() {
         <div style={{ background: "var(--surface)", borderRadius: 16, padding: 10, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)", height: "fit-content" }}>
           <p style={{ fontSize: 10, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", padding: "8px 14px 4px" }}>Profitability</p>
           {profitReports.map(r => (
-            <button key={r.id} onClick={() => setActiveReport(r.id)} style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "11px 14px", borderRadius: 10, border: "none", background: activeReport === r.id ? "var(--active-highlight)" : "transparent", color: activeReport === r.id ? "var(--c-blue)" : "var(--text-label)", fontWeight: activeReport === r.id ? 700 : 500, fontSize: 14, cursor: "pointer", marginBottom: 2, textAlign: "left" }}>
+            <button key={r.id} onClick={() => setActiveReport(r.id)} style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "11px 14px", borderRadius: 10, border: "none", background: activeReport === r.id ? "var(--active-highlight)" : "transparent", color: activeReport === r.id ? "#e95e00" : "var(--text-label)", fontWeight: activeReport === r.id ? 700 : 500, fontSize: 14, cursor: "pointer", marginBottom: 2, textAlign: "left" }}>
               <r.icon size={16} /> {r.label}
             </button>
           ))}
           <div style={{ borderTop: "1px solid var(--border-subtle)", margin: "8px 14px", paddingTop: 0 }} />
           <p style={{ fontSize: 10, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", padding: "4px 14px 4px" }}>Operational</p>
           {operationalReports.map(r => (
-            <button key={r.id} onClick={() => setActiveReport(r.id)} style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "11px 14px", borderRadius: 10, border: "none", background: activeReport === r.id ? "var(--active-highlight)" : "transparent", color: activeReport === r.id ? "var(--c-blue)" : "var(--text-label)", fontWeight: activeReport === r.id ? 700 : 500, fontSize: 14, cursor: "pointer", marginBottom: 2, textAlign: "left" }}>
+            <button key={r.id} onClick={() => setActiveReport(r.id)} style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "11px 14px", borderRadius: 10, border: "none", background: activeReport === r.id ? "var(--active-highlight)" : "transparent", color: activeReport === r.id ? "#e95e00" : "var(--text-label)", fontWeight: activeReport === r.id ? 700 : 500, fontSize: 14, cursor: "pointer", marginBottom: 2, textAlign: "left" }}>
               <r.icon size={16} /> {r.label}
             </button>
           ))}
@@ -179,7 +179,7 @@ function ProfitabilityReport({ deals }) {
             </thead>
             <tbody>
               {sorted.map(d => {
-                const stg = STAGE_COLORS[d.stage] || { bg: "#f1f5f9", text: "#64748b" };
+                const stg = STAGE_COLORS[d.stage] || { bg: "#f1f5f9", text: "var(--text-secondary)" };
                 return (
                   <tr key={d.id}>
                     <td style={{ ...tdS, fontWeight: 600 }}>
@@ -195,9 +195,9 @@ function ProfitabilityReport({ deals }) {
                     <td style={{ ...tdS, textAlign: "right" }}>{fmt(d.m.sellingCosts)}</td>
                     <td style={{ ...tdS, textAlign: "right", fontWeight: 600 }}>{fmt(d.m.totalInvested)}</td>
                     <td style={{ ...tdS, textAlign: "right" }}>{fmt(d.m.saleOrARV)}</td>
-                    <td style={{ ...tdS, textAlign: "right", fontWeight: 700, color: d.m.profit >= 0 ? "#15803d" : "#b91c1c" }}>{fmt(d.m.profit)}</td>
-                    <td style={{ ...tdS, textAlign: "right", fontWeight: 600, color: d.m.roi >= 0 ? "#15803d" : "#b91c1c" }}>{d.m.roi.toFixed(1)}%</td>
-                    <td style={{ ...tdS, textAlign: "right", color: "#64748b" }}>{d.m.daysOwned > 0 ? `${d.m.annualized.toFixed(1)}%` : "—"}</td>
+                    <td style={{ ...tdS, textAlign: "right", fontWeight: 700, color: d.m.profit >= 0 ? "#1a7a4a" : "#c0392b" }}>{fmt(d.m.profit)}</td>
+                    <td style={{ ...tdS, textAlign: "right", fontWeight: 600, color: d.m.roi >= 0 ? "#1a7a4a" : "#c0392b" }}>{d.m.roi.toFixed(1)}%</td>
+                    <td style={{ ...tdS, textAlign: "right", color: "var(--text-secondary)" }}>{d.m.daysOwned > 0 ? `${d.m.annualized.toFixed(1)}%` : "—"}</td>
                   </tr>
                 );
               })}
@@ -212,7 +212,7 @@ function ProfitabilityReport({ deals }) {
                   <td style={{ ...tdS, textAlign: "right", fontWeight: 700 }}>{fmt(sorted.reduce((s, d) => s + d.m.sellingCosts, 0))}</td>
                   <td style={{ ...tdS, textAlign: "right", fontWeight: 700 }}>{fmt(sorted.reduce((s, d) => s + d.m.totalInvested, 0))}</td>
                   <td style={{ ...tdS, textAlign: "right", fontWeight: 700 }}>{fmt(sorted.reduce((s, d) => s + d.m.saleOrARV, 0))}</td>
-                  <td style={{ ...tdS, textAlign: "right", fontWeight: 700, color: sorted.reduce((s, d) => s + d.m.profit, 0) >= 0 ? "#15803d" : "#b91c1c" }}>{fmt(sorted.reduce((s, d) => s + d.m.profit, 0))}</td>
+                  <td style={{ ...tdS, textAlign: "right", fontWeight: 700, color: sorted.reduce((s, d) => s + d.m.profit, 0) >= 0 ? "#1a7a4a" : "#c0392b" }}>{fmt(sorted.reduce((s, d) => s + d.m.profit, 0))}</td>
                   <td style={tdS} colSpan={2} />
                 </tr>
               </tfoot>
@@ -233,7 +233,7 @@ function ProfitabilityReport({ deals }) {
               <YAxis tickFormatter={v => fmtK(v)} tick={{ fontSize: 12, fill: "var(--chart-axis)" }} />
               <Tooltip formatter={v => fmt(v)} labelFormatter={(label, payload) => payload?.[0]?.payload?.fullName || label} cursor={{ fill: "transparent" }} contentStyle={{ borderRadius: 10, border: "1px solid var(--tooltip-border)", fontSize: 12, background: "var(--tooltip-bg)", color: "var(--tooltip-text)" }} itemStyle={{ color: "var(--tooltip-text)" }} />
               <Bar dataKey="profit" name="Profit" radius={[6, 6, 0, 0]}>
-                {chartData.map((d, i) => <Cell key={i} fill={d.profit >= 0 ? "#10b981" : "#ef4444"} />)}
+                {chartData.map((d, i) => <Cell key={i} fill={d.profit >= 0 ? "#1a7a4a" : "#c0392b"} />)}
               </Bar>
             </BarChart>
           </ResponsiveContainer>
@@ -271,8 +271,8 @@ function RehabBudgetReport({ deals }) {
               </div>
               <div style={{ display: "flex", gap: 16, fontSize: 13 }}>
                 <span style={{ color: "var(--text-secondary)" }}>Budget: <strong style={{ color: "var(--text-primary)" }}>{fmt(totalBudget)}</strong></span>
-                <span style={{ color: "var(--text-secondary)" }}>Spent: <strong style={{ color: totalSpent > totalBudget ? "#b91c1c" : "var(--text-primary)" }}>{fmt(totalSpent)}</strong></span>
-                <span style={{ color: variance > 0 ? "#b91c1c" : "#15803d", fontWeight: 700 }}>{variance > 0 ? "+" : ""}{variance.toFixed(1)}%</span>
+                <span style={{ color: "var(--text-secondary)" }}>Spent: <strong style={{ color: totalSpent > totalBudget ? "#c0392b" : "var(--text-primary)" }}>{fmt(totalSpent)}</strong></span>
+                <span style={{ color: variance > 0 ? "#c0392b" : "#1a7a4a", fontWeight: 700 }}>{variance > 0 ? "+" : ""}{variance.toFixed(1)}%</span>
               </div>
             </div>
 
@@ -289,7 +289,7 @@ function RehabBudgetReport({ deals }) {
                 {items.map((item, idx) => {
                   const v = item.budgeted > 0 ? ((item.spent - item.budgeted) / item.budgeted * 100) : 0;
                   const pct = item.budgeted > 0 ? Math.min(100, (item.spent / item.budgeted) * 100) : 0;
-                  const statusMap = { complete: { bg: "#dcfce7", text: "#15803d" }, "in-progress": { bg: "#dbeafe", text: "#1d4ed8" }, pending: { bg: "#f1f5f9", text: "#64748b" } };
+                  const statusMap = { complete: { bg: "#cce8d8", text: "#1a7a4a" }, "in-progress": { bg: "#dbeafe", text: "#1d4ed8" }, pending: { bg: "#f1f5f9", text: "var(--text-secondary)" } };
                   const st = statusMap[item.status] || statusMap.pending;
                   return (
                     <tr key={idx}>
@@ -297,11 +297,11 @@ function RehabBudgetReport({ deals }) {
                       <td style={tdS}><span style={{ background: st.bg, color: st.text, borderRadius: 20, padding: "2px 10px", fontSize: 11, fontWeight: 600, textTransform: "capitalize" }}>{item.status}</span></td>
                       <td style={{ ...tdS, textAlign: "right" }}>{fmt(item.budgeted)}</td>
                       <td style={{ ...tdS, textAlign: "right" }}>{fmt(item.spent)}</td>
-                      <td style={{ ...tdS, textAlign: "right", fontWeight: 600, color: v > 0 ? "#b91c1c" : v < 0 ? "#15803d" : "#64748b" }}>{v > 0 ? "+" : ""}{v.toFixed(1)}%</td>
+                      <td style={{ ...tdS, textAlign: "right", fontWeight: 600, color: v > 0 ? "#c0392b" : v < 0 ? "#1a7a4a" : "var(--text-secondary)" }}>{v > 0 ? "+" : ""}{v.toFixed(1)}%</td>
                       <td style={{ ...tdS, minWidth: 120 }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                           <div style={{ flex: 1, height: 6, background: "var(--surface-muted)", borderRadius: 99, overflow: "hidden" }}>
-                            <div style={{ height: "100%", width: `${pct}%`, background: pct > 100 ? "#ef4444" : pct === 100 ? "#10b981" : "#3b82f6", borderRadius: 99, transition: "width 0.3s" }} />
+                            <div style={{ height: "100%", width: `${pct}%`, background: pct > 100 ? "#c0392b" : pct === 100 ? "#1a7a4a" : "#3b82f6", borderRadius: 99, transition: "width 0.3s" }} />
                           </div>
                           <span style={{ fontSize: 11, color: "var(--text-secondary)", minWidth: 32 }}>{Math.round(pct)}%</span>
                         </div>
@@ -373,9 +373,9 @@ function HoldingCostsReport({ deals }) {
                   <td style={{ ...tdS, textAlign: "right", fontWeight: 600 }}>{d.m.daysOwned || "—"}</td>
                   <td style={{ ...tdS, textAlign: "right" }}>{fmt(d.m.holdPerMonth)}<span style={{ color: "var(--text-muted)", fontSize: 11 }}>/mo</span></td>
                   <td style={{ ...tdS, textAlign: "right" }}>{fmt(daily)}<span style={{ color: "var(--text-muted)", fontSize: 11 }}>/day</span></td>
-                  <td style={{ ...tdS, textAlign: "right", fontWeight: 700, color: "#b91c1c" }}>{fmt(d.m.totalHolding)}</td>
+                  <td style={{ ...tdS, textAlign: "right", fontWeight: 700, color: "#c0392b" }}>{fmt(d.m.totalHolding)}</td>
                   <td style={{ ...tdS, textAlign: "right" }}>{pctInv.toFixed(1)}%</td>
-                  <td style={{ ...tdS, textAlign: "right", color: holdVsProfit > 30 ? "#b91c1c" : "var(--text-secondary)" }}>{d.m.profit > 0 ? `${holdVsProfit.toFixed(1)}%` : "—"}</td>
+                  <td style={{ ...tdS, textAlign: "right", color: holdVsProfit > 30 ? "#c0392b" : "var(--text-secondary)" }}>{d.m.profit > 0 ? `${holdVsProfit.toFixed(1)}%` : "—"}</td>
                 </tr>
               );
             })}
@@ -443,7 +443,7 @@ function ContractorPaymentsReport({ dealFilter }) {
     if (paid > 0) byTrade[c.trade] = (byTrade[c.trade] || 0) + paid;
   });
   const pieData = Object.entries(byTrade).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value);
-  const PIE_COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#8b5cf6", "#ef4444", "#06b6d4", "#ec4899", "#64748b"];
+  const PIE_COLORS = ["#3b82f6", "#1a7a4a", "#f59e0b", "#8b5cf6", "#c0392b", "#06b6d4", "#ec4899", "var(--text-secondary)"];
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
@@ -500,8 +500,8 @@ function ContractorPaymentsReport({ dealFilter }) {
                     <td style={{ ...tdS, textAlign: "right" }}>{dealCount}</td>
                     <td style={{ ...tdS, textAlign: "right" }}>{fmt(bidTotal)}</td>
                     <td style={{ ...tdS, textAlign: "right" }}>{fmt(acceptTotal)}</td>
-                    <td style={{ ...tdS, textAlign: "right", fontWeight: 600, color: "#10b981" }}>{fmt(paidTotal)}</td>
-                    <td style={{ ...tdS, textAlign: "right", fontWeight: 600, color: owed > 0 ? "#b91c1c" : "#10b981" }}>{fmt(owed)}</td>
+                    <td style={{ ...tdS, textAlign: "right", fontWeight: 600, color: "#1a7a4a" }}>{fmt(paidTotal)}</td>
+                    <td style={{ ...tdS, textAlign: "right", fontWeight: 600, color: owed > 0 ? "#c0392b" : "#1a7a4a" }}>{fmt(owed)}</td>
                     <td style={{ ...tdS, textAlign: "right" }}>{acceptRate}%</td>
                   </tr>
                 );
@@ -568,10 +568,10 @@ function CapitalGainsReport({ deals }) {
       {/* Summary */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14 }}>
         {[
-          { label: "Total Capital Gains", value: fmt(totalGains), color: totalGains >= 0 ? "#15803d" : "#b91c1c", tip: "Sum of profit across all deals" },
-          { label: "Estimated Tax",       value: fmt(totalTax),   color: "#ef4444", tip: "22% short-term, 15% long-term estimate" },
+          { label: "Total Capital Gains", value: fmt(totalGains), color: totalGains >= 0 ? "#1a7a4a" : "#c0392b", tip: "Sum of profit across all deals" },
+          { label: "Estimated Tax",       value: fmt(totalTax),   color: "#c0392b", tip: "22% short-term, 15% long-term estimate" },
           { label: "Short-Term Deals",    value: String(shortCount), color: "#f59e0b", tip: "Held less than 1 year — taxed as ordinary income" },
-          { label: "Long-Term Deals",     value: String(longCount),  color: "#10b981", tip: "Held 1+ years — lower capital gains rate" },
+          { label: "Long-Term Deals",     value: String(longCount),  color: "#1a7a4a", tip: "Held 1+ years — lower capital gains rate" },
         ].map((m, i) => (
           <div key={i} style={{ background: "var(--surface)", borderRadius: 16, padding: "18px 20px", border: "1px solid var(--border-subtle)" }}>
             <p style={{ color: "var(--text-muted)", fontSize: 10, fontWeight: 600, textTransform: "uppercase", marginBottom: 4 }}>{m.label}<InfoTip text={m.tip} /></p>
@@ -605,13 +605,13 @@ function CapitalGainsReport({ deals }) {
                 <td style={{ ...tdS, textAlign: "right", fontSize: 12 }}>{r.saleDate || "projected"}</td>
                 <td style={{ ...tdS, textAlign: "right" }}>{r.holdDays || "—"}</td>
                 <td style={{ ...tdS, textAlign: "right" }}>
-                  <span style={{ background: r.isShortTerm ? "#fef9c3" : "#dcfce7", color: r.isShortTerm ? "#a16207" : "#15803d", borderRadius: 20, padding: "2px 10px", fontSize: 11, fontWeight: 600 }}>
+                  <span style={{ background: r.isShortTerm ? "#fef9c3" : "#cce8d8", color: r.isShortTerm ? "#a16207" : "#1a7a4a", borderRadius: 20, padding: "2px 10px", fontSize: 11, fontWeight: 600 }}>
                     {r.isShortTerm ? "Short-Term" : "Long-Term"}
                   </span>
                 </td>
-                <td style={{ ...tdS, textAlign: "right", fontWeight: 700, color: r.gain >= 0 ? "#15803d" : "#b91c1c" }}>{fmt(r.gain)}</td>
+                <td style={{ ...tdS, textAlign: "right", fontWeight: 700, color: r.gain >= 0 ? "#1a7a4a" : "#c0392b" }}>{fmt(r.gain)}</td>
                 <td style={{ ...tdS, textAlign: "right" }}>{(r.estTaxRate * 100).toFixed(0)}%</td>
-                <td style={{ ...tdS, textAlign: "right", color: "#ef4444" }}>{fmt(r.estTax)}</td>
+                <td style={{ ...tdS, textAlign: "right", color: "#c0392b" }}>{fmt(r.estTax)}</td>
                 <td style={{ ...tdS, textAlign: "right", fontWeight: 600 }}>{fmt(r.afterTax)}</td>
               </tr>
             ))}
@@ -671,8 +671,8 @@ function CashFlowReport({ deals }) {
             <XAxis dataKey="month" tick={{ fontSize: 12, fill: "var(--chart-axis)" }} />
             <YAxis tickFormatter={v => fmtK(v)} tick={{ fontSize: 12, fill: "var(--chart-axis)" }} />
             <Tooltip formatter={v => fmt(v)} cursor={{ fill: "transparent" }} contentStyle={{ borderRadius: 10, border: "1px solid var(--tooltip-border)", fontSize: 12, background: "var(--tooltip-bg)", color: "var(--tooltip-text)" }} itemStyle={{ color: "var(--tooltip-text)" }} />
-            <Bar dataKey="sales" name="Sales" fill="#10b981" radius={[6, 6, 0, 0]} />
-            <Bar dataKey="totalOut" name="Cash Out" fill="#ef4444" radius={[6, 6, 0, 0]} />
+            <Bar dataKey="sales" name="Sales" fill="#1a7a4a" radius={[6, 6, 0, 0]} />
+            <Bar dataKey="totalOut" name="Cash Out" fill="#c0392b" radius={[6, 6, 0, 0]} />
             <Legend wrapperStyle={{ fontSize: 12 }} />
           </BarChart>
         </ResponsiveContainer>
@@ -694,24 +694,24 @@ function CashFlowReport({ deals }) {
             {monthlyData.map((m, i) => (
               <tr key={i}>
                 <td style={{ ...tdS, fontWeight: 600 }}>{m.month}</td>
-                <td style={{ ...tdS, textAlign: "right", color: m.sales > 0 ? "#15803d" : "var(--text-muted)" }}>{m.sales > 0 ? fmt(m.sales) : "—"}</td>
-                <td style={{ ...tdS, textAlign: "right", color: m.purchases > 0 ? "#b91c1c" : "var(--text-muted)" }}>{m.purchases > 0 ? fmt(m.purchases) : "—"}</td>
+                <td style={{ ...tdS, textAlign: "right", color: m.sales > 0 ? "#1a7a4a" : "var(--text-muted)" }}>{m.sales > 0 ? fmt(m.sales) : "—"}</td>
+                <td style={{ ...tdS, textAlign: "right", color: m.purchases > 0 ? "#c0392b" : "var(--text-muted)" }}>{m.purchases > 0 ? fmt(m.purchases) : "—"}</td>
                 <td style={{ ...tdS, textAlign: "right" }}>{m.rehabSpend > 0 ? fmt(m.rehabSpend) : "—"}</td>
                 <td style={{ ...tdS, textAlign: "right" }}>{m.holdingCosts > 0 ? fmt(m.holdingCosts) : "—"}</td>
                 <td style={{ ...tdS, textAlign: "right", fontWeight: 600 }}>{m.totalOut > 0 ? fmt(m.totalOut) : "—"}</td>
-                <td style={{ ...tdS, textAlign: "right", fontWeight: 700, color: m.net >= 0 ? "#15803d" : "#b91c1c" }}>{fmt(m.net)}</td>
+                <td style={{ ...tdS, textAlign: "right", fontWeight: 700, color: m.net >= 0 ? "#1a7a4a" : "#c0392b" }}>{fmt(m.net)}</td>
               </tr>
             ))}
           </tbody>
           <tfoot>
             <tr style={{ background: "var(--surface-alt)" }}>
               <td style={{ ...tdS, fontWeight: 700 }}>Total</td>
-              <td style={{ ...tdS, textAlign: "right", fontWeight: 700, color: "#15803d" }}>{fmt(monthlyData.reduce((s, m) => s + m.sales, 0))}</td>
+              <td style={{ ...tdS, textAlign: "right", fontWeight: 700, color: "#1a7a4a" }}>{fmt(monthlyData.reduce((s, m) => s + m.sales, 0))}</td>
               <td style={{ ...tdS, textAlign: "right", fontWeight: 700 }}>{fmt(monthlyData.reduce((s, m) => s + m.purchases, 0))}</td>
               <td style={{ ...tdS, textAlign: "right", fontWeight: 700 }}>{fmt(monthlyData.reduce((s, m) => s + m.rehabSpend, 0))}</td>
               <td style={{ ...tdS, textAlign: "right", fontWeight: 700 }}>{fmt(monthlyData.reduce((s, m) => s + m.holdingCosts, 0))}</td>
               <td style={{ ...tdS, textAlign: "right", fontWeight: 700 }}>{fmt(monthlyData.reduce((s, m) => s + m.totalOut, 0))}</td>
-              <td style={{ ...tdS, textAlign: "right", fontWeight: 700, color: monthlyData.reduce((s, m) => s + m.net, 0) >= 0 ? "#15803d" : "#b91c1c" }}>{fmt(monthlyData.reduce((s, m) => s + m.net, 0))}</td>
+              <td style={{ ...tdS, textAlign: "right", fontWeight: 700, color: monthlyData.reduce((s, m) => s + m.net, 0) >= 0 ? "#1a7a4a" : "#c0392b" }}>{fmt(monthlyData.reduce((s, m) => s + m.net, 0))}</td>
             </tr>
           </tfoot>
         </table>
@@ -731,7 +731,7 @@ function PipelineReport({ deals }) {
     const totalARV = stageDeals.reduce((s, d) => s + (d.salePrice || d.arv || 0), 0);
     const totalInvested = stageDeals.reduce((s, d) => s + d.m.totalInvested, 0);
     const totalProfit = stageDeals.reduce((s, d) => s + d.m.profit, 0);
-    const colors = STAGE_COLORS[stage] || { bg: "#f1f5f9", text: "#64748b" };
+    const colors = STAGE_COLORS[stage] || { bg: "#f1f5f9", text: "var(--text-secondary)" };
     return { stage, deals: stageDeals, count: stageDeals.length, totalARV, totalInvested, totalProfit, colors };
   });
 
@@ -741,7 +741,7 @@ function PipelineReport({ deals }) {
   const realizedProfit = deals.filter(d => d.stage === "Sold").reduce((s, d) => s + d.m.profit, 0);
 
   const pieData = stages.filter(s => s.count > 0).map(s => ({ name: s.stage, value: s.totalARV }));
-  const PIE_COLORS = { "Under Contract": "#8b5cf6", "Active Rehab": "#f59e0b", "Listed": "#3b82f6", "Sold": "#10b981" };
+  const PIE_COLORS = { "Under Contract": "#8b5cf6", "Active Rehab": "#f59e0b", "Listed": "#3b82f6", "Sold": "#1a7a4a" };
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
@@ -751,7 +751,7 @@ function PipelineReport({ deals }) {
           { label: "Total Pipeline Value",  value: fmt(totalPipeline),   color: "#3b82f6", tip: "Combined ARV / sale price of all deals" },
           { label: "Active Deals",          value: String(activeDeals.length), color: "#f59e0b", tip: "Deals not yet sold" },
           { label: "Projected Profit",      value: fmt(projectedProfit), color: "#8b5cf6", tip: "Estimated profit on unsold deals (ARV minus costs)" },
-          { label: "Realized Profit",       value: fmt(realizedProfit),  color: "#15803d", tip: "Actual profit from sold deals" },
+          { label: "Realized Profit",       value: fmt(realizedProfit),  color: "#1a7a4a", tip: "Actual profit from sold deals" },
         ].map((m, i) => (
           <div key={i} style={{ background: "var(--surface)", borderRadius: 16, padding: "18px 20px", border: "1px solid var(--border-subtle)" }}>
             <p style={{ color: "var(--text-muted)", fontSize: 10, fontWeight: 600, textTransform: "uppercase", marginBottom: 4 }}>{m.label}<InfoTip text={m.tip} /></p>
@@ -785,7 +785,7 @@ function PipelineReport({ deals }) {
                     <td style={{ ...tdS, textAlign: "right", fontWeight: 600 }}>{s.count}</td>
                     <td style={{ ...tdS, textAlign: "right" }}>{fmt(s.totalARV)}</td>
                     <td style={{ ...tdS, textAlign: "right" }}>{fmt(s.totalInvested)}</td>
-                    <td style={{ ...tdS, textAlign: "right", fontWeight: 700, color: s.totalProfit >= 0 ? "#15803d" : "#b91c1c" }}>{fmt(s.totalProfit)}</td>
+                    <td style={{ ...tdS, textAlign: "right", fontWeight: 700, color: s.totalProfit >= 0 ? "#1a7a4a" : "#c0392b" }}>{fmt(s.totalProfit)}</td>
                     <td style={{ ...tdS, textAlign: "right" }}>{avgRoi.toFixed(1)}%</td>
                   </tr>
                 );
@@ -799,7 +799,7 @@ function PipelineReport({ deals }) {
                 <Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={85} innerRadius={0}
                   label={({ percent }) => `${(percent * 100).toFixed(0)}%`}
                   labelLine={{ stroke: "var(--text-muted)", strokeWidth: 1 }}>
-                  {pieData.map((d, i) => <Cell key={i} fill={PIE_COLORS[d.name] || "#64748b"} />)}
+                  {pieData.map((d, i) => <Cell key={i} fill={PIE_COLORS[d.name] || "var(--text-secondary)"} />)}
                 </Pie>
                 <Tooltip formatter={v => fmt(v)} cursor={{ fill: "transparent" }} contentStyle={{ borderRadius: 10, border: "1px solid var(--tooltip-border)", fontSize: 12, background: "var(--tooltip-bg)", color: "var(--tooltip-text)" }} itemStyle={{ color: "var(--tooltip-text)" }} />
                 <Legend wrapperStyle={{ fontSize: 12, paddingTop: 8 }} />

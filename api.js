@@ -292,7 +292,7 @@ export const DEALS = [
   {
     id:1, name:"Oakdale Craftsman", address:"1422 Oakdale Ave, Nashville, TN 37206",
     stage:"Active Rehab", image:"OC", color:"#f59e0b",
-    purchasePrice:195000, arv:310000, rehabBudget:62000, rehabSpent:38500,
+    purchasePrice:195000, arv:310000, arvUpdatedAt:"2026-01-08", rehabBudget:62000, rehabSpent:38500,
     holdingCostsPerMonth:1850, acquisitionDate:"2026-01-08", rehabStartDate:"2026-01-20",
     projectedListDate:"2026-04-15", projectedCloseDate:"2026-05-30", daysOwned:75,
     sellingCostPct:6,
@@ -310,7 +310,7 @@ export const DEALS = [
   {
     id:2, name:"Pine Street Ranch", address:"874 Pine Street, Memphis, TN 38104",
     stage:"Listed", image:"PS", color:"#10b981",
-    purchasePrice:148000, arv:229000, listPrice:229000, rehabBudget:38000, rehabSpent:39200,
+    purchasePrice:148000, arv:229000, arvUpdatedAt:"2026-01-15", listPrice:229000, rehabBudget:38000, rehabSpent:39200,
     holdingCostsPerMonth:1420, acquisitionDate:"2025-10-14", rehabStartDate:"2025-10-28",
     rehabEndDate:"2026-01-15", listDate:"2026-01-22", daysOwned:161,
     sellingCostPct:6,
@@ -327,7 +327,7 @@ export const DEALS = [
   {
     id:3, name:"Hawthorne Heights", address:"3305 Hawthorne Blvd, Charlotte, NC 28205",
     stage:"Under Contract", image:"HH", color:"#8b5cf6",
-    purchasePrice:268000, arv:445000, rehabBudget:95000, rehabSpent:0,
+    purchasePrice:268000, arv:445000, arvUpdatedAt:"2026-03-10", rehabBudget:95000, rehabSpent:0,
     holdingCostsPerMonth:2600, contractDate:"2026-03-10", projectedCloseDate:"2026-04-05", daysOwned:0,
     sellingCostPct:6,
     createdAt:"2026-03-10T09:00:00Z", updatedAt:"2026-03-10T09:00:00Z", userId:"usr_001",
