@@ -1,400 +1,434 @@
 // =============================================================================
-// PropBooks Auth
+// auth.jsx — PropBooks Authentication UI
+// Login · Sign Up · Reset Password
+// Also exports: AuthProvider, AuthScreen, useAuth
 // =============================================================================
-// Cosmetic auth UI for now — no real backend. When you add Supabase/Auth0:
-//   1. Replace signIn() and signUp() with real SDK calls
-//   2. Replace useAuth's localStorage stub with a real session check
-//   3. The UI components below need zero changes
-// =============================================================================
+import { useState, useEffect, useContext, createContext } from "react";
+import { signIn, signUp, signOut as supabaseSignOut, getSession, onAuthChange, supabase } from "./supabase.js";
 
-import { useState, createContext, useContext } from "react";
-import { Eye, EyeOff, ArrowRight, CheckCircle, Building2, TrendingUp, PieChart, Hammer, Car } from "lucide-react";
-import propbooksLogoDark from "./logos/PropBooks Horizontal Logo_transparent_white.png";
-import propbooksLogoLight from "./logos/PropBooks Horizontal Logo (2).png";
-
-// -----------------------------------------------------------------------------
-// Auth Context
-// -----------------------------------------------------------------------------
+// ─── Auth Context ─────────────────────────────────────────────────────────────
 const AuthContext = createContext(null);
 
+// Normalise raw Supabase user to shape expected by AppShell
+function normalizeUser(raw) {
+  if (!raw) return raw; // null | undefined pass through
+  const meta = raw.user_metadata || {};
+  const name = meta.name || raw.email?.split("@")[0] || "User";
+  const initials = name.split(" ").map(w => w[0]).slice(0, 2).join("").toUpperCase() || "?";
+  return {
+    ...raw,
+    name,
+    initials,
+    email: raw.email,
+    planLabel: "PRO PLAN",
+    planDescription: "Unlimited properties",
+    plan: "pro",
+  };
+}
+
 export function AuthProvider({ children }) {
-  // TODO: replace with real session check (e.g. supabase.auth.getSession())
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState(undefined); // undefined = loading, null = logged out
 
-  async function signIn(email, password) {
-    // TODO: return await supabase.auth.signInWithPassword({ email, password })
-    await new Promise(r => setTimeout(r, 700));
-    setUser({ id: "usr_001", email, name: email.split("@")[0], initials: email[0].toUpperCase(), plan: "pro" });
-    return { error: null };
-  }
+  useEffect(() => {
+    // Seed initial session
+    getSession().then(session => setUser(normalizeUser(session?.user ?? null)));
+    // Subscribe to auth state changes
+    const { data: { subscription } } = onAuthChange(u => setUser(normalizeUser(u ?? null)));
+    return () => subscription?.unsubscribe();
+  }, []);
 
-  async function signUp(email, password, name) {
-    // TODO: return await supabase.auth.signUp({ email, password, options: { data: { name } } })
-    await new Promise(r => setTimeout(r, 700));
-    setUser({ id: "usr_new", email, name, initials: name[0].toUpperCase(), plan: "trial" });
-    return { error: null, isNew: true };
-  }
-
-  function signOut() {
-    // TODO: await supabase.auth.signOut()
+  async function signOutUser() {
+    await supabaseSignOut();
     setUser(null);
   }
 
   return (
-    <AuthContext.Provider value={{ user, signIn, signUp, signOut }}>
+    <AuthContext.Provider value={{ user, signOut: signOutUser }}>
       {children}
     </AuthContext.Provider>
   );
 }
 
 export function useAuth() {
-  return useContext(AuthContext);
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error("useAuth must be used inside AuthProvider");
+  return ctx;
 }
 
-// -----------------------------------------------------------------------------
-// Shared styles
-// -----------------------------------------------------------------------------
-const inp = {
-  width: "100%", padding: "11px 14px", border: "1.5px solid #e2e8f0",
-  borderRadius: 10, fontSize: 14, color: "#041830", background: "#fff",
-  outline: "none", boxSizing: "border-box", transition: "border-color 0.15s",
-};
-const primaryBtn = (loading) => ({
-  width: "100%", padding: "12px", borderRadius: 10, border: "none",
-  background: "#e95e00", color: "#fff", fontWeight: 700, fontSize: 15,
-  cursor: loading ? "wait" : "pointer", display: "flex", alignItems: "center",
-  justifyContent: "center", gap: 8, transition: "all 0.15s",
-  opacity: loading ? 0.7 : 1,
-});
-const errStyle = {
-  background: "#fff7ed", border: "1px solid #fdba74", borderRadius: 8,
-  padding: "10px 12px", color: "#9a3412", fontSize: 13, marginBottom: 16,
-};
+// ─── Brand ───────────────────────────────────────────────────────────────────
+const NAVY   = "#1e3a5f";
+const NAVY2  = "#2d5280";
+const ORANGE = "#e95e00";
 
-// -----------------------------------------------------------------------------
-// Password input with show/hide toggle
-// -----------------------------------------------------------------------------
-function PasswordInput({ value, onChange, placeholder = "Password", id }) {
-  const [show, setShow] = useState(false);
+// ─── Logo ────────────────────────────────────────────────────────────────────
+function Logo() {
   return (
-    <div style={{ position: "relative" }}>
-      <input
-        id={id} type={show ? "text" : "password"}
-        value={value} onChange={onChange}
-        placeholder={placeholder}
-        style={{ ...inp, paddingRight: 44 }}
-      />
-      <button
-        type="button"
-        onClick={() => setShow(s => !s)}
-        style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "#94a3b8" }}
-      >
-        {show ? <EyeOff size={16} /> : <Eye size={16} />}
-      </button>
+    <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 28, justifyContent: "center" }}>
+      <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
+        <rect width="36" height="36" rx="9" fill={ORANGE} />
+        <path d="M18 7L6 17h3v12h7v-7h4v7h7V17h3L18 7z" fill="white" />
+        <rect x="14" y="22" width="8" height="1.5" rx="0.75" fill={ORANGE} opacity="0.7" />
+      </svg>
+      <div>
+        <div style={{ fontSize: 20, fontWeight: 800, color: NAVY, letterSpacing: "-0.5px", lineHeight: 1.1 }}>
+          PropBooks
+        </div>
+        <div style={{ fontSize: 11, color: "#64748b", fontWeight: 500, letterSpacing: "0.3px" }}>
+          Real Estate Intelligence
+        </div>
+      </div>
     </div>
   );
 }
 
-// -----------------------------------------------------------------------------
-// Sign In Screen
-// -----------------------------------------------------------------------------
-function SignIn({ onSwitch }) {
-  const { signIn } = useAuth();
-  const [email, setEmail]       = useState("");
+// ─── Alert ───────────────────────────────────────────────────────────────────
+function Alert({ type, message }) {
+  if (!message) return null;
+  const isError   = type === "error";
+  const isSuccess = type === "success";
+  return (
+    <div style={{
+      padding: "10px 14px",
+      borderRadius: 10,
+      fontSize: 13,
+      fontWeight: 500,
+      marginBottom: 18,
+      background: isError   ? "#fef2f2" : isSuccess ? "#f0fdf4" : "#eff6ff",
+      border:     `1px solid ${isError ? "#fecaca" : isSuccess ? "#bbf7d0" : "#bfdbfe"}`,
+      color:      isError   ? "#b91c1c" : isSuccess ? "#15803d" : "#1d4ed8",
+      display: "flex", alignItems: "flex-start", gap: 8,
+    }}>
+      <span style={{ fontSize: 15, lineHeight: 1 }}>
+        {isError ? "⚠" : isSuccess ? "✓" : "ℹ"}
+      </span>
+      <span>{message}</span>
+    </div>
+  );
+}
+
+// ─── Field ────────────────────────────────────────────────────────────────────
+function Field({ label, type = "text", value, onChange, placeholder, autoComplete }) {
+  const [focused, setFocused] = useState(false);
+  return (
+    <div style={{ marginBottom: 16 }}>
+      <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#374151", marginBottom: 6 }}>
+        {label}
+      </label>
+      <input
+        type={type}
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        placeholder={placeholder}
+        autoComplete={autoComplete}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
+        style={{
+          width: "100%",
+          padding: "10px 13px",
+          borderRadius: 9,
+          border: `1.5px solid ${focused ? ORANGE : "#d1d5db"}`,
+          fontSize: 14,
+          outline: "none",
+          background: "#fff",
+          color: "#111827",
+          boxSizing: "border-box",
+          transition: "border-color 0.15s",
+          boxShadow: focused ? `0 0 0 3px rgba(233,94,0,0.12)` : "none",
+        }}
+      />
+    </div>
+  );
+}
+
+// ─── SubmitBtn ────────────────────────────────────────────────────────────────
+function SubmitBtn({ label, loading }) {
+  return (
+    <button
+      type="submit"
+      disabled={loading}
+      style={{
+        width: "100%",
+        padding: "11px 0",
+        borderRadius: 9,
+        border: "none",
+        background: loading ? "#f97316" : ORANGE,
+        color: "#fff",
+        fontSize: 14,
+        fontWeight: 700,
+        cursor: loading ? "not-allowed" : "pointer",
+        opacity: loading ? 0.8 : 1,
+        letterSpacing: "0.2px",
+        transition: "opacity 0.15s",
+        marginTop: 4,
+      }}
+    >
+      {loading ? "Please wait…" : label}
+    </button>
+  );
+}
+
+const DEMO_EMAIL = "demo@propbooks.com";
+const DEMO_PASS  = "PropBooks2024!";
+
+// ─── LoginForm ───────────────────────────────────────────────────────────────
+function LoginForm({ onSwitch, onSuccess }) {
+  const [email,    setEmail]    = useState("");
   const [password, setPassword] = useState("");
-  const [loading, setLoading]   = useState(false);
-  const [error, setError]       = useState("");
-  const [forgotMode, setForgotMode] = useState(false);
-  const [resetSent, setResetSent]   = useState(false);
+  const [loading,  setLoading]  = useState(false);
+  const [alert,    setAlert]    = useState(null);
+
+  async function doSignIn(e, em, pw) {
+    e?.preventDefault();
+    setAlert(null);
+    if (!em || !pw) return setAlert({ type: "error", message: "Please fill in all fields." });
+    setLoading(true);
+    try {
+      await signIn(em, pw);
+      onSuccess?.();
+    } catch (err) {
+      setAlert({ type: "error", message: err.message || "Invalid email or password." });
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function loadDemo() {
+    setEmail(DEMO_EMAIL);
+    setPassword(DEMO_PASS);
+    setAlert({ type: "info", message: "Demo credentials loaded — click Sign In to explore." });
+  }
+
+  return (
+    <>
+      <Logo />
+      <h2 style={{ fontSize: 20, fontWeight: 700, color: NAVY, margin: "0 0 4px", textAlign: "center" }}>
+        Sign in to PropBooks
+      </h2>
+      <p style={{ fontSize: 13, color: "#64748b", textAlign: "center", marginBottom: 18 }}>
+        Manage your portfolio from one place
+      </p>
+
+      {/* Try Demo banner */}
+      <button
+        type="button"
+        onClick={loadDemo}
+        style={{
+          width: "100%", marginBottom: 18,
+          padding: "9px 14px",
+          borderRadius: 10,
+          border: `1.5px dashed ${ORANGE}`,
+          background: "rgba(233,94,0,0.05)",
+          color: ORANGE,
+          fontSize: 13, fontWeight: 600,
+          cursor: "pointer",
+          display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+        }}
+      >
+        <span style={{ fontSize: 16 }}>▶</span> Try the live demo
+      </button>
+
+      <Alert {...(alert || {})} />
+      <form onSubmit={e => doSignIn(e, email, password)}>
+        <Field label="Email address" type="email"    value={email}    onChange={setEmail}    placeholder="you@example.com" autoComplete="email" />
+        <Field label="Password"      type="password" value={password} onChange={setPassword} placeholder="••••••••"        autoComplete="current-password" />
+        <div style={{ textAlign: "right", marginTop: -8, marginBottom: 18 }}>
+          <button type="button" onClick={() => onSwitch("reset")}
+            style={{ background: "none", border: "none", color: ORANGE, fontSize: 13, fontWeight: 600, cursor: "pointer", padding: 0 }}>
+            Forgot password?
+          </button>
+        </div>
+        <SubmitBtn label="Sign In" loading={loading} />
+      </form>
+      <p style={{ textAlign: "center", fontSize: 13, color: "#64748b", marginTop: 22 }}>
+        Don't have an account?{" "}
+        <button onClick={() => onSwitch("signup")}
+          style={{ background: "none", border: "none", color: ORANGE, fontWeight: 600, fontSize: 13, cursor: "pointer", padding: 0 }}>
+          Sign up
+        </button>
+      </p>
+    </>
+  );
+}
+
+// ─── SignupForm ───────────────────────────────────────────────────────────────
+function SignupForm({ onSwitch }) {
+  const [name,     setName]     = useState("");
+  const [email,    setEmail]    = useState("");
+  const [password, setPassword] = useState("");
+  const [confirm,  setConfirm]  = useState("");
+  const [loading,  setLoading]  = useState(false);
+  const [alert,    setAlert]    = useState(null);
 
   async function handleSubmit(e) {
     e.preventDefault();
-    if (!email || !password) { setError("Please fill in all fields."); return; }
-    setLoading(true); setError("");
-    const { error: err } = await signIn(email, password);
-    if (err) { setError(err.message || "Sign in failed."); setLoading(false); }
-  }
-
-  if (forgotMode) {
-    return (
-      <div>
-        <h1 style={{ color: "#041830", fontSize: 26, fontWeight: 800, marginBottom: 6 }}>Reset password</h1>
-        <p style={{ color: "#64748b", fontSize: 14, marginBottom: 28 }}>
-          {resetSent ? "Check your inbox for a reset link." : "Enter your email and we'll send a reset link."}
-        </p>
-        {resetSent ? (
-          <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 10, padding: 16, textAlign: "center", marginBottom: 20 }}>
-            <CheckCircle size={28} color="#15803d" style={{ marginBottom: 8 }} />
-            <p style={{ color: "#15803d", fontSize: 14, fontWeight: 600 }}>Reset email sent to {email}</p>
-            <p style={{ color: "#64748b", fontSize: 13, marginTop: 4 }}>Didn't get it? Check your spam folder or try again.</p>
-          </div>
-        ) : (
-          <div style={{ marginBottom: 20 }}>
-            <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#374151", marginBottom: 6 }}>Email</label>
-            <input style={inp} type="email" placeholder="you@example.com" value={email} onChange={e => setEmail(e.target.value)} />
-          </div>
-        )}
-        <div style={{ display: "flex", gap: 10 }}>
-          <button type="button" onClick={() => { setForgotMode(false); setResetSent(false); }} style={{ flex: 1, padding: "12px", borderRadius: 10, border: "1px solid #e2e8f0", background: "#fff", color: "#475569", fontWeight: 600, cursor: "pointer", fontSize: 14 }}>
-            Back to sign in
-          </button>
-          {!resetSent && (
-            <button type="button" onClick={() => { if (email) { setResetSent(true); } }} style={{ ...primaryBtn(false), flex: 1, width: "auto" }}>
-              Send reset link
-            </button>
-          )}
-        </div>
-      </div>
-    );
+    setAlert(null);
+    if (!name || !email || !password || !confirm)
+      return setAlert({ type: "error", message: "Please fill in all fields." });
+    if (password !== confirm)
+      return setAlert({ type: "error", message: "Passwords do not match." });
+    if (password.length < 8)
+      return setAlert({ type: "error", message: "Password must be at least 8 characters." });
+    setLoading(true);
+    try {
+      await signUp(email, password, name);
+      setAlert({ type: "success", message: "Account created! Check your email to confirm your address, then sign in." });
+    } catch (err) {
+      setAlert({ type: "error", message: err.message || "Could not create account. Please try again." });
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
-    <form onSubmit={handleSubmit}>
-      <h1 style={{ color: "#041830", fontSize: 26, fontWeight: 800, marginBottom: 6 }}>Welcome back</h1>
-      <p style={{ color: "#64748b", fontSize: 14, marginBottom: 28 }}>Sign in to manage your portfolio</p>
-
-      {error && <div style={errStyle}>{error}</div>}
-
-      <div style={{ display: "flex", flexDirection: "column", gap: 14, marginBottom: 20 }}>
-        <div>
-          <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#374151", marginBottom: 6 }}>Email</label>
-          <input style={inp} type="email" placeholder="you@example.com" value={email} onChange={e => setEmail(e.target.value)} />
-        </div>
-        <div>
-          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-            <label style={{ fontSize: 13, fontWeight: 600, color: "#374151" }}>Password</label>
-            <button type="button" onClick={() => setForgotMode(true)} style={{ background: "none", border: "none", color: "#e95e00", fontSize: 13, cursor: "pointer", fontWeight: 500 }}>
-              Forgot password?
-            </button>
-          </div>
-          <PasswordInput value={password} onChange={e => setPassword(e.target.value)} />
-        </div>
-      </div>
-
-      <button type="submit" style={primaryBtn(loading)} disabled={loading}>
-        {loading ? "Signing in..." : <><span>Sign In</span><ArrowRight size={16} /></>}
-      </button>
-
-      <p style={{ textAlign: "center", color: "#64748b", fontSize: 13, marginTop: 20 }}>
-        Don't have an account?{" "}
-        <button type="button" onClick={onSwitch} style={{ background: "none", border: "none", color: "#e95e00", fontWeight: 600, cursor: "pointer", fontSize: 13 }}>
-          Start free trial
-        </button>
+    <>
+      <Logo />
+      <h2 style={{ fontSize: 20, fontWeight: 700, color: NAVY, margin: "0 0 4px", textAlign: "center" }}>
+        Create your account
+      </h2>
+      <p style={{ fontSize: 13, color: "#64748b", textAlign: "center", marginBottom: 26 }}>
+        Start your 14-day free trial — no credit card required
       </p>
-    </form>
-  );
-}
-
-// -----------------------------------------------------------------------------
-// Sign Up Screen
-// -----------------------------------------------------------------------------
-const PLANS = [
-  { id: "starter", label: "Starter", price: "$25/mo", features: ["Up to 3 properties", "Transactions & reports", "Deal Analyzer"] },
-  { id: "pro",     label: "Pro",     price: "$45/mo", features: ["Unlimited properties", "Flip Pipeline", "Tenant Management", "Mileage tracker"], highlight: true },
-];
-
-function SignUp({ onSwitch }) {
-  const { signUp } = useAuth();
-  const [step, setStep]         = useState(1);
-  const [name, setName]         = useState("");
-  const [email, setEmail]       = useState("");
-  const [password, setPassword] = useState("");
-  const [plan, setPlan]         = useState("pro");
-  const [loading, setLoading]   = useState(false);
-  const [error, setError]       = useState("");
-
-  async function handleAccount(e) {
-    e.preventDefault();
-    if (!name || !email || !password) { setError("Please fill in all fields."); return; }
-    if (password.length < 8) { setError("Password must be at least 8 characters."); return; }
-    setError(""); setStep(2);
-  }
-
-  async function handleSignUp() {
-    setLoading(true); setError("");
-    const { error: err } = await signUp(email, password, name);
-    if (err) { setError(err.message || "Sign up failed."); setLoading(false); }
-  }
-
-  return (
-    <div>
-      <h1 style={{ color: "#041830", fontSize: 26, fontWeight: 800, marginBottom: 6 }}>
-        {step === 1 ? "Create your account" : "Choose a plan"}
-      </h1>
-      <p style={{ color: "#64748b", fontSize: 14, marginBottom: 28 }}>
-        {step === 1 ? "Start managing your portfolio like a pro" : "You can change this any time"}
-      </p>
-
-      {/* Step indicator */}
-      <div style={{ display: "flex", gap: 8, marginBottom: 28 }}>
-        {[1, 2].map(s => (
-          <div key={s} style={{ flex: 1, height: 4, borderRadius: 2, background: s <= step ? "#e95e00" : "#e2e8f0", transition: "background 0.3s" }} />
-        ))}
-      </div>
-
-      {error && <div style={errStyle}>{error}</div>}
-
-      {step === 1 && (
-        <form onSubmit={handleAccount}>
-          <div style={{ display: "flex", flexDirection: "column", gap: 14, marginBottom: 20 }}>
-            <div>
-              <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#374151", marginBottom: 6 }}>Full Name</label>
-              <input style={inp} placeholder="Brandon Hickle" value={name} onChange={e => setName(e.target.value)} />
-            </div>
-            <div>
-              <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#374151", marginBottom: 6 }}>Email</label>
-              <input style={inp} type="email" placeholder="you@example.com" value={email} onChange={e => setEmail(e.target.value)} />
-            </div>
-            <div>
-              <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#374151", marginBottom: 6 }}>Password</label>
-              <PasswordInput value={password} onChange={e => setPassword(e.target.value)} placeholder="Min. 8 characters" />
-            </div>
-          </div>
-          <button type="submit" style={primaryBtn(false)}>
-            <span>Continue</span><ArrowRight size={16} />
-          </button>
-        </form>
-      )}
-
-      {step === 2 && (
-        <div>
-          <div style={{ display: "flex", gap: 12, marginBottom: 24 }}>
-            {PLANS.map(p => (
-              <button key={p.id} type="button" onClick={() => setPlan(p.id)}
-                style={{
-                  flex: 1, padding: "16px 14px", borderRadius: 12, cursor: "pointer", textAlign: "left",
-                  border: plan === p.id ? "2px solid #e95e00" : "2px solid #e2e8f0",
-                  background: plan === p.id ? "#fff7ed" : "#fff",
-                  transition: "all 0.15s", position: "relative",
-                }}>
-                {p.highlight && (
-                  <span style={{ position: "absolute", top: -10, right: 10, background: "#e95e00", color: "#fff", fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 20 }}>
-                    POPULAR
-                  </span>
-                )}
-                <p style={{ fontWeight: 700, color: "#041830", fontSize: 15, marginBottom: 2 }}>{p.label}</p>
-                <p style={{ color: "#e95e00", fontWeight: 700, fontSize: 14, marginBottom: 10 }}>{p.price}</p>
-                {p.features.map(f => (
-                  <div key={f} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
-                    <CheckCircle size={12} color="#10b981" />
-                    <span style={{ fontSize: 12, color: "#64748b" }}>{f}</span>
-                  </div>
-                ))}
-              </button>
-            ))}
-          </div>
-          <button onClick={handleSignUp} style={primaryBtn(loading)} disabled={loading}>
-            {loading ? "Creating account..." : <><span>Start Free Trial</span><ArrowRight size={16} /></>}
-          </button>
-          <p style={{ fontSize: 12, color: "#94a3b8", textAlign: "center", marginTop: 10 }}>
-            14-day free trial · No credit card required
-          </p>
-        </div>
-      )}
-
-      <p style={{ textAlign: "center", color: "#64748b", fontSize: 13, marginTop: 20 }}>
+      <Alert {...(alert || {})} />
+      <form onSubmit={handleSubmit}>
+        <Field label="Full name"        type="text"     value={name}     onChange={setName}     placeholder="Jane Smith"         autoComplete="name" />
+        <Field label="Email address"    type="email"    value={email}    onChange={setEmail}    placeholder="you@example.com"    autoComplete="email" />
+        <Field label="Password"         type="password" value={password} onChange={setPassword} placeholder="Min. 8 characters"  autoComplete="new-password" />
+        <Field label="Confirm password" type="password" value={confirm}  onChange={setConfirm}  placeholder="Repeat password"    autoComplete="new-password" />
+        <SubmitBtn label="Create Account" loading={loading} />
+      </form>
+      <p style={{ textAlign: "center", fontSize: 13, color: "#64748b", marginTop: 22 }}>
         Already have an account?{" "}
-        <button type="button" onClick={onSwitch} style={{ background: "none", border: "none", color: "#e95e00", fontWeight: 600, cursor: "pointer", fontSize: 13 }}>
+        <button onClick={() => onSwitch("login")}
+          style={{ background: "none", border: "none", color: ORANGE, fontWeight: 600, fontSize: 13, cursor: "pointer", padding: 0 }}>
           Sign in
         </button>
       </p>
+      <p style={{ textAlign: "center", fontSize: 11, color: "#9ca3af", marginTop: 14, lineHeight: 1.5 }}>
+        By creating an account you agree to our{" "}
+        <a href="#" style={{ color: "#9ca3af" }}>Terms of Service</a> and{" "}
+        <a href="#" style={{ color: "#9ca3af" }}>Privacy Policy</a>.
+      </p>
+    </>
+  );
+}
+
+// ─── ResetForm ───────────────────────────────────────────────────────────────
+function ResetForm({ onSwitch }) {
+  const [email,   setEmail]   = useState("");
+  const [loading, setLoading] = useState(false);
+  const [alert,   setAlert]   = useState(null);
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    setAlert(null);
+    if (!email) return setAlert({ type: "error", message: "Please enter your email address." });
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      if (error) throw error;
+      setAlert({ type: "success", message: "Check your email for a password reset link." });
+    } catch (err) {
+      setAlert({ type: "error", message: err.message || "Could not send reset email. Try again." });
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <>
+      <Logo />
+      <h2 style={{ fontSize: 20, fontWeight: 700, color: NAVY, margin: "0 0 4px", textAlign: "center" }}>
+        Reset your password
+      </h2>
+      <p style={{ fontSize: 13, color: "#64748b", textAlign: "center", marginBottom: 26 }}>
+        Enter your email and we'll send you a link
+      </p>
+      <Alert {...(alert || {})} />
+      <form onSubmit={handleSubmit}>
+        <Field label="Email address" type="email" value={email} onChange={setEmail} placeholder="you@example.com" autoComplete="email" />
+        <SubmitBtn label="Send Reset Link" loading={loading} />
+      </form>
+      <p style={{ textAlign: "center", fontSize: 13, color: "#64748b", marginTop: 22 }}>
+        <button onClick={() => onSwitch("login")}
+          style={{ background: "none", border: "none", color: ORANGE, fontWeight: 600, fontSize: 13, cursor: "pointer", padding: 0 }}>
+          ← Back to sign in
+        </button>
+      </p>
+    </>
+  );
+}
+
+// ─── AuthUI (shared render) ───────────────────────────────────────────────────
+function AuthUI({ onAuthenticated } = {}) {
+  const [view, setView] = useState("login"); // "login" | "signup" | "reset"
+
+  return (
+    <div style={{
+      minHeight: "100vh",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      background: `radial-gradient(ellipse at top left, ${NAVY2} 0%, ${NAVY} 50%, #1a3a5c 100%)`,
+      padding: "24px 16px",
+      position: "relative",
+      overflow: "hidden",
+    }}>
+      {/* Subtle dot-grid background */}
+      <div style={{
+        position: "absolute", inset: 0, pointerEvents: "none",
+        backgroundImage: `radial-gradient(circle, rgba(255,255,255,0.07) 1px, transparent 1px)`,
+        backgroundSize: "28px 28px",
+      }} />
+
+      {/* Decorative blobs */}
+      <div style={{
+        position: "absolute", top: "-80px", right: "-80px",
+        width: 320, height: 320, borderRadius: "50%",
+        background: `radial-gradient(circle, rgba(233,94,0,0.18) 0%, transparent 70%)`,
+        pointerEvents: "none",
+      }} />
+      <div style={{
+        position: "absolute", bottom: "-60px", left: "-60px",
+        width: 260, height: 260, borderRadius: "50%",
+        background: `radial-gradient(circle, rgba(233,94,0,0.12) 0%, transparent 70%)`,
+        pointerEvents: "none",
+      }} />
+
+      {/* Card */}
+      <div style={{
+        position: "relative",
+        background: "#fff",
+        borderRadius: 20,
+        padding: "40px 36px",
+        width: "100%",
+        maxWidth: 420,
+        boxShadow: "0 24px 60px rgba(0,0,0,0.25), 0 4px 16px rgba(0,0,0,0.1)",
+      }}>
+        {view === "login"  && <LoginForm  onSwitch={setView} onSuccess={onAuthenticated ?? (() => {})} />}
+        {view === "signup" && <SignupForm onSwitch={setView} />}
+        {view === "reset"  && <ResetForm  onSwitch={setView} />}
+      </div>
+
+      {/* Footer tagline */}
+      <div style={{
+        position: "absolute", bottom: 20, left: 0, right: 0,
+        textAlign: "center", fontSize: 12, color: "rgba(255,255,255,0.35)",
+        pointerEvents: "none",
+      }}>
+        PropBooks · Built for serious real estate investors
+      </div>
     </div>
   );
 }
 
-// -----------------------------------------------------------------------------
-// Auth Screen (wrapper that toggles between SignIn / SignUp)
-// -----------------------------------------------------------------------------
+// ─── AuthScreen (used by App.jsx AuthGate) ────────────────────────────────────
 export function AuthScreen() {
-  const [mode, setMode] = useState("signin");
+  return <AuthUI />;
+}
 
-  return (
-    <div style={{
-      minHeight: "100vh", display: "flex", background: "#f8fafc",
-    }}>
-      {/* Left panel - form */}
-      <div style={{
-        width: "100%", maxWidth: 480, padding: "48px 48px",
-        display: "flex", flexDirection: "column", justifyContent: "center",
-        background: "#fff", boxShadow: "2px 0 20px rgba(0,0,0,0.06)",
-        minHeight: "100vh", position: "relative",
-      }}>
-        {/* Logo on form side */}
-        <div style={{ marginBottom: 32 }}>
-          <img src={propbooksLogoLight} alt="PropBooks" style={{ height: 38, objectFit: "contain" }} />
-        </div>
-
-        {mode === "signin"
-          ? <SignIn onSwitch={() => setMode("signup")} />
-          : <SignUp onSwitch={() => setMode("signin")} />}
-
-        {/* Trust signal */}
-        <div style={{ marginTop: 32, paddingTop: 20, borderTop: "1px solid #f1f5f9" }}>
-          <span style={{ color: "#94a3b8", fontSize: 12 }}>Trusted by real estate investors nationwide</span>
-        </div>
-      </div>
-
-      {/* Right panel - branded visual */}
-      <div style={{
-        flex: 1, background: "linear-gradient(160deg, #041830 0%, #071f3a 40%, #0c2d50 100%)",
-        display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-        padding: 48, position: "relative", overflow: "hidden",
-      }}>
-        {/* Decorative elements */}
-        <div style={{ position: "absolute", top: -100, right: -100, width: 500, height: 500, borderRadius: "50%", background: "radial-gradient(circle, rgba(233,94,0,0.12) 0%, transparent 60%)" }} />
-        <div style={{ position: "absolute", bottom: -60, left: -60, width: 350, height: 350, borderRadius: "50%", background: "radial-gradient(circle, rgba(233,94,0,0.08) 0%, transparent 60%)" }} />
-
-        {/* Geometric accent lines */}
-        <div style={{ position: "absolute", top: 80, left: 40, width: 120, height: 1, background: "linear-gradient(90deg, rgba(233,94,0,0.3), transparent)", transform: "rotate(-20deg)" }} />
-        <div style={{ position: "absolute", bottom: 120, right: 60, width: 80, height: 1, background: "linear-gradient(90deg, transparent, rgba(233,94,0,0.25))", transform: "rotate(15deg)" }} />
-        <div style={{ position: "absolute", top: "45%", right: 30, width: 60, height: 1, background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.08))" }} />
-
-        <div style={{ position: "relative", zIndex: 1, textAlign: "center", maxWidth: 460 }}>
-          {/* Logo */}
-          <img src={propbooksLogoDark} alt="PropBooks" style={{ height: 48, objectFit: "contain", marginBottom: 36 }} />
-
-          <h2 style={{ color: "#fff", fontSize: 32, fontWeight: 800, marginBottom: 16, lineHeight: 1.2, letterSpacing: "-0.02em" }}>
-            Whether you hold it or flip it,<br />we've got you covered.
-          </h2>
-          <p style={{ color: "rgba(255,255,255,0.65)", fontSize: 15, lineHeight: 1.7, marginBottom: 44 }}>
-            The only platform that treats your rentals and flips as equals — cash flow tracking, rehab budgets, tenant management, and deal analysis, all under one roof.
-          </p>
-
-          {/* Feature cards - glass style */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, textAlign: "left" }}>
-            {[
-              { icon: PieChart, label: "Rental Cash Flow", sub: "Income, expenses & equity across every door" },
-              { icon: Hammer, label: "Flip Pipeline", sub: "Rehab budgets, milestones & contractor tracking" },
-              { icon: Building2, label: "Tenant Management", sub: "Leases, vacancies & expiration alerts" },
-              { icon: TrendingUp, label: "Deal Analyzer", sub: "Run the numbers before you buy" },
-            ].map((f, i) => (
-              <div key={i} style={{
-                display: "flex", alignItems: "flex-start", gap: 12, padding: "16px 18px",
-                background: "rgba(255,255,255,0.07)", borderRadius: 14,
-                border: "1px solid rgba(255,255,255,0.1)",
-                backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)",
-                transition: "background 0.2s, border-color 0.2s",
-              }}
-              onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,255,255,0.12)"; e.currentTarget.style.borderColor = "rgba(233,94,0,0.3)"; }}
-              onMouseLeave={e => { e.currentTarget.style.background = "rgba(255,255,255,0.07)"; e.currentTarget.style.borderColor = "rgba(255,255,255,0.1)"; }}
-              >
-                <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg, rgba(233,94,0,0.25), rgba(233,94,0,0.1))", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                  <f.icon size={18} color="#fb923c" />
-                </div>
-                <div>
-                  <p style={{ color: "#fff", fontSize: 14, fontWeight: 700, margin: "0 0 3px 0" }}>{f.label}</p>
-                  <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 12, margin: 0, lineHeight: 1.4 }}>{f.sub}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Trust line */}
-          <p style={{ color: "rgba(255,255,255,0.3)", fontSize: 12, marginTop: 36, fontWeight: 500, letterSpacing: "0.03em" }}>
-            Built for serious real estate investors
-          </p>
-        </div>
-      </div>
-    </div>
-  );
+// ─── Default export ───────────────────────────────────────────────────────────
+export default function Auth({ onAuthenticated }) {
+  return <AuthUI onAuthenticated={onAuthenticated} />;
 }

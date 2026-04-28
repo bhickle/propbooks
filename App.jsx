@@ -11968,6 +11968,7 @@ function AppShell() {
               <p style={{ color: "var(--text-secondary)", fontSize: 11, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user?.email || ""}</p>
             </div>
             <SettingsIcon size={16} color="#475569" style={{ cursor: "pointer", flexShrink: 0 }} onClick={() => setShowSettings(true)} />
+            <LogOut size={15} color="#475569" style={{ cursor: "pointer", flexShrink: 0 }} title="Sign out" onClick={() => { if (window.confirm("Sign out of PropBooks?")) signOut(); }} />
           </div>
         </div>
       </div>
@@ -12175,5 +12176,17 @@ export default function App() {
 
 function AuthGate() {
   const { user } = useAuth();
+  // user === undefined means we're still resolving the session
+  if (user === undefined) {
+    return (
+      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#1e3a5f" }}>
+        <div style={{ textAlign: "center" }}>
+          <div style={{ width: 40, height: 40, border: "3px solid rgba(255,255,255,0.2)", borderTop: "3px solid #e95e00", borderRadius: "50%", animation: "spin 0.8s linear infinite", margin: "0 auto 16px" }} />
+          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+          <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 13 }}>Loading PropBooks…</p>
+        </div>
+      </div>
+    );
+  }
   return user ? <AppShell /> : <AuthScreen />;
 }

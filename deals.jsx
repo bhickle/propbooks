@@ -34,7 +34,7 @@ import { DEALS as _DEALS, DEAL_EXPENSES as _FE, CONTRACTORS as _CON, DEAL_MILEST
 // ---------------------------------------------------------------------------
 const iS = { width: "100%", padding: "10px 12px", border: "1px solid var(--border)", borderRadius: 10, fontSize: 14, color: "var(--text-primary)", background: "var(--surface)", outline: "none", boxSizing: "border-box" };
 
-// ── Attachment components (mirrors RealVault.jsx versions) ──
+// ── Attachment components (mirrors App.jsx versions) ──
 function DealAttachmentZone({ onFiles, accept = "image/*,.pdf", label = "Drop file here or click to browse", compact = false }) {
   const inputRef = useRef(null);
   const [dragOver, setDragOver] = useState(false);
