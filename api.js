@@ -554,12 +554,70 @@ export const MOCK_USER = {
 // -----------------------------------------------------------------------------
 // =============================================================================
 // Demo / Real-user data gate
-// Call clearDemoData() for any non-demo user so they start with a blank slate.
-// When Supabase data persistence is wired up, this layer gets replaced with
-// real DB queries and this function can be removed.
+// =============================================================================
+// Demo data snapshot — captured once at module load, before any clearing.
+// restoreDemoData() re-populates every array from this frozen copy so the demo
+// user always sees full data regardless of which account logged in before them.
 // =============================================================================
 export const DEMO_EMAIL = "demo@propbooks.com";
 
+const _snap = {
+  properties:           JSON.parse(JSON.stringify(_properties)),
+  transactions:         JSON.parse(JSON.stringify(_transactions)),
+  tenants:              JSON.parse(JSON.stringify(_tenants)),
+  mileageTrips:         JSON.parse(JSON.stringify(_mileageTrips)),
+  deals:                JSON.parse(JSON.stringify(DEALS)),
+  dealExpenses:         JSON.parse(JSON.stringify(DEAL_EXPENSES)),
+  contractors:          JSON.parse(JSON.stringify(CONTRACTORS)),
+  contractorBids:       JSON.parse(JSON.stringify(CONTRACTOR_BIDS)),
+  contractorPayments:   JSON.parse(JSON.stringify(CONTRACTOR_PAYMENTS)),
+  contractorDocuments:  JSON.parse(JSON.stringify(CONTRACTOR_DOCUMENTS)),
+  dealMilestones:       JSON.parse(JSON.stringify(DEAL_MILESTONES)),
+  propertyDocuments:    JSON.parse(JSON.stringify(PROPERTY_DOCUMENTS)),
+  dealDocuments:        JSON.parse(JSON.stringify(DEAL_DOCUMENTS)),
+  tenantDocuments:      JSON.parse(JSON.stringify(TENANT_DOCUMENTS)),
+  maintenanceRequests:  JSON.parse(JSON.stringify(MAINTENANCE_REQUESTS)),
+  transactionReceipts:  JSON.parse(JSON.stringify(TRANSACTION_RECEIPTS)),
+  dealExpenseReceipts:  JSON.parse(JSON.stringify(DEAL_EXPENSE_RECEIPTS)),
+  rentalNotes:          JSON.parse(JSON.stringify(RENTAL_NOTES)),
+  dealNotes:            JSON.parse(JSON.stringify(DEAL_NOTES)),
+  generalNotes:         JSON.parse(JSON.stringify(GENERAL_NOTES)),
+  monthlyCashFlow:      JSON.parse(JSON.stringify(_monthlyCashFlow)),
+  equityGrowth:         JSON.parse(JSON.stringify(_equityGrowth)),
+  expenseCategories:    JSON.parse(JSON.stringify(_expenseCategories)),
+};
+
+function refill(target, source) { target.length = 0; source.forEach(item => target.push(item)); }
+
+export function restoreDemoData() {
+  refill(_properties,          _snap.properties);
+  refill(_transactions,        _snap.transactions);
+  refill(_tenants,             _snap.tenants);
+  refill(_mileageTrips,        _snap.mileageTrips);
+  refill(DEALS,                _snap.deals);
+  refill(DEAL_EXPENSES,        _snap.dealExpenses);
+  refill(CONTRACTORS,          _snap.contractors);
+  refill(CONTRACTOR_BIDS,      _snap.contractorBids);
+  refill(CONTRACTOR_PAYMENTS,  _snap.contractorPayments);
+  refill(CONTRACTOR_DOCUMENTS, _snap.contractorDocuments);
+  refill(DEAL_MILESTONES,      _snap.dealMilestones);
+  refill(PROPERTY_DOCUMENTS,   _snap.propertyDocuments);
+  refill(DEAL_DOCUMENTS,       _snap.dealDocuments);
+  refill(TENANT_DOCUMENTS,     _snap.tenantDocuments);
+  refill(MAINTENANCE_REQUESTS, _snap.maintenanceRequests);
+  refill(TRANSACTION_RECEIPTS, _snap.transactionReceipts);
+  refill(DEAL_EXPENSE_RECEIPTS,_snap.dealExpenseReceipts);
+  refill(RENTAL_NOTES,         _snap.rentalNotes);
+  refill(DEAL_NOTES,           _snap.dealNotes);
+  refill(GENERAL_NOTES,        _snap.generalNotes);
+  refill(_monthlyCashFlow,     _snap.monthlyCashFlow);
+  refill(_equityGrowth,        _snap.equityGrowth);
+  refill(_expenseCategories,   _snap.expenseCategories);
+}
+
+// Call clearDemoData() for any non-demo user so they start with a blank slate.
+// When Supabase data persistence is wired up, this layer gets replaced with
+// real DB queries and this function can be removed.
 export function clearDemoData() {
   // Empty every in-memory data array in-place so all components see [] immediately
   _properties.length        = 0;

@@ -36,7 +36,7 @@ import {
   TRANSACTION_RECEIPTS, addTransactionReceipt, deleteTransactionReceipt,
   DEAL_EXPENSE_RECEIPTS, addDealExpenseReceipt, deleteDealExpenseReceipt,
   mockOcrScan,
-  clearDemoData, DEMO_EMAIL,
+  clearDemoData, restoreDemoData, DEMO_EMAIL,
 } from "./api.js";
 import { AuthProvider, AuthScreen, useAuth } from "./auth.jsx";
 import { Settings, OnboardingWizard } from "./settings.jsx";
@@ -534,6 +534,27 @@ const MILEAGE_TRIPS = [
   { id: 7, date: "2026-03-05", description: "Riverside Triplex - maintenance call", from: "Home", to: "744 Riverside Blvd, Portland", miles: 12.1, purpose: "Rental", businessPct: 100 },
   { id: 8, date: "2026-02-28", description: "Accountant meeting - tax prep", from: "Home", to: "Downtown Office", miles: 9.3, purpose: "Business", businessPct: 100 },
 ];
+
+// Snapshots of App.jsx-local demo arrays — captured at module load.
+// Used by restoreLocalDemoData() so the demo account always shows full data.
+const _SNAP_PROPERTIES     = JSON.parse(JSON.stringify(PROPERTIES));
+const _SNAP_TRANSACTIONS   = JSON.parse(JSON.stringify(TRANSACTIONS));
+const _SNAP_TENANTS        = JSON.parse(JSON.stringify(TENANTS));
+const _SNAP_MILEAGE_TRIPS  = JSON.parse(JSON.stringify(MILEAGE_TRIPS));
+const _SNAP_MONTHLY_CF     = JSON.parse(JSON.stringify(MONTHLY_CASH_FLOW));
+const _SNAP_EQUITY_GROWTH  = JSON.parse(JSON.stringify(EQUITY_GROWTH));
+const _SNAP_EXPENSE_CATS   = JSON.parse(JSON.stringify(EXPENSE_CATEGORIES));
+
+function _refill(target, source) { target.length = 0; source.forEach(i => target.push(i)); }
+function restoreLocalDemoData() {
+  _refill(PROPERTIES,        _SNAP_PROPERTIES);
+  _refill(TRANSACTIONS,      _SNAP_TRANSACTIONS);
+  _refill(TENANTS,           _SNAP_TENANTS);
+  _refill(MILEAGE_TRIPS,     _SNAP_MILEAGE_TRIPS);
+  _refill(MONTHLY_CASH_FLOW, _SNAP_MONTHLY_CF);
+  _refill(EQUITY_GROWTH,     _SNAP_EQUITY_GROWTH);
+  _refill(EXPENSE_CATEGORIES,_SNAP_EXPENSE_CATS);
+}
 
 // fmt, fmtK imported from api.js
 
@@ -11765,21 +11786,27 @@ function AppShell() {
   const { theme, toggleTheme } = useTheme();
 
   // Gate demo data: real users start with a blank account.
-  // The demo user (demo@propbooks.com) sees the full sample portfolio.
-  // Use a ref so this only fires once on mount — not on every re-render
-  // (re-clearing would erase data the user just added).
+  // Demo user (demo@propbooks.com) always sees the full sample portfolio.
+  // We restore OR clear on every mount so switching accounts mid-session works.
   const isDemo = user?.email === DEMO_EMAIL;
   const _dataGated = useRef(false);
   if (!_dataGated.current) {
     _dataGated.current = true;
-    if (!isDemo) {
+    if (isDemo) {
+      // Restore in case a prior non-demo session cleared the arrays
+      restoreDemoData();
+      restoreLocalDemoData();
+    } else {
       // Clear api.js arrays (DEALS, CONTRACTORS, notes, docs, etc.)
       clearDemoData();
       // Clear App.jsx-local demo arrays
-      PROPERTIES.length    = 0;
-      TRANSACTIONS.length  = 0;
-      TENANTS.length       = 0;
-      MILEAGE_TRIPS.length = 0;
+      PROPERTIES.length      = 0;
+      TRANSACTIONS.length    = 0;
+      TENANTS.length         = 0;
+      MILEAGE_TRIPS.length   = 0;
+      MONTHLY_CASH_FLOW.length  = 0;
+      EQUITY_GROWTH.length   = 0;
+      EXPENSE_CATEGORIES.length = 0;
     }
   }
 
