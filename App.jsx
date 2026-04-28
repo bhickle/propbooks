@@ -11811,6 +11811,10 @@ function AppShell() {
   }
 
   const [activeView, setActiveView] = useState("portfolio");
+
+  // Scroll to top whenever the active view changes
+  useEffect(() => { window.scrollTo({ top: 0, behavior: "instant" }); }, [activeView]);
+
   const [selectedProperty, setSelectedProperty] = useState(null);
   const [selectedDeal, setSelectedDeal] = useState(null);
   const [showSettings, setShowSettings] = useState(false);
