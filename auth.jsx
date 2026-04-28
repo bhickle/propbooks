@@ -36,10 +36,11 @@ export function useAuth() {
 }
 
 // ─── Brand ───────────────────────────────────────────────────────────────────
-const NAVY   = "#1e3a5f";
-const NAVY2  = "#2d5280";
-const ORANGE = "#e95e00";
-const FONT   = "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
+const NAVY        = "#1e3a5f";
+const NAVY2       = "#2d5280";
+const ORANGE      = "#e95e00";
+const FONT        = "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
+const FONT_DISPLAY = "'Space Grotesk', 'Inter', sans-serif";
 
 // ─── Alert ───────────────────────────────────────────────────────────────────
 function Alert({ type, message }) {
@@ -141,7 +142,7 @@ function LoginForm({ onSwitch, onSuccess }) {
 
   return (
     <>
-      <h2 style={{ fontSize: 22, fontWeight: 700, color: NAVY, margin: "0 0 4px", textAlign: "center", fontFamily: FONT }}>
+      <h2 style={{ fontSize: 22, fontWeight: 700, color: NAVY, margin: "0 0 4px", textAlign: "center", fontFamily: FONT_DISPLAY }}>
         Sign in
       </h2>
       <p style={{ fontSize: 13, color: "#64748b", textAlign: "center", marginBottom: 20, fontFamily: FONT }}>
@@ -195,7 +196,7 @@ function SignupForm({ onSwitch }) {
 
   return (
     <>
-      <h2 style={{ fontSize: 22, fontWeight: 700, color: NAVY, margin: "0 0 4px", textAlign: "center", fontFamily: FONT }}>
+      <h2 style={{ fontSize: 22, fontWeight: 700, color: NAVY, margin: "0 0 4px", textAlign: "center", fontFamily: FONT_DISPLAY }}>
         Create your account
       </h2>
       <p style={{ fontSize: 13, color: "#64748b", textAlign: "center", marginBottom: 22, fontFamily: FONT }}>
@@ -241,7 +242,7 @@ function ResetForm({ onSwitch }) {
 
   return (
     <>
-      <h2 style={{ fontSize: 22, fontWeight: 700, color: NAVY, margin: "0 0 4px", textAlign: "center", fontFamily: FONT }}>
+      <h2 style={{ fontSize: 22, fontWeight: 700, color: NAVY, margin: "0 0 4px", textAlign: "center", fontFamily: FONT_DISPLAY }}>
         Reset your password
       </h2>
       <p style={{ fontSize: 13, color: "#64748b", textAlign: "center", marginBottom: 22, fontFamily: FONT }}>
