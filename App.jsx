@@ -11772,7 +11772,15 @@ function AppShell() {
   const _dataGated = useRef(false);
   if (!_dataGated.current) {
     _dataGated.current = true;
-    if (!isDemo) clearDemoData();
+    if (!isDemo) {
+      // Clear api.js arrays (DEALS, CONTRACTORS, notes, docs, etc.)
+      clearDemoData();
+      // Clear App.jsx-local demo arrays
+      PROPERTIES.length    = 0;
+      TRANSACTIONS.length  = 0;
+      TENANTS.length       = 0;
+      MILEAGE_TRIPS.length = 0;
+    }
   }
 
   const [activeView, setActiveView] = useState("portfolio");
