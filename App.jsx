@@ -36,6 +36,7 @@ import {
   TRANSACTION_RECEIPTS, addTransactionReceipt, deleteTransactionReceipt,
   DEAL_EXPENSE_RECEIPTS, addDealExpenseReceipt, deleteDealExpenseReceipt,
   mockOcrScan,
+  clearDemoData, DEMO_EMAIL,
 } from "./api.js";
 import { AuthProvider, AuthScreen, useAuth } from "./auth.jsx";
 import { Settings, OnboardingWizard } from "./settings.jsx";
@@ -11762,6 +11763,18 @@ function GlobalSearch({ onNavigate }) {
 function AppShell() {
   const { user, signOut } = useAuth();
   const { theme, toggleTheme } = useTheme();
+
+  // Gate demo data: real users start with a blank account.
+  // The demo user (demo@propbooks.com) sees the full sample portfolio.
+  // Use a ref so this only fires once on mount — not on every re-render
+  // (re-clearing would erase data the user just added).
+  const isDemo = user?.email === DEMO_EMAIL;
+  const _dataGated = useRef(false);
+  if (!_dataGated.current) {
+    _dataGated.current = true;
+    if (!isDemo) clearDemoData();
+  }
+
   const [activeView, setActiveView] = useState("portfolio");
   const [selectedProperty, setSelectedProperty] = useState(null);
   const [selectedDeal, setSelectedDeal] = useState(null);

@@ -552,6 +552,42 @@ export const MOCK_USER = {
 };
 
 // -----------------------------------------------------------------------------
+// =============================================================================
+// Demo / Real-user data gate
+// Call clearDemoData() for any non-demo user so they start with a blank slate.
+// When Supabase data persistence is wired up, this layer gets replaced with
+// real DB queries and this function can be removed.
+// =============================================================================
+export const DEMO_EMAIL = "demo@propbooks.com";
+
+export function clearDemoData() {
+  // Empty every in-memory data array in-place so all components see [] immediately
+  _properties.length        = 0;
+  _transactions.length      = 0;
+  _tenants.length           = 0;
+  _mileageTrips.length      = 0;
+  DEALS.length              = 0;
+  DEAL_EXPENSES.length      = 0;
+  CONTRACTORS.length        = 0;
+  CONTRACTOR_BIDS.length    = 0;
+  CONTRACTOR_PAYMENTS.length= 0;
+  CONTRACTOR_DOCUMENTS.length=0;
+  DEAL_MILESTONES.length    = 0;
+  PROPERTY_DOCUMENTS.length = 0;
+  DEAL_DOCUMENTS.length     = 0;
+  TENANT_DOCUMENTS.length   = 0;
+  MAINTENANCE_REQUESTS.length=0;
+  TRANSACTION_RECEIPTS.length=0;
+  DEAL_EXPENSE_RECEIPTS.length=0;
+  RENTAL_NOTES.length       = 0;
+  DEAL_NOTES.length         = 0;
+  GENERAL_NOTES.length      = 0;
+  // Chart series — replace with empty months so charts render (not crash)
+  _monthlyCashFlow.length   = 0;
+  _equityGrowth.length      = 0;
+  _expenseCategories.length = 0;
+}
+
 // Properties
 // -----------------------------------------------------------------------------
 export function getProperties()             { return Promise.resolve([..._properties]); }
