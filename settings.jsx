@@ -116,7 +116,7 @@ function ProfileTab() {
 
       <div style={card}>
         <p style={{ color: "#041830", fontWeight: 700, fontSize: 15, marginBottom: 4 }}>Sign Out</p>
-        <p style={{ color: "#94a3b8", fontSize: 13, marginBottom: 16 }}>Sign out of your PropBooks account on this device.</p>
+        <p style={{ color: "#94a3b8", fontSize: 13, marginBottom: 16 }}>Sign out of your PROPBOOKS account on this device.</p>
         <button onClick={signOut}
           style={{ padding: "9px 18px", borderRadius: 9, border: "1.5px solid #fecaca", background: "#fef2f2", color: "#b91c1c", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
           Sign Out
@@ -391,7 +391,7 @@ export function Settings({ onClose }) {
 // Onboarding Wizard (shown to new users after signup)
 // -----------------------------------------------------------------------------
 const ONBOARDING_STEPS = [
-  { id: "welcome",  title: "Welcome to PropBooks 👋",       sub: "Let's get your portfolio set up in 2 minutes." },
+  { id: "welcome",  title: "Welcome to PROPBOOKS 👋",       sub: "Let's get your portfolio set up in 2 minutes." },
   { id: "property", title: "Add your first property",        sub: "You can always add more later." },
   { id: "done",     title: "You're all set!",                sub: "Your portfolio dashboard is ready." },
 ];

@@ -302,7 +302,7 @@ function AuthUI({ onAuthenticated } = {}) {
 
       {/* Footer */}
       <p style={{ marginTop: 24, fontSize: 12, color: "rgba(255,255,255,0.3)", fontFamily: FONT, position: "relative" }}>
-        PropBooks · Built for serious real estate investors
+        PROPBOOKS · Built for serious real estate investors
       </p>
     </div>
   );
