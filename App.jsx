@@ -39,6 +39,7 @@ import {
   clearDemoData, restoreDemoData, DEMO_EMAIL,
 } from "./api.js";
 import { AuthProvider, AuthScreen, useAuth } from "./auth.jsx";
+import { SUPABASE_CONFIGURED, SUPABASE_CONFIG_ERROR } from "./supabase.js";
 import { Settings, OnboardingWizard } from "./settings.jsx";
 import { DealDashboard, RehabTracker, DealExpenses, DealContractors, ContractorDetail, DealAnalytics, DealMilestones, DealNotes } from "./deals.jsx";
 import { DealReports } from "./dealReports.jsx";
@@ -12231,6 +12232,9 @@ export default function App() {
 
 function AuthGate() {
   const { user } = useAuth();
+  if (!SUPABASE_CONFIGURED) {
+    return <ConfigErrorScreen message={SUPABASE_CONFIG_ERROR} />;
+  }
   // user === undefined means we're still resolving the session
   if (user === undefined) {
     return (
@@ -12244,4 +12248,24 @@ function AuthGate() {
     );
   }
   return user ? <AppShell /> : <AuthScreen />;
+}
+
+function ConfigErrorScreen({ message }) {
+  return (
+    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#1e3a5f", padding: "24px 16px", fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>
+      <div style={{ background: "#fff", borderRadius: 16, padding: "32px 36px", maxWidth: 520, width: "100%", boxShadow: "0 24px 60px rgba(0,0,0,0.28)" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
+          <div style={{ width: 32, height: 32, borderRadius: 10, background: "#fef2f2", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+            <span style={{ fontSize: 18 }}>⚠</span>
+          </div>
+          <h2 style={{ fontSize: 18, fontWeight: 700, color: "#041830", fontFamily: "'Space Grotesk', 'Inter', sans-serif" }}>Configuration Error</h2>
+        </div>
+        <p style={{ fontSize: 14, color: "#374151", lineHeight: 1.55, marginBottom: 16 }}>{message}</p>
+        <pre style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 10, padding: "12px 14px", fontSize: 12, color: "#1e293b", fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace", margin: 0, whiteSpace: "pre-wrap", wordBreak: "break-all" }}>
+          VITE_SUPABASE_URL=https://your-project.supabase.co{"\n"}
+          VITE_SUPABASE_ANON_KEY=your-anon-key
+        </pre>
+      </div>
+    </div>
+  );
 }
