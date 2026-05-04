@@ -115,6 +115,18 @@ export function StatCard({
   );
 }
 
+// ─── Shared input style ──────────────────────────────────────────────────────
+export const iS = { width: "100%", padding: "10px 12px", border: "1px solid var(--border)", borderRadius: 10, fontSize: 14, color: "var(--text-primary)", background: "var(--surface)", outline: "none", boxSizing: "border-box" };
+
+// ─── downloadFile — generic Blob/URL download ───────────────────────────────
+export function downloadFile(content, filename, mimeType) {
+  const blob = new Blob([content], { type: mimeType });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = filename; document.body.appendChild(a); a.click();
+  document.body.removeChild(a); URL.revokeObjectURL(url);
+}
+
 // ─── colorWithAlpha ──────────────────────────────────────────────────────────
 // Convert a CSS color to a translucent variant. Handles both `var(--name)`
 // custom properties and `#rrggbb` hex literals.
