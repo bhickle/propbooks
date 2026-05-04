@@ -29,6 +29,8 @@ import {
 // Using module-level state so all modules stay in sync within a session
 import { DEALS as _DEALS, DEAL_EXPENSES as _FE, CONTRACTORS as _CON, DEAL_MILESTONES, DEAL_NOTES, CONTRACTOR_BIDS as _BIDS, CONTRACTOR_PAYMENTS as _PAYMENTS, CONTRACTOR_DOCUMENTS as _DOCS } from "./api.js";
 import { InfoTip, Modal, StatCard, colorWithAlpha, sectionS as sharedSectionS, cardS as sharedCardS } from "./shared.jsx";
+import { updateMilestone as dbUpdateMilestone, createMilestone as dbCreateMilestone, deleteMilestone as dbDeleteMilestone } from "./db/dealMilestones.js";
+import { updateRehabItem as dbUpdateRehabItem, createRehabItem as dbCreateRehabItem, deleteRehabItem as dbDeleteRehabItem } from "./db/dealRehabItems.js";
 
 // ---------------------------------------------------------------------------
 // Shared helpers
@@ -398,7 +400,7 @@ export function RehabTracker({ onSelectRehabItem } = {}) {
   );
 
   const filtered = allItems.filter(item => {
-    if (filterDeal   !== "all" && item.dealId !== parseInt(filterDeal)) return false;
+    if (filterDeal   !== "all" && item.dealId !== filterDeal) return false;
     if (filterStatus !== "all" && item.status !== filterStatus) return false;
     return true;
   });
@@ -514,7 +516,7 @@ export function RehabTracker({ onSelectRehabItem } = {}) {
 
   function saveLineItem() {
     if (!itemForm.dealId || !itemForm.category) return;
-    const deal = _DEALS.find(f => f.id === parseInt(itemForm.dealId));
+    const deal = _DEALS.find(f => f.id === itemForm.dealId);
     if (!deal) return;
     const canon = itemForm.canonicalCategory || getCanonicalByLabel(itemForm.category)?.slug || null;
     deal.rehabItems.push({
@@ -604,7 +606,7 @@ export function RehabTracker({ onSelectRehabItem } = {}) {
 
       {/* Items by deal */}
       {deals
-        .filter(f => filterDeal === "all" || f.id === parseInt(filterDeal))
+        .filter(f => filterDeal === "all" || f.id === filterDeal)
         .map(f => {
           const items = filtered.filter(i => i.dealId === f.id);
           if (!items.length) return null;
@@ -1156,7 +1158,7 @@ export function DealExpenses({ highlightExpId, onBack, onClearHighlight, backLab
   }, [expenses]); // eslint-disable-line react-hooks/exhaustive-deps -- expenses is the cache-bust counter for _FE/_CON
 
   // Rehab items for selected deal
-  const expDeal = _DEALS.find(f => f.id === parseInt(form.dealId));
+  const expDeal = _DEALS.find(f => f.id === form.dealId);
   const expRehabItems = expDeal?.rehabItems || [];
 
   const openAdd = () => { setEditId(null); setForm(emptyForm); setDealReceipts([]); setShowModal(true); };
@@ -1193,7 +1195,7 @@ export function DealExpenses({ highlightExpId, onBack, onClearHighlight, backLab
   const hasActiveFilters = filterDeal !== "all" || filterCat !== "all" || dateFilter !== "all" || search;
 
   const filtered = expenses.filter(e => {
-    if (filterDeal !== "all" && e.dealId !== parseInt(filterDeal)) return false;
+    if (filterDeal !== "all" && e.dealId !== filterDeal) return false;
     if (filterCat  !== "all" && e.category !== filterCat) return false;
     if (search && !e.description.toLowerCase().includes(search.toLowerCase()) && !e.vendor.toLowerCase().includes(search.toLowerCase())) return false;
     if (!matchesDate(e)) return false;
@@ -1209,10 +1211,10 @@ export function DealExpenses({ highlightExpId, onBack, onClearHighlight, backLab
 
   const handleSave = () => {
     if (!form.amount || !form.dealId || !form.vendor || !form.description) return;
-    const deal = _DEALS.find(f => f.id === parseInt(form.dealId));
+    const deal = _DEALS.find(f => f.id === form.dealId);
     const amt = parseFloat(form.amount);
     const riIdx = form.rehabItemIdx !== "" ? parseInt(form.rehabItemIdx) : null;
-    const built = { dealId: parseInt(form.dealId), dealName: deal?.name, date: form.date || new Date().toISOString().split("T")[0], vendor: form.vendor || "Unknown", category: form.category, description: form.description, amount: amt, rehabItemIdx: riIdx, contractorId: form.contractorId ? parseInt(form.contractorId) : null };
+    const built = { dealId: form.dealId, dealName: deal?.name, date: form.date || new Date().toISOString().split("T")[0], vendor: form.vendor || "Unknown", category: form.category, description: form.description, amount: amt, rehabItemIdx: riIdx, contractorId: form.contractorId || null };
 
     if (editId !== null) {
       // Reverse the old rehab item link before applying new one
@@ -1305,7 +1307,7 @@ export function DealExpenses({ highlightExpId, onBack, onClearHighlight, backLab
       {hasActiveFilters && (
         <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap", alignItems: "center" }}>
           <span style={{ fontSize: 12, color: "var(--text-muted)", fontWeight: 600 }}>Filtered:</span>
-          {filterDeal !== "all" && <span style={{ background: "#fff7ed", color: "#e95e00", borderRadius: 20, padding: "3px 10px", fontSize: 12, fontWeight: 600 }}>{_DEALS.find(f => f.id === parseInt(filterDeal))?.name || filterDeal}</span>}
+          {filterDeal !== "all" && <span style={{ background: "#fff7ed", color: "#e95e00", borderRadius: 20, padding: "3px 10px", fontSize: 12, fontWeight: 600 }}>{_DEALS.find(f => f.id === filterDeal)?.name || filterDeal}</span>}
           {filterCat !== "all" && <span style={{ background: "#fff7ed", color: "#7c2d12", borderRadius: 20, padding: "3px 10px", fontSize: 12, fontWeight: 600 }}>{filterCat}</span>}
           {dateFilter !== "all" && <span style={{ background: "#edf7f2", color: "#1a7a4a", borderRadius: 20, padding: "3px 10px", fontSize: 12, fontWeight: 600 }}>{{ thisMonth: "This Month", lastMonth: "Last Month", thisYear: "This Year", lastYear: "Last Year", custom: dateFrom && dateTo ? `${dateFrom} – ${dateTo}` : "Custom Range" }[dateFilter]}</span>}
           {search && <span style={{ background: "var(--surface-muted)", color: "var(--text-label)", borderRadius: 20, padding: "3px 10px", fontSize: 12, fontWeight: 600 }}>&ldquo;{search}&rdquo;</span>}
@@ -1587,7 +1589,7 @@ export function DealContractors({ onSelectContractor }) {
   const allTrades = useMemo(() => [...new Set(_CON.map(c => c.trade).filter(Boolean))].sort(), []);
 
   const filtered = _CON.filter(c => {
-    if (filterDeal !== "all" && !(c.dealIds || []).includes(parseInt(filterDeal))) return false;
+    if (filterDeal !== "all" && !(c.dealIds || []).includes(filterDeal)) return false;
     if (filterTrade !== "all" && c.trade !== filterTrade) return false;
     return true;
   });
@@ -1814,7 +1816,7 @@ export function ContractorDetail({ contractor, onBack, initialTab }) {
   };
 
   const saveBid = () => {
-    const fId = parseInt(bidForm.dealId);
+    const fId = bidForm.dealId;
     const rehabName = bidForm.rehabItem.trim();
     if (!fId || !rehabName || !bidForm.amount) return;
     const deal = _DEALS.find(f => f.id === fId);
@@ -1874,11 +1876,11 @@ export function ContractorDetail({ contractor, onBack, initialTab }) {
       if (doc) {
         doc.name = docForm.name;
         doc.type = docForm.type;
-        doc.dealId = docForm.dealId ? parseInt(docForm.dealId) : null;
+        doc.dealId = docForm.dealId ? docForm.dealId : null;
       }
       setEditingDocId(null);
     } else {
-      const newDoc = { id: newId(), contractorId: con.id, name: docForm.name, type: docForm.type, dealId: docForm.dealId ? parseInt(docForm.dealId) : null, date: new Date().toISOString().slice(0, 10), size: "— KB" };
+      const newDoc = { id: newId(), contractorId: con.id, name: docForm.name, type: docForm.type, dealId: docForm.dealId ? docForm.dealId : null, date: new Date().toISOString().slice(0, 10), size: "— KB" };
       _DOCS.push(newDoc);
     }
     rerender(n => n + 1);
@@ -1900,7 +1902,7 @@ export function ContractorDetail({ contractor, onBack, initialTab }) {
     { id: "history", label: "Deal History", icon: Clock, count: deals.length },
   ];
 
-  const selectedDealForBid = _DEALS.find(f => f.id === parseInt(bidForm.dealId));
+  const selectedDealForBid = _DEALS.find(f => f.id === bidForm.dealId);
   const bidRehabOptions = selectedDealForBid ? (selectedDealForBid.rehabItems || []).map(i => i.category) : [];
   // All rehab categories across all deals for typeahead suggestions
   const allRehabCategories = useMemo(() => {
@@ -2374,7 +2376,7 @@ export function DealAnalytics() {
   const totalProfit = sold.reduce((s, f) => s + (f.netProfit || 0), 0);
 
   // Single-deal mode
-  const singleDeal = filterDeal !== "all" ? allDeals.find(f => f.id === parseInt(filterDeal)) : null;
+  const singleDeal = filterDeal !== "all" ? allDeals.find(f => f.id === filterDeal) : null;
 
   // Single-deal computed data
   const dealExpenses = singleDeal ? _FE.filter(e => e.dealId === singleDeal.id).sort((a, b) => a.date.localeCompare(b.date)) : [];
@@ -2878,7 +2880,7 @@ export function DealMilestones({ highlightMilestoneKey, onBack, onClearHighlight
       // If the highlighted milestone is completed, set filter to show completed items
       const [hDealId, ...hLabelParts] = highlightMilestoneKey.split("-");
       const hLabel = hLabelParts.join("-");
-      const dealMs = DEAL_MILESTONES.filter(m => m.dealId === parseInt(hDealId));
+      const dealMs = DEAL_MILESTONES.filter(m => m.dealId === hDealId);
       const targetMs = dealMs.find(m => m.label === hLabel);
       if (targetMs?.done && filterStatus === "upcoming") setFilterStatus("all");
       setTimeout(() => {
@@ -2908,7 +2910,7 @@ export function DealMilestones({ highlightMilestoneKey, onBack, onClearHighlight
   }, [renderKey]); // eslint-disable-line react-hooks/exhaustive-deps -- renderKey is the cache-bust counter for _DEALS/DEAL_MILESTONES
 
   const filtered = allMilestones.filter(m => {
-    if (filterDeal !== "all" && m.dealId !== parseInt(filterDeal)) return false;
+    if (filterDeal !== "all" && m.dealId !== filterDeal) return false;
     if (filterStatus === "done" && !m.done) return false;
     if (filterStatus === "upcoming" && m.done) return false;
     if (filterStatus === "overdue" && (m.done || !m.targetDate || m.targetDate >= new Date().toISOString().split("T")[0])) return false;
@@ -2938,6 +2940,8 @@ export function DealMilestones({ highlightMilestoneKey, onBack, onClearHighlight
     if (ms && ms[completingItem.idx]) {
       ms[completingItem.idx].done = true;
       ms[completingItem.idx].date = completionDate;
+      dbUpdateMilestone(ms[completingItem.idx].id, { done: true, date: completionDate })
+        .catch(e => console.error("[PropBooks] complete milestone failed:", e));
     }
     setCompletingItem(null);
     rerender(n => n + 1);
@@ -2948,14 +2952,24 @@ export function DealMilestones({ highlightMilestoneKey, onBack, onClearHighlight
     if (ms && ms[idx]) {
       ms[idx].done = false;
       ms[idx].date = null;
+      dbUpdateMilestone(ms[idx].id, { done: false, date: null })
+        .catch(e => console.error("[PropBooks] uncomplete milestone failed:", e));
     }
     rerender(n => n + 1);
   };
 
-  const saveMilestone = () => {
-    const fId = parseInt(msForm.dealId);
+  const saveMilestone = async () => {
+    const fId = msForm.dealId;
     if (!fId || !msForm.label.trim()) return;
-    DEAL_MILESTONES.push({ id: Date.now() + Math.random(), dealId: fId, label: msForm.label.trim(), done: false, date: null, targetDate: msForm.targetDate || null });
+    try {
+      const saved = await dbCreateMilestone({
+        dealId: fId, label: msForm.label.trim(),
+        done: false, date: null, targetDate: msForm.targetDate || null,
+      });
+      DEAL_MILESTONES.push(saved);
+    } catch (e) {
+      console.error("[PropBooks] add milestone failed:", e);
+    }
     setMsForm({ dealId: "", label: "", targetDate: "" });
     setShowAdd(false);
     rerender(n => n + 1);
@@ -2970,15 +2984,22 @@ export function DealMilestones({ highlightMilestoneKey, onBack, onClearHighlight
     if (!editItem) return;
     const ms = DEAL_MILESTONES.filter(m => m.dealId === editItem.dealId);
     if (ms && ms[editItem.idx]) {
-      ms[editItem.idx].label = editForm.label.trim() || ms[editItem.idx].label;
-      ms[editItem.idx].targetDate = editForm.targetDate || null;
+      const target = ms[editItem.idx];
+      target.label = editForm.label.trim() || target.label;
+      target.targetDate = editForm.targetDate || null;
       if (editForm.completedDate) {
-        ms[editItem.idx].date = editForm.completedDate;
-        ms[editItem.idx].done = true;
+        target.date = editForm.completedDate;
+        target.done = true;
       } else {
-        ms[editItem.idx].date = null;
-        ms[editItem.idx].done = false;
+        target.date = null;
+        target.done = false;
       }
+      dbUpdateMilestone(target.id, {
+        label: target.label,
+        targetDate: target.targetDate,
+        date: target.date,
+        done: target.done,
+      }).catch(e => console.error("[PropBooks] edit milestone failed:", e));
     }
     setEditItem(null);
     rerender(n => n + 1);
@@ -2986,8 +3007,14 @@ export function DealMilestones({ highlightMilestoneKey, onBack, onClearHighlight
 
   const deleteMilestone = () => {
     if (!deleteConfirm) return;
-    const msIdx = DEAL_MILESTONES.findIndex(m => m.dealId === deleteConfirm.dealId && DEAL_MILESTONES.filter(x => x.dealId === deleteConfirm.dealId)[deleteConfirm.idx]?.id === m.id);
-    if (msIdx !== -1) { DEAL_MILESTONES.splice(msIdx, 1); }
+    const targets = DEAL_MILESTONES.filter(m => m.dealId === deleteConfirm.dealId);
+    const target = targets[deleteConfirm.idx];
+    if (target) {
+      const msIdx = DEAL_MILESTONES.findIndex(m => m.id === target.id);
+      if (msIdx !== -1) DEAL_MILESTONES.splice(msIdx, 1);
+      dbDeleteMilestone(target.id)
+        .catch(e => console.error("[PropBooks] delete milestone failed:", e));
+    }
     setDeleteConfirm(null);
     rerender(n => n + 1);
   };
@@ -3251,7 +3278,7 @@ export function DealNotes({ highlightNoteId, onBack, onClearHighlight }) {
   })();
 
   const filtered = allNotes.filter(n => {
-    if (filterDeal !== "all" && n.dealId !== parseInt(filterDeal)) return false;
+    if (filterDeal !== "all" && n.dealId !== filterDeal) return false;
     if (search && !n.text.toLowerCase().includes(search.toLowerCase())) return false;
     return true;
   });
@@ -3261,7 +3288,7 @@ export function DealNotes({ highlightNoteId, onBack, onClearHighlight }) {
 
   const handleSave = () => {
     if (!noteForm.text.trim() || !noteForm.dealId) return;
-    const fId = parseInt(noteForm.dealId);
+    const fId = noteForm.dealId;
     if (editId !== null) {
       const idx = DEAL_NOTES.findIndex(n => n.id === editId);
       if (idx !== -1) DEAL_NOTES[idx] = { ...DEAL_NOTES[idx], text: noteForm.text.trim() };

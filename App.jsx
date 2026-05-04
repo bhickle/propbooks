@@ -81,6 +81,28 @@ import { Analytics } from "./views/Analytics.jsx";
 import { listProperties } from "./db/properties.js";
 import { listTransactions } from "./db/transactions.js";
 import { listTenants, updateTenant as dbUpdateTenant } from "./db/tenants.js";
+import { listDeals, updateDeal as dbUpdateDeal, deleteDeal as dbDeleteDeal, createDeal as dbCreateDeal } from "./db/deals.js";
+import { listMilestones, updateMilestone as dbUpdateMilestone } from "./db/dealMilestones.js";
+import { listRehabItems, updateRehabItem as dbUpdateRehabItem } from "./db/dealRehabItems.js";
+
+// Fire-and-forget DB sync for legacy sync handlers that mutate DEALS in place.
+// The optimistic in-memory mutation has already happened; this just persists.
+// Errors are logged so we can spot drift; UI flow is not blocked.
+function persistDealAsync(id, updates) {
+  dbUpdateDeal(id, updates).catch(e =>
+    console.error("[PropBooks] persistDealAsync failed for", id, e)
+  );
+}
+function persistMilestoneAsync(id, updates) {
+  dbUpdateMilestone(id, updates).catch(e =>
+    console.error("[PropBooks] persistMilestoneAsync failed for", id, e)
+  );
+}
+function persistRehabItemAsync(id, updates) {
+  dbUpdateRehabItem(id, updates).catch(e =>
+    console.error("[PropBooks] persistRehabItemAsync failed for", id, e)
+  );
+}
 
 // TAX_CONFIG and getDeprBasis moved to finance.js
 
@@ -570,6 +592,7 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
     const idx = DEALS.findIndex(f => f.id === deal.id);
     if (idx !== -1) Object.assign(DEALS[idx], updated);
     if (setAllFlips) setAllFlips(prev => prev.map(f => f.id === deal.id ? { ...f, ...updated } : f));
+    persistDealAsync(deal.id, updated);
     if (onDealUpdated) onDealUpdated();
     showToast("Deal updated");
     setShowEditDeal(false);
@@ -804,6 +827,7 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
     setStage(newStage);
     const idx = DEALS.findIndex(f => f.id === deal.id);
     if (idx !== -1) DEALS[idx].stage = newStage;
+    persistDealAsync(deal.id, { stage: newStage });
     if (setAllFlips) setAllFlips(prev => prev.map(f => f.id === deal.id ? { ...f, stage: newStage } : f));
   };
 
@@ -940,6 +964,7 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
                       setStage(nextStage);
                       const idx = DEALS.findIndex(f => f.id === deal.id);
                       if (idx !== -1) DEALS[idx].stage = nextStage;
+                      persistDealAsync(deal.id, { stage: nextStage });
                       if (setAllFlips) setAllFlips(prev => prev.map(f => f.id === deal.id ? { ...f, stage: nextStage } : f));
                       if (onDealUpdated) onDealUpdated();
                       pushDealNote(`Stage advanced to "${nextStage}".`);
@@ -2348,6 +2373,7 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
                 const idx = DEALS.findIndex(f => f.id === deal.id);
                 if (idx !== -1) Object.assign(DEALS[idx], soldData);
                 if (setAllFlips) setAllFlips(prev => prev.map(f => f.id === deal.id ? { ...f, ...soldData } : f));
+                persistDealAsync(deal.id, soldData);
                 setStage("Sold");
                 if (closeForm.closingNotes.trim()) {
                   pushDealNote(closeForm.closingNotes);
@@ -2409,6 +2435,7 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
                 setStage("Converted to Rental");
                 const idx = DEALS.findIndex(f => f.id === deal.id);
                 if (idx !== -1) DEALS[idx].stage = "Converted to Rental";
+                persistDealAsync(deal.id, { stage: "Converted to Rental" });
                 pushDealNote("Deal converted to rental property.");
                 if (onDealUpdated) onDealUpdated();
                 showToast("Converting to rental — review the property details");
@@ -2429,13 +2456,14 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
             <button onClick={() => {
               const idx = DEALS.findIndex(f => f.id === deal.id);
               if (idx !== -1) DEALS.splice(idx, 1);
-              // Clean up related data
+              // Clean up related in-memory data (DB cascades the FKs)
               const expIdxs = [];
               DEAL_EXPENSES.forEach((e, i) => { if (e.dealId === deal.id) expIdxs.unshift(i); });
               expIdxs.forEach(i => DEAL_EXPENSES.splice(i, 1));
               const msIdxs = [];
               DEAL_MILESTONES.forEach((m, i) => { if (m.dealId === deal.id) msIdxs.unshift(i); });
               msIdxs.forEach(i => DEAL_MILESTONES.splice(i, 1));
+              dbDeleteDeal(deal.id).catch(e => console.error("[PropBooks] Delete deal failed:", e));
               if (onDealUpdated) onDealUpdated();
               showToast(`"${deal.name}" deleted`);
               setShowDeleteDeal(false);
@@ -3012,8 +3040,9 @@ function AppShell() {
     let cancelled = false;
     (async () => {
       try {
-        const [props, txs, tns] = await Promise.all([
+        const [props, txs, tns, dls, rehab, mls] = await Promise.all([
           listProperties(), listTransactions(), listTenants(),
+          listDeals(), listRehabItems(), listMilestones(),
         ]);
         if (cancelled) return;
         PROPERTIES.length = 0;
@@ -3022,6 +3051,18 @@ function AppShell() {
         TRANSACTIONS.push(...txs);
         TENANTS.length = 0;
         TENANTS.push(...tns);
+        // Re-nest rehab items into each deal so views that read
+        // `deal.rehabItems[]` keep working unchanged. The DB stores them
+        // as a separate table, but the in-memory shape stays the same.
+        const itemsByDeal = new Map();
+        for (const r of rehab) {
+          if (!itemsByDeal.has(r.dealId)) itemsByDeal.set(r.dealId, []);
+          itemsByDeal.get(r.dealId).push(r);
+        }
+        DEALS.length = 0;
+        DEALS.push(...dls.map(d => ({ ...d, rehabItems: itemsByDeal.get(d.id) || [] })));
+        DEAL_MILESTONES.length = 0;
+        DEAL_MILESTONES.push(...mls);
         setPropsVersion(v => v + 1);
       } catch (e) {
         console.error("[PropBooks] Failed to load Supabase data:", e);

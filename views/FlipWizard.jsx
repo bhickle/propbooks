@@ -7,13 +7,16 @@
 import { useState, useMemo } from "react";
 import { DollarSign, TrendingUp, Hammer, Wrench, Plus, X } from "lucide-react";
 import {
-  fmt, newId, DEALS, STAGE_ORDER, DEFAULT_MILESTONES,
+  fmt, DEALS, STAGE_ORDER, DEFAULT_MILESTONES,
   REHAB_CATEGORIES, REHAB_CATEGORY_GROUPS, REHAB_TEMPLATES,
   getCanonicalBySlug, getCanonicalByLabel,
 } from "../api.js";
 import { _LOCAL_FLIP_MILESTONES } from "../mockData.js";
 import { useToast } from "../toast.jsx";
 import { WizardShell, WizardNav, WizardField, wizardInput, wizardSelect } from "./wizardPrimitives.jsx";
+import { createDeal } from "../db/deals.js";
+import { createRehabItem } from "../db/dealRehabItems.js";
+import { createMilestone } from "../db/dealMilestones.js";
 
 export function FlipWizard({ onComplete, onExit }) {
   const { showToast } = useToast();
@@ -54,30 +57,45 @@ export function FlipWizard({ onComplete, onExit }) {
   const removeRehabItem = (i) => { setRehabItems(prev => prev.filter((_, j) => j !== i)); if (catFocusIdx === i) setCatFocusIdx(-1); };
   const rehabTotal = rehabItems.reduce((s, item) => s + (parseFloat(item.budgeted) || 0), 0);
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const initials = basics.name.split(/\s+/).map(w => w[0]).join("").toUpperCase().slice(0, 2);
     const colors = ["#e95e00", "var(--c-blue)", "var(--c-green)", "var(--c-purple)", "var(--c-red)", "#ec4899"];
     const color = colors[DEALS.length % colors.length];
     const rehabBudgetTotal = rehabTotal || rb;
-    const newDeal = {
-      id: newId(), name: basics.name, address: basics.address || "",
-      stage: basics.stage, image: initials, color,
-      purchasePrice: pp, arv, rehabBudget: rehabBudgetTotal, rehabSpent: 0,
-      holdingCostsPerMonth: hc,
-      acquisitionDate: basics.acquisitionDate || "",
-      projectedCloseDate: basics.projectedCloseDate || "",
-      daysOwned: 0,
-      rehabItems: rehabItems.filter(item => item.label.trim() && (parseFloat(item.budgeted) || 0) > 0).map(item => {
-        const canon = item.canonicalCategory || getCanonicalByLabel(item.label)?.slug || null;
-        return { id: newId(), category: item.label, canonicalCategory: canon, budgeted: parseFloat(item.budgeted) || 0, spent: 0, status: "pending", notes: "" };
-      }),
-    };
-    DEALS.push(newDeal);
-    if (typeof _LOCAL_FLIP_MILESTONES !== "undefined") {
-      _LOCAL_FLIP_MILESTONES[newDeal.id] = DEFAULT_MILESTONES.map(label => ({ label, done: false, date: null, targetDate: null }));
+    const wantedItems = rehabItems
+      .filter(item => item.label.trim() && (parseFloat(item.budgeted) || 0) > 0)
+      .map((item, sort_order) => ({
+        category: item.label,
+        slug: item.canonicalCategory || getCanonicalByLabel(item.label)?.slug || null,
+        budgeted: parseFloat(item.budgeted) || 0,
+        spent: 0,
+        status: "pending",
+        sortOrder: sort_order,
+      }));
+    try {
+      const savedDeal = await createDeal({
+        name: basics.name, address: basics.address || "",
+        stage: basics.stage, image: initials,
+        purchasePrice: pp, arv, rehabBudget: rehabBudgetTotal, rehabSpent: 0,
+        holdingCostsPerMonth: hc, sellingCostPct: 6, daysOwned: 0,
+        acquisitionDate: basics.acquisitionDate || null,
+        projectedCloseDate: basics.projectedCloseDate || null,
+      });
+      const savedItems = await Promise.all(
+        wantedItems.map(it => createRehabItem({ ...it, dealId: savedDeal.id }))
+      );
+      await Promise.all(
+        DEFAULT_MILESTONES.map((label, idx) =>
+          createMilestone({ dealId: savedDeal.id, label, done: false, date: null, sortOrder: idx })
+        )
+      );
+      DEALS.push({ ...savedDeal, color, rehabItems: savedItems });
+      showToast(`"${basics.name}" added to pipeline with ${savedItems.length} rehab line items`);
+      onComplete && onComplete();
+    } catch (e) {
+      console.error("[PropBooks] Save deal failed:", e);
+      showToast("Couldn't save deal — " + (e.message || "unknown error"));
     }
-    showToast(`"${basics.name}" added to pipeline with ${newDeal.rehabItems.length} rehab line items`);
-    onComplete && onComplete();
   };
 
   const handleExit = () => {
