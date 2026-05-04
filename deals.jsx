@@ -12,7 +12,7 @@ import {
   Hammer, DollarSign, TrendingUp, Star, Plus, Search, Filter,
   CheckCircle, Clock, AlertCircle, ChevronRight, X, Trash2, Pencil,
   Wrench, Users, Receipt, BarChart3, Target, Calendar, Flag,
-  ArrowUp, ArrowDown, Truck, Building2, MapPin, Home, Info,
+  ArrowUp, ArrowDown, Truck, Building2, MapPin, Home,
   MessageSquare, FileText, Circle, Phone, Mail, Shield, Upload,
   ChevronLeft, Eye, FileCheck, Award, Paperclip, ScanLine, UploadCloud,
   FileImage, FilePlus, Loader, User, UserCheck, Tag, Layers,
@@ -28,6 +28,7 @@ import {
 // Shared mock data refs (passed as props or imported directly)
 // Using module-level state so all modules stay in sync within a session
 import { DEALS as _DEALS, DEAL_EXPENSES as _FE, CONTRACTORS as _CON, DEAL_MILESTONES, DEAL_NOTES, CONTRACTOR_BIDS as _BIDS, CONTRACTOR_PAYMENTS as _PAYMENTS, CONTRACTOR_DOCUMENTS as _DOCS } from "./api.js";
+import { InfoTip, Modal, colorWithAlpha } from "./shared.jsx";
 
 // ---------------------------------------------------------------------------
 // Shared helpers
@@ -126,11 +127,7 @@ function StageDot({ stage }) {
   );
 }
 
-function colorWithAlpha(color, alpha) {
-  if (color.startsWith("var(")) return `color-mix(in srgb, ${color} ${Math.round(alpha * 100)}%, transparent)`;
-  const n = parseInt(color.replace("#", ""), 16);
-  return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${alpha})`;
-}
+// colorWithAlpha moved to shared.jsx
 
 function StatCard({ icon: Icon, label, value, sub, color = "var(--c-blue)", semantic = false, trend, trendVal, tip }) {
   const up = trend === "up";
@@ -176,30 +173,7 @@ function PageHeader({ title, sub, action, filter }) {
   );
 }
 
-function InfoTip({ text }) {
-  const [show, setShow] = useState(false);
-  return (
-    <span style={{ position: "relative", display: "inline-flex", alignItems: "center", marginLeft: 4, cursor: "pointer" }}
-      onMouseEnter={() => setShow(true)} onMouseLeave={() => setShow(false)}
-      onClick={e => { e.stopPropagation(); setShow(s => !s); }}>
-      <Info size={13} color="var(--text-muted)" />
-      {show && (
-        <span style={{
-          position: "absolute", bottom: "calc(100% + 8px)", left: "50%", transform: "translateX(-50%)",
-          background: "#041830", color: "#f8fafc", fontSize: 12, lineHeight: 1.5, fontWeight: 400,
-          padding: "10px 14px", borderRadius: 10, width: 240, zIndex: 50,
-          boxShadow: "0 8px 24px rgba(0,0,0,0.2)", pointerEvents: "none", whiteSpace: "normal", border: "1px solid var(--border)",
-        }}>
-          {text}
-          <span style={{
-            position: "absolute", top: "100%", left: "50%", transform: "translateX(-50%)",
-            border: "6px solid transparent", borderTopColor: "#041830",
-          }} />
-        </span>
-      )}
-    </span>
-  );
-}
+// InfoTip moved to shared.jsx
 
 const sectionS = { background: "var(--surface)", borderRadius: 16, padding: 24, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)", marginBottom: 24 };
 
