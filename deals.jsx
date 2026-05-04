@@ -12,7 +12,7 @@ import {
   Hammer, DollarSign, TrendingUp, Star, Plus, Search, Filter,
   CheckCircle, Clock, AlertCircle, ChevronRight, X, Trash2, Pencil,
   Wrench, Users, Receipt, BarChart3, Target, Calendar, Flag,
-  ArrowUp, ArrowDown, Truck, Building2, MapPin, Home,
+  Truck, Building2, MapPin, Home,
   MessageSquare, FileText, Circle, Phone, Mail, Shield, Upload,
   ChevronLeft, Eye, FileCheck, Award, Paperclip, ScanLine, UploadCloud,
   FileImage, FilePlus, Loader, User, UserCheck, Tag, Layers,
@@ -28,7 +28,7 @@ import {
 // Shared mock data refs (passed as props or imported directly)
 // Using module-level state so all modules stay in sync within a session
 import { DEALS as _DEALS, DEAL_EXPENSES as _FE, CONTRACTORS as _CON, DEAL_MILESTONES, DEAL_NOTES, CONTRACTOR_BIDS as _BIDS, CONTRACTOR_PAYMENTS as _PAYMENTS, CONTRACTOR_DOCUMENTS as _DOCS } from "./api.js";
-import { InfoTip, Modal, colorWithAlpha, sectionS as sharedSectionS, cardS as sharedCardS } from "./shared.jsx";
+import { InfoTip, Modal, StatCard, colorWithAlpha, sectionS as sharedSectionS, cardS as sharedCardS } from "./shared.jsx";
 
 // ---------------------------------------------------------------------------
 // Shared helpers
@@ -129,35 +129,7 @@ function StageDot({ stage }) {
 
 // colorWithAlpha moved to shared.jsx
 
-function StatCard({ icon: Icon, label, value, sub, color = "var(--c-blue)", semantic = false, trend, trendVal, tip }) {
-  const up = trend === "up";
-  const iconBg = semantic ? colorWithAlpha(color, 0.1) : "#1e3a5f";
-  const iconColor = semantic ? color : "#e95e00";
-  return (
-    <div style={{ background: "var(--surface)", borderRadius: 16, padding: "20px 22px", boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-        <div>
-          <div style={{ display: "flex", alignItems: "center" }}>
-            <p style={{ color: "var(--text-muted)", fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 6 }}>{label}</p>
-            {tip && <InfoTip text={tip} />}
-          </div>
-          <p style={{ color: "var(--text-primary)", fontSize: 26, fontWeight: 800, lineHeight: 1, fontFamily: "var(--font-display)" }}>{value}</p>
-          {sub && <p style={{ color: "var(--text-secondary)", fontSize: 12, marginTop: 4 }}>{sub}</p>}
-        </div>
-        <div style={{ background: iconBg, borderRadius: 12, padding: 10 }}>
-          <Icon size={20} color={iconColor} />
-        </div>
-      </div>
-      {trendVal && (
-        <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 14, paddingTop: 14, borderTop: "1px solid var(--border-subtle)" }}>
-          {up ? <ArrowUp size={13} color="var(--c-green)" /> : <ArrowDown size={13} color="var(--c-red)" />}
-          <span style={{ fontSize: 12, fontWeight: 600, color: up ? "var(--c-green)" : "var(--c-red)" }}>{trendVal}</span>
-          <span style={{ fontSize: 12, color: "var(--text-muted)" }}>vs last quarter</span>
-        </div>
-      )}
-    </div>
-  );
-}
+// StatCard moved to shared.jsx
 
 function PageHeader({ title, sub, action, filter }) {
   return (
@@ -268,10 +240,10 @@ export function DealDashboard({ onSelect, onNavigateToNote, onNavigateToExpense,
       <PageHeader title="Overview" sub="All deals at a glance" />
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 20 }}>
-        <StatCard icon={Hammer}     label="Active Deals"     value={active.length}              sub={isFiltered ? "Filtered" : "In pipeline"}        color="#e95e00" trend={!isFiltered ? "up" : undefined} trendVal="+1 this quarter" tip="Number of deals in active pipeline stages (not Sold)." />
+        <StatCard icon={Hammer}     label="Active Deals"     value={active.length}              sub={isFiltered ? "Filtered" : "In pipeline"}        color="#e95e00" trend={!isFiltered ? "up" : undefined} trendVal="+1 this quarter" trendLabel="vs last quarter" tip="Number of deals in active pipeline stages (not Sold)." />
         <StatCard icon={DollarSign} label="Capital Deployed" value={fmtK(totalDeployed)}        sub={isFiltered ? "Filtered" : "Purchase + rehab"}   color="var(--c-blue)" tip="Total Purchase Price + Rehab Budget across active deals." />
         <StatCard icon={TrendingUp} label="Projected Profit" value={fmtK(Math.round(projectedProfit))} sub={isFiltered ? "Filtered" : "Active deals"}  color="var(--c-green)" tip="ARV − Purchase − Rehab Budget − Estimated Holding & Selling Costs for all active deals." />
-        <StatCard icon={Star}       label="Realized Profit"  value={fmt(realizedProfit)}        sub={isFiltered ? "Filtered" : "Closed deals YTD"}   color="var(--c-purple)" trend={!isFiltered ? "up" : undefined} trendVal="+$61K YTD" tip="Actual profit from closed/sold deals this year." />
+        <StatCard icon={Star}       label="Realized Profit"  value={fmt(realizedProfit)}        sub={isFiltered ? "Filtered" : "Closed deals YTD"}   color="var(--c-purple)" trend={!isFiltered ? "up" : undefined} trendVal="+$61K YTD" trendLabel="vs last quarter" tip="Actual profit from closed/sold deals this year." />
       </div>
 
       {/* Filter bar */}
@@ -297,8 +269,8 @@ export function DealDashboard({ onSelect, onNavigateToNote, onNavigateToExpense,
 
       <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 20, marginBottom: 20 }}>
         {/* Active Deals Table */}
-        <div style={{ background: "var(--surface)", borderRadius: 16, padding: 22, border: "1px solid var(--border-subtle)" }}>
-          <p style={{ color: "var(--text-primary)", fontSize: 16, fontWeight: 700, marginBottom: 16 }}>Active Deals</p>
+        <div style={sharedSectionS}>
+          <h3 style={{ color: "var(--text-primary)", fontSize: 16, fontWeight: 700, marginBottom: 16 }}>Active Deals</h3>
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr>
@@ -342,8 +314,8 @@ export function DealDashboard({ onSelect, onNavigateToNote, onNavigateToExpense,
 
         {/* Stage Breakdown + Recent Activity */}
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          <div style={{ background: "var(--surface)", borderRadius: 16, padding: 22, border: "1px solid var(--border-subtle)" }}>
-            <p style={{ color: "var(--text-primary)", fontSize: 16, fontWeight: 700, marginBottom: 14 }}>By Stage</p>
+          <div style={sharedSectionS}>
+            <h3 style={{ color: "var(--text-primary)", fontSize: 16, fontWeight: 700, marginBottom: 14 }}>By Stage</h3>
             {stageBreakdown.map(s => (
               <div key={s.stage} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
                 <div style={{ width: 10, height: 10, borderRadius: "50%", background: s.color, flexShrink: 0 }} />
@@ -353,8 +325,8 @@ export function DealDashboard({ onSelect, onNavigateToNote, onNavigateToExpense,
             ))}
           </div>
 
-          <div style={{ background: "var(--surface)", borderRadius: 16, padding: 22, border: "1px solid var(--border-subtle)", flex: 1 }}>
-            <p style={{ color: "var(--text-primary)", fontSize: 16, fontWeight: 700, marginBottom: 14 }}>Recent Activity</p>
+          <div style={{ ...sharedSectionS, flex: 1 }}>
+            <h3 style={{ color: "var(--text-primary)", fontSize: 16, fontWeight: 700, marginBottom: 14 }}>Recent Activity</h3>
             {recentActivity.length === 0 && (
               <p style={{ color: "var(--text-muted)", fontSize: 12 }}>No activity yet. Complete milestones, log expenses, or add notes to see updates here.</p>
             )}
@@ -375,9 +347,9 @@ export function DealDashboard({ onSelect, onNavigateToNote, onNavigateToExpense,
       </div>
 
       {/* Rehab Budget Overview Bar */}
-      <div style={{ background: "var(--surface)", borderRadius: 16, padding: 22, border: "1px solid var(--border-subtle)" }}>
+      <div style={sharedSectionS}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-          <p style={{ color: "var(--text-primary)", fontSize: 16, fontWeight: 700 }}>Rehab Budget Overview</p>
+          <h3 style={{ color: "var(--text-primary)", fontSize: 16, fontWeight: 700 }}>Rehab Budget Overview</h3>
           <div style={{ display: "flex", gap: 16 }}>
             <span style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--text-secondary)" }}><span style={{ width: 10, height: 10, borderRadius: 2, background: "#1e3a5f", display: "inline-block" }} />Budgeted</span>
             <span style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--text-secondary)" }}><span style={{ width: 10, height: 10, borderRadius: 2, background: "#e95e00", display: "inline-block" }} />Spent</span>

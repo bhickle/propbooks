@@ -40,7 +40,7 @@ import {
 } from "./api.js";
 import { AuthProvider, AuthScreen, useAuth } from "./auth.jsx";
 import { SUPABASE_CONFIGURED, SUPABASE_CONFIG_ERROR } from "./supabase.js";
-import { InfoTip, Modal, colorWithAlpha, sectionS as sharedSectionS, cardS as sharedCardS } from "./shared.jsx";
+import { InfoTip, Modal, StatCard, colorWithAlpha, sectionS as sharedSectionS, cardS as sharedCardS } from "./shared.jsx";
 import {
   PROPERTIES, TRANSACTIONS, MONTHLY_CASH_FLOW, EQUITY_GROWTH, EXPENSE_CATEGORIES,
   FLIP_EXPENSE_GROUPS, FLIP_EXPENSE_CATS, getFlipExpGroup,
@@ -404,35 +404,7 @@ function DocumentsPanel({ documents, onAdd, onDelete, entityLabel = "item" }) {
 
 // colorWithAlpha moved to shared.jsx
 
-function StatCard({ icon: Icon, label, value, sub, trend, trendVal, color = "var(--c-blue)", semantic = false, tip }) {
-  const up = trend === "up";
-  const iconBg = semantic ? colorWithAlpha(color, 0.1) : "#1e3a5f";
-  const iconColor = semantic ? color : "#e95e00";
-  return (
-    <div style={{ background: "var(--surface)", borderRadius: 16, padding: "24px", boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)", border: "1px solid var(--border-subtle)" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-        <div>
-          <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 8 }}>
-            <p style={{ color: "var(--text-muted)", fontSize: 13, fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.05em" }}>{label}</p>
-            {tip && <InfoTip text={tip} />}
-          </div>
-          <p style={{ color: "var(--text-primary)", fontSize: 28, fontWeight: 700, lineHeight: 1, fontFamily: "var(--font-display)" }}>{value}</p>
-          {sub && <p style={{ color: "var(--text-secondary)", fontSize: 13, marginTop: 6 }}>{sub}</p>}
-        </div>
-        <div style={{ background: iconBg, borderRadius: 12, padding: 12 }}>
-          <Icon size={22} color={iconColor} />
-        </div>
-      </div>
-      {trendVal && (
-        <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 16, paddingTop: 16, borderTop: "1px solid var(--border-subtle)" }}>
-          {up ? <ArrowUp size={14} color="var(--c-green)" /> : <ArrowDown size={14} color="var(--c-red)" />}
-          <span style={{ fontSize: 13, fontWeight: 600, color: up ? "var(--c-green)" : "var(--c-red)" }}>{trendVal}</span>
-          <span style={{ fontSize: 13, color: "var(--text-muted)" }}>vs last month</span>
-        </div>
-      )}
-    </div>
-  );
-}
+// StatCard moved to shared.jsx
 
 function Badge({ status }) {
   const map = {
@@ -1529,7 +1501,7 @@ function WelcomeScreen({ onStartRental, onStartFlip }) {
         <div style={{ width: 64, height: 64, borderRadius: 16, background: "linear-gradient(135deg, #e95e00 0%, #f59e0b 100%)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 20px", boxShadow: "0 4px 12px rgba(233,94,0,0.25)" }}>
           <Building2 size={32} color="#fff" />
         </div>
-        <h1 style={{ fontSize: 28, fontWeight: 700, color: "var(--text-primary)", margin: "0 0 8px" }}>Welcome to PROPBOOKS</h1>
+        <h1 style={{ fontSize: 26, fontWeight: 700, color: "var(--text-primary)", margin: "0 0 8px" }}>Welcome to PROPBOOKS</h1>
         <p style={{ fontSize: 16, color: "var(--text-secondary)", maxWidth: 500, margin: "0 auto", lineHeight: 1.6 }}>
           Let's get your first property or deal set up. The guided setup will walk you through everything step by step.
         </p>
