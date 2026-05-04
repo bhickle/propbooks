@@ -80,6 +80,7 @@ import { Reports } from "./views/Reports.jsx";
 import { Analytics } from "./views/Analytics.jsx";
 import { listProperties } from "./db/properties.js";
 import { listTransactions } from "./db/transactions.js";
+import { listTenants, updateTenant as dbUpdateTenant } from "./db/tenants.js";
 
 // TAX_CONFIG and getDeprBasis moved to finance.js
 
@@ -3011,12 +3012,16 @@ function AppShell() {
     let cancelled = false;
     (async () => {
       try {
-        const [props, txs] = await Promise.all([listProperties(), listTransactions()]);
+        const [props, txs, tns] = await Promise.all([
+          listProperties(), listTransactions(), listTenants(),
+        ]);
         if (cancelled) return;
         PROPERTIES.length = 0;
         PROPERTIES.push(...props);
         TRANSACTIONS.length = 0;
         TRANSACTIONS.push(...txs);
+        TENANTS.length = 0;
+        TENANTS.push(...tns);
         setPropsVersion(v => v + 1);
       } catch (e) {
         console.error("[PropBooks] Failed to load Supabase data:", e);
@@ -3051,13 +3056,16 @@ function AppShell() {
     setActiveView("tenantDetail");
   };
 
-  const handleTenantUpdated = (tenantId, updates) => {
-    // Update the tenant in the mock data
-    const idx = TENANTS.findIndex(t => t.id === tenantId);
-    if (idx !== -1) Object.assign(TENANTS[idx], updates);
-    // Update selectedTenant if it's the same one
-    if (selectedTenant && selectedTenant.id === tenantId) {
-      setSelectedTenant(prev => ({ ...prev, ...updates }));
+  const handleTenantUpdated = async (tenantId, updates) => {
+    try {
+      const saved = await dbUpdateTenant(tenantId, updates);
+      const idx = TENANTS.findIndex(t => t.id === tenantId);
+      if (idx !== -1) TENANTS[idx] = saved;
+      if (selectedTenant && selectedTenant.id === tenantId) {
+        setSelectedTenant(prev => ({ ...prev, ...saved }));
+      }
+    } catch (e) {
+      console.error("[PropBooks] Update tenant failed:", e);
     }
   };
 

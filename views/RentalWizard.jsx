@@ -5,11 +5,12 @@
 // =============================================================================
 import { useState, useEffect } from "react";
 import { DollarSign, Home, User, Users } from "lucide-react";
-import { fmt, newId, PROP_COLORS } from "../api.js";
+import { fmt, PROP_COLORS } from "../api.js";
 import { PROPERTIES, TENANTS } from "../mockData.js";
 import { useToast } from "../toast.jsx";
 import { WizardShell, WizardNav, WizardField, wizardInput, wizardSelect } from "./wizardPrimitives.jsx";
 import { createProperty } from "../db/properties.js";
+import { createTenant } from "../db/tenants.js";
 
 export function RentalWizard({ onComplete, onExit }) {
   const { showToast } = useToast();
@@ -75,14 +76,15 @@ export function RentalWizard({ onComplete, onExit }) {
         image: basics.name.slice(0, 2).toUpperCase(), photo: null,
       });
       PROPERTIES.push({ ...saved, color });
-      // Tenants still live in-memory until the tenants migration lands.
-      tenants.forEach(t => {
+      for (const t of tenants) {
         if (t.vacant) {
-          TENANTS.push({ id: newId(), propertyId: saved.id, name: "", unit: t.unit, rent: parseFloat(t.rent) || 0, leaseStart: "", leaseEnd: "", status: "vacant", lastPayment: null, phone: "", email: "" });
+          const ten = await createTenant({ propertyId: saved.id, name: "Vacant", unit: t.unit, rent: parseFloat(t.rent) || 0, status: "vacant" });
+          TENANTS.push(ten);
         } else if (t.name.trim()) {
-          TENANTS.push({ id: newId(), propertyId: saved.id, name: t.name, unit: t.unit, rent: parseFloat(t.rent) || 0, leaseStart: t.leaseStart || "", leaseEnd: t.leaseEnd || "", status: t.status || "active-lease", lastPayment: null, phone: "", email: "" });
+          const ten = await createTenant({ propertyId: saved.id, name: t.name, unit: t.unit, rent: parseFloat(t.rent) || 0, leaseStart: t.leaseStart || null, leaseEnd: t.leaseEnd || null, status: t.status || "active-lease" });
+          TENANTS.push(ten);
         }
-      });
+      }
       showToast(`"${basics.name}" added to portfolio with ${tenants.filter(t => !t.vacant && t.name.trim()).length} tenant(s)`);
       onComplete && onComplete();
     } catch (e) {

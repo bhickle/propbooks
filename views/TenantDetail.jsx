@@ -80,11 +80,9 @@ export function TenantDetail({ tenant, onBack, backLabel, onTenantUpdated, onSel
   const handleAddPayment = async () => {
     const amt = parseFloat(payForm.amount) || 0;
     const desc = payForm.description || `Rent payment - ${tenant.name}`;
-    // tenantId omitted: tenants are still mock-side, so the FK can't be set
-    // until tenants are migrated. Backfill links rent rows to tenants then.
     try {
       const saved = await createTransaction({
-        date: payForm.date, propertyId: tenant.propertyId,
+        date: payForm.date, propertyId: tenant.propertyId, tenantId: tenant.id,
         category: "Rent Income", description: desc,
         amount: amt, type: "income",
       });

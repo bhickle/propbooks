@@ -3,10 +3,11 @@ import {
   Home, CheckSquare, AlertCircle, DollarSign, X, Plus, AlertTriangle, ArrowRight,
   FileText, UploadCloud, LogOut, Pencil, Trash2, Users,
 } from "lucide-react";
-import { newId, fmt, MOCK_USER } from "../api.js";
+import { fmt, MOCK_USER } from "../api.js";
 import { InfoTip, Modal, StatCard, EmptyState, iS } from "../shared.jsx";
 import { PROPERTIES, TENANTS } from "../mockData.js";
 import { useToast } from "../toast.jsx";
+import { createTenant, updateTenant, deleteTenant } from "../db/tenants.js";
 
 export function TenantManagement({ onBack, highlightTenantId, onClearHighlight, prefillTenant, onClearPrefill, onSelectTenant }) {
   const { showToast } = useToast();
@@ -83,46 +84,93 @@ export function TenantManagement({ onBack, highlightTenantId, onClearHighlight, 
     setShowModal(true);
   };
 
-  const handleSaveTenant = () => {
+  const syncMockArray = (next) => {
+    TENANTS.length = 0;
+    TENANTS.push(...next);
+  };
+
+  const handleSaveTenant = async () => {
     if (!form.name && form.status !== "vacant") return;
-    if (editId !== null) {
-      setTenantData(prev => prev.map(t => t.id === editId
-        ? { ...t, propertyId: parseInt(form.propertyId), unit: form.unit || t.unit, name: form.name, rent: parseFloat(form.rent) || 0, securityDeposit: parseFloat(form.securityDeposit) || null, lateFeePct: parseFloat(form.lateFeePct) || null, renewalTerms: form.renewalTerms, notes: form.notes, leaseStart: form.leaseStart || null, leaseEnd: form.leaseEnd || null, status: form.status, phone: form.phone || null, email: form.email || null, leaseDoc: form.leaseDoc ?? t.leaseDoc }
-        : t
-      ));
-    } else {
-      setTenantData(prev => [...prev, { id: newId(), propertyId: parseInt(form.propertyId), unit: form.unit || "Main", name: form.name, rent: parseFloat(form.rent) || 0, securityDeposit: parseFloat(form.securityDeposit) || null, lateFeePct: parseFloat(form.lateFeePct) || null, renewalTerms: form.renewalTerms, notes: form.notes, leaseStart: form.leaseStart || null, leaseEnd: form.leaseEnd || null, status: form.status, lastPayment: null, phone: form.phone || null, email: form.email || null, leaseDoc: form.leaseDoc || null, moveOutDate: null, moveOutReason: null }]);
+    const fields = {
+      propertyId: form.propertyId,
+      unit: form.unit || "Main",
+      name: form.name,
+      rent: parseFloat(form.rent) || 0,
+      securityDeposit: parseFloat(form.securityDeposit) || null,
+      lateFeePct: parseFloat(form.lateFeePct) || null,
+      renewalTerms: form.renewalTerms,
+      notes: form.notes,
+      leaseStart: form.leaseStart || null,
+      leaseEnd: form.leaseEnd || null,
+      status: form.status,
+      phone: form.phone || null,
+      email: form.email || null,
+      leaseDoc: form.leaseDoc ?? null,
+    };
+    try {
+      if (editId !== null) {
+        const saved = await updateTenant(editId, fields);
+        setTenantData(prev => {
+          const next = prev.map(t => t.id === editId ? { ...t, ...saved } : t);
+          syncMockArray(next);
+          return next;
+        });
+      } else {
+        const saved = await createTenant({ ...fields, lastPayment: null, moveOutDate: null, moveOutReason: null });
+        setTenantData(prev => {
+          const next = [...prev, saved];
+          syncMockArray(next);
+          return next;
+        });
+      }
+      const wasEdit = editId !== null;
+      setForm(emptyT);
+      setShowModal(false);
+      showToast(wasEdit ? "Tenant updated" : "Tenant added");
+    } catch (e) {
+      console.error("[PropBooks] Save tenant failed:", e);
+      showToast("Couldn't save tenant — " + (e.message || "unknown error"));
     }
-    const wasEdit = editId !== null;
-    setForm(emptyT);
-    setShowModal(false);
-    showToast(wasEdit ? "Tenant updated" : "Tenant added");
   };
 
-  const handleDeleteTenant = () => {
+  const handleDeleteTenant = async () => {
     if (!deleteConfirm) return;
-    setTenantData(prev => prev.filter(t => t.id !== deleteConfirm.id));
-    setDeleteConfirm(null);
+    try {
+      await deleteTenant(deleteConfirm.id);
+      setTenantData(prev => {
+        const next = prev.filter(t => t.id !== deleteConfirm.id);
+        syncMockArray(next);
+        return next;
+      });
+      setDeleteConfirm(null);
+    } catch (e) {
+      console.error("[PropBooks] Delete tenant failed:", e);
+      showToast("Couldn't delete tenant — " + (e.message || "unknown error"));
+    }
   };
 
-  // Close lease: move tenant to "past" and create a vacant unit record
-  const handleCloseLease = () => {
+  // Close lease: move tenant to "past" and (if no other active tenant on the
+  // unit) create a vacant placeholder so the unit shows up in the vacancy list.
+  const handleCloseLease = async () => {
     if (!closingTenant) return;
     const t = closingTenant;
-    setTenantData(prev => {
-      const updated = prev.map(rec => rec.id === t.id
-        ? { ...rec, status: "past", moveOutDate: closeForm.moveOutDate || new Date().toISOString().split("T")[0], moveOutReason: closeForm.moveOutReason }
-        : rec
-      );
-      // Check if another active tenant already exists for this unit
+    const moveOut = closeForm.moveOutDate || new Date().toISOString().split("T")[0];
+    try {
+      const saved = await updateTenant(t.id, { status: "past", moveOutDate: moveOut, moveOutReason: closeForm.moveOutReason });
+      let updated = tenantData.map(rec => rec.id === t.id ? { ...rec, ...saved } : rec);
       const hasActiveOnUnit = updated.some(rec => rec.id !== t.id && rec.propertyId === t.propertyId && rec.unit === t.unit && rec.status !== "past");
       if (!hasActiveOnUnit) {
-        updated.push({ id: newId(), propertyId: t.propertyId, unit: t.unit, name: "Vacant", rent: t.rent, leaseStart: null, leaseEnd: null, status: "vacant", lastPayment: null, phone: null, email: null, securityDeposit: null, moveOutDate: null, moveOutReason: null, leaseDoc: null });
+        const vacant = await createTenant({ propertyId: t.propertyId, unit: t.unit, name: "Vacant", rent: t.rent, status: "vacant" });
+        updated = [...updated, vacant];
       }
-      return updated;
-    });
-    setClosingTenant(null);
-    setCloseForm({ moveOutDate: "", moveOutReason: "Lease ended" });
+      setTenantData(updated);
+      syncMockArray(updated);
+      setClosingTenant(null);
+      setCloseForm({ moveOutDate: "", moveOutReason: "Lease ended" });
+    } catch (e) {
+      console.error("[PropBooks] Close lease failed:", e);
+      showToast("Couldn't close lease — " + (e.message || "unknown error"));
+    }
   };
 
   const leaseStatusStyle = {
