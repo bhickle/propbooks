@@ -46,40 +46,16 @@ import {
   FLIP_EXPENSE_GROUPS, FLIP_EXPENSE_CATS, getFlipExpGroup,
   _LOCAL_FLIP_MILESTONES, TENANTS, MILEAGE_TRIPS, restoreLocalDemoData,
 } from "./mockData.js";
+import {
+  TAX_CONFIG, getDeprBasis, calcLoanBalance, calcPaymentInterest,
+  getEffectiveMonthly, calcCapRate, calcCashOnCash,
+} from "./finance.js";
+import { daysAgo, getPropertyHealth, healthBadge } from "./health.js";
 import { Settings, OnboardingWizard } from "./settings.jsx";
 import { DealDashboard, RehabTracker, DealExpenses, DealContractors, ContractorDetail, DealAnalytics, DealMilestones, DealNotes } from "./deals.jsx";
 import { DealReports } from "./dealReports.jsx";
 
-// ─── Annual Tax Config ──────────────────────────────────────────────
-// Update this block once per year (typically January) when IRS publishes new rates.
-// Every tax-sensitive value in the app pulls from here — no hunting through code.
-// Planned: move to an admin-configurable settings table once Supabase persistence lands.
-const TAX_CONFIG = {
-  currentYear: 2026,                          // Default tax year for reports
-  yearRange: [2023, 2024, 2025, 2026],        // Available years in dropdowns
-  mileageRate: 0.725,                          // IRS standard mileage rate ($/mile) — Notice 2026-10
-  mileageRateYear: 2026,                       // Year the mileage rate applies to
-  brackets: [10, 12, 22, 24, 32, 35, 37],     // Federal marginal tax brackets (%)
-  defaultBracket: 24,                          // Default bracket for estimates
-  depreciationResidential: 27.5,               // Years — IRS MACRS residential
-  depreciationCommercial: 39,                  // Years — IRS MACRS commercial
-  landValuePct: 0.20,                          // Non-depreciable land % of purchase price
-  buildingValuePct: 0.80,                      // Depreciable building % (1 - landValuePct)
-  recaptureRate: 0.25,                         // Depreciation recapture rate on sale
-  qbiDeductionPct: 0.20,                       // Sec. 199A QBI deduction (informational)
-};
-
-// Helper: compute depreciable basis for a property
-// Uses per-property landValue when available, falls back to TAX_CONFIG.landValuePct estimate
-function getDeprBasis(p) {
-  const pp = p.purchasePrice || 0;
-  if (p.landValue != null && p.landValue > 0) {
-    return { basis: Math.max(0, Math.round(pp - p.landValue)), estimated: false, landValue: p.landValue };
-  }
-  const estLand = Math.round(pp * TAX_CONFIG.landValuePct);
-  return { basis: Math.round(pp * TAX_CONFIG.buildingValuePct), estimated: true, landValue: estLand };
-}
-// ────────────────────────────────────────────────────────────────────
+// TAX_CONFIG and getDeprBasis moved to finance.js
 
 const iS = { width: "100%", padding: "10px 12px", border: "1px solid var(--border)", borderRadius: 10, fontSize: 14, color: "var(--text-primary)", background: "var(--surface)", outline: "none", boxSizing: "border-box" };
 
@@ -290,144 +266,10 @@ function EmptyState({ icon: Icon, title, subtitle, actionLabel, onAction }) {
   );
 }
 
-// ---------------------------------------------
-// MOCK DATA
-// (Also exported via api.js for future backend swap)
-// ---------------------------------------------
-// calcLoanBalance: amortization formula — returns current remaining balance
-function calcLoanBalance(loanAmount, annualRate, termYears, startDate) {
-  const P = parseFloat(loanAmount), r0 = parseFloat(annualRate), n = parseFloat(termYears) * 12;
-  if (!P || !r0 || !n || !startDate) return null;
-  const r = r0 / 100 / 12;
-  const start = new Date(startDate);
-  const now = new Date();
-  const k = Math.max(0, Math.round((now - start) / (1000 * 60 * 60 * 24 * 30.4375)));
-  if (k >= n) return 0;
-  const M = P * r * Math.pow(1 + r, n) / (Math.pow(1 + r, n) - 1);
-  const balance = P * Math.pow(1 + r, k) - M * (Math.pow(1 + r, k) - 1) / r;
-  return Math.max(0, Math.round(balance));
-}
-
-// calcPaymentInterest: returns the interest portion of a specific mortgage payment
-// by computing the remaining balance one period before that payment date
-function calcPaymentInterest(loanAmount, annualRate, termYears, startDate, paymentDate) {
-  const P = parseFloat(loanAmount), r0 = parseFloat(annualRate), n = parseFloat(termYears) * 12;
-  if (!P || !r0 || !n || !startDate || !paymentDate) return null;
-  const r = r0 / 100 / 12;
-  const start = new Date(startDate);
-  const payment = new Date(paymentDate);
-  // k = number of payments already made before this one
-  const k = Math.max(0, Math.round((payment - start) / (1000 * 60 * 60 * 24 * 30.4375)));
-  if (k >= n) return 0;
-  const M = P * r * Math.pow(1 + r, n) / (Math.pow(1 + r, n) - 1);
-  // Balance just before this payment (after k prior payments)
-  const balBefore = k === 0 ? P : P * Math.pow(1 + r, k) - M * (Math.pow(1 + r, k) - 1) / r;
-  return Math.max(0, Math.round(balBefore * r));
-}
-
-function daysAgo(dateStr) {
-  if (!dateStr) return null;
-  const d = Math.floor((Date.now() - new Date(dateStr)) / 86400000);
-  if (d === 0) return "today";
-  if (d === 1) return "1 day ago";
-  if (d < 30) return `${d} days ago`;
-  const m = Math.round(d / 30);
-  return m === 1 ? "1 month ago" : `${m} months ago`;
-}
-
-// Property data health check — returns array of actionable items
-function getPropertyHealth(p, transactions) {
-  const items = [];
-  // 1. Stale property value
-  const valDays = p.valueUpdatedAt ? Math.round((Date.now() - new Date(p.valueUpdatedAt)) / 86400000) : 999;
-  if (valDays > 90) items.push({ key: "value", severity: valDays > 180 ? "high" : "medium", label: "Property value", detail: `Last updated ${daysAgo(p.valueUpdatedAt) || "never"}`, action: "Update current market value", field: "currentValue" });
-  // 2. Missing closing costs
-  if (!p.closingCosts) items.push({ key: "closingCosts", severity: "low", label: "Closing costs", detail: "Not entered — Cash-on-Cash return may be inaccurate", action: "Add closing costs", field: "closingCosts" });
-  // 3. No loan details (if likely financed)
-  if (!p.loanAmount && p.purchasePrice > 100000) items.push({ key: "loan", severity: "low", label: "Loan details", detail: "No loan info — equity and DSCR cannot be calculated", action: "Add loan terms", field: "loanAmount" });
-  // 4. Missing loan start date (has loan but no start)
-  if (p.loanAmount && !p.loanStartDate) items.push({ key: "loanStart", severity: "medium", label: "Loan start date", detail: "Needed to estimate current mortgage balance", action: "Add loan start date", field: "loanStartDate" });
-  // 5. Missing purchase date
-  if (!p.purchaseDate) items.push({ key: "purchaseDate", severity: "low", label: "Purchase date", detail: "Needed for depreciation schedule and hold period", action: "Add purchase date", field: "purchaseDate" });
-  // 5b. Missing land value (depreciation accuracy)
-  if (!p.landValue && p.purchasePrice > 0) items.push({ key: "landValue", severity: "low", label: "Land value", detail: "Using 20% estimate — depreciation may be inaccurate", action: "Add land value from tax assessment", field: "landValue" });
-  // 6. Income/expenses still estimated (no transactions)
-  const eff = getEffectiveMonthly(p, transactions);
-  if (eff.source === "estimate") items.push({ key: "transactions", severity: "low", label: "Income & expenses", detail: "Using manual estimates — no transaction history yet", action: "Log transactions for actual averages", field: null });
-  // 7. No estimated rent/expenses AND no transactions
-  if (!p.monthlyRent && eff.source === "estimate") items.push({ key: "rent", severity: "medium", label: "Monthly rent", detail: "No rent entered and no income transactions logged", action: "Add estimated rent or log income", field: "monthlyRent" });
-  return items;
-}
-
-function healthBadge(items) {
-  if (items.length === 0) return { color: "var(--c-green)", bg: "var(--success-badge)", label: "Up to date" };
-  const hasHigh = items.some(i => i.severity === "high");
-  const hasMedium = items.some(i => i.severity === "medium");
-  if (hasHigh) return { color: "#c0392b", bg: "var(--danger-badge)", label: `${items.length} update${items.length > 1 ? "s" : ""} needed` };
-  if (hasMedium) return { color: "#c2410c", bg: "var(--warning-btn-bg)", label: `${items.length} update${items.length > 1 ? "s" : ""} suggested` };
-  return { color: "#6366f1", bg: "#e0e7ff", label: `${items.length} optional update${items.length > 1 ? "s" : ""}` };
-}
-
-// PROPERTIES moved to mockData.js
-
-// ── Derived financials from transactions ──
-// Returns { monthlyIncome, monthlyExpenses, months, source } for a property
-// "source" = "transactions" if 2+ months of data, else "estimate" (falls back to property fields)
-function calcMonthlyFromTx(propertyId, transactions, fallbackRent, fallbackExp) {
-  const propTx = transactions.filter(t => t.propertyId === propertyId);
-  if (propTx.length === 0) return { monthlyIncome: fallbackRent || 0, monthlyExpenses: fallbackExp || 0, months: 0, source: "estimate" };
-
-  const dates = propTx.map(t => t.date).sort();
-  const first = new Date(dates[0]);
-  const last = new Date(dates[dates.length - 1]);
-  const months = Math.max(1, Math.round((last - first) / (1000 * 60 * 60 * 24 * 30.4375)) + 1);
-
-  const totalIncome = propTx.filter(t => t.type === "income").reduce((s, t) => s + Math.abs(t.amount), 0);
-  const totalExpenses = propTx.filter(t => t.type === "expense").reduce((s, t) => s + Math.abs(t.amount), 0);
-
-  // Need at least 2 months of data to trust the average
-  if (months < 2) return { monthlyIncome: fallbackRent || 0, monthlyExpenses: fallbackExp || 0, months, source: "estimate" };
-
-  return {
-    monthlyIncome: Math.round(totalIncome / months),
-    monthlyExpenses: Math.round(totalExpenses / months),
-    months,
-    source: "transactions",
-  };
-}
-
-// Convenience: get effective monthly numbers for a property (prefers transactions, falls back to estimates)
-function getEffectiveMonthly(p, transactions) {
-  return calcMonthlyFromTx(p.id, transactions, p.monthlyRent, p.monthlyExpenses);
-}
-
-// ── Derived metric helpers ──
-// Cap Rate = Annual NOI / Current Property Value × 100
-// Pass transactions to use real data; omit to use property estimates
-function calcCapRate(p, transactions) {
-  if (!p.currentValue) return 0;
-  const eff = transactions ? getEffectiveMonthly(p, transactions) : { monthlyIncome: p.monthlyRent, monthlyExpenses: p.monthlyExpenses };
-  const annualNOI = (eff.monthlyIncome - eff.monthlyExpenses) * 12;
-  return parseFloat((annualNOI / p.currentValue * 100).toFixed(1));
-}
-
-// Cash-on-Cash = (Annual NOI − Annual Debt Service) / Total Cash Invested × 100
-// Total Cash Invested = Down Payment + Closing Costs
-function calcCashOnCash(p, transactions) {
-  const downPayment = p.purchasePrice - (p.loanAmount || 0);
-  const totalCashInvested = downPayment + (p.closingCosts || 0);
-  if (totalCashInvested <= 0) return 0;
-  const eff = transactions ? getEffectiveMonthly(p, transactions) : { monthlyIncome: p.monthlyRent, monthlyExpenses: p.monthlyExpenses };
-  const annualNOI = (eff.monthlyIncome - eff.monthlyExpenses) * 12;
-  let annualDebtService = 0;
-  if (p.loanAmount && p.loanRate && p.loanTermYears) {
-    const r = p.loanRate / 100 / 12;
-    const n = p.loanTermYears * 12;
-    const M = p.loanAmount * r * Math.pow(1 + r, n) / (Math.pow(1 + r, n) - 1);
-    annualDebtService = M * 12;
-  }
-  return parseFloat(((annualNOI - annualDebtService) / totalCashInvested * 100).toFixed(1));
-}
+// calcLoanBalance, calcPaymentInterest, calcMonthlyFromTx, getEffectiveMonthly,
+// calcCapRate, calcCashOnCash moved to finance.js
+// daysAgo, getPropertyHealth, healthBadge moved to health.js
+// PROPERTIES (and friends) moved to mockData.js
 
 // TRANSACTIONS, MONTHLY_CASH_FLOW, EQUITY_GROWTH, EXPENSE_CATEGORIES,
 // FLIP_EXPENSE_GROUPS, FLIP_EXPENSE_CATS, getFlipExpGroup,
