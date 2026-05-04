@@ -1842,7 +1842,7 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
                 <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 8 }}>Add from your existing contractors</label>
                 <select
                   defaultValue=""
-                  onChange={e => { if (e.target.value) attachExistingContractor(parseInt(e.target.value)); }}
+                  onChange={e => { if (e.target.value) attachExistingContractor(e.target.value); }}
                   style={iS}>
                   <option value="">Select a contractor you've worked with before…</option>
                   {existingAvailable.map(c => (
@@ -2728,7 +2728,7 @@ function RehabItemDetail({ deal, itemIdx, onBack, backLabel, onNavigateToContrac
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
           <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--text-primary)" }}>Assigned Contractors</h3>
           {unassigned.length > 0 && (
-            <select value="" onChange={e => { if (e.target.value) { addContractor(parseInt(e.target.value)); e.target.value = ""; } }}
+            <select value="" onChange={e => { if (e.target.value) { addContractor(e.target.value); e.target.value = ""; } }}
               style={{ border: "1.5px dashed #cbd5e1", borderRadius: 10, padding: "8px 12px", fontSize: 13, color: "var(--text-secondary)", background: "var(--surface-alt)", cursor: "pointer", outline: "none" }}>
               <option value="">+ Assign contractor</option>
               {unassigned.map(c => <option key={c.id} value={c.id}>{c.name} ({c.trade})</option>)}

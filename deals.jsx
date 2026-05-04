@@ -965,7 +965,7 @@ export function RehabTracker({ onSelectRehabItem } = {}) {
               {existingAvailable.length > 0 && (
                 <div style={{ marginBottom: 18, padding: 14, background: "var(--surface-alt)", border: "1px solid var(--border-subtle)", borderRadius: 12 }}>
                   <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 8 }}>Add from your existing contractors</label>
-                  <select defaultValue="" onChange={e => { if (e.target.value) attachExistingFromTracker(parseInt(e.target.value)); }} style={iS}>
+                  <select defaultValue="" onChange={e => { if (e.target.value) attachExistingFromTracker(e.target.value); }} style={iS}>
                     <option value="">Select a contractor you've worked with before…</option>
                     {existingAvailable.map(c => (
                       <option key={c.id} value={c.id}>{c.name}{c.trade ? ` — ${c.trade}` : ""}</option>

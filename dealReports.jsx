@@ -475,12 +475,7 @@ function ContractorPaymentsReport({ dealFilter }) {
                 const dealCount = filterDealId ? 1 : (c.dealIds || []).length;
                 return (
                   <tr key={c.id}>
-                    <td style={{ ...tdS, fontWeight: 600 }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        {c.name}
-                        {c.rating > 0 && <span style={{ fontSize: 11, color: "#f59e0b" }}>{"★".repeat(c.rating)}</span>}
-                      </div>
-                    </td>
+                    <td style={{ ...tdS, fontWeight: 600 }}>{c.name}</td>
                     <td style={{ ...tdS, color: "var(--text-secondary)" }}>{c.trade}</td>
                     <td style={{ ...tdS, textAlign: "right" }}>{dealCount}</td>
                     <td style={{ ...tdS, textAlign: "right" }}>{fmt(bidTotal)}</td>
