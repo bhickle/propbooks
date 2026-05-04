@@ -84,7 +84,10 @@ import { listTenants, updateTenant as dbUpdateTenant } from "./db/tenants.js";
 import { listDeals, updateDeal as dbUpdateDeal, deleteDeal as dbDeleteDeal, createDeal as dbCreateDeal } from "./db/deals.js";
 import { listMilestones, updateMilestone as dbUpdateMilestone } from "./db/dealMilestones.js";
 import { listRehabItems, updateRehabItem as dbUpdateRehabItem } from "./db/dealRehabItems.js";
-import { listContractors } from "./db/contractors.js";
+import {
+  listContractors, createContractor as dbCreateContractor,
+  updateContractor as dbUpdateContractor, linkContractorToDeal as dbLinkContractorToDeal,
+} from "./db/contractors.js";
 import { listContractorBids } from "./db/contractorBids.js";
 import { listContractorPayments } from "./db/contractorPayments.js";
 import { listDealExpenses } from "./db/dealExpenses.js";
@@ -751,38 +754,49 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
     return newBid;
   };
 
-  const handleSaveCon = () => {
+  const handleSaveCon = async () => {
     if (!conForm.name) return;
-    if (editingConId) {
-      setConData(prev => prev.map(c => c.id === editingConId ? { ...c, name: conForm.name, trade: conForm.trade, phone: conForm.phone, email: conForm.email, license: conForm.license || c.license, insuranceExpiry: conForm.insuranceExpiry || c.insuranceExpiry, notes: conForm.notes || c.notes } : c));
-      // Also update the canonical CONTRACTORS store so other deals/screens see the edit
-      const gi = CONTRACTORS.findIndex(c => c.id === editingConId);
-      if (gi !== -1) CONTRACTORS[gi] = { ...CONTRACTORS[gi], name: conForm.name, trade: conForm.trade, phone: conForm.phone, email: conForm.email, license: conForm.license || CONTRACTORS[gi].license, insuranceExpiry: conForm.insuranceExpiry || CONTRACTORS[gi].insuranceExpiry, notes: conForm.notes || CONTRACTORS[gi].notes };
-      setEditingConId(null);
-    } else {
-      const newCon = { id: newId(), name: conForm.name, trade: conForm.trade, phone: conForm.phone, email: conForm.email || "", license: conForm.license || null, insuranceExpiry: conForm.insuranceExpiry || null, rating: 0, notes: conForm.notes || "", dealIds: [deal.id], bids: [], payments: [], documents: [] };
-      CONTRACTORS.push(newCon);
-      setConData(prev => [...prev, newCon]);
-      // Highlight the just-added contractor on the tile for a few seconds
-      setHighlightConId(newCon.id);
-      setTimeout(() => setHighlightConId(h => h === newCon.id ? null : h), 3500);
-      // If this Add was triggered from a rehab row's typeahead, auto-assign to that row
-      if (pendingAssignRowIdx != null) {
-        const idx = pendingAssignRowIdx;
-        const item = rehabItems[idx];
-        if (item) {
-          const existing = item.contractors || [];
-          const next = [...rehabItems];
-          next[idx] = { ...item, contractors: [...existing, { id: newCon.id, bid: 0 }] };
-          setRehabItems(next);
-          if (deal.rehabItems && deal.rehabItems[idx]) deal.rehabItems[idx].contractors = next[idx].contractors;
-          bumpRehab();
+    const fields = {
+      name: conForm.name, trade: conForm.trade, phone: conForm.phone,
+      email: conForm.email || null, license: conForm.license || null,
+      insuranceExpiry: conForm.insuranceExpiry || null,
+      notes: conForm.notes || "",
+    };
+    try {
+      if (editingConId) {
+        const saved = await dbUpdateContractor(editingConId, fields);
+        const gi = CONTRACTORS.findIndex(c => c.id === editingConId);
+        if (gi !== -1) CONTRACTORS[gi] = { ...CONTRACTORS[gi], ...saved };
+        setConData(prev => prev.map(c => c.id === editingConId ? { ...c, ...saved } : c));
+        setEditingConId(null);
+      } else {
+        const saved = await dbCreateContractor({ ...fields, rating: 0 });
+        const newCon = { ...saved, dealIds: [deal.id], bids: [], payments: [], documents: [] };
+        CONTRACTORS.push(newCon);
+        dbLinkContractorToDeal(saved.id, deal.id).catch(e => console.error("[PropBooks] link contractor failed:", e));
+        setConData(prev => [...prev, newCon]);
+        setHighlightConId(newCon.id);
+        setTimeout(() => setHighlightConId(h => h === newCon.id ? null : h), 3500);
+        if (pendingAssignRowIdx != null) {
+          const idx = pendingAssignRowIdx;
+          const item = rehabItems[idx];
+          if (item) {
+            const existing = item.contractors || [];
+            const next = [...rehabItems];
+            next[idx] = { ...item, contractors: [...existing, { id: newCon.id, bid: 0 }] };
+            setRehabItems(next);
+            if (deal.rehabItems && deal.rehabItems[idx]) deal.rehabItems[idx].contractors = next[idx].contractors;
+            bumpRehab();
+          }
+          setPendingAssignRowIdx(null);
         }
-        setPendingAssignRowIdx(null);
       }
+      setConForm(emptyCon);
+      setShowContractorModal(false);
+    } catch (e) {
+      console.error("[PropBooks] save contractor failed:", e);
+      showToast && showToast("Couldn't save contractor — " + (e.message || "unknown error"));
     }
-    setConForm(emptyCon);
-    setShowContractorModal(false);
   };
 
   // Attach an existing contractor from the global CONTRACTORS list to this deal
@@ -793,6 +807,7 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
     const ids = existing.dealIds || [];
     if (!ids.includes(deal.id)) {
       CONTRACTORS[gi] = { ...existing, dealIds: [...ids, deal.id] };
+      dbLinkContractorToDeal(conId, deal.id).catch(e => console.error("[PropBooks] link contractor failed:", e));
     }
     setConData(prev => prev.some(c => c.id === conId) ? prev : [...prev, CONTRACTORS[gi]]);
     // If this Add was opened from a rehab row's typeahead, also assign to that row
