@@ -9,6 +9,7 @@ import { fmt, newId, PROP_COLORS } from "../api.js";
 import { PROPERTIES, TENANTS } from "../mockData.js";
 import { useToast } from "../toast.jsx";
 import { WizardShell, WizardNav, WizardField, wizardInput, wizardSelect } from "./wizardPrimitives.jsx";
+import { createProperty } from "../db/properties.js";
 
 export function RentalWizard({ onComplete, onExit }) {
   const { showToast } = useToast();
@@ -54,34 +55,40 @@ export function RentalWizard({ onComplete, onExit }) {
     true,  // step 3 — review, always submittable
   ];
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const val = parseFloat(fin.currentValue) || parseFloat(fin.purchasePrice) || 0;
     const usedColors = PROPERTIES.map(p => p.color);
     const color = PROP_COLORS.find(c => !usedColors.includes(c)) || PROP_COLORS[PROPERTIES.length % PROP_COLORS.length];
-    const propId = newId();
-    PROPERTIES.push({
-      id: propId, name: basics.name, address: basics.address, type: basics.type,
-      units: unitCount, purchasePrice: parseFloat(fin.purchasePrice) || 0,
-      currentValue: val, valueUpdatedAt: todayStr,
-      loanAmount: loanAmt, loanRate, loanTermYears: loanTerm,
-      loanStartDate: fin.loanStartDate || "",
-      closingCosts: parseFloat(fin.closingCosts) || 0, landValue: null,
-      monthlyRent: parseFloat(fin.monthlyRent) || 0,
-      monthlyExpenses: parseFloat(fin.monthlyExpenses) || 0,
-      purchaseDate: basics.purchaseDate || "",
-      status: basics.status,
-      image: basics.name.slice(0, 2).toUpperCase(), color, photo: null,
-    });
-    // Create tenants
-    tenants.forEach(t => {
-      if (t.vacant) {
-        TENANTS.push({ id: newId(), propertyId: propId, name: "", unit: t.unit, rent: parseFloat(t.rent) || 0, leaseStart: "", leaseEnd: "", status: "vacant", lastPayment: null, phone: "", email: "" });
-      } else if (t.name.trim()) {
-        TENANTS.push({ id: newId(), propertyId: propId, name: t.name, unit: t.unit, rent: parseFloat(t.rent) || 0, leaseStart: t.leaseStart || "", leaseEnd: t.leaseEnd || "", status: t.status || "active-lease", lastPayment: null, phone: "", email: "" });
-      }
-    });
-    showToast(`"${basics.name}" added to portfolio with ${tenants.filter(t => !t.vacant && t.name.trim()).length} tenant(s)`);
-    onComplete && onComplete();
+    try {
+      const saved = await createProperty({
+        name: basics.name, address: basics.address, type: basics.type,
+        units: unitCount,
+        purchasePrice: parseFloat(fin.purchasePrice) || 0,
+        currentValue: val, valueUpdatedAt: todayStr,
+        loanAmount: loanAmt, loanRate, loanTermYears: loanTerm,
+        loanStartDate: fin.loanStartDate || null,
+        closingCosts: parseFloat(fin.closingCosts) || 0, landValue: null,
+        monthlyRent: parseFloat(fin.monthlyRent) || 0,
+        monthlyExpenses: parseFloat(fin.monthlyExpenses) || 0,
+        purchaseDate: basics.purchaseDate || null,
+        status: basics.status,
+        image: basics.name.slice(0, 2).toUpperCase(), photo: null,
+      });
+      PROPERTIES.push({ ...saved, color });
+      // Tenants still live in-memory until the tenants migration lands.
+      tenants.forEach(t => {
+        if (t.vacant) {
+          TENANTS.push({ id: newId(), propertyId: saved.id, name: "", unit: t.unit, rent: parseFloat(t.rent) || 0, leaseStart: "", leaseEnd: "", status: "vacant", lastPayment: null, phone: "", email: "" });
+        } else if (t.name.trim()) {
+          TENANTS.push({ id: newId(), propertyId: saved.id, name: t.name, unit: t.unit, rent: parseFloat(t.rent) || 0, leaseStart: t.leaseStart || "", leaseEnd: t.leaseEnd || "", status: t.status || "active-lease", lastPayment: null, phone: "", email: "" });
+        }
+      });
+      showToast(`"${basics.name}" added to portfolio with ${tenants.filter(t => !t.vacant && t.name.trim()).length} tenant(s)`);
+      onComplete && onComplete();
+    } catch (e) {
+      console.error("[PropBooks] Save property failed:", e);
+      showToast("Couldn't save property — " + (e.message || "unknown error"));
+    }
   };
 
   const handleExit = () => {

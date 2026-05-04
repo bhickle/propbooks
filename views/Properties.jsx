@@ -4,12 +4,13 @@
 // =============================================================================
 import { useState, useEffect } from "react";
 import { Plus, Search, Filter, Pencil, Trash2, MapPin, Home, X, UploadCloud } from "lucide-react";
-import { fmt, fmtK, newId, PROP_COLORS } from "../api.js";
+import { fmt, fmtK, PROP_COLORS } from "../api.js";
 import { PROPERTIES, TRANSACTIONS } from "../mockData.js";
 import { calcLoanBalance, getEffectiveMonthly, calcCapRate } from "../finance.js";
 import { daysAgo, getPropertyHealth, healthBadge } from "../health.js";
 import { useToast } from "../toast.jsx";
 import { Modal, Badge, EmptyState, iS } from "../shared.jsx";
+import { createProperty, updateProperty as dbUpdateProperty, deleteProperty as dbDeleteProperty } from "../db/properties.js";
 
 export function Properties({ onSelect, editPropertyId, onClearEditId, convertDealData, onClearConvertFlip, onGuidedSetup }) {
   const { showToast } = useToast();
@@ -77,7 +78,7 @@ export function Properties({ onSelect, editPropertyId, onClearEditId, convertDea
     setShowModal(true);
   };
 
-  const handleSaveProp = () => {
+  const handleSaveProp = async () => {
     if (!form.name) return;
     const rent = parseFloat(form.monthlyRent) || 0;
     const exp  = parseFloat(form.monthlyExpenses) || 0;
@@ -85,37 +86,71 @@ export function Properties({ onSelect, editPropertyId, onClearEditId, convertDea
     const loanAmt  = parseFloat(form.loanAmount) || 0;
     const loanRate = parseFloat(form.loanRate) || 0;
     const loanTerm = parseFloat(form.loanTermYears) || 30;
-    const loanStart = form.loanStartDate || "";
+    const loanStart = form.loanStartDate || null;
     const cc = parseFloat(form.closingCosts) || 0;
     const today = new Date().toISOString().slice(0, 10);
 
-    if (editId !== null) {
-      const idx = PROPERTIES.findIndex(p => p.id === editId);
-      if (idx !== -1) {
-        const p = PROPERTIES[idx];
-        const valChanged = val !== p.currentValue;
+    try {
+      if (editId !== null) {
+        const idx = PROPERTIES.findIndex(p => p.id === editId);
+        const prev = idx !== -1 ? PROPERTIES[idx] : null;
+        const valChanged = prev ? val !== prev.currentValue : true;
         const land = parseFloat(form.landValue) || null;
-        PROPERTIES[idx] = { ...p, name: form.name, address: form.address, type: form.type, units: parseInt(form.units) || 1, purchasePrice: parseFloat(form.purchasePrice) || 0, currentValue: val, valueUpdatedAt: valChanged ? today : (p.valueUpdatedAt || today), loanAmount: loanAmt, loanRate, loanTermYears: loanTerm, loanStartDate: loanStart, closingCosts: cc, landValue: land, monthlyRent: rent, monthlyExpenses: exp, purchaseDate: form.purchaseDate, status: form.status, photo: form.photo ?? p.photo };
+        const updates = {
+          name: form.name, address: form.address, type: form.type,
+          units: parseInt(form.units) || 1,
+          purchasePrice: parseFloat(form.purchasePrice) || 0,
+          currentValue: val,
+          valueUpdatedAt: valChanged ? today : (prev?.valueUpdatedAt || today),
+          loanAmount: loanAmt, loanRate, loanTermYears: loanTerm, loanStartDate: loanStart,
+          closingCosts: cc, landValue: land,
+          monthlyRent: rent, monthlyExpenses: exp,
+          purchaseDate: form.purchaseDate || null, status: form.status,
+          photo: form.photo ?? prev?.photo,
+        };
+        const saved = await dbUpdateProperty(editId, updates);
+        if (idx !== -1) PROPERTIES[idx] = { ...prev, ...saved, color: prev.color };
+      } else {
+        const usedColors = PROPERTIES.map(p => p.color);
+        const color = PROP_COLORS.find(c => !usedColors.includes(c)) || PROP_COLORS[PROPERTIES.length % PROP_COLORS.length];
+        const land = parseFloat(form.landValue) || null;
+        const saved = await createProperty({
+          name: form.name, address: form.address, type: form.type,
+          units: parseInt(form.units) || 1,
+          purchasePrice: parseFloat(form.purchasePrice) || 0,
+          currentValue: val, valueUpdatedAt: today,
+          loanAmount: loanAmt, loanRate, loanTermYears: loanTerm, loanStartDate: loanStart,
+          closingCosts: cc, landValue: land,
+          monthlyRent: rent, monthlyExpenses: exp,
+          purchaseDate: form.purchaseDate || null, status: form.status,
+          image: form.name.slice(0, 2).toUpperCase(),
+          photo: form.photo || null,
+        });
+        PROPERTIES.push({ ...saved, color });
       }
-    } else {
-      const usedColors = PROPERTIES.map(p => p.color);
-      const color = PROP_COLORS.find(c => !usedColors.includes(c)) || PROP_COLORS[PROPERTIES.length % PROP_COLORS.length];
-      const land = parseFloat(form.landValue) || null;
-      PROPERTIES.push({ id: newId(), name: form.name, address: form.address, type: form.type, units: parseInt(form.units) || 1, purchasePrice: parseFloat(form.purchasePrice) || 0, currentValue: val, valueUpdatedAt: today, loanAmount: loanAmt, loanRate, loanTermYears: loanTerm, loanStartDate: loanStart, closingCosts: cc, landValue: land, monthlyRent: rent, monthlyExpenses: exp, purchaseDate: form.purchaseDate, status: form.status, image: form.name.slice(0, 2).toUpperCase(), color, photo: form.photo || null });
+      const wasEdit = editId !== null;
+      setForm(emptyP);
+      setShowModal(false);
+      rerender();
+      showToast(wasEdit ? "Property updated" : "Property added to portfolio");
+    } catch (e) {
+      console.error("[PropBooks] Save property failed:", e);
+      showToast("Couldn't save property — " + (e.message || "unknown error"));
     }
-    const wasEdit = editId !== null;
-    setForm(emptyP);
-    setShowModal(false);
-    rerender();
-    showToast(wasEdit ? "Property updated" : "Property added to portfolio");
   };
 
-  const handleDeleteProp = () => {
+  const handleDeleteProp = async () => {
     if (!deleteConfirm) return;
-    const idx = PROPERTIES.findIndex(p => p.id === deleteConfirm.id);
-    if (idx !== -1) PROPERTIES.splice(idx, 1);
-    setDeleteConfirm(null);
-    rerender();
+    try {
+      await dbDeleteProperty(deleteConfirm.id);
+      const idx = PROPERTIES.findIndex(p => p.id === deleteConfirm.id);
+      if (idx !== -1) PROPERTIES.splice(idx, 1);
+      setDeleteConfirm(null);
+      rerender();
+    } catch (e) {
+      console.error("[PropBooks] Delete property failed:", e);
+      showToast("Couldn't delete property — " + (e.message || "unknown error"));
+    }
   };
 
   const filtered = PROPERTIES.filter(p => p.name.toLowerCase().includes(search.toLowerCase()) || p.type.toLowerCase().includes(search.toLowerCase()));

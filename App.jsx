@@ -78,6 +78,7 @@ import { TenantManagement } from "./views/TenantManagement.jsx";
 import { TenantDetail } from "./views/TenantDetail.jsx";
 import { Reports } from "./views/Reports.jsx";
 import { Analytics } from "./views/Analytics.jsx";
+import { listProperties } from "./db/properties.js";
 
 // TAX_CONFIG and getDeprBasis moved to finance.js
 
@@ -2999,12 +3000,34 @@ function AppShell() {
   const [showNotifications, setShowNotifications] = useState(false);
   const notifRef = useRef(null);
 
+  // Load properties from Supabase whenever the auth user changes. Supabase is
+  // the source of truth; the in-memory PROPERTIES array is just a synchronous
+  // mirror so existing component code (which reads PROPERTIES directly) keeps
+  // working unchanged. RLS scopes the query to the current user's rows.
+  const [propsVersion, setPropsVersion] = useState(0);
+  useEffect(() => {
+    if (!user?.id) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const rows = await listProperties();
+        if (cancelled) return;
+        PROPERTIES.length = 0;
+        PROPERTIES.push(...rows);
+        setPropsVersion(v => v + 1);
+      } catch (e) {
+        console.error("[PropBooks] Failed to load properties:", e);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [user?.id]);
+
   // Auto-show welcome screen when app is empty
   useEffect(() => {
     if (PROPERTIES.length === 0 && DEALS.length === 0 && activeView === "portfolio") {
       setActiveView("welcome");
     }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [propsVersion]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Close notification panel on outside click
   useEffect(() => {
