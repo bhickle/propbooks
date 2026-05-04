@@ -1657,8 +1657,8 @@ function PortfolioDashboard({ onNavigate, onSelectProperty, onSelectFlip, onNavi
       {/* Row 2: Quick Actions */}
       <div style={{ display: "flex", gap: 12, marginBottom: 28 }}>
         {[
-          { label: "Log Rental Transaction", icon: ArrowUpDown, action: () => onNavigate("transactions") },
-          { label: "Log Deal Expense", icon: Hammer, action: () => onNavigate("dealexpenses") },
+          { label: "Add Rental Transaction", icon: ArrowUpDown, action: () => onNavigate("transactions") },
+          { label: "Add Deal Expense", icon: Hammer, action: () => onNavigate("dealexpenses") },
           { label: "Add Property", icon: Building2, action: () => onNavigate("rentalWizard") },
           { label: "Add Deal", icon: Target, action: () => onNavigate("flipWizard") },
           { label: "Add Note", icon: MessageSquare, action: () => onNavigate("notes-add") },
@@ -7506,7 +7506,7 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
                   )}
                   {vendorMatches.length > 0 && (
                     <>
-                      <div style={{ padding: "6px 14px", background: "var(--surface-alt)", fontSize: 10, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em" }}>Previous Vendors</div>
+                      <div style={{ padding: "6px 14px", background: "var(--surface-alt)", fontSize: 10, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em" }}>Previous Payees</div>
                       {vendorMatches.slice(0, 5).map(v => (
                         <button key={v} onMouseDown={() => { setExpForm(f => ({ ...f, vendor: v, contractorId: "" })); setVendorFocus(false); }}
                           style={{ width: "100%", padding: "10px 14px", background: "none", border: "none", borderBottom: "1px solid var(--border-subtle)", textAlign: "left", cursor: "pointer", fontSize: 13, color: "var(--text-primary)", display: "flex", alignItems: "center", gap: 8 }}>
@@ -9835,7 +9835,7 @@ function TenantDetail({ tenant, onBack, backLabel, onTenantUpdated, onSelectTena
                     <span>Created: {r.createdAt.split("T")[0]}</span>
                     {r.scheduledDate && <span>Scheduled: {r.scheduledDate}</span>}
                     {r.resolvedDate && <span>Resolved: {r.resolvedDate}</span>}
-                    {r.vendor && <span>Vendor: {r.vendor}</span>}
+                    {r.vendor && <span>Paid To: {r.vendor}</span>}
                     {r.cost && <span>Cost: {fmt(r.cost)}</span>}
                   </div>
                 </div>
@@ -10111,7 +10111,7 @@ function MileageTracker() {
           <p style={{ color: "var(--text-secondary)", fontSize: 15 }}>Log business trips · IRS rate: ${IRS_RATE}/mile (${TAX_CONFIG.mileageRateYear})</p>
         </div>
         <button onClick={openAdd} style={{ background: "var(--c-blue)", color: "#fff", border: "none", borderRadius: 10, padding: "10px 18px", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
-          <Plus size={16} /> Log Trip
+          <Plus size={16} /> Add Trip
         </button>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 24 }}>
@@ -10214,7 +10214,7 @@ function MileageTracker() {
         </table>
       </div>
       {showModal && (
-        <Modal title={editId ? "Edit Trip" : "Log Trip"} onClose={() => { setShowModal(false); setEditId(null); }} width={460}>
+        <Modal title={editId ? "Edit Trip" : "Add Trip"} onClose={() => { setShowModal(false); setEditId(null); }} width={460}>
           {[
             { label: "Date", type: "date", key: "date" },
             { label: "Description", type: "text", key: "description", placeholder: "e.g. Inspect Oakdale Craftsman" },
