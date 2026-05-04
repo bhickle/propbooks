@@ -583,14 +583,17 @@ export function RehabTracker({ onSelectRehabItem } = {}) {
       </div>
 
       {/* Filters */}
-      <div style={{ display: "flex", gap: 12, marginBottom: 20 }}>
-        <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
-          style={{ ...iS, width: "auto", padding: "8px 12px", fontSize: 13 }}>
-          <option value="all">All Statuses</option>
-          <option value="complete">Complete</option>
-          <option value="in-progress">In Progress</option>
-          <option value="pending">Pending</option>
-        </select>
+      <div style={{ display: "flex", gap: 12, marginBottom: 20, alignItems: "center" }}>
+        <div style={{ display: "flex", gap: 4, background: "var(--surface-alt)", borderRadius: 10, padding: 4, border: "1px solid var(--border)" }}>
+          {[["all", "All Statuses"], ["complete", "Complete"], ["in-progress", "In Progress"], ["pending", "Pending"]].map(([val, label]) => {
+            const active = filterStatus === val;
+            return (
+              <button key={val} onClick={() => setFilterStatus(val)} style={{ padding: "7px 14px", borderRadius: 8, border: "none", background: active ? "#e95e00" : "transparent", color: active ? "#fff" : "var(--text-secondary)", fontWeight: active ? 700 : 500, fontSize: 12, cursor: "pointer", whiteSpace: "nowrap", transition: "all 0.15s" }}>
+                {label}
+              </button>
+            );
+          })}
+        </div>
         <div style={{ background: "var(--surface-muted)", borderRadius: 10, padding: "8px 14px", display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: "var(--text-secondary)" }}>
           <Search size={13} /> {filtered.length} items
         </div>
