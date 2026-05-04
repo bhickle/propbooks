@@ -11788,11 +11788,13 @@ function AppShell() {
 
   // Gate demo data: real users start with a blank account.
   // Demo user (demo@propbooks.com) always sees the full sample portfolio.
-  // We restore OR clear on every mount so switching accounts mid-session works.
+  // Re-runs whenever user identity changes — so an in-session auth swap
+  // (real → demo without going through null) re-syncs the data state.
   const isDemo = user?.email === DEMO_EMAIL;
-  const _dataGated = useRef(false);
-  if (!_dataGated.current) {
-    _dataGated.current = true;
+  const _userKey = user?.email || "anonymous";
+  const _lastDataUser = useRef(null);
+  if (_lastDataUser.current !== _userKey) {
+    _lastDataUser.current = _userKey;
     if (isDemo) {
       // Restore in case a prior non-demo session cleared the arrays
       restoreDemoData();
