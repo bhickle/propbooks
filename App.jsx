@@ -316,25 +316,10 @@ function DealPipeline({ onSelect, onGuidedSetup }) {
         </div>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 24 }}>
-        {[
-          { icon: Hammer, label: "Active Deals", value: activeDeals.length, sub: "In pipeline", color: "#e95e00" },
-          { icon: DollarSign, label: "Capital Deployed", value: fmtK(totalDeployed), sub: "Purchase + rehab", color: "var(--c-blue)" },
-          { icon: TrendingUp, label: "Projected Profit", value: fmtK(Math.round(totalProjected)), sub: "Active deals", color: "var(--c-green)" },
-          { icon: Star, label: "Realized Profit", value: fmt(realizedProfit), sub: "Closed deals YTD", color: "var(--c-purple)" },
-        ].map((m, i) => (
-          <div key={i} style={{ background: "var(--surface)", borderRadius: 16, padding: 20, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
-              <div>
-                <p style={{ color: "var(--text-muted)", fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 4 }}>{m.label}</p>
-                <p style={{ color: "var(--text-primary)", fontSize: 24, fontWeight: 800, fontFamily: "var(--font-display)" }}>{m.value}</p>
-                {m.sub && <p style={{ color: "var(--text-muted)", fontSize: 12, marginTop: 2 }}>{m.sub}</p>}
-              </div>
-              <div style={{ background: "#1e3a5f", borderRadius: 10, padding: 10 }}>
-                <m.icon size={20} color="#e95e00" />
-              </div>
-            </div>
-          </div>
-        ))}
+        <StatCard icon={Hammer}     label="Active Deals"     value={activeDeals.length}              sub="In pipeline"      color="#e95e00"        tip="Number of deals not yet sold." />
+        <StatCard icon={DollarSign} label="Capital Deployed" value={fmtK(totalDeployed)}             sub="Purchase + rehab" color="var(--c-blue)"  tip="Sum of purchase price + rehab spent across active deals." />
+        <StatCard icon={TrendingUp} label="Projected Profit" value={fmtK(Math.round(totalProjected))} sub="Active deals"     color="var(--c-green)" tip="ARV − Purchase − Rehab Budget − Estimated Holding & Selling Costs across active deals." />
+        <StatCard icon={Star}       label="Realized Profit"  value={fmt(realizedProfit)}             sub="Closed deals YTD" color="var(--c-purple)" tip="Actual net profit from deals closed/sold this year." />
       </div>
       <div style={{ display: "flex", gap: 10, marginBottom: 20, flexWrap: "wrap", alignItems: "center" }}>
         <div style={{ display: "flex", gap: 4, background: "var(--surface-alt)", borderRadius: 10, padding: 4, border: "1px solid var(--border)" }}>
