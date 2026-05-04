@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run *)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\brand\\\\OneDrive\\\\Documents\\\\claude_cowork\\\\RealVault\" -File -Recurse)",
+      "Bash(Select-Object FullName)",
+      "Bash(npm ls *)",
+      "Bash(rm -rf node_modules/fast-equals)",
+      "Bash(npm install *)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(node *)",
+      "WebSearch",
+      "Skill(update-config)",
+      "Bash(awk '/^\\\\//{f=$0; next} /exhaustive-deps/{print f\"|\"$0}')",
+      "Bash(npx eslint *)",
+      "Bash(grep -n \"^  Info\\\\|Info,\\\\| Info$\\\\| Info \" App.jsx deals.jsx)",
+      "Bash(grep *)"
+    ]
+  }
+}
