@@ -1204,7 +1204,7 @@ export function DealExpenses({ highlightExpId, onBack, onClearHighlight, backLab
   const allVendors = useMemo(() => {
     const names = new Set([..._FE.map(e => e.vendor), ..._CON.map(c => c.name)]);
     return [...names].filter(Boolean).sort();
-  }, [expenses]);
+  }, [expenses]); // eslint-disable-line react-hooks/exhaustive-deps -- expenses is the cache-bust counter for _FE/_CON
 
   // Rehab items for selected deal
   const expDeal = _DEALS.find(f => f.id === parseInt(form.dealId));
@@ -2941,7 +2941,7 @@ export function DealMilestones({ highlightMilestoneKey, onBack, onClearHighlight
     const labels = new Set(DEFAULT_MILESTONES);
     DEAL_MILESTONES.forEach(m => { if (m.label) labels.add(m.label); });
     return [...labels].sort();
-  }, [renderKey]);
+  }, [renderKey]); // eslint-disable-line react-hooks/exhaustive-deps -- renderKey is the cache-bust counter for DEAL_MILESTONES
 
   // Build flat list of all milestones across deals
   const allMilestones = useMemo(() => {
@@ -2953,7 +2953,7 @@ export function DealMilestones({ highlightMilestoneKey, onBack, onClearHighlight
       });
     });
     return list;
-  }, [renderKey]);
+  }, [renderKey]); // eslint-disable-line react-hooks/exhaustive-deps -- renderKey is the cache-bust counter for _DEALS/DEAL_MILESTONES
 
   const filtered = allMilestones.filter(m => {
     if (filterDeal !== "all" && m.dealId !== parseInt(filterDeal)) return false;

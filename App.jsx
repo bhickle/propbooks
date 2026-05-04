@@ -1350,7 +1350,7 @@ function RentalWizard({ onComplete, onExit }) {
       }
       return arr;
     });
-  }, [unitCount]);
+  }, [unitCount]); // eslint-disable-line react-hooks/exhaustive-deps -- only resize on unitCount; rent edits must not clobber user input
   const setTenant = (i, k, v) => setTenants(prev => prev.map((t, j) => j === i ? { ...t, [k]: v } : t));
 
   const canProceed = [
@@ -2514,7 +2514,7 @@ function Dashboard({ onNavigate, onNavigateToTx, onSelectProperty, onNavigateToT
         propId: n.propertyId, noteId: n.id });
     });
     return items.sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 8);
-  }, [renderKey]);
+  }, [renderKey]); // eslint-disable-line react-hooks/exhaustive-deps -- renderKey is the cache-bust counter for mutable module arrays
 
   // ── Property snapshot cards ─────────────────────────────────────────────
   const propSnapshots = PROPERTIES.map(p => {
@@ -3560,7 +3560,7 @@ function PropertyDetail({ property, onBack, backLabel, onEditProperty, onGoToTra
   const [noteText, setNoteText] = useState("");
   const [noteEditId, setNoteEditId] = useState(null);
   const [noteDeleteConfirm, setNoteDeleteConfirm] = useState(null);
-  const propNotes = useMemo(() => RENTAL_NOTES.filter(n => n.propertyId === property.id).sort((a, b) => b.date.localeCompare(a.date)), [notesRender]);
+  const propNotes = useMemo(() => RENTAL_NOTES.filter(n => n.propertyId === property.id).sort((a, b) => b.date.localeCompare(a.date)), [property.id, notesRender]);
 
   const propDocs = PROPERTY_DOCUMENTS.filter(d => d.propertyId === property.id);
 
@@ -4793,7 +4793,7 @@ function Analytics() {
     const income = Math.round(portfolioIncome * (0.92 + i * 0.015 + (i % 3) * 0.01));
     const expenses = Math.round(portfolioExpenses * EXP_FACTORS[idx]);
     return { month: label, income, expenses, net: income - expenses };
-  }), []);
+  }), []); // eslint-disable-line react-hooks/exhaustive-deps -- deterministic mock trend computed once per mount
 
   // YoY simulated: last year values slightly lower
   const yoyNOI = 8.2;
@@ -6825,7 +6825,7 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
     const labels = new Set(DEFAULT_MILESTONES);
     DEAL_MILESTONES.forEach(m => { if (m.label) labels.add(m.label); });
     return [...labels].sort();
-  }, [milestones]);
+  }, [milestones]); // eslint-disable-line react-hooks/exhaustive-deps -- milestones is the cache-bust counter for DEAL_MILESTONES
   const [completingMsIdx, setCompletingMsIdx] = useState(null);
   const [msCompletionDate, setMsCompletionDate] = useState(new Date().toISOString().split("T")[0]);
   const [showAddRehab, setShowAddRehab] = useState(false);
@@ -6846,7 +6846,7 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
   // the change is visible on the Contractors tab and Rehab Tracker too
   const [rehabVersion, setRehabVersion] = useState(0);
   const bumpRehab = () => setRehabVersion(v => v + 1);
-  const dealContractorsList = useMemo(() => CONTRACTORS.filter(c => (c.dealIds || []).includes(deal.id)), [deal.id, conData]);
+  const dealContractorsList = useMemo(() => CONTRACTORS.filter(c => (c.dealIds || []).includes(deal.id)), [deal.id, conData]); // eslint-disable-line react-hooks/exhaustive-deps -- conData is the cache-bust counter for CONTRACTORS
   const addContractorToRehabItem = (itemIdx, contractorId) => {
     const item = rehabItems[itemIdx];
     if (!item) return;
@@ -9972,11 +9972,11 @@ function TenantDetail({ tenant, onBack, backLabel, onTenantUpdated, onSelectTena
   const [activeTab, setActiveTab] = useState("overview");
   // Payments: read from existing transactions (rent income tied to this tenant)
   const [txVersion, setTxVersion] = useState(0);
-  const payments = useMemo(() => TRANSACTIONS.filter(t => t.tenantId === tenant.id && t.type === "income" && t.category === "Rent Income").sort((a, b) => b.date.localeCompare(a.date)), [tenant.id, txVersion]);
+  const payments = useMemo(() => TRANSACTIONS.filter(t => t.tenantId === tenant.id && t.type === "income" && t.category === "Rent Income").sort((a, b) => b.date.localeCompare(a.date)), [tenant.id, txVersion]); // eslint-disable-line react-hooks/exhaustive-deps -- txVersion is the cache-bust counter for TRANSACTIONS
   const [documents, setDocuments] = useState(TENANT_DOCUMENTS.filter(d => d.tenantId === tenant.id));
   // Notes: read from RENTAL_NOTES filtered by tenantId
   const [noteVersion, setNoteVersion] = useState(0);
-  const notes = useMemo(() => RENTAL_NOTES.filter(n => n.tenantId === tenant.id).sort((a, b) => b.date.localeCompare(a.date)), [tenant.id, noteVersion]);
+  const notes = useMemo(() => RENTAL_NOTES.filter(n => n.tenantId === tenant.id).sort((a, b) => b.date.localeCompare(a.date)), [tenant.id, noteVersion]); // eslint-disable-line react-hooks/exhaustive-deps -- noteVersion is the cache-bust counter for RENTAL_NOTES
   const [requests, setRequests] = useState(MAINTENANCE_REQUESTS.filter(r => r.tenantId === tenant.id));
 
   // Edit modal
