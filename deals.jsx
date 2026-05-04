@@ -483,7 +483,7 @@ export function RehabTracker({ onSelectRehabItem } = {}) {
         name: conForm.name, trade: conForm.trade, phone: conForm.phone,
         email: conForm.email || null, license: conForm.license || null,
         insuranceExpiry: conForm.insuranceExpiry || null,
-        rating: 0, notes: conForm.notes || "",
+        rating: null, notes: conForm.notes || "",
       });
       const newCon = { ...saved, dealIds: dealId ? [dealId] : [], bids: [], payments: [], documents: [] };
       _CON.push(newCon);
@@ -1637,7 +1637,7 @@ export function DealContractors({ onSelectContractor }) {
       const saved = await dbCreateContractor({
         name: form.name, trade: form.trade, phone: form.phone,
         email: form.email || null, license: form.license || null,
-        insuranceExpiry: form.insuranceExpiry || null, rating: 0,
+        insuranceExpiry: form.insuranceExpiry || null, rating: null,
         notes: form.notes || "",
       });
       _CON.push({ ...saved, dealIds: [] });

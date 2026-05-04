@@ -770,7 +770,7 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
         setConData(prev => prev.map(c => c.id === editingConId ? { ...c, ...saved } : c));
         setEditingConId(null);
       } else {
-        const saved = await dbCreateContractor({ ...fields, rating: 0 });
+        const saved = await dbCreateContractor({ ...fields, rating: null });
         const newCon = { ...saved, dealIds: [deal.id], bids: [], payments: [], documents: [] };
         CONTRACTORS.push(newCon);
         dbLinkContractorToDeal(saved.id, deal.id).catch(e => console.error("[PropBooks] link contractor failed:", e));
