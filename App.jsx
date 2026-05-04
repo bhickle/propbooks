@@ -46,11 +46,12 @@ import { DealReports } from "./dealReports.jsx";
 // ─── Annual Tax Config ──────────────────────────────────────────────
 // Update this block once per year (typically January) when IRS publishes new rates.
 // Every tax-sensitive value in the app pulls from here — no hunting through code.
+// Planned: move to an admin-configurable settings table once Supabase persistence lands.
 const TAX_CONFIG = {
   currentYear: 2026,                          // Default tax year for reports
   yearRange: [2023, 2024, 2025, 2026],        // Available years in dropdowns
-  mileageRate: 0.70,                           // IRS standard mileage rate ($/mile)
-  mileageRateYear: 2025,                       // Year the mileage rate applies to
+  mileageRate: 0.725,                          // IRS standard mileage rate ($/mile) — Notice 2026-10
+  mileageRateYear: 2026,                       // Year the mileage rate applies to
   brackets: [10, 12, 22, 24, 32, 35, 37],     // Federal marginal tax brackets (%)
   defaultBracket: 24,                          // Default bracket for estimates
   depreciationResidential: 27.5,               // Years — IRS MACRS residential
