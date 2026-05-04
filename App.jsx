@@ -2793,7 +2793,7 @@ function Properties({ onSelect, editPropertyId, onClearEditId, convertDealData, 
       }
       onClearEditId && onClearEditId();
     }
-  }, [editPropertyId]);
+  }, [editPropertyId]); // eslint-disable-line react-hooks/exhaustive-deps -- onClearEditId is an inline parent callback (new ref every render)
 
   // Auto-open Add Property modal when converting a deal to rental
   useEffect(() => {
@@ -2813,7 +2813,7 @@ function Properties({ onSelect, editPropertyId, onClearEditId, convertDealData, 
       setShowModal(true);
       onClearConvertFlip && onClearConvertFlip();
     }
-  }, [convertDealData]);
+  }, [convertDealData]); // eslint-disable-line react-hooks/exhaustive-deps -- onClearConvertFlip is an inline parent callback; emptyP is stable
 
   const handlePhotoUpload = e => {
     const file = e.target.files[0];
@@ -3436,7 +3436,7 @@ function PropertyDetail({ property, onBack, backLabel, onEditProperty, onGoToTra
       const timer = setTimeout(() => { setFlashTenantId(null); onClearHighlightTenant && onClearHighlightTenant(); }, 2500);
       return () => clearTimeout(timer);
     }
-  }, [highlightTenantId]);
+  }, [highlightTenantId]); // eslint-disable-line react-hooks/exhaustive-deps -- onClearHighlightTenant is an inline parent callback (new ref every render)
 
   // Transaction tab filters
   const [txSearch, setTxSearch] = useState("");
@@ -4258,7 +4258,7 @@ function Transactions({ highlightTxId, onBack, onClearHighlight, backLabel }) {
       }, 2500);
       return () => clearTimeout(timer);
     }
-  }, [highlightTxId]);
+  }, [highlightTxId]); // eslint-disable-line react-hooks/exhaustive-deps -- onClearHighlight is an inline parent callback (new ref every render)
   const [showModal, setShowModal] = useState(false);
   const [editId, setEditId] = useState(null);
   // ── Two-tier category system: parent → subcategories ──
@@ -8936,7 +8936,7 @@ function TenantManagement({ onBack, highlightTenantId, onClearHighlight, prefill
       const timer = setTimeout(() => { setFlashId(null); onClearHighlight && onClearHighlight(); }, 2500);
       return () => clearTimeout(timer);
     }
-  }, [highlightTenantId]);
+  }, [highlightTenantId]); // eslint-disable-line react-hooks/exhaustive-deps -- onClearHighlight is an inline parent callback (new ref every render)
   const emptyT = { propertyId: PROPERTIES[0]?.id || 1, unit: "", name: "", rent: "", securityDeposit: "", lateFeePct: "5", renewalTerms: "Annual", notes: "", leaseStart: "", leaseEnd: "", status: "active-lease", phone: "", email: "", leaseDoc: null, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), userId: MOCK_USER.id };
   const [form, setForm] = useState(emptyT);
   const sf = k => e => setForm(f => ({ ...f, [k]: e.target.value }));
@@ -8958,7 +8958,7 @@ function TenantManagement({ onBack, highlightTenantId, onClearHighlight, prefill
       setShowModal(true);
       onClearPrefill && onClearPrefill();
     }
-  }, [prefillTenant]);
+  }, [prefillTenant]); // eslint-disable-line react-hooks/exhaustive-deps -- onClearPrefill is an inline parent callback; emptyT is stable
 
   const openAdd = () => { setEditId(null); setForm(emptyT); setShowModal(true); };
   const openEdit = t => {
@@ -11276,7 +11276,7 @@ function UnifiedNotes({ highlightNoteId, highlightDealNoteId, onBack, onClearHig
       const timer = setTimeout(() => { setFlashId(null); onClearHighlight && onClearHighlight(); }, 2500);
       return () => clearTimeout(timer);
     }
-  }, [highlightNoteId, highlightDealNoteId]);
+  }, [highlightNoteId, highlightDealNoteId]); // eslint-disable-line react-hooks/exhaustive-deps -- onClearHighlight is an inline parent callback (new ref every render)
 
   // Build unified list
   const allNotes = (() => {

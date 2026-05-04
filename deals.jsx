@@ -1188,7 +1188,7 @@ export function DealExpenses({ highlightExpId, onBack, onClearHighlight, backLab
       }, 2500);
       return () => clearTimeout(timer);
     }
-  }, [highlightExpId]);
+  }, [highlightExpId]); // eslint-disable-line react-hooks/exhaustive-deps -- onClearHighlight is an inline parent callback (new ref every render)
   const [editId, setEditId]             = useState(null);
   const [search, setSearch]             = useState("");
   const [deleteConfirm, setDeleteConfirm] = useState(null);
@@ -2936,7 +2936,7 @@ export function DealMilestones({ highlightMilestoneKey, onBack, onClearHighlight
       const timer = setTimeout(() => { setFlashKey(null); onClearHighlight && onClearHighlight(); }, 2500);
       return () => clearTimeout(timer);
     }
-  }, [highlightMilestoneKey]);
+  }, [highlightMilestoneKey]); // eslint-disable-line react-hooks/exhaustive-deps -- onClearHighlight is inline parent callback; filterStatus is read once on highlight by design
   const allMilestoneLabels = useMemo(() => {
     const labels = new Set(DEFAULT_MILESTONES);
     DEAL_MILESTONES.forEach(m => { if (m.label) labels.add(m.label); });
@@ -3282,7 +3282,7 @@ export function DealNotes({ highlightNoteId, onBack, onClearHighlight }) {
       const timer = setTimeout(() => { setFlashId(null); onClearHighlight && onClearHighlight(); }, 2500);
       return () => clearTimeout(timer);
     }
-  }, [highlightNoteId]);
+  }, [highlightNoteId]); // eslint-disable-line react-hooks/exhaustive-deps -- onClearHighlight is an inline parent callback (new ref every render)
 
   // Build flat list of all notes across deals (no memo — must recalculate after mutations)
   const allNotes = (() => {
