@@ -3560,7 +3560,7 @@ function PropertyDetail({ property, onBack, backLabel, onEditProperty, onGoToTra
   const [noteText, setNoteText] = useState("");
   const [noteEditId, setNoteEditId] = useState(null);
   const [noteDeleteConfirm, setNoteDeleteConfirm] = useState(null);
-  const propNotes = useMemo(() => RENTAL_NOTES.filter(n => n.propertyId === property.id).sort((a, b) => b.date.localeCompare(a.date)), [property.id, notesRender]);
+  const propNotes = useMemo(() => RENTAL_NOTES.filter(n => n.propertyId === property.id).sort((a, b) => b.date.localeCompare(a.date)), [property.id, notesRender]); // eslint-disable-line react-hooks/exhaustive-deps -- notesRender is the cache-bust counter for RENTAL_NOTES
 
   const propDocs = PROPERTY_DOCUMENTS.filter(d => d.propertyId === property.id);
 

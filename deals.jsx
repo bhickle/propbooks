@@ -2390,7 +2390,8 @@ export function DealAnalytics() {
   const COLORS = ["#e95e00", "var(--c-blue)", "var(--c-green)", "var(--c-purple)", "var(--c-red)", "#06b6d4"];
 
   // Monthly expense trend – group all deal expenses by month
-  const monthlyTrend = useMemo(() => {
+  // (plain expression so it stays in sync with _FE mutations, matching catSpend above)
+  const monthlyTrend = (() => {
     const filtered = _FE.filter(e => dealIdSet.has(e.dealId));
     const byMonth = {};
     filtered.forEach(e => {
@@ -2402,7 +2403,7 @@ export function DealAnalytics() {
       const label = new Date(parseInt(y), parseInt(m) - 1).toLocaleDateString("en-US", { month: "short", year: "2-digit" });
       return { month: label, total };
     });
-  }, [deals]);
+  })();
 
   // Profit breakdown per deal – stacked components
   const profitBreakdown = deals.map(f => {
@@ -2430,16 +2431,16 @@ export function DealAnalytics() {
   const dealCatChart = Object.entries(dealCatSpend).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value);
 
   // Cumulative spend curve for single deal
-  const spendCurve = useMemo(() => {
+  // (plain expression — useMemo here was a no-op since dealExpenses is a new ref every render)
+  const spendCurve = (() => {
     if (!singleDeal || dealExpenses.length === 0) return [];
     let cumulative = 0;
-    const points = dealExpenses.map(e => {
+    return dealExpenses.map(e => {
       cumulative += e.amount;
       const d = new Date(e.date);
       return { date: d.toLocaleDateString("en-US", { month: "short", day: "numeric" }), spent: cumulative, budget: singleDeal.rehabBudget };
     });
-    return points;
-  }, [singleDeal, dealExpenses]);
+  })();
 
   // Single-deal scorecard metrics
   const dealROI = singleDeal ? roiData.find(r => r.fullName === singleDeal.name) : null;
