@@ -50,6 +50,28 @@ export function Modal({ title, onClose, children, width = 500 }) {
   );
 }
 
+// ─── Card style atoms ────────────────────────────────────────────────────────
+// Per CLAUDE.md UI consistency checklist:
+//   sectionS: borderRadius 16, padding 24, boxShadow, border #f1f5f9
+//   cardS:    KPI/stat card, slightly tighter padding
+// Components needing a per-instance override (e.g. marginBottom) should spread
+// at their local declaration: `const sectionS = { ...sharedSectionS, marginBottom: 24 };`
+export const sectionS = {
+  background: "var(--surface)",
+  borderRadius: 16,
+  padding: 24,
+  boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
+  border: "1px solid var(--border-subtle)",
+};
+
+export const cardS = {
+  background: "var(--surface)",
+  borderRadius: 16,
+  padding: 20,
+  boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
+  border: "1px solid var(--border-subtle)",
+};
+
 // ─── colorWithAlpha ──────────────────────────────────────────────────────────
 // Convert a CSS color to a translucent variant. Handles both `var(--name)`
 // custom properties and `#rrggbb` hex literals.

@@ -40,7 +40,7 @@ import {
 } from "./api.js";
 import { AuthProvider, AuthScreen, useAuth } from "./auth.jsx";
 import { SUPABASE_CONFIGURED, SUPABASE_CONFIG_ERROR } from "./supabase.js";
-import { InfoTip, Modal, colorWithAlpha } from "./shared.jsx";
+import { InfoTip, Modal, colorWithAlpha, sectionS as sharedSectionS, cardS as sharedCardS } from "./shared.jsx";
 import { Settings, OnboardingWizard } from "./settings.jsx";
 import { DealDashboard, RehabTracker, DealExpenses, DealContractors, ContractorDetail, DealAnalytics, DealMilestones, DealNotes } from "./deals.jsx";
 import { DealReports } from "./dealReports.jsx";
@@ -1192,7 +1192,7 @@ function QuickPayInline({ tenant, defaultDate, onConfirm }) {
 
 // Shared wizard shell: progress bar + step navigation + layout
 function WizardShell({ steps, currentStep, onStepClick, title, subtitle, onExit, children }) {
-  const sectionS = { background: "var(--surface)", borderRadius: 16, padding: 24, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)" };
+  const sectionS = sharedSectionS;
   return (
     <div style={{ minHeight: "100vh", background: "var(--surface-alt)" }}>
       {/* Top bar */}
@@ -2103,7 +2103,7 @@ function PortfolioDashboard({ onNavigate, onSelectProperty, onSelectFlip, onNavi
   });
   const recentActivity = recentItems.sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 10);
 
-  const sectionS = { background: "var(--surface)", borderRadius: 16, padding: 24, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)" };
+  const sectionS = sharedSectionS;
   const qaBtnS = { display: "flex", flexDirection: "column", alignItems: "center", gap: 8, padding: "16px 12px", borderRadius: 12, border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", transition: "all 0.15s", flex: 1 };
 
   return (
@@ -2495,7 +2495,7 @@ function Dashboard({ onNavigate, onNavigateToTx, onSelectProperty, onNavigateToT
   // Rent payment write lives in shared logRentPayment() via <QuickPayInline/>.
   const handleMarkPaid = (tenant) => { setQuickPay(tenant); };
 
-  const sectionS = { background: "var(--surface)", borderRadius: 16, padding: 24, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)" };
+  const sectionS = sharedSectionS;
 
   return (
     <div>
@@ -4810,8 +4810,9 @@ function Analytics() {
     );
   };
 
-  const cardS = { background: "var(--surface)", borderRadius: 14, padding: "20px", boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)" };
-  const sectionS = { background: "var(--surface)", borderRadius: 16, padding: 24, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)", marginBottom: 24 };
+  // TODO: this cardS uses borderRadius 14, padding "20px" — drift from canonical (16/20). Reconcile when this view gets split out.
+  const cardS = { ...sharedCardS, borderRadius: 14, padding: "20px" };
+  const sectionS = { ...sharedSectionS, marginBottom: 24 };
 
   return (
     <div>
@@ -9625,8 +9626,8 @@ function RehabItemDetail({ deal, itemIdx, onBack, backLabel, onNavigateToContrac
     bump();
   };
 
-  const sectionS = { background: "var(--surface)", borderRadius: 16, padding: 24, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)", marginBottom: 16 };
-  const cardS = { background: "var(--surface)", borderRadius: 16, padding: 20, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)" };
+  const sectionS = { ...sharedSectionS, marginBottom: 16 };
+  const cardS = sharedCardS;
   const iS = { width: "100%", padding: "10px 12px", border: "1px solid var(--border)", borderRadius: 10, fontSize: 13, color: "var(--text-primary)", background: "var(--surface)", outline: "none", fontFamily: "inherit" };
 
   return (

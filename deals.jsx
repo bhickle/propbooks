@@ -28,7 +28,7 @@ import {
 // Shared mock data refs (passed as props or imported directly)
 // Using module-level state so all modules stay in sync within a session
 import { DEALS as _DEALS, DEAL_EXPENSES as _FE, CONTRACTORS as _CON, DEAL_MILESTONES, DEAL_NOTES, CONTRACTOR_BIDS as _BIDS, CONTRACTOR_PAYMENTS as _PAYMENTS, CONTRACTOR_DOCUMENTS as _DOCS } from "./api.js";
-import { InfoTip, Modal, colorWithAlpha } from "./shared.jsx";
+import { InfoTip, Modal, colorWithAlpha, sectionS as sharedSectionS, cardS as sharedCardS } from "./shared.jsx";
 
 // ---------------------------------------------------------------------------
 // Shared helpers
@@ -175,7 +175,7 @@ function PageHeader({ title, sub, action, filter }) {
 
 // InfoTip moved to shared.jsx
 
-const sectionS = { background: "var(--surface)", borderRadius: 16, padding: 24, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)", marginBottom: 24 };
+const sectionS = { ...sharedSectionS, marginBottom: 24 };
 
 // ---------------------------------------------------------------------------
 // ---------------------------------------------------------------------------
@@ -2431,7 +2431,7 @@ export function DealAnalytics() {
     status: item.status,
   })) : [];
 
-  const cardS = { background: "var(--surface)", borderRadius: 16, padding: "20px", boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)" };
+  const cardS = sharedCardS;
 
 
   return (
