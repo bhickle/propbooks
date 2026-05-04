@@ -79,6 +79,7 @@ import { TenantDetail } from "./views/TenantDetail.jsx";
 import { Reports } from "./views/Reports.jsx";
 import { Analytics } from "./views/Analytics.jsx";
 import { listProperties } from "./db/properties.js";
+import { listTransactions } from "./db/transactions.js";
 
 // TAX_CONFIG and getDeprBasis moved to finance.js
 
@@ -3000,23 +3001,25 @@ function AppShell() {
   const [showNotifications, setShowNotifications] = useState(false);
   const notifRef = useRef(null);
 
-  // Load properties from Supabase whenever the auth user changes. Supabase is
-  // the source of truth; the in-memory PROPERTIES array is just a synchronous
-  // mirror so existing component code (which reads PROPERTIES directly) keeps
-  // working unchanged. RLS scopes the query to the current user's rows.
+  // Load Supabase-backed entities whenever the auth user changes. Supabase
+  // is the source of truth; the in-memory mock arrays are synchronous mirrors
+  // so existing component code (which reads them directly) keeps working
+  // unchanged. RLS scopes every query to the current user's rows.
   const [propsVersion, setPropsVersion] = useState(0);
   useEffect(() => {
     if (!user?.id) return;
     let cancelled = false;
     (async () => {
       try {
-        const rows = await listProperties();
+        const [props, txs] = await Promise.all([listProperties(), listTransactions()]);
         if (cancelled) return;
         PROPERTIES.length = 0;
-        PROPERTIES.push(...rows);
+        PROPERTIES.push(...props);
+        TRANSACTIONS.length = 0;
+        TRANSACTIONS.push(...txs);
         setPropsVersion(v => v + 1);
       } catch (e) {
-        console.error("[PropBooks] Failed to load properties:", e);
+        console.error("[PropBooks] Failed to load Supabase data:", e);
       }
     })();
     return () => { cancelled = true; };

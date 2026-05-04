@@ -10,6 +10,7 @@ import {
   TRANSACTION_RECEIPTS, addTransactionReceipt,
   RENTAL_NOTES, MOCK_USER,
 } from "../api.js";
+import { createTransaction, updateTransaction, deleteTransaction } from "../db/transactions.js";
 import { calcLoanBalance, getEffectiveMonthly, calcCapRate, calcCashOnCash } from "../finance.js";
 import { daysAgo, getPropertyHealth } from "../health.js";
 import { InfoTip, Modal, StatCard, Badge, iS } from "../shared.jsx";
@@ -137,30 +138,40 @@ export function PropertyDetail({ property, onBack, backLabel, onEditProperty, on
   const allPayees = [...new Set(TRANSACTIONS.filter(t => t.type === "expense").map(t => t.payee).filter(Boolean))].sort();
   const allPayers = [...new Set(TRANSACTIONS.filter(t => t.type === "income").map(t => t.payee).filter(Boolean))].sort();
 
-  const txHandleSave = () => {
+  const txHandleSave = async () => {
     if (!txForm.description || !txForm.amount) return;
     const amt = parseFloat(txForm.amount) || 0;
     const built = { date: txForm.date || new Date().toISOString().split("T")[0], propertyId: property.id, category: txForm.category || "Other", description: txForm.description, amount: txForm.type === "income" ? Math.abs(amt) : -Math.abs(amt), type: txForm.type, payee: (txForm.payee || "").trim() };
-    if (txEditId !== null) {
-      const idx = TRANSACTIONS.findIndex(t => t.id === txEditId);
-      if (idx !== -1) Object.assign(TRANSACTIONS[idx], built);
-      // Persist new receipts
-      txReceipts.filter(r => !TRANSACTION_RECEIPTS.some(er => er.id === r.id)).forEach(r => addTransactionReceipt({ ...r, transactionId: txEditId }));
-    } else {
-      const txId = newId();
-      TRANSACTIONS.unshift({ id: txId, ...built });
-      // Persist attached receipts
-      txReceipts.forEach(r => addTransactionReceipt({ ...r, transactionId: txId }));
+    try {
+      if (txEditId !== null) {
+        const saved = await updateTransaction(txEditId, built);
+        const idx = TRANSACTIONS.findIndex(t => t.id === txEditId);
+        if (idx !== -1) TRANSACTIONS[idx] = saved;
+        txReceipts.filter(r => !TRANSACTION_RECEIPTS.some(er => er.id === r.id)).forEach(r => addTransactionReceipt({ ...r, transactionId: txEditId }));
+      } else {
+        const saved = await createTransaction(built);
+        TRANSACTIONS.unshift(saved);
+        txReceipts.forEach(r => addTransactionReceipt({ ...r, transactionId: saved.id }));
+      }
+      txCloseModal();
+      txForceRender(n => n + 1);
+    } catch (e) {
+      console.error("[PropBooks] Save transaction failed:", e);
+      alert("Couldn't save transaction — " + (e.message || "unknown error"));
     }
-    txCloseModal();
-    txForceRender(n => n + 1);
   };
 
-  const txHandleDelete = (t) => {
-    const idx = TRANSACTIONS.findIndex(tx => tx.id === t.id);
-    if (idx !== -1) TRANSACTIONS.splice(idx, 1);
-    setTxDeleteConfirm(null);
-    txForceRender(n => n + 1);
+  const txHandleDelete = async (t) => {
+    try {
+      await deleteTransaction(t.id);
+      const idx = TRANSACTIONS.findIndex(tx => tx.id === t.id);
+      if (idx !== -1) TRANSACTIONS.splice(idx, 1);
+      setTxDeleteConfirm(null);
+      txForceRender(n => n + 1);
+    } catch (e) {
+      console.error("[PropBooks] Delete transaction failed:", e);
+      alert("Couldn't delete — " + (e.message || "unknown error"));
+    }
   };
 
   const [notesRender, reRenderNotes] = useState(0);

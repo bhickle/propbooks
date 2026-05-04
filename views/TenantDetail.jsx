@@ -7,6 +7,7 @@ import {
   newId, fmt, MOCK_USER,
   TENANT_DOCUMENTS, MAINTENANCE_REQUESTS, RENTAL_NOTES,
 } from "../api.js";
+import { createTransaction } from "../db/transactions.js";
 import { InfoTip, Modal, colorWithAlpha, iS } from "../shared.jsx";
 import { PROPERTIES, TRANSACTIONS } from "../mockData.js";
 import { useToast } from "../toast.jsx";
@@ -76,15 +77,26 @@ export function TenantDetail({ tenant, onBack, backLabel, onTenantUpdated, onSel
     onBack && onBack();
   };
 
-  const handleAddPayment = () => {
+  const handleAddPayment = async () => {
     const amt = parseFloat(payForm.amount) || 0;
     const desc = payForm.description || `Rent payment - ${tenant.name}`;
-    const txn = { id: newId(), date: payForm.date, propertyId: tenant.propertyId, tenantId: tenant.id, category: "Rent Income", description: desc, amount: amt, type: "income", createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), userId: MOCK_USER.id };
-    TRANSACTIONS.unshift(txn);
-    setTxVersion(v => v + 1);
-    setShowAddPayment(false);
-    setPayForm({ date: new Date().toISOString().split("T")[0], amount: String(tenant.rent || ""), description: "" });
-    showToast("Payment recorded as transaction");
+    // tenantId omitted: tenants are still mock-side, so the FK can't be set
+    // until tenants are migrated. Backfill links rent rows to tenants then.
+    try {
+      const saved = await createTransaction({
+        date: payForm.date, propertyId: tenant.propertyId,
+        category: "Rent Income", description: desc,
+        amount: amt, type: "income",
+      });
+      TRANSACTIONS.unshift(saved);
+      setTxVersion(v => v + 1);
+      setShowAddPayment(false);
+      setPayForm({ date: new Date().toISOString().split("T")[0], amount: String(tenant.rent || ""), description: "" });
+      showToast("Payment recorded as transaction");
+    } catch (e) {
+      console.error("[PropBooks] Record payment failed:", e);
+      showToast("Couldn't record payment — " + (e.message || "unknown error"));
+    }
   };
 
   const handleAddNote = () => {

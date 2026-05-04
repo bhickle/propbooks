@@ -204,13 +204,13 @@ export function Reports() {
   const [txDateTo, setTxDateTo] = useState(new Date().toISOString().slice(0, 10));
   const [txDatePreset, setTxDatePreset] = useState("ytd");
 
-  const reportProps = propFilter === "all" ? PROPERTIES : PROPERTIES.filter(p => p.id === Number(propFilter));
+  const reportProps = propFilter === "all" ? PROPERTIES : PROPERTIES.filter(p => p.id === propFilter);
   const reportPropNames = new Set(reportProps.map(p => p.name));
 
   // Smart-default ownerMonth: when a property is selected, jump to the most recent month with data
   useEffect(() => {
     if (propFilter === "all" || activeReport !== "ownerStatement") return;
-    const p = PROPERTIES.find(pr => pr.id === Number(propFilter));
+    const p = PROPERTIES.find(pr => pr.id === propFilter);
     if (!p) return;
     const propTx = TRANSACTIONS.filter(t => t.propertyId === p.id && new Date(t.date).getFullYear() === Number(taxYear));
     if (propTx.length === 0) return; // no data at all — keep current month so the warning shows
@@ -501,7 +501,7 @@ export function Reports() {
           ))}
           <div style={{ borderTop: "1px solid var(--border-subtle)", marginTop: 12, paddingTop: 12 }}>
             <p style={{ fontSize: 11, color: "var(--text-muted)", fontWeight: 600, textTransform: "uppercase", padding: "0 14px", marginBottom: 6 }}>Scope</p>
-            <p style={{ fontSize: 12, color: "var(--text-label)", padding: "0 14px", fontWeight: 600 }}>{propFilter === "all" ? `All ${PROPERTIES.length} properties` : PROPERTIES.find(p => p.id === Number(propFilter))?.name}</p>
+            <p style={{ fontSize: 12, color: "var(--text-label)", padding: "0 14px", fontWeight: 600 }}>{propFilter === "all" ? `All ${PROPERTIES.length} properties` : PROPERTIES.find(p => p.id === propFilter)?.name}</p>
             <p style={{ fontSize: 12, color: "var(--text-muted)", padding: "0 14px" }}>{activeReport === "transactions" ? `${txDateFrom} – ${txDateTo}` : isTaxReport ? `Tax Year ${taxYear}` : `Year ${taxYear}`}</p>
           </div>
         </div>

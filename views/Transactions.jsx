@@ -11,6 +11,7 @@ import { Modal, StatCard, iS } from "../shared.jsx";
 import { PROPERTIES, TRANSACTIONS } from "../mockData.js";
 import { TxDetailPanel } from "./detailPanels.jsx";
 import { AttachmentZone, AttachmentList, OcrPrompt } from "./Attachments.jsx";
+import { createTransaction, updateTransaction, deleteTransaction } from "../db/transactions.js";
 
 export function Transactions({ highlightTxId, onBack, onClearHighlight, backLabel }) {
   const [txData, setTxData] = useState(TRANSACTIONS);
@@ -125,7 +126,7 @@ export function Transactions({ highlightTxId, onBack, onClearHighlight, backLabe
 
   const filtered = txData.filter(t => {
     const matchType = filter === "all" || t.type === filter;
-    const matchProp = propFilter === "all" || t.propertyId === Number(propFilter);
+    const matchProp = propFilter === "all" || t.propertyId === propFilter;
     const matchCat = catFilter === "all" || t.category === catFilter;
     const propName = PROPERTIES.find(p => p.id === t.propertyId)?.name || "";
     const matchSearch = t.description.toLowerCase().includes(search.toLowerCase()) || propName.toLowerCase().includes(search.toLowerCase()) || t.category.toLowerCase().includes(search.toLowerCase()) || (t.payee || "").toLowerCase().includes(search.toLowerCase());
@@ -139,18 +140,18 @@ export function Transactions({ highlightTxId, onBack, onClearHighlight, backLabe
   const allPayees = [...new Set(txData.filter(t => t.type === "expense").map(t => t.payee).filter(Boolean))].sort();
   const allPayers = [...new Set(txData.filter(t => t.type === "income").map(t => t.payee).filter(Boolean))].sort();
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!form.description || !form.amount) return;
     const amt = parseFloat(form.amount) || 0;
     const isMortgage = ["Mortgage Payment", "Mortgage"].includes(form.category);
-    const built = { date: form.date || new Date().toISOString().split("T")[0], propertyId: Number(form.propertyId), category: form.category || "Other", description: form.description, amount: form.type === "income" ? Math.abs(amt) : -Math.abs(amt), type: form.type, payee: (form.payee || "").trim() };
+    const built = { date: form.date || new Date().toISOString().split("T")[0], propertyId: form.propertyId, category: form.category || "Other", description: form.description, amount: form.type === "income" ? Math.abs(amt) : -Math.abs(amt), type: form.type, payee: (form.payee || "").trim() };
     // Store P&I split if mortgage transaction
     if (isMortgage && form.piOverride && form.piPrincipal && form.piInterest) {
       built.piPrincipal = parseFloat(form.piPrincipal) || 0;
       built.piInterest = parseFloat(form.piInterest) || 0;
     } else if (isMortgage) {
       // Auto-calculate and store
-      const prop = PROPERTIES.find(p => p.id === Number(form.propertyId));
+      const prop = PROPERTIES.find(p => p.id === form.propertyId);
       if (prop) {
         const payDate = form.date || new Date().toISOString().split("T")[0];
         const interest = calcPaymentInterest(prop.loanAmount, prop.loanRate, prop.loanTermYears, prop.loanStartDate, payDate);
@@ -160,16 +161,25 @@ export function Transactions({ highlightTxId, onBack, onClearHighlight, backLabe
         }
       }
     }
-    if (editId !== null) {
-      setTxData(prev => prev.map(t => t.id === editId ? { ...t, ...built } : t));
-      mainReceipts.filter(r => !TRANSACTION_RECEIPTS.some(er => er.id === r.id)).forEach(r => addTransactionReceipt({ ...r, transactionId: editId }));
-    } else {
-      const txId = newId();
-      setTxData(prev => [{ id: txId, ...built }, ...prev]);
-      mainReceipts.forEach(r => addTransactionReceipt({ ...r, transactionId: txId }));
+    try {
+      if (editId !== null) {
+        const saved = await updateTransaction(editId, built);
+        setTxData(prev => prev.map(t => t.id === editId ? saved : t));
+        const idx = TRANSACTIONS.findIndex(t => t.id === editId);
+        if (idx !== -1) TRANSACTIONS[idx] = saved;
+        mainReceipts.filter(r => !TRANSACTION_RECEIPTS.some(er => er.id === r.id)).forEach(r => addTransactionReceipt({ ...r, transactionId: editId }));
+      } else {
+        const saved = await createTransaction(built);
+        setTxData(prev => [saved, ...prev]);
+        TRANSACTIONS.unshift(saved);
+        mainReceipts.forEach(r => addTransactionReceipt({ ...r, transactionId: saved.id }));
+      }
+      setForm(emptyIncome);
+      closeModal();
+    } catch (e) {
+      console.error("[PropBooks] Save transaction failed:", e);
+      alert("Couldn't save transaction — " + (e.message || "unknown error"));
     }
-    setForm(emptyIncome);
-    closeModal();
   };
 
   return (
@@ -243,7 +253,7 @@ export function Transactions({ highlightTxId, onBack, onClearHighlight, backLabe
       {(propFilter !== "all" || catFilter !== "all" || dateFilter !== "all" || search) && (
         <div style={{ display: "flex", gap: 8, marginBottom: 14, flexWrap: "wrap", alignItems: "center" }}>
           <span style={{ fontSize: 12, color: "var(--text-muted)", fontWeight: 600 }}>Filtered:</span>
-          {propFilter !== "all" && <span style={{ background: "var(--warning-bg)", color: "#e95e00", borderRadius: 20, padding: "3px 10px", fontSize: 12, fontWeight: 600 }}>{(PROPERTIES.find(p => p.id === Number(propFilter))?.name || "Property").split(" ").slice(0, 2).join(" ")}</span>}
+          {propFilter !== "all" && <span style={{ background: "var(--warning-bg)", color: "#e95e00", borderRadius: 20, padding: "3px 10px", fontSize: 12, fontWeight: 600 }}>{(PROPERTIES.find(p => p.id === propFilter)?.name || "Property").split(" ").slice(0, 2).join(" ")}</span>}
           {catFilter !== "all" && <span style={{ background: "var(--success-tint)", color: "#1a7a4a", borderRadius: 20, padding: "3px 10px", fontSize: 12, fontWeight: 600 }}>{catFilter}</span>}
           {dateFilter !== "all" && <span style={{ background: "var(--warning-bg)", color: "var(--warning-text)", borderRadius: 20, padding: "3px 10px", fontSize: 12, fontWeight: 600 }}>{{ thisMonth: "This Month", lastMonth: "Last Month", thisYear: "This Year", lastYear: "Last Year", custom: dateFrom && dateTo ? `${dateFrom} – ${dateTo}` : "Custom Range" }[dateFilter]}</span>}
           {search && <span style={{ background: "var(--surface-muted)", color: "var(--text-label)", borderRadius: 20, padding: "3px 10px", fontSize: 12, fontWeight: 600 }}>"{search}"</span>}
@@ -371,7 +381,7 @@ export function Transactions({ highlightTxId, onBack, onClearHighlight, backLabe
 
               {/* P&I Split for mortgage payments */}
               {["Mortgage Payment", "Mortgage"].includes(form.category) && form.amount && (() => {
-                const prop = PROPERTIES.find(p => p.id === Number(form.propertyId));
+                const prop = PROPERTIES.find(p => p.id === form.propertyId);
                 const amt = parseFloat(form.amount) || 0;
                 const payDate = form.date || new Date().toISOString().split("T")[0];
                 const autoInterest = prop ? calcPaymentInterest(prop.loanAmount, prop.loanRate, prop.loanTermYears, prop.loanStartDate, payDate) : null;
@@ -517,7 +527,18 @@ export function Transactions({ highlightTxId, onBack, onClearHighlight, backLabe
           <p style={{ color: "var(--text-muted)", fontSize: 12, marginBottom: 18 }}>This action cannot be undone.</p>
           <div style={{ display: "flex", gap: 10 }}>
             <button onClick={() => setDeleteConfirm(null)} style={{ flex: 1, padding: "12px", border: "1px solid var(--border)", borderRadius: 10, background: "var(--surface)", color: "var(--text-label)", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
-            <button onClick={() => { setTxData(prev => prev.filter(x => x.id !== deleteConfirm.id)); setDeleteConfirm(null); }} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "var(--c-red)", color: "#fff", fontWeight: 700, cursor: "pointer" }}>Delete</button>
+            <button onClick={async () => {
+              try {
+                await deleteTransaction(deleteConfirm.id);
+                setTxData(prev => prev.filter(x => x.id !== deleteConfirm.id));
+                const idx = TRANSACTIONS.findIndex(t => t.id === deleteConfirm.id);
+                if (idx !== -1) TRANSACTIONS.splice(idx, 1);
+                setDeleteConfirm(null);
+              } catch (e) {
+                console.error("[PropBooks] Delete transaction failed:", e);
+                alert("Couldn't delete — " + (e.message || "unknown error"));
+              }
+            }} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "var(--c-red)", color: "#fff", fontWeight: 700, cursor: "pointer" }}>Delete</button>
           </div>
         </Modal>
       )}

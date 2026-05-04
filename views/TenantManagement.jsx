@@ -140,7 +140,7 @@ export function TenantManagement({ onBack, highlightTenantId, onClearHighlight, 
   const isPastView = statusFilter === "past";
 
   const filteredTenants = tenantData.filter(t => {
-    const matchProp = propFilter === "all" || t.propertyId === Number(propFilter);
+    const matchProp = propFilter === "all" || t.propertyId === propFilter;
     if (statusFilter === "past") return matchProp && t.status === "past";
     if (statusFilter === "all") return matchProp && t.status !== "past";
     if (statusFilter === "expiring") {
@@ -150,10 +150,10 @@ export function TenantManagement({ onBack, highlightTenantId, onClearHighlight, 
     return matchProp && t.status === statusFilter;
   });
 
-  const totalUnits = activeTenants.filter(t => propFilter === "all" || t.propertyId === Number(propFilter)).length;
-  const occupied = activeTenants.filter(t => (propFilter === "all" || t.propertyId === Number(propFilter)) && t.status !== "vacant").length;
+  const totalUnits = activeTenants.filter(t => propFilter === "all" || t.propertyId === propFilter).length;
+  const occupied = activeTenants.filter(t => (propFilter === "all" || t.propertyId === propFilter) && t.status !== "vacant").length;
   const vacancyRate = totalUnits > 0 ? ((totalUnits - occupied) / totalUnits * 100).toFixed(0) : 0;
-  const grossRent = activeTenants.filter(t => (propFilter === "all" || t.propertyId === Number(propFilter)) && t.status !== "vacant").reduce((s, t) => s + t.rent, 0);
+  const grossRent = activeTenants.filter(t => (propFilter === "all" || t.propertyId === propFilter) && t.status !== "vacant").reduce((s, t) => s + t.rent, 0);
   const expiringIn90 = activeTenants.filter(t => { const d = getDaysLeft(t.leaseEnd); return d !== null && d <= 90 && t.status !== "vacant"; });
 
   return (
@@ -193,7 +193,7 @@ export function TenantManagement({ onBack, highlightTenantId, onClearHighlight, 
             ["past", "Past Tenants"],
           ].map(([val, label]) => {
             const active = statusFilter === val;
-            const count = val === "expiring" ? expiringIn90.length : val === "past" ? pastTenants.filter(t => propFilter === "all" || t.propertyId === Number(propFilter)).length : 0;
+            const count = val === "expiring" ? expiringIn90.length : val === "past" ? pastTenants.filter(t => propFilter === "all" || t.propertyId === propFilter).length : 0;
             return (
               <button key={val} onClick={() => setStatusFilter(val)} style={{ padding: "7px 14px", borderRadius: 8, border: "none", background: active ? "#e95e00" : "transparent", color: active ? "#fff" : "var(--text-secondary)", fontWeight: active ? 700 : 500, fontSize: 12, cursor: "pointer", whiteSpace: "nowrap", transition: "all 0.15s" }}>
                 {label}{(val === "expiring" || val === "past") && count > 0 ? ` (${count})` : ""}
@@ -350,11 +350,11 @@ export function TenantManagement({ onBack, highlightTenantId, onClearHighlight, 
           <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--text-primary)", marginBottom: 4 }}>Turnover Analytics</h3>
           <p style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 20 }}>Historical tenant turnover and rent trends</p>
           {(() => {
-            const relevantPast = pastTenants.filter(t => propFilter === "all" || t.propertyId === Number(propFilter));
+            const relevantPast = pastTenants.filter(t => propFilter === "all" || t.propertyId === propFilter);
             if (relevantPast.length === 0) return <p style={{ color: "var(--text-muted)", fontSize: 13 }}>No past tenant data for this property.</p>;
 
             // Turnover rate: past tenants / (past + current active non-vacant) over all time
-            const relevantActive = activeTenants.filter(t => (propFilter === "all" || t.propertyId === Number(propFilter)) && t.status !== "vacant");
+            const relevantActive = activeTenants.filter(t => (propFilter === "all" || t.propertyId === propFilter) && t.status !== "vacant");
             const turnoverRate = relevantActive.length + relevantPast.length > 0
               ? ((relevantPast.length / (relevantActive.length + relevantPast.length)) * 100).toFixed(0) : 0;
 
