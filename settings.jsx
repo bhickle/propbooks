@@ -16,20 +16,21 @@ const DEMO_EMAIL = "demo@propbooks.com";
 // Shared input style
 // -----------------------------------------------------------------------------
 const inp = {
-  width: "100%", padding: "10px 13px", border: "1.5px solid #e2e8f0",
-  borderRadius: 10, fontSize: 14, color: "#041830", background: "#fff",
+  width: "100%", padding: "10px 13px", border: "1.5px solid var(--border)",
+  borderRadius: 10, fontSize: 14, color: "var(--text-primary)", background: "var(--surface)",
   outline: "none", boxSizing: "border-box",
 };
 const label = (text) => (
-  <p style={{ fontSize: 13, fontWeight: 600, color: "#374151", marginBottom: 6 }}>{text}</p>
+  <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text-dim)", marginBottom: 6 }}>{text}</p>
 );
+// Page header: h1 26/700 + 15pt secondary subtitle, matching every other top-level view
 const section = (title, sub) => (
-  <div style={{ marginBottom: 20 }}>
-    <h3 style={{ color: "#041830", fontSize: 16, fontWeight: 700, marginBottom: 2 }}>{title}</h3>
-    {sub && <p style={{ color: "#94a3b8", fontSize: 13 }}>{sub}</p>}
+  <div style={{ marginBottom: 24 }}>
+    <h1 style={{ color: "var(--text-primary)", fontSize: 26, fontWeight: 700, marginBottom: 4 }}>{title}</h1>
+    {sub && <p style={{ color: "var(--text-secondary)", fontSize: 15 }}>{sub}</p>}
   </div>
 );
-const card = { background: "#fff", borderRadius: 16, padding: 24, border: "1px solid #f1f5f9", marginBottom: 20 };
+const card = { background: "var(--surface)", borderRadius: 16, padding: 24, border: "1px solid var(--border-subtle)", marginBottom: 20 };
 
 // -----------------------------------------------------------------------------
 // Settings Tabs

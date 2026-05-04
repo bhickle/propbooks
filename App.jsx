@@ -4315,8 +4315,7 @@ function Analytics() {
     );
   };
 
-  // TODO: this cardS uses borderRadius 14, padding "20px" — drift from canonical (16/20). Reconcile when this view gets split out.
-  const cardS = { ...sharedCardS, borderRadius: 14, padding: "20px" };
+  const cardS = sharedCardS;
   const sectionS = { ...sharedSectionS, marginBottom: 24 };
 
   return (
