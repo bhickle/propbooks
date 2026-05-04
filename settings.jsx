@@ -4,10 +4,13 @@
 
 import { useState } from "react";
 import { useAuth } from "./auth.jsx";
+import { supabase } from "./supabase.js";
 import {
   User, CreditCard, Bell, Shield, Building2, ChevronRight,
-  CheckCircle, ArrowRight, Star, X, Pencil, Save,
+  CheckCircle, ArrowRight, Star, X, Pencil, Save, AlertCircle,
 } from "lucide-react";
+
+const DEMO_EMAIL = "demo@propbooks.com";
 
 // -----------------------------------------------------------------------------
 // Shared input style
@@ -43,17 +46,38 @@ const TABS = [
 // -----------------------------------------------------------------------------
 function ProfileTab() {
   const { user, signOut } = useAuth();
+  const isDemo = user?.email === DEMO_EMAIL;
   const [editing, setEditing] = useState(false);
   const [name, setName]       = useState(user?.name || "");
   const [email, setEmail]     = useState(user?.email || "");
-  const [phone, setPhone]     = useState("");
+  const [phone, setPhone]     = useState(user?.user_metadata?.phone || "");
   const [saved, setSaved]     = useState(false);
+  const [error, setError]     = useState("");
+  const [saving, setSaving]   = useState(false);
 
-  function handleSave() {
-    // TODO: await api.updateUser({ name, email, phone })
-    setSaved(true);
-    setEditing(false);
-    setTimeout(() => setSaved(false), 2500);
+  async function handleSave() {
+    setError("");
+    if (!name.trim())  return setError("Name is required.");
+    if (!email.trim()) return setError("Email is required.");
+    if (isDemo) {
+      return setError("Profile changes are disabled on the demo account.");
+    }
+    setSaving(true);
+    try {
+      const payload = {
+        data: { ...(user?.user_metadata || {}), name: name.trim(), phone: phone.trim() },
+      };
+      if (email.trim() !== user?.email) payload.email = email.trim();
+      const { error: updErr } = await supabase.auth.updateUser(payload);
+      if (updErr) throw updErr;
+      setSaved(true);
+      setEditing(false);
+      setTimeout(() => setSaved(false), 2500);
+    } catch (err) {
+      setError(err.message || "Could not update profile.");
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
@@ -92,14 +116,25 @@ function ProfileTab() {
             <div style={{ marginBottom: 20 }}>
               {label("Email")}
               <input style={inp} type="email" value={email} onChange={e => setEmail(e.target.value)} />
+              {email.trim() !== user?.email && (
+                <p style={{ fontSize: 11, color: "#94a3b8", marginTop: 4 }}>
+                  You'll receive a confirmation link at the new address before the change takes effect.
+                </p>
+              )}
             </div>
+            {error && (
+              <div style={{ display: "flex", alignItems: "center", gap: 8, background: "#fef2f2", borderRadius: 8, padding: "10px 14px", marginBottom: 14 }}>
+                <AlertCircle size={15} color="#b91c1c" />
+                <span style={{ color: "#b91c1c", fontSize: 13, fontWeight: 600 }}>{error}</span>
+              </div>
+            )}
             <div style={{ display: "flex", gap: 10 }}>
-              <button onClick={handleSave}
-                style={{ display: "flex", alignItems: "center", gap: 6, padding: "9px 18px", borderRadius: 9, border: "none", background: "#e95e00", color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
-                <Save size={13} /> Save Changes
+              <button onClick={handleSave} disabled={saving}
+                style={{ display: "flex", alignItems: "center", gap: 6, padding: "9px 18px", borderRadius: 9, border: "none", background: "#e95e00", color: "#fff", fontWeight: 700, fontSize: 13, cursor: saving ? "not-allowed" : "pointer", opacity: saving ? 0.7 : 1 }}>
+                <Save size={13} /> {saving ? "Saving…" : "Save Changes"}
               </button>
-              <button onClick={() => setEditing(false)}
-                style={{ padding: "9px 16px", borderRadius: 9, border: "1.5px solid #e2e8f0", background: "#fff", fontWeight: 600, fontSize: 13, cursor: "pointer", color: "#64748b" }}>
+              <button onClick={() => { setEditing(false); setError(""); }} disabled={saving}
+                style={{ padding: "9px 16px", borderRadius: 9, border: "1.5px solid #e2e8f0", background: "#fff", fontWeight: 600, fontSize: 13, cursor: saving ? "not-allowed" : "pointer", color: "#64748b", opacity: saving ? 0.7 : 1 }}>
                 Cancel
               </button>
             </div>
@@ -109,7 +144,9 @@ function ProfileTab() {
         {saved && (
           <div style={{ display: "flex", alignItems: "center", gap: 8, background: "#dcfce7", borderRadius: 8, padding: "10px 14px", marginTop: 14 }}>
             <CheckCircle size={15} color="#15803d" />
-            <span style={{ color: "#15803d", fontSize: 13, fontWeight: 600 }}>Profile saved successfully</span>
+            <span style={{ color: "#15803d", fontSize: 13, fontWeight: 600 }}>
+              {email !== user?.email ? "Profile updated — check your new email to confirm the change" : "Profile saved successfully"}
+            </span>
           </div>
         )}
       </div>
@@ -282,18 +319,43 @@ function NotificationsTab() {
 // Security Tab
 // -----------------------------------------------------------------------------
 function SecurityTab() {
+  const { user } = useAuth();
+  const isDemo = user?.email === DEMO_EMAIL;
   const [current, setCurrent]   = useState("");
   const [newPass, setNewPass]   = useState("");
   const [confirm, setConfirm]   = useState("");
   const [saved, setSaved]       = useState(false);
+  const [error, setError]       = useState("");
+  const [saving, setSaving]     = useState(false);
 
-  function handleSave(e) {
+  async function handleSave(e) {
     e.preventDefault();
-    if (!current || !newPass || !confirm) return;
-    // TODO: await supabase.auth.updateUser({ password: newPass })
-    setSaved(true);
-    setCurrent(""); setNewPass(""); setConfirm("");
-    setTimeout(() => setSaved(false), 2500);
+    setError("");
+    if (!current || !newPass || !confirm) return setError("Please fill in all fields.");
+    if (newPass !== confirm) return setError("New passwords do not match.");
+    if (newPass.length < 8) return setError("Password must be at least 8 characters.");
+    if (newPass === current) return setError("New password must be different from current password.");
+    if (isDemo) return setError("Password changes are disabled on the demo account.");
+    if (!user?.email) return setError("No active session — please sign in again.");
+
+    setSaving(true);
+    try {
+      const { error: signInErr } = await supabase.auth.signInWithPassword({
+        email: user.email, password: current,
+      });
+      if (signInErr) throw new Error("Current password is incorrect.");
+
+      const { error: updErr } = await supabase.auth.updateUser({ password: newPass });
+      if (updErr) throw updErr;
+
+      setSaved(true);
+      setCurrent(""); setNewPass(""); setConfirm("");
+      setTimeout(() => setSaved(false), 2500);
+    } catch (err) {
+      setError(err.message || "Could not update password.");
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
@@ -307,15 +369,21 @@ function SecurityTab() {
             <div>{label("New Password")}<input style={inp} type="password" value={newPass} onChange={e => setNewPass(e.target.value)} placeholder="Min. 8 characters" /></div>
             <div>{label("Confirm New Password")}<input style={inp} type="password" value={confirm} onChange={e => setConfirm(e.target.value)} placeholder="Re-enter new password" /></div>
           </div>
+          {error && (
+            <div style={{ display: "flex", alignItems: "center", gap: 8, background: "#fef2f2", borderRadius: 8, padding: "10px 14px", marginBottom: 14 }}>
+              <AlertCircle size={15} color="#b91c1c" />
+              <span style={{ color: "#b91c1c", fontSize: 13, fontWeight: 600 }}>{error}</span>
+            </div>
+          )}
           {saved && (
             <div style={{ display: "flex", alignItems: "center", gap: 8, background: "#dcfce7", borderRadius: 8, padding: "10px 14px", marginBottom: 14 }}>
               <CheckCircle size={15} color="#15803d" />
               <span style={{ color: "#15803d", fontSize: 13, fontWeight: 600 }}>Password updated successfully</span>
             </div>
           )}
-          <button type="submit"
-            style={{ padding: "9px 20px", borderRadius: 9, border: "none", background: "#e95e00", color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
-            Update Password
+          <button type="submit" disabled={saving}
+            style={{ padding: "9px 20px", borderRadius: 9, border: "none", background: "#e95e00", color: "#fff", fontWeight: 700, fontSize: 13, cursor: saving ? "not-allowed" : "pointer", opacity: saving ? 0.7 : 1 }}>
+            {saving ? "Updating…" : "Update Password"}
           </button>
         </form>
       </div>
