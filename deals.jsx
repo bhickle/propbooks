@@ -237,7 +237,7 @@ export function DealDashboard({ onSelect, onNavigateToNote, onNavigateToExpense,
 
   return (
     <div>
-      <PageHeader title="Overview" sub="All deals at a glance" />
+      <PageHeader title="Dashboard" sub="Here's where your deals stand." />
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 20 }}>
         <StatCard icon={Hammer}     label="Active Deals"     value={active.length}              sub={isFiltered ? "Filtered" : "In pipeline"}        color="#e95e00" tip="Number of deals in active pipeline stages (not Sold)." />

@@ -100,7 +100,7 @@ export function Dashboard({ onNavigate, onNavigateToTx, onSelectProperty, onNavi
       {/* Header */}
       <div style={{ marginBottom: 28 }}>
         <h1 style={{ color: "var(--text-primary)", fontSize: 26, fontWeight: 700, marginBottom: 4 }}>Dashboard</h1>
-        <p style={{ color: "var(--text-secondary)", fontSize: 15 }}>Welcome back, Brandon — here's what needs your attention.</p>
+        <p style={{ color: "var(--text-secondary)", fontSize: 15 }}>Here's what needs your attention today.</p>
       </div>
 
       {/* KPI Row */}
