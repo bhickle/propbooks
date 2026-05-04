@@ -240,10 +240,10 @@ export function DealDashboard({ onSelect, onNavigateToNote, onNavigateToExpense,
       <PageHeader title="Overview" sub="All deals at a glance" />
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 20 }}>
-        <StatCard icon={Hammer}     label="Active Deals"     value={active.length}              sub={isFiltered ? "Filtered" : "In pipeline"}        color="#e95e00" trend={!isFiltered ? "up" : undefined} trendVal="+1 this quarter" trendLabel="vs last quarter" tip="Number of deals in active pipeline stages (not Sold)." />
+        <StatCard icon={Hammer}     label="Active Deals"     value={active.length}              sub={isFiltered ? "Filtered" : "In pipeline"}        color="#e95e00" tip="Number of deals in active pipeline stages (not Sold)." />
         <StatCard icon={DollarSign} label="Capital Deployed" value={fmtK(totalDeployed)}        sub={isFiltered ? "Filtered" : "Purchase + rehab"}   color="var(--c-blue)" tip="Total Purchase Price + Rehab Budget across active deals." />
         <StatCard icon={TrendingUp} label="Projected Profit" value={fmtK(Math.round(projectedProfit))} sub={isFiltered ? "Filtered" : "Active deals"}  color="var(--c-green)" tip="ARV − Purchase − Rehab Budget − Estimated Holding & Selling Costs for all active deals." />
-        <StatCard icon={Star}       label="Realized Profit"  value={fmt(realizedProfit)}        sub={isFiltered ? "Filtered" : "Closed deals YTD"}   color="var(--c-purple)" trend={!isFiltered ? "up" : undefined} trendVal="+$61K YTD" trendLabel="vs last quarter" tip="Actual profit from closed/sold deals this year." />
+        <StatCard icon={Star}       label="Realized Profit"  value={fmt(realizedProfit)}        sub={isFiltered ? "Filtered" : "Closed deals YTD"}   color="var(--c-purple)" tip="Actual profit from closed/sold deals this year." />
       </div>
 
       {/* Filter bar */}
