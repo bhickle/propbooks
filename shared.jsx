@@ -2,7 +2,7 @@
 // shared.jsx — atoms used across App.jsx and deals.jsx
 // =============================================================================
 import { useState } from "react";
-import { Info, X, ArrowUp, ArrowDown } from "lucide-react";
+import { Info, X, ArrowUp, ArrowDown, Plus } from "lucide-react";
 
 // ─── InfoTip ─────────────────────────────────────────────────────────────────
 // Hover/click tooltip for KPI cards and other metrics. Per CLAUDE.md, every
@@ -112,6 +112,33 @@ export function StatCard({
         </div>
       )}
     </div>
+  );
+}
+
+// ─── EmptyState — illustrated empty state for list views ────────────────────
+export function EmptyState({ icon: Icon, title, subtitle, actionLabel, onAction }) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "60px 24px", textAlign: "center" }}>
+      {Icon && <div style={{ width: 64, height: 64, borderRadius: 20, background: "var(--surface-alt)", border: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 16 }}><Icon size={28} color="#94a3b8" /></div>}
+      <h3 style={{ color: "var(--text-primary)", fontSize: 16, fontWeight: 700, marginBottom: 6 }}>{title}</h3>
+      {subtitle && <p style={{ color: "var(--text-muted)", fontSize: 14, maxWidth: 340, marginBottom: onAction ? 20 : 0 }}>{subtitle}</p>}
+      {onAction && actionLabel && <button onClick={onAction} style={{ background: "#e95e00", color: "#fff", border: "none", borderRadius: 10, padding: "10px 20px", fontSize: 14, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}><Plus size={16} /> {actionLabel}</button>}
+    </div>
+  );
+}
+
+// ─── Badge — property status pill ────────────────────────────────────────────
+export function Badge({ status }) {
+  const map = {
+    "Occupied": { bg: "var(--success-badge)", text: "#1a7a4a" },
+    "Partial Vacancy": { bg: "var(--warning-bg)", text: "var(--warning-text)" },
+    "Vacant": { bg: "var(--danger-badge)", text: "#c0392b" },
+  };
+  const s = map[status] || map["Occupied"];
+  return (
+    <span style={{ background: s.bg, color: s.text, borderRadius: 20, padding: "3px 10px", fontSize: 12, fontWeight: 600 }}>
+      {status}
+    </span>
   );
 }
 
