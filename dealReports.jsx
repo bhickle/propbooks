@@ -9,11 +9,12 @@ import {
 } from "recharts";
 import {
   DollarSign, TrendingUp, Clock, Users, FileText, Home, BarChart3,
-  Building2, AlertCircle, CheckCircle, Download, Info, Target, ArrowUp,
+  Building2, AlertCircle, CheckCircle, Download, Target, ArrowUp,
   ArrowDown, Calendar,
 } from "lucide-react";
 import { fmt, fmtK, STAGE_ORDER, STAGE_COLORS } from "./api.js";
 import { DEALS as _DEALS, DEAL_EXPENSES as _FE, CONTRACTORS as _CON } from "./api.js";
+import { InfoTip } from "./shared.jsx";
 
 // ─── Shared styles ───────────────────────────────────────────────────────────
 const iS = { width: "100%", padding: "10px 14px", borderRadius: 10, border: "1.5px solid var(--border)", fontSize: 14, color: "var(--text-primary)", background: "var(--surface)", outline: "none" };
@@ -21,23 +22,7 @@ const thS = { padding: "11px 16px", textAlign: "left", color: "var(--text-muted)
 const tdS = { padding: "12px 16px", fontSize: 13, color: "var(--text-primary)", borderTop: "1px solid var(--border-subtle)" };
 const sectionS = { background: "var(--surface)", borderRadius: 16, padding: 24, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)", marginBottom: 24 };
 
-// ─── InfoTip ─────────────────────────────────────────────────────────────────
-function InfoTip({ text }) {
-  const [show, setShow] = useState(false);
-  return (
-    <span style={{ position: "relative", display: "inline-flex", marginLeft: 4, cursor: "help" }}
-      onMouseEnter={() => setShow(true)} onMouseLeave={() => setShow(false)}>
-      <Info size={12} color="var(--text-muted)" />
-      {show && (
-        <span style={{ position: "absolute", bottom: "calc(100% + 8px)", left: "50%", transform: "translateX(-50%)",
-          background: "var(--tooltip-bg)", color: "var(--tooltip-text)", fontSize: 12, padding: "8px 12px", borderRadius: 10,
-          border: "1px solid var(--tooltip-border)", whiteSpace: "nowrap", zIndex: 100, fontWeight: 400, lineHeight: 1.4 }}>
-          {text}
-        </span>
-      )}
-    </span>
-  );
-}
+// InfoTip moved to shared.jsx
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 function calcDealMetrics(f) {
