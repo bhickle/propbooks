@@ -84,6 +84,10 @@ import { listTenants, updateTenant as dbUpdateTenant } from "./db/tenants.js";
 import { listDeals, updateDeal as dbUpdateDeal, deleteDeal as dbDeleteDeal, createDeal as dbCreateDeal } from "./db/deals.js";
 import { listMilestones, updateMilestone as dbUpdateMilestone } from "./db/dealMilestones.js";
 import { listRehabItems, updateRehabItem as dbUpdateRehabItem } from "./db/dealRehabItems.js";
+import { listContractors } from "./db/contractors.js";
+import { listContractorBids } from "./db/contractorBids.js";
+import { listContractorPayments } from "./db/contractorPayments.js";
+import { listDealExpenses } from "./db/dealExpenses.js";
 
 // Fire-and-forget DB sync for legacy sync handlers that mutate DEALS in place.
 // The optimistic in-memory mutation has already happened; this just persists.
@@ -3040,9 +3044,11 @@ function AppShell() {
     let cancelled = false;
     (async () => {
       try {
-        const [props, txs, tns, dls, rehab, mls] = await Promise.all([
+        const [props, txs, tns, dls, rehab, mls, cons, bids, pays, dexps] = await Promise.all([
           listProperties(), listTransactions(), listTenants(),
           listDeals(), listRehabItems(), listMilestones(),
+          listContractors(), listContractorBids(), listContractorPayments(),
+          listDealExpenses(),
         ]);
         if (cancelled) return;
         PROPERTIES.length = 0;
@@ -3063,6 +3069,14 @@ function AppShell() {
         DEALS.push(...dls.map(d => ({ ...d, rehabItems: itemsByDeal.get(d.id) || [] })));
         DEAL_MILESTONES.length = 0;
         DEAL_MILESTONES.push(...mls);
+        CONTRACTORS.length = 0;
+        CONTRACTORS.push(...cons);
+        CONTRACTOR_BIDS.length = 0;
+        CONTRACTOR_BIDS.push(...bids);
+        CONTRACTOR_PAYMENTS.length = 0;
+        CONTRACTOR_PAYMENTS.push(...pays);
+        DEAL_EXPENSES.length = 0;
+        DEAL_EXPENSES.push(...dexps);
         setPropsVersion(v => v + 1);
       } catch (e) {
         console.error("[PropBooks] Failed to load Supabase data:", e);

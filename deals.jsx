@@ -31,6 +31,10 @@ import { DEALS as _DEALS, DEAL_EXPENSES as _FE, CONTRACTORS as _CON, DEAL_MILEST
 import { InfoTip, Modal, StatCard, colorWithAlpha, sectionS as sharedSectionS, cardS as sharedCardS } from "./shared.jsx";
 import { updateMilestone as dbUpdateMilestone, createMilestone as dbCreateMilestone, deleteMilestone as dbDeleteMilestone } from "./db/dealMilestones.js";
 import { updateRehabItem as dbUpdateRehabItem, createRehabItem as dbCreateRehabItem, deleteRehabItem as dbDeleteRehabItem } from "./db/dealRehabItems.js";
+import { createContractor as dbCreateContractor, updateContractor as dbUpdateContractor, deleteContractor as dbDeleteContractor, linkContractorToDeal as dbLinkContractorToDeal, unlinkContractorFromDeal as dbUnlinkContractorFromDeal } from "./db/contractors.js";
+import { createContractorBid as dbCreateContractorBid, updateContractorBid as dbUpdateContractorBid, deleteContractorBid as dbDeleteContractorBid } from "./db/contractorBids.js";
+import { createContractorPayment as dbCreateContractorPayment, deleteContractorPayment as dbDeleteContractorPayment } from "./db/contractorPayments.js";
+import { createDealExpense as dbCreateDealExpense, updateDealExpense as dbUpdateDealExpense, deleteDealExpense as dbDeleteDealExpense } from "./db/dealExpenses.js";
 
 // ---------------------------------------------------------------------------
 // Shared helpers
@@ -454,6 +458,7 @@ export function RehabTracker({ onSelectRehabItem } = {}) {
       const ids = _CON[gi].dealIds || [];
       if (!ids.includes(dealId)) {
         _CON[gi] = { ..._CON[gi], dealIds: [...ids, dealId] };
+        dbLinkContractorToDeal(contractorId, dealId).catch(e => console.error("[PropBooks] link contractor failed:", e));
       }
     }
     addContractorToItem(dealId, itemIdx, contractorId);
@@ -470,13 +475,26 @@ export function RehabTracker({ onSelectRehabItem } = {}) {
     setShowConModal(true);
   }
 
-  function handleSaveConTracker() {
+  async function handleSaveConTracker() {
     if (!conForm.name) return;
     const dealId = pendingAssign?.dealId;
-    const newCon = { id: newId(), name: conForm.name, trade: conForm.trade, phone: conForm.phone, email: conForm.email || "", license: conForm.license || null, insuranceExpiry: conForm.insuranceExpiry || null, rating: 0, notes: conForm.notes || "", dealIds: dealId ? [dealId] : [], bids: [], payments: [], documents: [] };
-    _CON.push(newCon);
-    if (pendingAssign) {
-      addContractorToItem(pendingAssign.dealId, pendingAssign.itemIdx, newCon.id);
+    try {
+      const saved = await dbCreateContractor({
+        name: conForm.name, trade: conForm.trade, phone: conForm.phone,
+        email: conForm.email || null, license: conForm.license || null,
+        insuranceExpiry: conForm.insuranceExpiry || null,
+        rating: 0, notes: conForm.notes || "",
+      });
+      const newCon = { ...saved, dealIds: dealId ? [dealId] : [], bids: [], payments: [], documents: [] };
+      _CON.push(newCon);
+      if (dealId) {
+        dbLinkContractorToDeal(saved.id, dealId).catch(e => console.error("[PropBooks] link contractor failed:", e));
+      }
+      if (pendingAssign) {
+        addContractorToItem(pendingAssign.dealId, pendingAssign.itemIdx, newCon.id);
+      }
+    } catch (e) {
+      console.error("[PropBooks] add contractor failed:", e);
     }
     setShowConModal(false);
     setPendingAssign(null);
@@ -491,6 +509,7 @@ export function RehabTracker({ onSelectRehabItem } = {}) {
     const ids = _CON[gi].dealIds || [];
     if (!ids.includes(pendingAssign.dealId)) {
       _CON[gi] = { ..._CON[gi], dealIds: [...ids, pendingAssign.dealId] };
+      dbLinkContractorToDeal(conId, pendingAssign.dealId).catch(e => console.error("[PropBooks] link contractor failed:", e));
     }
     addContractorToItem(pendingAssign.dealId, pendingAssign.itemIdx, conId);
     setShowConModal(false);
@@ -1209,40 +1228,47 @@ export function DealExpenses({ highlightExpId, onBack, onClearHighlight, backLab
     cat, total: filtered.filter(e => e.category === cat).reduce((s, e) => s + e.amount, 0),
   })).filter(c => c.total > 0).sort((a, b) => b.total - a.total);
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!form.amount || !form.dealId || !form.vendor || !form.description) return;
     const deal = _DEALS.find(f => f.id === form.dealId);
     const amt = parseFloat(form.amount);
     const riIdx = form.rehabItemIdx !== "" ? parseInt(form.rehabItemIdx) : null;
-    const built = { dealId: form.dealId, dealName: deal?.name, date: form.date || new Date().toISOString().split("T")[0], vendor: form.vendor || "Unknown", category: form.category, description: form.description, amount: amt, rehabItemIdx: riIdx, contractorId: form.contractorId || null };
+    const dbFields = { dealId: form.dealId, date: form.date || new Date().toISOString().split("T")[0], vendor: form.vendor || "Unknown", category: form.category, description: form.description, amount: amt, contractorId: form.contractorId || null };
 
-    if (editId !== null) {
-      // Reverse the old rehab item link before applying new one
-      const oldExp = expenses.find(e => e.id === editId);
-      if (oldExp && oldExp.rehabItemIdx != null && deal) {
-        const oldItem = deal.rehabItems[oldExp.rehabItemIdx];
-        if (oldItem) oldItem.spent = Math.max(0, oldItem.spent - oldExp.amount);
+    try {
+      if (editId !== null) {
+        // Reverse the old rehab item link before applying new one
+        const oldExp = expenses.find(e => e.id === editId);
+        if (oldExp && oldExp.rehabItemIdx != null && deal) {
+          const oldItem = deal.rehabItems[oldExp.rehabItemIdx];
+          if (oldItem) {
+            oldItem.spent = Math.max(0, oldItem.spent - oldExp.amount);
+            dbUpdateRehabItem(oldItem.id, { spent: oldItem.spent }).catch(e => console.error("[PropBooks] revert rehab spent failed:", e));
+          }
+        }
+        const saved = await dbUpdateDealExpense(editId, dbFields);
+        const merged = { ...saved, dealName: deal?.name, rehabItemIdx: riIdx };
+        setExpenses(prev => prev.map(e => e.id === editId ? merged : e));
+        const globalIdx = _FE.findIndex(e => e.id === editId);
+        if (globalIdx !== -1) _FE[globalIdx] = merged;
+        dealReceipts.filter(r => !DEAL_EXPENSE_RECEIPTS.some(er => er.id === r.id)).forEach(r => addDealExpenseReceipt({ ...r, expenseId: editId }));
+      } else {
+        const saved = await dbCreateDealExpense(dbFields);
+        const merged = { ...saved, dealName: deal?.name, rehabItemIdx: riIdx };
+        setExpenses(prev => [merged, ...prev]);
+        _FE.unshift(merged);
+        dealReceipts.forEach(r => addDealExpenseReceipt({ ...r, expenseId: saved.id }));
       }
-      setExpenses(prev => prev.map(e => e.id === editId ? { ...e, ...built } : e));
-      // Persist to shared DEAL_EXPENSES array so other screens (RehabItemDetail, etc.) see the change
-      const globalIdx = _FE.findIndex(e => e.id === editId);
-      if (globalIdx !== -1) {
-        _FE[globalIdx] = { ..._FE[globalIdx], ...built };
+      // Update rehab item spent (in-memory + persist)
+      if (riIdx != null && deal && deal.rehabItems[riIdx]) {
+        const item = deal.rehabItems[riIdx];
+        item.spent += amt;
+        dbUpdateRehabItem(item.id, { spent: item.spent }).catch(e => console.error("[PropBooks] update rehab spent failed:", e));
       }
-      dealReceipts.filter(r => !DEAL_EXPENSE_RECEIPTS.some(er => er.id === r.id)).forEach(r => addDealExpenseReceipt({ ...r, expenseId: editId }));
-    } else {
-      const expId = newId();
-      const newExp = { id: expId, ...built };
-      setExpenses(prev => [newExp, ...prev]);
-      // Persist to shared DEAL_EXPENSES array
-      _FE.unshift(newExp);
-      dealReceipts.forEach(r => addDealExpenseReceipt({ ...r, expenseId: expId }));
+      setForm(emptyForm); setEditId(null); setDealReceipts([]); setShowModal(false);
+    } catch (e) {
+      console.error("[PropBooks] Save deal expense failed:", e);
     }
-    // Update rehab item spent
-    if (riIdx != null && deal && deal.rehabItems[riIdx]) {
-      deal.rehabItems[riIdx].spent += amt;
-    }
-    setForm(emptyForm); setEditId(null); setDealReceipts([]); setShowModal(false);
   };
 
   return (
@@ -1551,7 +1577,14 @@ export function DealExpenses({ highlightExpId, onBack, onClearHighlight, backLab
             <p style={{ color: "var(--text-muted)", fontSize: 12, marginBottom: 18 }}>This action cannot be undone.</p>
             <div style={{ display: "flex", gap: 10 }}>
               <button onClick={() => setDeleteConfirm(null)} style={{ flex: 1, padding: "12px", border: "1px solid var(--border)", borderRadius: 10, background: "var(--surface)", color: "var(--text-label)", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
-              <button onClick={() => { setExpenses(prev => prev.filter(x => x.id !== deleteConfirm.id)); const gi = _FE.findIndex(e => e.id === deleteConfirm.id); if (gi !== -1) _FE.splice(gi, 1); setDeleteConfirm(null); }} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "var(--c-red)", color: "#fff", fontWeight: 700, cursor: "pointer" }}>Delete</button>
+              <button onClick={() => {
+                const id = deleteConfirm.id;
+                setExpenses(prev => prev.filter(x => x.id !== id));
+                const gi = _FE.findIndex(e => e.id === id);
+                if (gi !== -1) _FE.splice(gi, 1);
+                dbDeleteDealExpense(id).catch(e => console.error("[PropBooks] delete deal expense failed:", e));
+                setDeleteConfirm(null);
+              }} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "var(--c-red)", color: "#fff", fontWeight: 700, cursor: "pointer" }}>Delete</button>
             </div>
           </div>
         </div>
@@ -1598,10 +1631,19 @@ export function DealContractors({ onSelectContractor }) {
   const totalPaid = filtered.reduce((s, c) => s + _PAYMENTS.filter(p => p.contractorId === c.id).reduce((ps, p) => ps + p.amount, 0), 0);
   const outstanding = totalBids - totalPaid;
 
-  const handleAdd = () => {
+  const handleAdd = async () => {
     if (!form.name) return;
-    const newCon = { id: newId(), name: form.name, trade: form.trade, phone: form.phone, email: form.email || "", license: form.license || null, insuranceExpiry: form.insuranceExpiry || null, rating: 0, notes: form.notes || "", dealIds: [] };
-    _CON.push(newCon);
+    try {
+      const saved = await dbCreateContractor({
+        name: form.name, trade: form.trade, phone: form.phone,
+        email: form.email || null, license: form.license || null,
+        insuranceExpiry: form.insuranceExpiry || null, rating: 0,
+        notes: form.notes || "",
+      });
+      _CON.push({ ...saved, dealIds: [] });
+    } catch (e) {
+      console.error("[PropBooks] add contractor failed:", e);
+    }
     rerender(n => n + 1);
     setForm(emptyForm);
     setShowModal(false);
@@ -1613,6 +1655,7 @@ export function DealContractors({ onSelectContractor }) {
     _DEALS.forEach(f => (f.rehabItems || []).forEach(item => {
       if (item.contractors) item.contractors = item.contractors.filter(a => a.id !== con.id);
     }));
+    dbDeleteContractor(con.id).catch(e => console.error("[PropBooks] delete contractor failed:", e));
     rerender(n => n + 1);
     setDeleteConfirm(null);
   };
@@ -1815,36 +1858,42 @@ export function ContractorDetail({ contractor, onBack, initialTab }) {
     setShowBidModal(true);
   };
 
-  const saveBid = () => {
+  const saveBid = async () => {
     const fId = bidForm.dealId;
     const rehabName = bidForm.rehabItem.trim();
     if (!fId || !rehabName || !bidForm.amount) return;
     const deal = _DEALS.find(f => f.id === fId);
-    if (editingBidId) {
-      const bid = _BIDS.find(b => b.id === editingBidId);
-      if (bid) {
-        bid.dealId = fId;
-        bid.rehabItem = rehabName;
-        bid.amount = parseFloat(bidForm.amount) || 0;
-      }
-      setEditingBidId(null);
-    } else {
-      const newBid = { id: newId(), contractorId: con.id, dealId: fId, rehabItem: rehabName, amount: parseFloat(bidForm.amount) || 0, status: "pending", date: new Date().toISOString().slice(0, 10) };
-      _BIDS.push(newBid);
-      if (!con.dealIds.includes(fId)) con.dealIds.push(fId);
-      // Auto-create rehab item on the deal if it doesn't exist
-      if (deal) {
-        let item = (deal.rehabItems || []).find(i => i.category === rehabName);
-        if (!item) {
-          item = { category: rehabName, budgeted: 0, spent: 0, status: "pending", contractors: [] };
-          if (!deal.rehabItems) deal.rehabItems = [];
-          deal.rehabItems.push(item);
+    const amount = parseFloat(bidForm.amount) || 0;
+    try {
+      if (editingBidId) {
+        const saved = await dbUpdateContractorBid(editingBidId, { dealId: fId, rehabItem: rehabName, amount });
+        const idx = _BIDS.findIndex(b => b.id === editingBidId);
+        if (idx !== -1) _BIDS[idx] = saved;
+        setEditingBidId(null);
+      } else {
+        const saved = await dbCreateContractorBid({ contractorId: con.id, dealId: fId, rehabItem: rehabName, amount, status: "pending", date: new Date().toISOString().slice(0, 10) });
+        _BIDS.push(saved);
+        if (!con.dealIds.includes(fId)) {
+          con.dealIds.push(fId);
+          dbLinkContractorToDeal(con.id, fId).catch(e => console.error("[PropBooks] link contractor failed:", e));
         }
-        const cons = item.contractors || [];
-        if (!cons.some(c => c.id === con.id)) {
-          item.contractors = [...cons, { id: con.id, bid: newBid.amount }];
+        // Auto-create rehab item on the deal if it doesn't exist
+        if (deal) {
+          let item = (deal.rehabItems || []).find(i => i.category === rehabName);
+          if (!item) {
+            const newItemSaved = await dbCreateRehabItem({ dealId: fId, category: rehabName, budgeted: 0, spent: 0, status: "pending", sortOrder: (deal.rehabItems || []).length });
+            item = { ...newItemSaved, contractors: [] };
+            if (!deal.rehabItems) deal.rehabItems = [];
+            deal.rehabItems.push(item);
+          }
+          const cons = item.contractors || [];
+          if (!cons.some(c => c.id === con.id)) {
+            item.contractors = [...cons, { id: con.id, bid: amount }];
+          }
         }
       }
+    } catch (e) {
+      console.error("[PropBooks] save bid failed:", e);
     }
     rerender(n => n + 1);
     setBidForm({ dealId: "", rehabItem: "", amount: "" });
@@ -1853,12 +1902,18 @@ export function ContractorDetail({ contractor, onBack, initialTab }) {
 
   const toggleBidStatus = (bidId) => {
     const bid = _BIDS.find(b => b.id === bidId);
-    if (bid) { bid.status = bid.status === "accepted" ? "pending" : "accepted"; rerender(n => n + 1); }
+    if (bid) {
+      const next = bid.status === "accepted" ? "pending" : "accepted";
+      bid.status = next;
+      dbUpdateContractorBid(bidId, { status: next }).catch(e => console.error("[PropBooks] toggle bid failed:", e));
+      rerender(n => n + 1);
+    }
   };
 
   const deleteBid = (bidId) => {
     const idx = _BIDS.findIndex(b => b.id === bidId);
     if (idx !== -1) _BIDS.splice(idx, 1);
+    dbDeleteContractorBid(bidId).catch(e => console.error("[PropBooks] delete bid failed:", e));
     rerender(n => n + 1);
     setDeleteConfirm(null);
   };
