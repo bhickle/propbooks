@@ -3195,27 +3195,9 @@ function PropertyDetail({ property, onBack, backLabel, onEditProperty, onGoToTra
         <div>
           {/* Summary stat cards */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, marginBottom: 20 }}>
-            <div style={{ background: "var(--surface)", borderRadius: 14, padding: 20, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 4 }}>
-                <p style={{ color: "var(--text-muted)", fontSize: 12, fontWeight: 600, textTransform: "uppercase" }}>Total Income</p>
-                <InfoTip text="Sum of all income transactions for this property (filtered if filters are active)." />
-              </div>
-              <p style={{ color: "var(--c-green)", fontSize: 24, fontWeight: 800, fontFamily: "var(--font-display)" }}>+{fmt(totalIncome)}</p>
-            </div>
-            <div style={{ background: "var(--surface)", borderRadius: 14, padding: 20, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 4 }}>
-                <p style={{ color: "var(--text-muted)", fontSize: 12, fontWeight: 600, textTransform: "uppercase" }}>Total Expenses</p>
-                <InfoTip text="Sum of all expense transactions for this property (filtered if filters are active)." />
-              </div>
-              <p style={{ color: "var(--c-red)", fontSize: 24, fontWeight: 800, fontFamily: "var(--font-display)" }}>-{fmt(totalExpenses)}</p>
-            </div>
-            <div style={{ background: "var(--surface)", borderRadius: 14, padding: 20, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 4 }}>
-                <p style={{ color: "var(--text-muted)", fontSize: 12, fontWeight: 600, textTransform: "uppercase" }}>Net</p>
-                <InfoTip text="Total Income minus Total Expenses. Positive = profitable." />
-              </div>
-              <p style={{ color: filteredTxTotal >= 0 ? "var(--c-green)" : "var(--c-red)", fontSize: 24, fontWeight: 800, fontFamily: "var(--font-display)" }}>{filteredTxTotal >= 0 ? "+" : ""}{fmt(Math.abs(filteredTxTotal))}</p>
-            </div>
+            <StatCard label="Total Income"   value={`+${fmt(totalIncome)}`}   valueColor="var(--c-green)" tip="Sum of all income transactions for this property (filtered if filters are active)." />
+            <StatCard label="Total Expenses" value={`-${fmt(totalExpenses)}`} valueColor="var(--c-red)"   tip="Sum of all expense transactions for this property (filtered if filters are active)." />
+            <StatCard label="Net"            value={`${filteredTxTotal >= 0 ? "+" : ""}${fmt(Math.abs(filteredTxTotal))}`} valueColor={filteredTxTotal >= 0 ? "var(--c-green)" : "var(--c-red)"} tip="Total Income minus Total Expenses. Positive = profitable." />
           </div>
 
           {/* Header row with counts + add buttons */}
@@ -3902,18 +3884,9 @@ function Transactions({ highlightTxId, onBack, onClearHighlight, backLabel }) {
         </select>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, marginBottom: 24 }}>
-        <div style={{ background: "var(--surface)", borderRadius: 14, padding: 20, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)" }}>
-          <p style={{ color: "var(--text-muted)", fontSize: 12, fontWeight: 600, textTransform: "uppercase" }}>Total Income</p>
-          <p style={{ color: "var(--c-green)", fontSize: 24, fontWeight: 800, marginTop: 4, fontFamily: "var(--font-display)" }}>+{fmt(totalIncome)}</p>
-        </div>
-        <div style={{ background: "var(--surface)", borderRadius: 14, padding: 20, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)" }}>
-          <p style={{ color: "var(--text-muted)", fontSize: 12, fontWeight: 600, textTransform: "uppercase" }}>Total Expenses</p>
-          <p style={{ color: "var(--c-red)", fontSize: 24, fontWeight: 800, marginTop: 4, fontFamily: "var(--font-display)" }}>-{fmt(totalExpenses)}</p>
-        </div>
-        <div style={{ background: "var(--surface)", borderRadius: 14, padding: 20, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)" }}>
-          <p style={{ color: "var(--text-muted)", fontSize: 12, fontWeight: 600, textTransform: "uppercase" }}>Net</p>
-          <p style={{ color: totalIncome - totalExpenses >= 0 ? "var(--c-green)" : "var(--c-red)", fontSize: 24, fontWeight: 800, marginTop: 4, fontFamily: "var(--font-display)" }}>{fmt(totalIncome - totalExpenses)}</p>
-        </div>
+        <StatCard label="Total Income"   value={`+${fmt(totalIncome)}`}                                        valueColor="var(--c-green)" tip="Sum of all income transactions matching the current filters." />
+        <StatCard label="Total Expenses" value={`-${fmt(totalExpenses)}`}                                      valueColor="var(--c-red)"   tip="Sum of all expense transactions matching the current filters." />
+        <StatCard label="Net"            value={fmt(totalIncome - totalExpenses)} valueColor={totalIncome - totalExpenses >= 0 ? "var(--c-green)" : "var(--c-red)"} tip="Total Income minus Total Expenses for the filtered period." />
       </div>
       {/* Filter bar */}
       <div style={{ display: "flex", gap: 10, marginBottom: 20, flexWrap: "wrap", alignItems: "center" }}>
@@ -8573,23 +8546,7 @@ function TenantManagement({ onBack, highlightTenantId, onClearHighlight, prefill
           { label: "Occupied", value: `${occupied}/${totalUnits}`, sub: `${100 - Number(vacancyRate)}% occupancy`, color: "var(--c-green)", icon: CheckSquare, tip: "Units with an active-lease or month-to-month tenant divided by total units" },
           { label: "Vacancy Rate", value: `${vacancyRate}%`, sub: `${totalUnits - occupied} unit${totalUnits - occupied !== 1 ? "s" : ""} vacant`, color: Number(vacancyRate) > 10 ? "var(--c-red)" : "#e95e00", icon: AlertCircle, semantic: true, tip: "Vacant units / total units. Red when above 10%" },
           { label: "Gross Monthly Rent", value: fmt(grossRent), sub: "Occupied units only", color: "var(--c-purple)", icon: DollarSign, tip: "Sum of monthly rent for all occupied units (excludes vacant)" },
-        ].map((m, i) => (
-          <div key={i} style={{ background: "var(--surface)", borderRadius: 16, padding: 20, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-              <div>
-                <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 4 }}>
-                  <p style={{ color: "var(--text-muted)", fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.04em" }}>{m.label}</p>
-                  <InfoTip text={m.tip} />
-                </div>
-                <p style={{ color: "var(--text-primary)", fontSize: 24, fontWeight: 800, fontFamily: "var(--font-display)" }}>{m.value}</p>
-                <p style={{ color: "var(--text-muted)", fontSize: 12, marginTop: 2 }}>{m.sub}</p>
-              </div>
-              <div style={{ background: m.semantic ? colorWithAlpha(m.color, 0.1) : "#1e3a5f", borderRadius: 10, padding: 10 }}>
-                <m.icon size={20} color={m.semantic ? m.color : "#e95e00"} />
-              </div>
-            </div>
-          </div>
-        ))}
+        ].map((m, i) => <StatCard key={i} {...m} />)}
       </div>
       {/* Filters */}
       <div style={{ display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap", alignItems: "center" }}>
@@ -10163,23 +10120,7 @@ function MileageTracker() {
           { label: "Business Miles", value: businessMiles.toFixed(1), sub: "100% deductible trips", color: "var(--c-green)", icon: Route, tip: "Miles from trips marked as 100% business deductible." },
           { label: "Mileage Deduction", value: fmt(deduction), sub: `@ $${IRS_RATE}/mile IRS rate`, color: "var(--c-purple)", icon: DollarSign, tip: "Total deductible miles × IRS standard mileage rate. Each trip's miles are multiplied by its business-use percentage." },
           { label: "Trips", value: filteredTrips.length, sub: `of ${tripData.length} total logged`, color: "#e95e00", icon: Truck, tip: "Number of trips matching the current filters out of all logged trips." },
-        ].map((m, i) => (
-          <div key={i} style={{ background: "var(--surface)", borderRadius: 16, padding: 20, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-              <div style={{ flex: 1 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 4 }}>
-                  <p style={{ color: "var(--text-muted)", fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.04em" }}>{m.label}</p>
-                  {m.tip && <InfoTip text={m.tip} />}
-                </div>
-                <p style={{ color: "var(--text-primary)", fontSize: 22, fontWeight: 800, fontFamily: "var(--font-display)" }}>{m.value}</p>
-                <p style={{ color: "var(--text-muted)", fontSize: 12, marginTop: 2 }}>{m.sub}</p>
-              </div>
-              <div style={{ background: "#1e3a5f", borderRadius: 10, padding: 10 }}>
-                <m.icon size={20} color="#e95e00" />
-              </div>
-            </div>
-          </div>
-        ))}
+        ].map((m, i) => <StatCard key={i} {...m} />)}
       </div>
       {/* Mileage filters */}
       <div style={{ display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap", alignItems: "center" }}>

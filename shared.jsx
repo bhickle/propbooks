@@ -82,6 +82,7 @@ export function StatCard({
   icon: Icon, label, value, sub,
   trend, trendVal, trendLabel = "vs last month",
   color = "var(--c-blue)", semantic = false, tip,
+  valueColor = "var(--text-primary)",
 }) {
   const up = trend === "up";
   const iconBg = semantic ? colorWithAlpha(color, 0.1) : "#1e3a5f";
@@ -94,12 +95,14 @@ export function StatCard({
             <p style={{ color: "var(--text-muted)", fontSize: 13, fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.05em" }}>{label}</p>
             {tip && <InfoTip text={tip} />}
           </div>
-          <p style={{ color: "var(--text-primary)", fontSize: 28, fontWeight: 700, lineHeight: 1, fontFamily: "var(--font-display)" }}>{value}</p>
+          <p style={{ color: valueColor, fontSize: 28, fontWeight: 700, lineHeight: 1, fontFamily: "var(--font-display)" }}>{value}</p>
           {sub && <p style={{ color: "var(--text-secondary)", fontSize: 13, marginTop: 6 }}>{sub}</p>}
         </div>
-        <div style={{ background: iconBg, borderRadius: 12, padding: 12 }}>
-          <Icon size={22} color={iconColor} />
-        </div>
+        {Icon && (
+          <div style={{ background: iconBg, borderRadius: 12, padding: 12 }}>
+            <Icon size={22} color={iconColor} />
+          </div>
+        )}
       </div>
       {trendVal && (
         <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 16, paddingTop: 16, borderTop: "1px solid var(--border-subtle)" }}>
