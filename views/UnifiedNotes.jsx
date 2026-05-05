@@ -6,9 +6,13 @@
 import { useState, useEffect } from "react";
 import { Plus, X, Search, MessageSquare, Pencil, Trash2, Wrench, ArrowLeft } from "lucide-react";
 import {
-  fmt, newId, DEALS, RENTAL_NOTES, DEAL_NOTES, GENERAL_NOTES, TEAM_MEMBERS,
+  DEALS, RENTAL_NOTES, DEAL_NOTES, GENERAL_NOTES, TEAM_MEMBERS,
 } from "../api.js";
 import { PROPERTIES, TENANTS } from "../mockData.js";
+import {
+  createRentalNote, createDealNote, createGeneralNote,
+  updateNote as dbUpdateNote, deleteNote as dbDeleteNote,
+} from "../db/notes.js";
 import { iS } from "../shared.jsx";
 import { MentionTextarea, NoteTextWithMentions } from "./MentionTextarea.jsx";
 
@@ -79,8 +83,8 @@ export function UnifiedNotes({ highlightNoteId, highlightDealNoteId, onBack, onC
     if (activeTab === "properties" && n.noteType !== "property") return false;
     if (activeTab === "deals" && n.noteType !== "deal") return false;
     if (activeTab === "general" && n.noteType !== "general") return false;
-    if (activeTab === "properties" && propFilter !== "all" && n.entityId !== parseInt(propFilter)) return false;
-    if (activeTab === "deals" && flipFilter !== "all" && n.entityId !== parseInt(flipFilter)) return false;
+    if (activeTab === "properties" && propFilter !== "all" && n.entityId !== propFilter) return false;
+    if (activeTab === "deals" && flipFilter !== "all" && n.entityId !== flipFilter) return false;
     if (search && !n.text.toLowerCase().includes(search.toLowerCase())) return false;
     return true;
   });
@@ -108,50 +112,57 @@ export function UnifiedNotes({ highlightNoteId, highlightDealNoteId, onBack, onC
   };
 
   // Save
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!noteForm.text.trim()) return;
-    const now = new Date().toISOString();
-    const today = now.split("T")[0];
+    const today = new Date().toISOString().split("T")[0];
 
-    if (editId !== null) {
-      // Find and update across all arrays
-      let idx = RENTAL_NOTES.findIndex(n => n.id === editId);
-      if (idx !== -1) { RENTAL_NOTES[idx] = { ...RENTAL_NOTES[idx], text: noteForm.text.trim(), mentions: noteForm.mentions, updatedAt: now }; }
-      idx = DEAL_NOTES.findIndex(n => n.id === editId);
-      if (idx !== -1) { DEAL_NOTES[idx] = { ...DEAL_NOTES[idx], text: noteForm.text.trim(), mentions: noteForm.mentions, updatedAt: now }; }
-      idx = GENERAL_NOTES.findIndex(n => n.id === editId);
-      if (idx !== -1) { GENERAL_NOTES[idx] = { ...GENERAL_NOTES[idx], text: noteForm.text.trim(), mentions: noteForm.mentions, updatedAt: now }; }
-    } else {
-      const base = { id: newId(), date: today, text: noteForm.text.trim(), createdAt: now, updatedAt: now, userId: "usr_001", mentions: noteForm.mentions };
-      if (noteForm.category === "property") {
-        if (!noteForm.entityId) return;
-        RENTAL_NOTES.unshift({ ...base, propertyId: parseInt(noteForm.entityId), tenantId: noteForm.tenantId ? parseInt(noteForm.tenantId) : null });
-      } else if (noteForm.category === "deal") {
-        if (!noteForm.entityId) return;
-        DEAL_NOTES.unshift({ ...base, dealId: parseInt(noteForm.entityId) });
+    try {
+      if (editId !== null) {
+        const saved = await dbUpdateNote(editId, { text: noteForm.text.trim(), mentions: noteForm.mentions });
+        const targets = [RENTAL_NOTES, DEAL_NOTES, GENERAL_NOTES];
+        for (const arr of targets) {
+          const idx = arr.findIndex(n => n.id === editId);
+          if (idx !== -1) { arr[idx] = { ...arr[idx], ...saved }; break; }
+        }
       } else {
-        GENERAL_NOTES.unshift(base);
+        const payload = { date: today, text: noteForm.text.trim(), mentions: noteForm.mentions };
+        if (noteForm.category === "property") {
+          if (!noteForm.entityId) return;
+          const saved = await createRentalNote({ ...payload, propertyId: noteForm.entityId, tenantId: noteForm.tenantId || null });
+          RENTAL_NOTES.unshift(saved);
+        } else if (noteForm.category === "deal") {
+          if (!noteForm.entityId) return;
+          const saved = await createDealNote({ ...payload, dealId: noteForm.entityId });
+          DEAL_NOTES.unshift(saved);
+        } else {
+          const saved = await createGeneralNote(payload);
+          GENERAL_NOTES.unshift(saved);
+        }
       }
+      setNoteForm({ category: "general", entityId: "", tenantId: "", text: "", mentions: [] });
+      setEditId(null);
+      setShowAdd(false);
+      rerender(n => n + 1);
+    } catch (e) {
+      console.error("[PropBooks] Save note failed:", e);
     }
-    setNoteForm({ category: "general", entityId: "", tenantId: "", text: "", mentions: [] });
-    setEditId(null);
-    setShowAdd(false);
-    rerender(n => n + 1);
   };
 
-  const handleDelete = (note) => {
-    if (note.noteType === "property") {
-      const idx = RENTAL_NOTES.findIndex(n => n.id === note.id);
-      if (idx !== -1) RENTAL_NOTES.splice(idx, 1);
-    } else if (note.noteType === "deal") {
-      const idx = DEAL_NOTES.findIndex(n => n.id === note.id);
-      if (idx !== -1) DEAL_NOTES.splice(idx, 1);
-    } else {
-      const idx = GENERAL_NOTES.findIndex(n => n.id === note.id);
-      if (idx !== -1) GENERAL_NOTES.splice(idx, 1);
+  const handleDelete = async (note) => {
+    try {
+      await dbDeleteNote(note.id);
+      const targets = note.noteType === "property" ? [RENTAL_NOTES]
+        : note.noteType === "deal" ? [DEAL_NOTES]
+        : [GENERAL_NOTES];
+      for (const arr of targets) {
+        const idx = arr.findIndex(n => n.id === note.id);
+        if (idx !== -1) arr.splice(idx, 1);
+      }
+      setDeleteConfirm(null);
+      rerender(n => n + 1);
+    } catch (e) {
+      console.error("[PropBooks] Delete note failed:", e);
     }
-    setDeleteConfirm(null);
-    rerender(n => n + 1);
   };
 
   const openEdit = (note) => {
@@ -342,7 +353,7 @@ export function UnifiedNotes({ highlightNoteId, highlightDealNoteId, onBack, onC
                     <p style={{ fontSize: 12, fontWeight: 600, color: "var(--text-dim)", marginBottom: 5 }}>Tenant <span style={{ color: "var(--text-muted)", fontWeight: 400 }}>(optional)</span></p>
                     <select style={iS} value={noteForm.tenantId} onChange={e => setNoteForm(f => ({ ...f, tenantId: e.target.value }))} disabled={!noteForm.entityId}>
                       <option value="">No tenant</option>
-                      {noteForm.entityId && TENANTS.filter(t => t.propertyId === parseInt(noteForm.entityId) && t.status !== "past" && t.status !== "vacant").map(t => <option key={t.id} value={t.id}>{t.name} — {t.unit}</option>)}
+                      {noteForm.entityId && TENANTS.filter(t => t.propertyId === noteForm.entityId && t.status !== "past" && t.status !== "vacant").map(t => <option key={t.id} value={t.id}>{t.name} — {t.unit}</option>)}
                     </select>
                   </div>
                 </div>

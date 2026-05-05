@@ -4,10 +4,11 @@ import {
   Phone, Mail, Shield, CheckCircle, Plus, Trash2, AlertTriangle, UploadCloud,
 } from "lucide-react";
 import {
-  newId, fmt, MOCK_USER,
+  newId, fmt,
   TENANT_DOCUMENTS, MAINTENANCE_REQUESTS, RENTAL_NOTES,
 } from "../api.js";
 import { createTransaction } from "../db/transactions.js";
+import { createRentalNote, deleteNote as dbDeleteNote } from "../db/notes.js";
 import { InfoTip, Modal, colorWithAlpha, iS } from "../shared.jsx";
 import { PROPERTIES, TRANSACTIONS } from "../mockData.js";
 import { useToast } from "../toast.jsx";
@@ -97,21 +98,36 @@ export function TenantDetail({ tenant, onBack, backLabel, onTenantUpdated, onSel
     }
   };
 
-  const handleAddNote = () => {
+  const handleAddNote = async () => {
     if (!noteText.trim()) return;
-    const n = { id: newId(), propertyId: tenant.propertyId, tenantId: tenant.id, date: new Date().toISOString().split("T")[0], text: noteText.trim(), createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), userId: MOCK_USER.id };
-    RENTAL_NOTES.push(n);
-    setNoteVersion(v => v + 1);
-    setNoteText("");
-    setShowAddNote(false);
-    showToast("Note added");
+    try {
+      const saved = await createRentalNote({
+        propertyId: tenant.propertyId, tenantId: tenant.id,
+        date: new Date().toISOString().split("T")[0],
+        text: noteText.trim(), mentions: [],
+      });
+      RENTAL_NOTES.push(saved);
+      setNoteVersion(v => v + 1);
+      setNoteText("");
+      setShowAddNote(false);
+      showToast("Note added");
+    } catch (e) {
+      console.error("[PropBooks] Add note failed:", e);
+      showToast("Couldn't add note — " + (e.message || "unknown error"));
+    }
   };
 
-  const handleDeleteNote = (id) => {
-    const idx = RENTAL_NOTES.findIndex(n => n.id === id);
-    if (idx !== -1) RENTAL_NOTES.splice(idx, 1);
-    setNoteVersion(v => v + 1);
-    showToast("Note deleted");
+  const handleDeleteNote = async (id) => {
+    try {
+      await dbDeleteNote(id);
+      const idx = RENTAL_NOTES.findIndex(n => n.id === id);
+      if (idx !== -1) RENTAL_NOTES.splice(idx, 1);
+      setNoteVersion(v => v + 1);
+      showToast("Note deleted");
+    } catch (e) {
+      console.error("[PropBooks] Delete note failed:", e);
+      showToast("Couldn't delete note — " + (e.message || "unknown error"));
+    }
   };
 
   const handleAddMaint = () => {

@@ -35,6 +35,7 @@ import { createContractor as dbCreateContractor, updateContractor as dbUpdateCon
 import { createContractorBid as dbCreateContractorBid, updateContractorBid as dbUpdateContractorBid, deleteContractorBid as dbDeleteContractorBid } from "./db/contractorBids.js";
 import { createContractorPayment as dbCreateContractorPayment, deleteContractorPayment as dbDeleteContractorPayment } from "./db/contractorPayments.js";
 import { createDealExpense as dbCreateDealExpense, updateDealExpense as dbUpdateDealExpense, deleteDealExpense as dbDeleteDealExpense } from "./db/dealExpenses.js";
+import { createDealNote as dbCreateDealNote, updateNote as dbUpdateNote, deleteNote as dbDeleteNote } from "./db/notes.js";
 
 // ---------------------------------------------------------------------------
 // Shared helpers
@@ -3341,26 +3342,42 @@ export function DealNotes({ highlightNoteId, onBack, onClearHighlight }) {
   const clearFilters = () => { setFilterDeal("all"); setSearch(""); };
   const hasFilters = filterDeal !== "all" || search;
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!noteForm.text.trim() || !noteForm.dealId) return;
     const fId = noteForm.dealId;
-    if (editId !== null) {
-      const idx = DEAL_NOTES.findIndex(n => n.id === editId);
-      if (idx !== -1) DEAL_NOTES[idx] = { ...DEAL_NOTES[idx], text: noteForm.text.trim() };
-    } else {
-      DEAL_NOTES.unshift({ id: newId(), dealId: fId, date: new Date().toISOString().split("T")[0], text: noteForm.text.trim() });
+    try {
+      if (editId !== null) {
+        const saved = await dbUpdateNote(editId, { text: noteForm.text.trim() });
+        const idx = DEAL_NOTES.findIndex(n => n.id === editId);
+        if (idx !== -1) DEAL_NOTES[idx] = { ...DEAL_NOTES[idx], ...saved };
+      } else {
+        const saved = await dbCreateDealNote({
+          dealId: fId,
+          date: new Date().toISOString().split("T")[0],
+          text: noteForm.text.trim(),
+          mentions: [],
+        });
+        DEAL_NOTES.unshift(saved);
+      }
+      setNoteForm({ dealId: "", text: "" });
+      setEditId(null);
+      setShowAdd(false);
+      rerender(n => n + 1);
+    } catch (e) {
+      console.error("[PropBooks] Save deal note failed:", e);
     }
-    setNoteForm({ dealId: "", text: "" });
-    setEditId(null);
-    setShowAdd(false);
-    rerender(n => n + 1);
   };
 
-  const handleDelete = (note) => {
-    const idx = DEAL_NOTES.findIndex(n => n.id === note.id);
-    if (idx !== -1) DEAL_NOTES.splice(idx, 1);
-    setDeleteConfirm(null);
-    rerender(n => n + 1);
+  const handleDelete = async (note) => {
+    try {
+      await dbDeleteNote(note.id);
+      const idx = DEAL_NOTES.findIndex(n => n.id === note.id);
+      if (idx !== -1) DEAL_NOTES.splice(idx, 1);
+      setDeleteConfirm(null);
+      rerender(n => n + 1);
+    } catch (e) {
+      console.error("[PropBooks] Delete deal note failed:", e);
+    }
   };
 
   const openEdit = (note) => {

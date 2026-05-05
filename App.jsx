@@ -91,6 +91,7 @@ import {
 import { listContractorBids } from "./db/contractorBids.js";
 import { listContractorPayments } from "./db/contractorPayments.js";
 import { listDealExpenses } from "./db/dealExpenses.js";
+import { listNotes, createDealNote as dbCreateDealNote, updateNote as dbUpdateNote, deleteNote as dbDeleteNote } from "./db/notes.js";
 
 // Fire-and-forget DB sync for legacy sync handlers that mutate DEALS in place.
 // The optimistic in-memory mutation has already happened; this just persists.
@@ -534,25 +535,30 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
     .filter(n => n.dealId === deal.id)
     .slice()
     .sort((a, b) => (b.date || "").localeCompare(a.date || ""));
-  const pushDealNote = (text) => {
+  const pushDealNote = async (text) => {
     if (!text || !text.trim()) return;
-    const now = new Date().toISOString();
-    DEAL_NOTES.unshift({
-      id: newId(),
-      dealId: deal.id,
-      date: now.split("T")[0],
-      text: text.trim(),
-      createdAt: now,
-      updatedAt: now,
-      userId: "usr_001",
-      mentions: [],
-    });
-    bumpNotes();
+    try {
+      const saved = await dbCreateDealNote({
+        dealId: deal.id,
+        date: new Date().toISOString().split("T")[0],
+        text: text.trim(),
+        mentions: [],
+      });
+      DEAL_NOTES.unshift(saved);
+      bumpNotes();
+    } catch (e) {
+      console.error("[PropBooks] Add deal note failed:", e);
+    }
   };
-  const removeDealNote = (id) => {
-    const gi = DEAL_NOTES.findIndex(n => n.id === id);
-    if (gi !== -1) DEAL_NOTES.splice(gi, 1);
-    bumpNotes();
+  const removeDealNote = async (id) => {
+    try {
+      await dbDeleteNote(id);
+      const gi = DEAL_NOTES.findIndex(n => n.id === id);
+      if (gi !== -1) DEAL_NOTES.splice(gi, 1);
+      bumpNotes();
+    } catch (e) {
+      console.error("[PropBooks] Delete deal note failed:", e);
+    }
   };
   const [showNoteInput, setShowNoteInput] = useState(false);
   const [noteText, setNoteText] = useState("");
@@ -2628,32 +2634,38 @@ function RehabItemDetail({ deal, itemIdx, onBack, backLabel, onNavigateToContrac
     bump();
   };
 
-  const addNote = () => {
+  const addNote = async () => {
     if (!noteText.trim()) return;
-    const now = new Date().toISOString();
-    const today = now.split("T")[0];
-    DEAL_NOTES.unshift({
-      id: newId(),
-      dealId: deal.id,
-      rehabItemIdx: itemIdx,
-      date: today,
-      text: noteText.trim(),
-      createdAt: now,
-      updatedAt: now,
-      userId: "usr_001",
-      mentions: [],
-    });
-    setNoteText("");
-    setShowAddNote(false);
-    bump();
-    showToast("Note added");
+    try {
+      const saved = await dbCreateDealNote({
+        dealId: deal.id,
+        rehabItemIdx: itemIdx,
+        date: new Date().toISOString().split("T")[0],
+        text: noteText.trim(),
+        mentions: [],
+      });
+      DEAL_NOTES.unshift(saved);
+      setNoteText("");
+      setShowAddNote(false);
+      bump();
+      showToast("Note added");
+    } catch (e) {
+      console.error("[PropBooks] Add rehab note failed:", e);
+      showToast("Couldn't add note — " + (e.message || "unknown error"));
+    }
   };
-  const deleteNote = (id) => {
-    const gi = DEAL_NOTES.findIndex(n => n.id === id);
-    if (gi !== -1) DEAL_NOTES.splice(gi, 1);
-    setDeletingNoteId(null);
-    bump();
-    showToast("Note deleted");
+  const deleteNote = async (id) => {
+    try {
+      await dbDeleteNote(id);
+      const gi = DEAL_NOTES.findIndex(n => n.id === id);
+      if (gi !== -1) DEAL_NOTES.splice(gi, 1);
+      setDeletingNoteId(null);
+      bump();
+      showToast("Note deleted");
+    } catch (e) {
+      console.error("[PropBooks] Delete rehab note failed:", e);
+      showToast("Couldn't delete note — " + (e.message || "unknown error"));
+    }
   };
 
   const addPhoto = (e) => {
@@ -3059,11 +3071,11 @@ function AppShell() {
     let cancelled = false;
     (async () => {
       try {
-        const [props, txs, tns, dls, rehab, mls, cons, bids, pays, dexps] = await Promise.all([
+        const [props, txs, tns, dls, rehab, mls, cons, bids, pays, dexps, notes] = await Promise.all([
           listProperties(), listTransactions(), listTenants(),
           listDeals(), listRehabItems(), listMilestones(),
           listContractors(), listContractorBids(), listContractorPayments(),
-          listDealExpenses(),
+          listDealExpenses(), listNotes(),
         ]);
         if (cancelled) return;
         PROPERTIES.length = 0;
@@ -3092,6 +3104,12 @@ function AppShell() {
         CONTRACTOR_PAYMENTS.push(...pays);
         DEAL_EXPENSES.length = 0;
         DEAL_EXPENSES.push(...dexps);
+        RENTAL_NOTES.length = 0;
+        RENTAL_NOTES.push(...notes.rentalNotes);
+        DEAL_NOTES.length = 0;
+        DEAL_NOTES.push(...notes.dealNotes);
+        GENERAL_NOTES.length = 0;
+        GENERAL_NOTES.push(...notes.generalNotes);
         setPropsVersion(v => v + 1);
       } catch (e) {
         console.error("[PropBooks] Failed to load Supabase data:", e);

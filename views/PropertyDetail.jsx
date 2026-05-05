@@ -8,9 +8,10 @@ import {
   newId, fmt,
   PROPERTY_DOCUMENTS, addPropertyDocument, deletePropertyDocument,
   TRANSACTION_RECEIPTS, addTransactionReceipt,
-  RENTAL_NOTES, MOCK_USER,
+  RENTAL_NOTES,
 } from "../api.js";
 import { createTransaction, updateTransaction, deleteTransaction } from "../db/transactions.js";
+import { createRentalNote, updateNote as dbUpdateNote, deleteNote as dbDeleteNote } from "../db/notes.js";
 import { calcLoanBalance, getEffectiveMonthly, calcCapRate, calcCashOnCash } from "../finance.js";
 import { daysAgo, getPropertyHealth } from "../health.js";
 import { InfoTip, Modal, StatCard, Badge, iS } from "../shared.jsx";
@@ -757,20 +758,25 @@ export function PropertyDetail({ property, onBack, backLabel, onEditProperty, on
                 <button onClick={() => { setNoteEditId(null); setNoteText(""); }}
                   style={{ padding: "8px 16px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text-label)", fontWeight: 600, fontSize: 13, cursor: "pointer" }}>Cancel</button>
               )}
-              <button onClick={() => {
+              <button onClick={async () => {
                 const txt = noteText.trim();
                 if (!txt) return;
-                const now = new Date().toISOString();
-                const today = now.slice(0, 10);
-                if (noteEditId) {
-                  const idx = RENTAL_NOTES.findIndex(n => n.id === noteEditId);
-                  if (idx !== -1) RENTAL_NOTES[idx] = { ...RENTAL_NOTES[idx], text: txt, updatedAt: now };
-                  setNoteEditId(null);
-                } else {
-                  RENTAL_NOTES.unshift({ id: newId(), propertyId: property.id, date: today, text: txt, createdAt: now, updatedAt: now, userId: MOCK_USER.id, mentions: [] });
+                const today = new Date().toISOString().slice(0, 10);
+                try {
+                  if (noteEditId) {
+                    const saved = await dbUpdateNote(noteEditId, { text: txt });
+                    const idx = RENTAL_NOTES.findIndex(n => n.id === noteEditId);
+                    if (idx !== -1) RENTAL_NOTES[idx] = { ...RENTAL_NOTES[idx], ...saved };
+                    setNoteEditId(null);
+                  } else {
+                    const saved = await createRentalNote({ propertyId: property.id, date: today, text: txt, mentions: [] });
+                    RENTAL_NOTES.unshift(saved);
+                  }
+                  setNoteText("");
+                  reRenderNotes(n => n + 1);
+                } catch (e) {
+                  console.error("[PropBooks] Save note failed:", e);
                 }
-                setNoteText("");
-                reRenderNotes(n => n + 1);
               }} style={{ padding: "8px 18px", borderRadius: 8, border: "none", background: "var(--c-blue)", color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
                 {noteEditId ? "Save Changes" : "Add Note"}
               </button>
@@ -814,11 +820,16 @@ export function PropertyDetail({ property, onBack, backLabel, onEditProperty, on
                 <p style={{ fontSize: 13, color: "var(--text-secondary)", margin: "0 0 20px 0" }}>This cannot be undone.</p>
                 <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
                   <button onClick={() => setNoteDeleteConfirm(null)} style={{ padding: "8px 16px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text-label)", fontWeight: 600, fontSize: 13, cursor: "pointer" }}>Cancel</button>
-                  <button onClick={() => {
-                    const idx = RENTAL_NOTES.findIndex(n => n.id === noteDeleteConfirm);
-                    if (idx !== -1) RENTAL_NOTES.splice(idx, 1);
-                    setNoteDeleteConfirm(null);
-                    reRenderNotes(n => n + 1);
+                  <button onClick={async () => {
+                    try {
+                      await dbDeleteNote(noteDeleteConfirm);
+                      const idx = RENTAL_NOTES.findIndex(n => n.id === noteDeleteConfirm);
+                      if (idx !== -1) RENTAL_NOTES.splice(idx, 1);
+                      setNoteDeleteConfirm(null);
+                      reRenderNotes(n => n + 1);
+                    } catch (e) {
+                      console.error("[PropBooks] Delete note failed:", e);
+                    }
                   }} style={{ padding: "8px 16px", borderRadius: 8, border: "none", background: "var(--c-red)", color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>Delete</button>
                 </div>
               </div>
