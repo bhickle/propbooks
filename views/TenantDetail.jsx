@@ -9,6 +9,7 @@ import {
 } from "../api.js";
 import { createTransaction } from "../db/transactions.js";
 import { createRentalNote, deleteNote as dbDeleteNote } from "../db/notes.js";
+import { createMaintenanceRequest, updateMaintenanceRequest } from "../db/maintenanceRequests.js";
 import { InfoTip, Modal, colorWithAlpha, iS } from "../shared.jsx";
 import { PROPERTIES, TRANSACTIONS } from "../mockData.js";
 import { useToast } from "../toast.jsx";
@@ -24,7 +25,8 @@ export function TenantDetail({ tenant, onBack, backLabel, onTenantUpdated, onSel
   // Notes: read from RENTAL_NOTES filtered by tenantId
   const [noteVersion, setNoteVersion] = useState(0);
   const notes = useMemo(() => RENTAL_NOTES.filter(n => n.tenantId === tenant.id).sort((a, b) => b.date.localeCompare(a.date)), [tenant.id, noteVersion]); // eslint-disable-line react-hooks/exhaustive-deps -- noteVersion is the cache-bust counter for RENTAL_NOTES
-  const [requests, setRequests] = useState(MAINTENANCE_REQUESTS.filter(r => r.tenantId === tenant.id));
+  const [maintVersion, setMaintVersion] = useState(0);
+  const requests = useMemo(() => MAINTENANCE_REQUESTS.filter(r => r.tenantId === tenant.id), [tenant.id, maintVersion]); // eslint-disable-line react-hooks/exhaustive-deps -- maintVersion is the cache-bust counter for MAINTENANCE_REQUESTS
 
   // Edit modal
   const [showEdit, setShowEdit] = useState(false);
@@ -130,21 +132,40 @@ export function TenantDetail({ tenant, onBack, backLabel, onTenantUpdated, onSel
     }
   };
 
-  const handleAddMaint = () => {
+  const handleAddMaint = async () => {
     if (!maintForm.title.trim()) return;
-    const r = { id: newId(), tenantId: tenant.id, propertyId: tenant.propertyId, title: maintForm.title, description: maintForm.description, priority: maintForm.priority, status: "open", createdAt: new Date().toISOString(), scheduledDate: null, resolvedDate: null, cost: null, vendor: null };
-    MAINTENANCE_REQUESTS.push(r);
-    setRequests(prev => [r, ...prev]);
-    setMaintForm({ title: "", description: "", priority: "medium" });
-    setShowAddMaint(false);
-    showToast("Maintenance request created");
+    try {
+      const saved = await createMaintenanceRequest({
+        tenantId: tenant.id,
+        propertyId: tenant.propertyId,
+        title: maintForm.title,
+        description: maintForm.description,
+        priority: maintForm.priority,
+        status: "open",
+      });
+      MAINTENANCE_REQUESTS.unshift(saved);
+      setMaintVersion(v => v + 1);
+      setMaintForm({ title: "", description: "", priority: "medium" });
+      setShowAddMaint(false);
+      showToast("Maintenance request created");
+    } catch (e) {
+      console.error("[PropBooks] Add maintenance request failed:", e);
+      showToast("Couldn't create request — " + (e.message || "unknown error"));
+    }
   };
 
-  const handleResolveMaint = (id) => {
-    const idx = MAINTENANCE_REQUESTS.findIndex(r => r.id === id);
-    if (idx !== -1) Object.assign(MAINTENANCE_REQUESTS[idx], { status: "resolved", resolvedDate: new Date().toISOString().split("T")[0] });
-    setRequests(prev => prev.map(r => r.id === id ? { ...r, status: "resolved", resolvedDate: new Date().toISOString().split("T")[0] } : r));
-    showToast("Marked as resolved");
+  const handleResolveMaint = async (id) => {
+    try {
+      const today = new Date().toISOString().split("T")[0];
+      const saved = await updateMaintenanceRequest(id, { status: "resolved", resolvedDate: today });
+      const idx = MAINTENANCE_REQUESTS.findIndex(r => r.id === id);
+      if (idx !== -1) MAINTENANCE_REQUESTS[idx] = { ...MAINTENANCE_REQUESTS[idx], ...saved };
+      setMaintVersion(v => v + 1);
+      showToast("Marked as resolved");
+    } catch (e) {
+      console.error("[PropBooks] Resolve maintenance request failed:", e);
+      showToast("Couldn't mark resolved — " + (e.message || "unknown error"));
+    }
   };
 
   const getDaysLeft = (leaseEnd) => {
