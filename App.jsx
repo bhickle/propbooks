@@ -92,6 +92,7 @@ import { listContractorBids } from "./db/contractorBids.js";
 import { listContractorPayments } from "./db/contractorPayments.js";
 import { listDealExpenses } from "./db/dealExpenses.js";
 import { listNotes, createDealNote as dbCreateDealNote, updateNote as dbUpdateNote, deleteNote as dbDeleteNote } from "./db/notes.js";
+import { listMileageTrips } from "./db/mileageTrips.js";
 
 // Fire-and-forget DB sync for legacy sync handlers that mutate DEALS in place.
 // The optimistic in-memory mutation has already happened; this just persists.
@@ -3071,11 +3072,11 @@ function AppShell() {
     let cancelled = false;
     (async () => {
       try {
-        const [props, txs, tns, dls, rehab, mls, cons, bids, pays, dexps, notes] = await Promise.all([
+        const [props, txs, tns, dls, rehab, mls, cons, bids, pays, dexps, notes, trips] = await Promise.all([
           listProperties(), listTransactions(), listTenants(),
           listDeals(), listRehabItems(), listMilestones(),
           listContractors(), listContractorBids(), listContractorPayments(),
-          listDealExpenses(), listNotes(),
+          listDealExpenses(), listNotes(), listMileageTrips(),
         ]);
         if (cancelled) return;
         PROPERTIES.length = 0;
@@ -3110,6 +3111,8 @@ function AppShell() {
         DEAL_NOTES.push(...notes.dealNotes);
         GENERAL_NOTES.length = 0;
         GENERAL_NOTES.push(...notes.generalNotes);
+        MILEAGE_TRIPS.length = 0;
+        MILEAGE_TRIPS.push(...trips);
         setPropsVersion(v => v + 1);
       } catch (e) {
         console.error("[PropBooks] Failed to load Supabase data:", e);

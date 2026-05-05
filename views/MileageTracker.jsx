@@ -6,13 +6,16 @@ import { useState } from "react";
 import {
   Plus, Search, Pencil, Trash2, Download, X, Car, Route, DollarSign, Truck,
 } from "lucide-react";
-import { fmt, newId, MOCK_USER, DEALS } from "../api.js";
+import { fmt, DEALS } from "../api.js";
 import { MILEAGE_TRIPS, PROPERTIES } from "../mockData.js";
 import { TAX_CONFIG } from "../finance.js";
+import { createMileageTrip, updateMileageTrip, deleteMileageTrip } from "../db/mileageTrips.js";
 import { StatCard, Modal, iS, downloadFile } from "../shared.jsx";
 
 export function MileageTracker() {
-  const [tripData, setTripData] = useState(MILEAGE_TRIPS);
+  const [, setRenderKey] = useState(0);
+  const bump = () => setRenderKey(k => k + 1);
+  const tripData = MILEAGE_TRIPS;
   const [showModal, setShowModal] = useState(false);
   const [editId, setEditId] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
@@ -20,28 +23,48 @@ export function MileageTracker() {
   const [dateFilter, setDateFilter] = useState("thisYear");
   const [search, setSearch] = useState("");
   const [linkedFilter, setLinkedFilter] = useState("all"); // "all" | property name | deal name
-  const emptyTrip = { date: "", description: "", from: "Home", to: "", miles: "", purpose: "Rental", businessPct: "100", linkedTo: "", createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), userId: MOCK_USER.id };
+  const emptyTrip = { date: "", description: "", from: "Home", to: "", miles: "", purpose: "Rental", businessPct: "100", linkedTo: "" };
   const [form, setForm] = useState(emptyTrip);
   const sf = k => e => setForm(f => ({ ...f, [k]: e.target.value }));
 
   const openAdd = () => { setEditId(null); setForm(emptyTrip); setShowModal(true); };
   const openEdit = t => {
     setEditId(t.id);
-    setForm({ date: t.date, description: t.description, from: t.from, to: t.to, miles: String(t.miles), purpose: t.purpose, businessPct: String(t.businessPct), linkedTo: t.linkedTo || "", createdAt: t.createdAt || new Date().toISOString(), updatedAt: new Date().toISOString(), userId: t.userId || MOCK_USER.id });
+    setForm({ date: t.date, description: t.description, from: t.from, to: t.to, miles: String(t.miles), purpose: t.purpose, businessPct: String(t.businessPct), linkedTo: t.linkedTo || "" });
     setShowModal(true);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!form.miles || !form.to) return;
     const built = { date: form.date || new Date().toISOString().split("T")[0], description: form.description || form.to, from: form.from, to: form.to, miles: parseFloat(form.miles) || 0, purpose: form.purpose, businessPct: parseFloat(form.businessPct) || 100, linkedTo: form.linkedTo || "" };
-    if (editId !== null) {
-      setTripData(prev => prev.map(t => t.id === editId ? { ...t, ...built } : t));
-    } else {
-      setTripData(prev => [{ id: newId(), ...built }, ...prev]);
+    try {
+      if (editId !== null) {
+        const saved = await updateMileageTrip(editId, built);
+        const idx = MILEAGE_TRIPS.findIndex(t => t.id === editId);
+        if (idx !== -1) MILEAGE_TRIPS[idx] = { ...MILEAGE_TRIPS[idx], ...saved };
+      } else {
+        const saved = await createMileageTrip(built);
+        MILEAGE_TRIPS.unshift(saved);
+      }
+      setForm(emptyTrip);
+      setEditId(null);
+      setShowModal(false);
+      bump();
+    } catch (e) {
+      console.error("[PropBooks] Save trip failed:", e);
     }
-    setForm(emptyTrip);
-    setEditId(null);
-    setShowModal(false);
+  };
+
+  const handleDelete = async (id) => {
+    try {
+      await deleteMileageTrip(id);
+      const idx = MILEAGE_TRIPS.findIndex(t => t.id === id);
+      if (idx !== -1) MILEAGE_TRIPS.splice(idx, 1);
+      setDeleteConfirm(null);
+      bump();
+    } catch (e) {
+      console.error("[PropBooks] Delete trip failed:", e);
+    }
   };
 
   const IRS_RATE = TAX_CONFIG.mileageRate;
@@ -232,7 +255,7 @@ export function MileageTracker() {
           <p style={{ color: "var(--text-muted)", fontSize: 12, marginBottom: 18 }}>This action cannot be undone.</p>
           <div style={{ display: "flex", gap: 10 }}>
             <button onClick={() => setDeleteConfirm(null)} style={{ flex: 1, padding: "12px", border: "1px solid var(--border)", borderRadius: 10, background: "var(--surface)", color: "var(--text-label)", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
-            <button onClick={() => { setTripData(prev => prev.filter(x => x.id !== deleteConfirm.id)); setDeleteConfirm(null); }} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "var(--c-red)", color: "#fff", fontWeight: 700, cursor: "pointer" }}>Delete</button>
+            <button onClick={() => handleDelete(deleteConfirm.id)} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "var(--c-red)", color: "#fff", fontWeight: 700, cursor: "pointer" }}>Delete</button>
           </div>
         </Modal>
       )}
