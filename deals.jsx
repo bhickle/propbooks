@@ -20,7 +20,7 @@ import {
 import {
   fmt, fmtK, newId, STAGE_ORDER, STAGE_COLORS, DEFAULT_MILESTONES,
   DEAL_EXPENSE_RECEIPTS, addDealExpenseReceipt, deleteDealExpenseReceipt,
-  DEAL_DOCUMENTS, addDealDocument, deleteDealDocument,
+  DEAL_DOCUMENTS,
   mockOcrScan,
   REHAB_CATEGORIES, REHAB_CATEGORY_GROUPS, getCanonicalBySlug, getCanonicalByLabel,
 } from "./api.js";
@@ -36,6 +36,7 @@ import { createContractorBid as dbCreateContractorBid, updateContractorBid as db
 import { createContractorPayment as dbCreateContractorPayment, deleteContractorPayment as dbDeleteContractorPayment } from "./db/contractorPayments.js";
 import { createDealExpense as dbCreateDealExpense, updateDealExpense as dbUpdateDealExpense, deleteDealExpense as dbDeleteDealExpense } from "./db/dealExpenses.js";
 import { createDealNote as dbCreateDealNote, updateNote as dbUpdateNote, deleteNote as dbDeleteNote } from "./db/notes.js";
+import { createDocument as dbCreateDocument, updateDocument as dbUpdateDocument, deleteDocument as dbDeleteDocument } from "./db/documents.js";
 
 // ---------------------------------------------------------------------------
 // Shared helpers
@@ -1925,30 +1926,45 @@ export function ContractorDetail({ contractor, onBack, initialTab }) {
     setShowDocModal(true);
   };
 
-  const saveDoc = () => {
+  const saveDoc = async () => {
     if (!docForm.name) return;
-    if (editingDocId) {
-      const doc = _DOCS.find(d => d.id === editingDocId);
-      if (doc) {
-        doc.name = docForm.name;
-        doc.type = docForm.type;
-        doc.dealId = docForm.dealId ? docForm.dealId : null;
+    try {
+      if (editingDocId) {
+        const saved = await dbUpdateDocument(editingDocId, {
+          name: docForm.name, type: docForm.type, dealId: docForm.dealId || null,
+        });
+        const idx = _DOCS.findIndex(d => d.id === editingDocId);
+        if (idx !== -1) _DOCS[idx] = { ...(_DOCS[idx]), ...saved };
+        setEditingDocId(null);
+      } else {
+        const saved = await dbCreateDocument({
+          entityType: "contractor",
+          entityId: con.id,
+          dealId: docForm.dealId || null,
+          meta: { name: docForm.name, type: docForm.type, size: "— KB" },
+          file: null,
+        });
+        _DOCS.unshift(saved);
       }
-      setEditingDocId(null);
-    } else {
-      const newDoc = { id: newId(), contractorId: con.id, name: docForm.name, type: docForm.type, dealId: docForm.dealId ? docForm.dealId : null, date: new Date().toISOString().slice(0, 10), size: "— KB" };
-      _DOCS.push(newDoc);
+      rerender(n => n + 1);
+      setDocForm({ name: "", type: "contract", dealId: "" });
+      setShowDocModal(false);
+    } catch (e) {
+      console.error("[PropBooks] save contractor doc failed:", e);
     }
-    rerender(n => n + 1);
-    setDocForm({ name: "", type: "contract", dealId: "" });
-    setShowDocModal(false);
   };
 
-  const deleteDoc = (docId) => {
-    const idx = _DOCS.findIndex(d => d.id === docId);
-    if (idx !== -1) _DOCS.splice(idx, 1);
-    rerender(n => n + 1);
-    setDeleteConfirm(null);
+  const deleteDoc = async (docId) => {
+    try {
+      const doc = _DOCS.find(d => d.id === docId);
+      if (doc) await dbDeleteDocument(doc);
+      const idx = _DOCS.findIndex(d => d.id === docId);
+      if (idx !== -1) _DOCS.splice(idx, 1);
+      rerender(n => n + 1);
+      setDeleteConfirm(null);
+    } catch (e) {
+      console.error("[PropBooks] delete contractor doc failed:", e);
+    }
   };
 
   const tabs = [

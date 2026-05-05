@@ -10,6 +10,7 @@ import {
 import { createTransaction } from "../db/transactions.js";
 import { createRentalNote, deleteNote as dbDeleteNote } from "../db/notes.js";
 import { createMaintenanceRequest, updateMaintenanceRequest } from "../db/maintenanceRequests.js";
+import { createDocument as dbCreateDocument, deleteDocument as dbDeleteDocument } from "../db/documents.js";
 import { InfoTip, Modal, colorWithAlpha, iS } from "../shared.jsx";
 import { PROPERTIES, TRANSACTIONS } from "../mockData.js";
 import { useToast } from "../toast.jsx";
@@ -21,7 +22,8 @@ export function TenantDetail({ tenant, onBack, backLabel, onTenantUpdated, onSel
   // Payments: read from existing transactions (rent income tied to this tenant)
   const [txVersion, setTxVersion] = useState(0);
   const payments = useMemo(() => TRANSACTIONS.filter(t => t.tenantId === tenant.id && t.type === "income" && t.category === "Rent Income").sort((a, b) => b.date.localeCompare(a.date)), [tenant.id, txVersion]); // eslint-disable-line react-hooks/exhaustive-deps -- txVersion is the cache-bust counter for TRANSACTIONS
-  const [documents, setDocuments] = useState(TENANT_DOCUMENTS.filter(d => d.tenantId === tenant.id));
+  const [docVersion, setDocVersion] = useState(0);
+  const documents = useMemo(() => TENANT_DOCUMENTS.filter(d => d.tenantId === tenant.id), [tenant.id, docVersion]); // eslint-disable-line react-hooks/exhaustive-deps -- docVersion is the cache-bust counter for TENANT_DOCUMENTS
   // Notes: read from RENTAL_NOTES filtered by tenantId
   const [noteVersion, setNoteVersion] = useState(0);
   const notes = useMemo(() => RENTAL_NOTES.filter(n => n.tenantId === tenant.id).sort((a, b) => b.date.localeCompare(a.date)), [tenant.id, noteVersion]); // eslint-disable-line react-hooks/exhaustive-deps -- noteVersion is the cache-bust counter for RENTAL_NOTES
@@ -403,14 +405,23 @@ export function TenantDetail({ tenant, onBack, backLabel, onTenantUpdated, onSel
             </div>
             <label style={{ background: "var(--c-blue)", color: "#fff", border: "none", borderRadius: 10, padding: "9px 16px", fontWeight: 600, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
               <UploadCloud size={14} /> Upload
-              <input type="file" style={{ display: "none" }} onChange={e => {
+              <input type="file" style={{ display: "none" }} onChange={async e => {
                 const file = e.target.files[0];
-                if (!file) return;
-                const doc = { id: newId(), tenantId: tenant.id, name: file.name, type: "other", mimeType: file.type, size: (file.size / 1024).toFixed(0) + " KB", date: new Date().toISOString().split("T")[0], url: null, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), userId: MOCK_USER.id };
-                TENANT_DOCUMENTS.push(doc);
-                setDocuments(prev => [...prev, doc]);
-                showToast("Document uploaded");
                 e.target.value = "";
+                if (!file) return;
+                try {
+                  const saved = await dbCreateDocument({
+                    entityType: "tenant", entityId: tenant.id,
+                    meta: { name: file.name, type: "other" },
+                    file,
+                  });
+                  TENANT_DOCUMENTS.unshift(saved);
+                  setDocVersion(v => v + 1);
+                  showToast("Document uploaded");
+                } catch (err) {
+                  console.error("[PropBooks] Upload tenant document failed:", err);
+                  showToast("Couldn't upload — " + (err.message || "unknown error"));
+                }
               }} />
             </label>
           </div>
@@ -422,7 +433,18 @@ export function TenantDetail({ tenant, onBack, backLabel, onTenantUpdated, onSel
                   <p style={{ fontSize: 14, fontWeight: 600, color: "var(--text-primary)" }}>{d.name}</p>
                   <p style={{ fontSize: 12, color: "var(--text-muted)" }}>{d.type} &middot; {d.size} &middot; {d.date}</p>
                 </div>
-                <button onClick={() => { const idx = TENANT_DOCUMENTS.findIndex(td => td.id === d.id); if (idx !== -1) TENANT_DOCUMENTS.splice(idx, 1); setDocuments(prev => prev.filter(td => td.id !== d.id)); showToast("Document removed"); }} style={{ background: "var(--danger-badge)", border: "none", borderRadius: 8, padding: "5px 8px", cursor: "pointer", color: "var(--c-red)" }}>
+                <button onClick={async () => {
+                  try {
+                    await dbDeleteDocument(d);
+                    const idx = TENANT_DOCUMENTS.findIndex(td => td.id === d.id);
+                    if (idx !== -1) TENANT_DOCUMENTS.splice(idx, 1);
+                    setDocVersion(v => v + 1);
+                    showToast("Document removed");
+                  } catch (err) {
+                    console.error("[PropBooks] Delete tenant document failed:", err);
+                    showToast("Couldn't delete — " + (err.message || "unknown error"));
+                  }
+                }} style={{ background: "var(--danger-badge)", border: "none", borderRadius: 8, padding: "5px 8px", cursor: "pointer", color: "var(--c-red)" }}>
                   <Trash2 size={13} />
                 </button>
               </div>

@@ -153,32 +153,40 @@ export function DocumentsPanel({ documents, onAdd, onDelete, entityLabel = "item
     if (!docForm.name && files.length === 1) setDocForm(f => ({ ...f, name: files[0].name.replace(/\.[^.]+$/, "") }));
   };
 
-  const handleSave = () => {
+  const [saving, setSaving] = useState(false);
+  const handleSave = async () => {
     if (!docForm.name && pendingFiles.length === 0) return;
-    pendingFiles.forEach((pf, idx) => {
-      const doc = {
-        id: newId(),
-        name: docForm.name || pf.name,
-        type: docForm.type,
-        mimeType: pf.mimeType,
-        size: pf.size,
-        date: new Date().toISOString().slice(0, 10),
-        url: pf.url,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        userId: "usr_001",
-      };
-      onAdd(doc);
-    });
-    // If no files but a name, add as a record placeholder
-    if (pendingFiles.length === 0 && docForm.name) {
-      onAdd({
-        id: newId(), name: docForm.name, type: docForm.type, mimeType: null,
-        size: null, date: new Date().toISOString().slice(0, 10), url: null,
-        createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), userId: "usr_001",
-      });
+    setSaving(true);
+    try {
+      if (pendingFiles.length === 0 && docForm.name) {
+        // Placeholder record (no file)
+        await onAdd({
+          meta: {
+            name: docForm.name, type: docForm.type, mimeType: null, size: null,
+            date: new Date().toISOString().slice(0, 10),
+          },
+          file: null,
+        });
+      } else {
+        for (const pf of pendingFiles) {
+          await onAdd({
+            meta: {
+              name: docForm.name || pf.name,
+              type: docForm.type,
+              mimeType: pf.mimeType,
+              size: pf.size,
+              date: new Date().toISOString().slice(0, 10),
+            },
+            file: pf.file,
+          });
+        }
+      }
+      setDocForm({ name: "", type: "other" }); setPendingFiles([]); setShowModal(false);
+    } catch (e) {
+      console.error("[PropBooks] Save document failed:", e);
+    } finally {
+      setSaving(false);
     }
-    setDocForm({ name: "", type: "other" }); setPendingFiles([]); setShowModal(false);
   };
 
   const typeLabel = t => (DOC_TYPE_OPTIONS.find(o => o.value === t) || {}).label || t;
@@ -264,9 +272,9 @@ export function DocumentsPanel({ documents, onAdd, onDelete, entityLabel = "item
               </div>
             </div>
             <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
-              <button onClick={handleSave} disabled={!docForm.name && pendingFiles.length === 0}
-                style={{ flex: 1, padding: "10px 0", borderRadius: 10, border: "none", background: "#e95e00", color: "#fff", fontSize: 14, fontWeight: 600, cursor: "pointer", opacity: (!docForm.name && pendingFiles.length === 0) ? 0.5 : 1 }}>
-                Save Document
+              <button onClick={handleSave} disabled={saving || (!docForm.name && pendingFiles.length === 0)}
+                style={{ flex: 1, padding: "10px 0", borderRadius: 10, border: "none", background: "#e95e00", color: "#fff", fontSize: 14, fontWeight: 600, cursor: saving ? "wait" : "pointer", opacity: (saving || (!docForm.name && pendingFiles.length === 0)) ? 0.5 : 1 }}>
+                {saving ? "Saving..." : "Save Document"}
               </button>
               <button onClick={() => { setShowModal(false); setPendingFiles([]); setDocForm({ name: "", type: "other" }); }}
                 style={{ padding: "10px 20px", borderRadius: 10, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text-secondary)", fontSize: 14, fontWeight: 600, cursor: "pointer" }}>

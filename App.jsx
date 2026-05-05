@@ -29,9 +29,9 @@ import {
   getDealMilestones, updateDealMilestones, DEAL_MILESTONES,
   REHAB_CATEGORIES, REHAB_CATEGORY_GROUPS, REHAB_TEMPLATES, getCanonicalBySlug, getCanonicalByLabel,
   getTenants, getMileageTrips, addMileageTrip, RENTAL_NOTES, DEAL_NOTES, GENERAL_NOTES, TEAM_MEMBERS, MOCK_USER,
-  PROPERTY_DOCUMENTS, addPropertyDocument, deletePropertyDocument,
-  DEAL_DOCUMENTS, addDealDocument, deleteDealDocument,
-  TENANT_DOCUMENTS, addTenantDocument, deleteTenantDocument,
+  PROPERTY_DOCUMENTS,
+  DEAL_DOCUMENTS,
+  TENANT_DOCUMENTS,
   MAINTENANCE_REQUESTS, addMaintenanceRequest, updateMaintenanceRequest,
   TRANSACTION_RECEIPTS, addTransactionReceipt, deleteTransactionReceipt,
   DEAL_EXPENSE_RECEIPTS, addDealExpenseReceipt, deleteDealExpenseReceipt,
@@ -94,6 +94,7 @@ import { listDealExpenses } from "./db/dealExpenses.js";
 import { listNotes, createDealNote as dbCreateDealNote, updateNote as dbUpdateNote, deleteNote as dbDeleteNote } from "./db/notes.js";
 import { listMileageTrips } from "./db/mileageTrips.js";
 import { listMaintenanceRequests } from "./db/maintenanceRequests.js";
+import { listDocuments, createDocument as dbCreateDocument, deleteDocument as dbDeleteDocument } from "./db/documents.js";
 
 // Fire-and-forget DB sync for legacy sync handlers that mutate DEALS in place.
 // The optimistic in-memory mutation has already happened; this just persists.
@@ -2157,8 +2158,27 @@ function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigate
       {activeTab === "documents" && (
         <DocumentsPanel
           documents={dealDocs}
-          onAdd={doc => { addDealDocument({ ...doc, dealId: deal.id }); dealDocRerender(n => n + 1); }}
-          onDelete={id => { deleteDealDocument(id); dealDocRerender(n => n + 1); }}
+          onAdd={async ({ meta, file }) => {
+            try {
+              const saved = await dbCreateDocument({ entityType: "deal", entityId: deal.id, meta, file });
+              DEAL_DOCUMENTS.unshift(saved);
+              dealDocRerender(n => n + 1);
+            } catch (e) {
+              console.error("[PropBooks] Add deal document failed:", e);
+            }
+          }}
+          onDelete={async (id) => {
+            try {
+              const doc = DEAL_DOCUMENTS.find(d => d.id === id);
+              if (!doc) return;
+              await dbDeleteDocument(doc);
+              const idx = DEAL_DOCUMENTS.findIndex(d => d.id === id);
+              if (idx !== -1) DEAL_DOCUMENTS.splice(idx, 1);
+              dealDocRerender(n => n + 1);
+            } catch (e) {
+              console.error("[PropBooks] Delete deal document failed:", e);
+            }
+          }}
           entityLabel="deal"
         />
       )}
@@ -3073,12 +3093,12 @@ function AppShell() {
     let cancelled = false;
     (async () => {
       try {
-        const [props, txs, tns, dls, rehab, mls, cons, bids, pays, dexps, notes, trips, maint] = await Promise.all([
+        const [props, txs, tns, dls, rehab, mls, cons, bids, pays, dexps, notes, trips, maint, docs] = await Promise.all([
           listProperties(), listTransactions(), listTenants(),
           listDeals(), listRehabItems(), listMilestones(),
           listContractors(), listContractorBids(), listContractorPayments(),
           listDealExpenses(), listNotes(), listMileageTrips(),
-          listMaintenanceRequests(),
+          listMaintenanceRequests(), listDocuments(),
         ]);
         if (cancelled) return;
         PROPERTIES.length = 0;
@@ -3117,6 +3137,14 @@ function AppShell() {
         MILEAGE_TRIPS.push(...trips);
         MAINTENANCE_REQUESTS.length = 0;
         MAINTENANCE_REQUESTS.push(...maint);
+        PROPERTY_DOCUMENTS.length = 0;
+        PROPERTY_DOCUMENTS.push(...docs.propertyDocs);
+        DEAL_DOCUMENTS.length = 0;
+        DEAL_DOCUMENTS.push(...docs.dealDocs);
+        TENANT_DOCUMENTS.length = 0;
+        TENANT_DOCUMENTS.push(...docs.tenantDocs);
+        CONTRACTOR_DOCUMENTS.length = 0;
+        CONTRACTOR_DOCUMENTS.push(...docs.contractorDocs);
         setPropsVersion(v => v + 1);
       } catch (e) {
         console.error("[PropBooks] Failed to load Supabase data:", e);

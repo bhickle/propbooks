@@ -6,12 +6,13 @@ import {
 } from "lucide-react";
 import {
   newId, fmt,
-  PROPERTY_DOCUMENTS, addPropertyDocument, deletePropertyDocument,
+  PROPERTY_DOCUMENTS,
   TRANSACTION_RECEIPTS, addTransactionReceipt,
   RENTAL_NOTES,
 } from "../api.js";
 import { createTransaction, updateTransaction, deleteTransaction } from "../db/transactions.js";
 import { createRentalNote, updateNote as dbUpdateNote, deleteNote as dbDeleteNote } from "../db/notes.js";
+import { createDocument as dbCreateDocument, deleteDocument as dbDeleteDocument } from "../db/documents.js";
 import { calcLoanBalance, getEffectiveMonthly, calcCapRate, calcCashOnCash } from "../finance.js";
 import { daysAgo, getPropertyHealth } from "../health.js";
 import { InfoTip, Modal, StatCard, Badge, iS } from "../shared.jsx";
@@ -733,8 +734,27 @@ export function PropertyDetail({ property, onBack, backLabel, onEditProperty, on
       {activeTab === "documents" && (
         <DocumentsPanel
           documents={propDocs}
-          onAdd={doc => { addPropertyDocument({ ...doc, propertyId: property.id }); txForceRender(n => n + 1); }}
-          onDelete={id => { deletePropertyDocument(id); txForceRender(n => n + 1); }}
+          onAdd={async ({ meta, file }) => {
+            try {
+              const saved = await dbCreateDocument({ entityType: "property", entityId: property.id, meta, file });
+              PROPERTY_DOCUMENTS.unshift(saved);
+              txForceRender(n => n + 1);
+            } catch (e) {
+              console.error("[PropBooks] Add property document failed:", e);
+            }
+          }}
+          onDelete={async (id) => {
+            try {
+              const doc = PROPERTY_DOCUMENTS.find(d => d.id === id);
+              if (!doc) return;
+              await dbDeleteDocument(doc);
+              const idx = PROPERTY_DOCUMENTS.findIndex(d => d.id === id);
+              if (idx !== -1) PROPERTY_DOCUMENTS.splice(idx, 1);
+              txForceRender(n => n + 1);
+            } catch (e) {
+              console.error("[PropBooks] Delete property document failed:", e);
+            }
+          }}
           entityLabel="property"
         />
       )}
