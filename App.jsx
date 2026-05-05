@@ -40,7 +40,7 @@ import {
 } from "./api.js";
 import { AuthProvider, AuthScreen, useAuth } from "./auth.jsx";
 import { SUPABASE_CONFIGURED, SUPABASE_CONFIG_ERROR } from "./supabase.js";
-import { InfoTip, Modal, StatCard, colorWithAlpha, sectionS as sharedSectionS, cardS as sharedCardS } from "./shared.jsx";
+import { InfoTip, Modal, StatCard, colorWithAlpha, sectionS as sharedSectionS, cardS as sharedCardS, Badge, EmptyState, iS } from "./shared.jsx";
 import {
   PROPERTIES, TRANSACTIONS, MONTHLY_CASH_FLOW, EQUITY_GROWTH, EXPENSE_CATEGORIES,
   FLIP_EXPENSE_GROUPS, FLIP_EXPENSE_CATS, getFlipExpGroup,
@@ -117,7 +117,7 @@ function persistRehabItemAsync(id, updates) {
 
 // TAX_CONFIG and getDeprBasis moved to finance.js
 
-const iS = { width: "100%", padding: "10px 12px", border: "1px solid var(--border)", borderRadius: 10, fontSize: 14, color: "var(--text-primary)", background: "var(--surface)", outline: "none", boxSizing: "border-box" };
+// iS, Badge, EmptyState moved to shared.jsx
 
 // Error Boundary — catches runtime errors and displays them instead of white screen
 class ErrorBoundary extends React.Component {
@@ -143,17 +143,7 @@ class ErrorBoundary extends React.Component {
 
 // ThemeProvider, useTheme moved to theme.jsx
 
-// Empty state component for list views
-function EmptyState({ icon: Icon, title, subtitle, actionLabel, onAction }) {
-  return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "60px 24px", textAlign: "center" }}>
-      {Icon && <div style={{ width: 64, height: 64, borderRadius: 20, background: "var(--surface-alt)", border: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 16 }}><Icon size={28} color="#94a3b8" /></div>}
-      <h3 style={{ color: "var(--text-primary)", fontSize: 16, fontWeight: 700, marginBottom: 6 }}>{title}</h3>
-      {subtitle && <p style={{ color: "var(--text-muted)", fontSize: 14, maxWidth: 340, marginBottom: onAction ? 20 : 0 }}>{subtitle}</p>}
-      {onAction && actionLabel && <button onClick={onAction} style={{ background: "#e95e00", color: "#fff", border: "none", borderRadius: 10, padding: "10px 20px", fontSize: 14, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}><Plus size={16} /> {actionLabel}</button>}
-    </div>
-  );
-}
+// EmptyState moved to shared.jsx
 
 // calcLoanBalance, calcPaymentInterest, calcMonthlyFromTx, getEffectiveMonthly,
 // calcCapRate, calcCashOnCash moved to finance.js
@@ -177,19 +167,7 @@ function EmptyState({ icon: Icon, title, subtitle, actionLabel, onAction }) {
 
 // StatCard moved to shared.jsx
 
-function Badge({ status }) {
-  const map = {
-    "Occupied": { bg: "var(--success-badge)", text: "#1a7a4a" },
-    "Partial Vacancy": { bg: "var(--warning-bg)", text: "var(--warning-text)" },
-    "Vacant": { bg: "var(--danger-badge)", text: "#c0392b" },
-  };
-  const s = map[status] || map["Occupied"];
-  return (
-    <span style={{ background: s.bg, color: s.text, borderRadius: 20, padding: "3px 10px", fontSize: 12, fontWeight: 600 }}>
-      {status}
-    </span>
-  );
-}
+// Badge moved to shared.jsx
 
 // Alerts (state, dismiss/snooze, generateAlerts, wasRentPaidThisMonth) and the
 // rent-payment write (logRentPayment, QuickPayInline) moved to alerts.jsx

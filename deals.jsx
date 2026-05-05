@@ -28,7 +28,7 @@ import {
 // Shared mock data refs (passed as props or imported directly)
 // Using module-level state so all modules stay in sync within a session
 import { DEALS as _DEALS, DEAL_EXPENSES as _FE, CONTRACTORS as _CON, DEAL_MILESTONES, DEAL_NOTES, CONTRACTOR_BIDS as _BIDS, CONTRACTOR_PAYMENTS as _PAYMENTS, CONTRACTOR_DOCUMENTS as _DOCS } from "./api.js";
-import { InfoTip, Modal, StatCard, colorWithAlpha, sectionS as sharedSectionS, cardS as sharedCardS } from "./shared.jsx";
+import { InfoTip, Modal, StatCard, colorWithAlpha, sectionS as sharedSectionS, cardS as sharedCardS, iS } from "./shared.jsx";
 import { updateMilestone as dbUpdateMilestone, createMilestone as dbCreateMilestone, deleteMilestone as dbDeleteMilestone } from "./db/dealMilestones.js";
 import { updateRehabItem as dbUpdateRehabItem, createRehabItem as dbCreateRehabItem, deleteRehabItem as dbDeleteRehabItem } from "./db/dealRehabItems.js";
 import { createContractor as dbCreateContractor, updateContractor as dbUpdateContractor, deleteContractor as dbDeleteContractor, linkContractorToDeal as dbLinkContractorToDeal, unlinkContractorFromDeal as dbUnlinkContractorFromDeal } from "./db/contractors.js";
@@ -41,7 +41,7 @@ import { createDocument as dbCreateDocument, updateDocument as dbUpdateDocument,
 // ---------------------------------------------------------------------------
 // Shared helpers
 // ---------------------------------------------------------------------------
-const iS = { width: "100%", padding: "10px 12px", border: "1px solid var(--border)", borderRadius: 10, fontSize: 14, color: "var(--text-primary)", background: "var(--surface)", outline: "none", boxSizing: "border-box" };
+// iS moved to shared.jsx
 
 // ── Attachment components (mirrors App.jsx versions) ──
 function DealAttachmentZone({ onFiles, accept = "image/*,.pdf", label = "Drop file here or click to browse", compact = false }) {
