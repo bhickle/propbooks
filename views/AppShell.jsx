@@ -313,13 +313,14 @@ export function AppShell() {
     { id: "reports",      label: "Reports",       icon: FileText        },
   ];
 
+  // Rehab and Milestones moved out of the top-level nav — they're per-deal
+  // concerns and live as tabs inside DealDetail. Cross-deal milestone view
+  // remains reachable via DealDashboard's upcoming-milestone widget.
   const dealNavItems = [
     { id: "dealdashboard",   label: "Dashboard",      icon: LayoutDashboard },
     { id: "deals",           label: "Deals",           icon: Hammer          },
-    { id: "dealrehab",       label: "Rehab",           icon: Wrench          },
     { id: "dealexpenses",    label: "Expenses",        icon: Receipt         },
     { id: "dealcontractors", label: "Contractors",     icon: Users           },
-    { id: "dealmilestones",  label: "Milestones",      icon: Flag            },
     { id: "dealanalytics",   label: "Analytics",       icon: BarChart3       },
     { id: "dealreports",    label: "Reports",         icon: FileText        },
   ];
