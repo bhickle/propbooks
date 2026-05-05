@@ -15,11 +15,13 @@
 import { useState, useMemo } from "react";
 import {
   Search, X, ArrowUpRight, ArrowDownRight, ExternalLink, Wallet,
-  TrendingUp, TrendingDown, Hash,
+  TrendingUp, TrendingDown, Hash, Plus, Home, Hammer, Building2,
 } from "lucide-react";
 import { fmt, fmtK, DEALS, DEAL_EXPENSES, CONTRACTORS } from "../api.js";
 import { PROPERTIES, TRANSACTIONS, TENANTS } from "../mockData.js";
-import { StatCard, EmptyState, iS } from "../shared.jsx";
+import { StatCard, EmptyState, Modal, iS } from "../shared.jsx";
+import { createTransaction } from "../db/transactions.js";
+import { createDealExpense } from "../db/dealExpenses.js";
 
 // ── Row builder — one shape, two sources ─────────────────────────────────────
 function buildRows() {
@@ -93,6 +95,256 @@ function dateInRange(dateStr, range) {
   return true;
 }
 
+// ── Category groups, scoped per kind ────────────────────────────────────────
+// Same vocabulary the existing per-type forms use. Keeping these inline so
+// the unified form is a self-contained replacement and there's no
+// cross-import coupling to delete when the old forms come out.
+const RENTAL_INCOME_GROUPS = {
+  "Rent":         ["Rent Income", "Parking / Storage", "Laundry Income"],
+  "Fees":         ["Late Fees", "Pet Fees", "Application Fees"],
+  "Other Income": ["Damage Deposit Applied", "Other Income"],
+};
+const RENTAL_EXPENSE_GROUPS = {
+  "Mortgage & Financing":  ["Mortgage Payment", "Loan Interest", "Refinance Costs"],
+  "Taxes":                 ["Property Tax", "Tax Penalties"],
+  "Insurance":             ["Property Insurance", "Liability Insurance", "Flood Insurance"],
+  "Repairs & Maintenance": ["Plumbing", "Electrical", "HVAC", "Appliance Repair", "Roof Repair", "General Maintenance"],
+  "Capital Improvement":   ["Kitchen Remodel", "Bathroom Remodel", "Flooring", "New Roof", "Other Capital"],
+  "HOA / Condo Fees":      ["HOA Dues", "Special Assessment"],
+  "Property Management":   ["Management Fee", "Leasing Fee"],
+  "Utilities":             ["Electric", "Gas", "Water / Sewer", "Trash", "Internet / Cable"],
+  "Grounds":               ["Landscaping", "Snow Removal", "Pest Control"],
+  "Professional Services": ["Legal Fees", "Accounting / CPA", "Inspection Fees"],
+  "Marketing":             ["Advertising", "Listing Fees", "Signage"],
+  "General":               ["Cleaning", "Supplies & Materials", "Travel & Mileage", "Other Expenses"],
+};
+const FLIP_EXPENSE_GROUPS = {
+  "Materials & Labor":  ["Materials & Supplies", "Subcontractor", "Fixtures & Hardware", "Appliances"],
+  "Permits & Fees":     ["Permits", "Inspection Fees", "HOA Approvals"],
+  "Site Costs":         ["Dumpster / Debris Removal", "Utilities", "Storage", "Equipment Rental"],
+  "Holding & Carrying": ["Mortgage Interest", "Property Tax", "Insurance"],
+  "Selling Costs":      ["Staging", "Photography", "Listing Fees", "Marketing"],
+  "Other":              ["Travel & Mileage", "Other Expenses"],
+};
+
+function groupsForKind(kind) {
+  if (kind === "rental-income")  return RENTAL_INCOME_GROUPS;
+  if (kind === "rental-expense") return RENTAL_EXPENSE_GROUPS;
+  return FLIP_EXPENSE_GROUPS;
+}
+function defaultCategory(kind) {
+  if (kind === "rental-income")  return "Rent Income";
+  if (kind === "rental-expense") return "Mortgage Payment";
+  return "Materials & Supplies";
+}
+
+// ── LedgerAddModal — one form, three save paths ─────────────────────────────
+// Asset-first workflow: pick the entry kind, the asset dropdown filters, the
+// rest of the form fields adapt. Defers the receipt-attachment + P/I-split
+// niceties from the legacy per-type forms until V2.
+function LedgerAddModal({ initialKind, onClose, onSaved }) {
+  const [kind, setKind] = useState(initialKind || "rental-expense");
+  const [form, setForm] = useState({
+    date: new Date().toISOString().slice(0, 10),
+    assetId: "",
+    tenantId: "",
+    contractorId: "",
+    category: defaultCategory(initialKind || "rental-expense"),
+    description: "",
+    amount: "",
+    counterparty: "", // payee for rental, vendor for flip
+  });
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState(null);
+  const sf = k => e => setForm(f => ({ ...f, [k]: e.target.value }));
+
+  const setKindAndReset = (k) => {
+    setKind(k);
+    setForm(f => ({
+      ...f,
+      assetId: "",
+      tenantId: "",
+      contractorId: "",
+      category: defaultCategory(k),
+    }));
+  };
+
+  // Asset options scoped to kind. Rentals come from PROPERTIES; flips from DEALS.
+  const assetOptions = kind === "flip-expense" ? DEALS : PROPERTIES;
+  const selectedAsset = assetOptions.find(a => String(a.id) === String(form.assetId));
+
+  // Tenants on the selected rental (for income with optional tenant attribution).
+  const tenantsForAsset = kind === "rental-income" && selectedAsset
+    ? TENANTS.filter(t => t.propertyId === selectedAsset.id && t.status !== "past" && t.status !== "vacant")
+    : [];
+
+  const groups = groupsForKind(kind);
+
+  const counterpartyLabel = kind === "rental-income" ? "Received From" : "Paid To";
+  const counterpartyPlaceholder = kind === "rental-income"
+    ? "Tenant name (auto-fills if you pick one above)"
+    : kind === "flip-expense" ? "Vendor or contractor name" : "Vendor / payee";
+
+  const canSave = form.assetId && form.amount && Number(form.amount) > 0 && form.category;
+
+  const handleSave = async () => {
+    if (!canSave) return;
+    setSaving(true);
+    setError(null);
+    try {
+      const amt = Number(form.amount);
+      if (kind === "flip-expense") {
+        const saved = await createDealExpense({
+          dealId: form.assetId,
+          contractorId: form.contractorId || null,
+          date: form.date,
+          vendor: form.counterparty || null,
+          category: form.category,
+          description: form.description || "",
+          amount: amt,
+        });
+        DEAL_EXPENSES.unshift(saved);
+        onSaved && onSaved({ kind: "flip", row: saved });
+      } else {
+        // Rental income or rental expense. Income amounts stay positive,
+        // expenses are stored negative — same convention as the existing
+        // TRANSACTIONS data so the Ledger sign logic keeps working.
+        const isIncome = kind === "rental-income";
+        // If user selected a tenant on income but didn't type a payee,
+        // auto-fill from the tenant's name.
+        let counterparty = form.counterparty;
+        if (!counterparty && form.tenantId) {
+          const t = TENANTS.find(x => String(x.id) === String(form.tenantId));
+          if (t) counterparty = t.name;
+        }
+        const saved = await createTransaction({
+          date: form.date,
+          propertyId: form.assetId,
+          tenantId: form.tenantId || null,
+          type: isIncome ? "income" : "expense",
+          category: form.category,
+          description: form.description || "",
+          amount: isIncome ? amt : -amt,
+          payee: counterparty || null,
+        });
+        TRANSACTIONS.unshift(saved);
+        onSaved && onSaved({ kind: "rental", row: saved });
+      }
+      onClose();
+    } catch (e) {
+      console.error("[PropBooks] Save ledger entry failed:", e);
+      setError(e.message || "Couldn't save — please try again.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const kindPill = (id, label, Icon, color) => {
+    const active = kind === id;
+    return (
+      <button key={id} onClick={() => setKindAndReset(id)}
+        style={{ flex: 1, padding: "10px 8px", borderRadius: 10, border: active ? `1.5px solid ${color}` : "1px solid var(--border)", background: active ? `${color}14` : "var(--surface)", color: active ? color : "var(--text-secondary)", fontWeight: active ? 700 : 600, fontSize: 12, cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 4, transition: "all 0.15s" }}>
+        <Icon size={14} />
+        {label}
+      </button>
+    );
+  };
+
+  return (
+    <Modal title="Add Ledger Entry" onClose={onClose} width={560}>
+      <div style={{ marginBottom: 16 }}>
+        <p style={{ fontSize: 12, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 8 }}>What kind of entry?</p>
+        <div style={{ display: "flex", gap: 8 }}>
+          {kindPill("rental-income",  "Rental Income",  Home,   "var(--c-green)")}
+          {kindPill("rental-expense", "Rental Expense", Home,   "var(--c-blue)")}
+          {kindPill("flip-expense",   "Flip Expense",   Hammer, "#e95e00")}
+        </div>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+        <div style={{ gridColumn: "1 / -1" }}>
+          <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>
+            {kind === "flip-expense" ? "Deal *" : "Property *"}
+          </label>
+          <select value={form.assetId} onChange={sf("assetId")} style={iS}>
+            <option value="">Select {kind === "flip-expense" ? "a deal" : "a property"}…</option>
+            {assetOptions.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+          </select>
+        </div>
+
+        {kind === "rental-income" && tenantsForAsset.length > 0 && (
+          <div style={{ gridColumn: "1 / -1" }}>
+            <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>
+              Tenant <span style={{ color: "var(--text-muted)", fontWeight: 400 }}>(optional — for rent attribution)</span>
+            </label>
+            <select value={form.tenantId} onChange={sf("tenantId")} style={iS}>
+              <option value="">No tenant (general income)</option>
+              {tenantsForAsset.map(t => <option key={t.id} value={t.id}>{t.name}{t.unit ? ` — ${t.unit}` : ""}</option>)}
+            </select>
+          </div>
+        )}
+
+        {kind === "flip-expense" && CONTRACTORS.length > 0 && (
+          <div style={{ gridColumn: "1 / -1" }}>
+            <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>
+              Contractor <span style={{ color: "var(--text-muted)", fontWeight: 400 }}>(optional)</span>
+            </label>
+            <select value={form.contractorId} onChange={sf("contractorId")} style={iS}>
+              <option value="">No contractor (vendor / supplier)</option>
+              {CONTRACTORS.map(c => <option key={c.id} value={c.id}>{c.name}{c.trade ? ` — ${c.trade}` : ""}</option>)}
+            </select>
+          </div>
+        )}
+
+        <div>
+          <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Date *</label>
+          <input type="date" value={form.date} onChange={sf("date")} style={iS} />
+        </div>
+        <div>
+          <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Amount *</label>
+          <input type="number" step="0.01" placeholder="0.00" value={form.amount} onChange={sf("amount")} style={iS} />
+        </div>
+
+        <div style={{ gridColumn: "1 / -1" }}>
+          <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Category *</label>
+          <select value={form.category} onChange={sf("category")} style={iS}>
+            {Object.entries(groups).map(([groupName, subs]) => (
+              <optgroup key={groupName} label={groupName}>
+                {subs.map(c => <option key={c} value={c}>{c}</option>)}
+              </optgroup>
+            ))}
+          </select>
+        </div>
+
+        <div style={{ gridColumn: "1 / -1" }}>
+          <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Description</label>
+          <input type="text" placeholder={kind === "rental-income" ? "e.g. March rent — Unit A" : kind === "flip-expense" ? "e.g. Hardwood flooring — 680 sqft" : "e.g. Q1 property insurance"} value={form.description} onChange={sf("description")} style={iS} />
+        </div>
+
+        <div style={{ gridColumn: "1 / -1" }}>
+          <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>{counterpartyLabel}</label>
+          <input type="text" placeholder={counterpartyPlaceholder} value={form.counterparty} onChange={sf("counterparty")} style={iS} />
+        </div>
+      </div>
+
+      {error && (
+        <p style={{ marginTop: 14, padding: "8px 12px", background: "var(--danger-tint)", borderRadius: 8, color: "#991b1b", fontSize: 12 }}>{error}</p>
+      )}
+
+      <div style={{ display: "flex", gap: 10, marginTop: 22 }}>
+        <button onClick={onClose} disabled={saving}
+          style={{ flex: 1, padding: "12px", border: "1px solid var(--border)", borderRadius: 10, background: "var(--surface)", color: "var(--text-label)", fontWeight: 600, cursor: saving ? "not-allowed" : "pointer", opacity: saving ? 0.6 : 1 }}>
+          Cancel
+        </button>
+        <button onClick={handleSave} disabled={!canSave || saving}
+          style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: kind === "rental-income" ? "var(--c-green)" : kind === "flip-expense" ? "#e95e00" : "var(--c-blue)", color: "#fff", fontWeight: 700, cursor: (!canSave || saving) ? "not-allowed" : "pointer", opacity: (!canSave || saving) ? 0.5 : 1 }}>
+          {saving ? "Saving…" : "Save Entry"}
+        </button>
+      </div>
+    </Modal>
+  );
+}
+
 function TypeChip({ row }) {
   if (row.kind === "rental" && row.type === "income") {
     return <span style={{ background: "var(--success-badge)", color: "#1a7a4a", borderRadius: 12, padding: "2px 8px", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.04em" }}>Rental Income</span>;
@@ -108,8 +360,10 @@ export function Ledger({ onOpenTx, onOpenDealExpense }) {
   const [assetFilter, setAssetFilter] = useState("all");
   const [dateRange, setDateRange] = useState("thisYear");
   const [search, setSearch] = useState("");
+  const [showAdd, setShowAdd] = useState(null); // null | "rental-income" | "rental-expense" | "flip-expense"
+  const [renderKey, setRenderKey] = useState(0);
 
-  const rows = useMemo(() => buildRows(), []);
+  const rows = useMemo(() => buildRows(), [renderKey]); // eslint-disable-line react-hooks/exhaustive-deps -- renderKey is the cache-bust counter for TRANSACTIONS / DEAL_EXPENSES
 
   const filtered = rows.filter(r => {
     if (!matchesTypeFilter(r, typeFilter)) return false;
@@ -153,6 +407,10 @@ export function Ledger({ onOpenTx, onOpenDealExpense }) {
           <h1 style={{ color: "var(--text-primary)", fontSize: 26, fontWeight: 700, marginBottom: 4 }}>Ledger</h1>
           <p style={{ color: "var(--text-secondary)", fontSize: 15 }}>Every dollar in and out, across rentals and flips</p>
         </div>
+        <button onClick={() => setShowAdd("rental-expense")}
+          style={{ background: "#e95e00", color: "#fff", border: "none", borderRadius: 10, padding: "10px 18px", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
+          <Plus size={16} /> Add Entry
+        </button>
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 24 }}>
@@ -278,6 +536,14 @@ export function Ledger({ onOpenTx, onOpenDealExpense }) {
         <p style={{ marginTop: 14, fontSize: 12, color: "var(--text-muted)", textAlign: "right" }}>
           Showing {filtered.length} of {rows.length} entries · Net {fmt(net)} ({fmtK(income)} in, {fmtK(Math.abs(expenses))} out)
         </p>
+      )}
+
+      {showAdd && (
+        <LedgerAddModal
+          initialKind={showAdd}
+          onClose={() => setShowAdd(null)}
+          onSaved={() => setRenderKey(k => k + 1)}
+        />
       )}
     </div>
   );
