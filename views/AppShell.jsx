@@ -388,6 +388,16 @@ export function AppShell() {
             Ledger
             <span style={{ marginLeft: "auto", fontSize: 9, fontWeight: 700, color: "#fbbf77", background: "rgba(233,94,0,0.18)", borderRadius: 6, padding: "2px 6px", letterSpacing: "0.04em" }}>NEW</span>
           </button>
+          {/* Contractors (preview) — promoted to top-level so the same plumber
+              who fixes a tenant drain and demos a flip lives in one place */}
+          <button onClick={() => { setActiveView("dealcontractors"); setSelectedProperty(null); setSelectedDeal(null); setHighlightTxId(null); setNavSource(null); }}
+            style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 10, border: "none", background: activeView === "dealcontractors" ? "rgba(233,94,0,0.2)" : "transparent", color: activeView === "dealcontractors" ? "#fbbf77" : "#64748b", fontWeight: activeView === "dealcontractors" ? 700 : 500, fontSize: 14, cursor: "pointer", marginBottom: 2, textAlign: "left", transition: "all 0.15s" }}
+            onMouseEnter={e => { if (activeView !== "dealcontractors") e.currentTarget.style.background = "rgba(255,255,255,0.05)"; }}
+            onMouseLeave={e => { if (activeView !== "dealcontractors") e.currentTarget.style.background = "transparent"; }}>
+            <Users size={17} />
+            Contractors
+            <span style={{ marginLeft: "auto", fontSize: 9, fontWeight: 700, color: "#fbbf77", background: "rgba(233,94,0,0.18)", borderRadius: 6, padding: "2px 6px", letterSpacing: "0.04em" }}>NEW</span>
+          </button>
           <div style={{ height: 1, background: "rgba(255,255,255,0.07)", margin: "14px 8px 12px" }} />
           <p style={{ color: "var(--text-label)", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", padding: "0 8px", marginBottom: 8 }}>Rentals</p>
           {rentalNavItems.map(item => {
