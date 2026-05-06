@@ -134,14 +134,25 @@ function flipStats(d) {
   ];
 }
 
+// Treat archived rentals (status "Archived") and closed projects
+// (stage "Sold" or "Converted to Rental") as the same conceptual bucket —
+// no longer in the active portfolio. They stay in the data for reports
+// and tax history; AssetList just hides them by default.
+function isArchived(row) {
+  if (row.kind === "rental") return row.asset.status === "Archived";
+  return row.asset.stage === "Sold" || row.asset.stage === "Converted to Rental";
+}
+
 export function AssetList({ onSelectRental, onSelectFlip, onAddRental, onAddFlip }) {
   const [typeFilter, setTypeFilter] = useState("all"); // "all" | "rental" | "flip"
   const [search, setSearch] = useState("");
   const [showAddMenu, setShowAddMenu] = useState(false);
+  const [showArchived, setShowArchived] = useState(false);
 
   const rows = useMemo(() => buildAssets(), []);
 
   const filtered = rows.filter(r => {
+    if (!showArchived && isArchived(r)) return false;
     if (typeFilter === "rental" && r.kind !== "rental") return false;
     if (typeFilter === "flip" && r.kind !== "flip") return false;
     const q = search.toLowerCase().trim();
@@ -156,17 +167,21 @@ export function AssetList({ onSelectRental, onSelectFlip, onAddRental, onAddFlip
 
   // Header stats — count + roll-up. Rental + flip metrics aren't directly
   // additive (cap rate ≠ ARV) so the four cards lean on what's comparable.
-  const rentalCount = rows.filter(r => r.kind === "rental").length;
-  const flipCount = rows.filter(r => r.kind === "flip").length;
-  const totalValue = rows.reduce((s, r) => {
+  // Stat counts always exclude archived so the headline numbers reflect
+  // active portfolio, regardless of the showArchived toggle.
+  const activeRows = rows.filter(r => !isArchived(r));
+  const rentalCount = activeRows.filter(r => r.kind === "rental").length;
+  const flipCount = activeRows.filter(r => r.kind === "flip").length;
+  const archivedCount = rows.length - activeRows.length;
+  const totalValue = activeRows.reduce((s, r) => {
     if (r.kind === "rental") return s + (r.asset.currentValue || 0);
     return s + (r.asset.arv || 0);
   }, 0);
-  const monthlyCF = PROPERTIES.reduce((s, p) => {
+  const monthlyCF = PROPERTIES.filter(p => p.status !== "Archived").reduce((s, p) => {
     const eff = getEffectiveMonthly(p, TRANSACTIONS);
     return s + (eff.monthlyIncome - eff.monthlyExpenses);
   }, 0);
-  const projectedProfit = DEALS.filter(d => d.stage !== "Sold").reduce((s, d) => {
+  const projectedProfit = DEALS.filter(d => d.stage !== "Sold" && d.stage !== "Converted to Rental").reduce((s, d) => {
     const totalCost = (d.purchasePrice || 0) + (d.rehabBudget || 0) + ((d.holdingCostsPerMonth || 0) * ((d.daysOwned || 0) / 30));
     return s + ((d.arv || 0) - totalCost - ((d.arv || 0) * ((d.sellingCostPct || 6) / 100)));
   }, 0);
@@ -208,16 +223,16 @@ export function AssetList({ onSelectRental, onSelectFlip, onAddRental, onAddFlip
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 24 }}>
-        <StatCard icon={Building2}  label="Total Assets"      value={rows.length}            sub={`${rentalCount} rentals · ${flipCount} projects`} color="var(--c-blue)"   tip="Rentals plus active and sold projects." />
-        <StatCard icon={TrendingUp} label="Portfolio Value"   value={fmtK(totalValue)}       sub="Current value + ARV"                          color="var(--c-purple)" tip="Sum of current value across rentals and ARV across projects." />
-        <StatCard icon={Home}       label="Monthly Cash Flow" value={fmt(monthlyCF)}         sub="Rentals only"                                  color="var(--c-green)"  tip="Sum of (rent − expenses) across rentals using the latest 3-month average where transactions exist." />
-        <StatCard icon={Hammer}     label="Projected Profit"  value={fmtK(Math.round(projectedProfit))} sub="Active projects"                       color="#e95e00"         tip="ARV − purchase − rehab − holding & selling costs across active projects." />
+        <StatCard icon={Building2}  label="Total Assets"      value={activeRows.length}      sub={`${rentalCount} rentals · ${flipCount} projects`} color="var(--c-blue)"   tip="Active rentals + active projects. Archived rentals and closed projects are excluded — toggle 'Show archived' below to see them." />
+        <StatCard icon={TrendingUp} label="Portfolio Value"   value={fmtK(totalValue)}       sub="Current value + ARV"                          color="var(--c-purple)" tip="Sum of current value across active rentals and ARV across active projects." />
+        <StatCard icon={Home}       label="Monthly Cash Flow" value={fmt(monthlyCF)}         sub="Active rentals"                                color="var(--c-green)"  tip="Sum of (rent − expenses) across active rentals using the latest 3-month average where transactions exist. Archived rentals excluded." />
+        <StatCard icon={Hammer}     label="Projected Profit"  value={fmtK(Math.round(projectedProfit))} sub="Active projects"                       color="#e95e00"         tip="ARV − purchase − rehab − holding & selling costs across active projects (excludes Sold and Converted to Rental)." />
       </div>
 
       <div style={{ display: "flex", gap: 10, marginBottom: 20, flexWrap: "wrap", alignItems: "center" }}>
         <div style={{ display: "flex", gap: 4, background: "var(--surface-alt)", borderRadius: 10, padding: 4, border: "1px solid var(--border)" }}>
           {[
-            { id: "all",    label: `All (${rows.length})` },
+            { id: "all",    label: `All (${activeRows.length})` },
             { id: "rental", label: `Rentals (${rentalCount})` },
             { id: "flip",   label: `Projects (${flipCount})` },
           ].map(t => {
@@ -235,8 +250,14 @@ export function AssetList({ onSelectRental, onSelectFlip, onAddRental, onAddFlip
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search assets..."
             style={{ width: "100%", paddingLeft: 36, paddingRight: 12, paddingTop: 9, paddingBottom: 9, border: "1px solid var(--border)", borderRadius: 10, fontSize: 13, color: "var(--text-primary)", background: "var(--surface)", outline: "none", boxSizing: "border-box" }} />
         </div>
-        {(typeFilter !== "all" || search) && (
-          <button onClick={() => { setTypeFilter("all"); setSearch(""); }}
+        {archivedCount > 0 && (
+          <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 600, color: "var(--text-secondary)", cursor: "pointer" }}>
+            <input type="checkbox" checked={showArchived} onChange={e => setShowArchived(e.target.checked)} />
+            Show archived ({archivedCount})
+          </label>
+        )}
+        {(typeFilter !== "all" || search || showArchived) && (
+          <button onClick={() => { setTypeFilter("all"); setSearch(""); setShowArchived(false); }}
             style={{ background: "none", border: "none", color: "var(--text-muted)", fontSize: 12, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
             <X size={13} /> Clear filters
           </button>

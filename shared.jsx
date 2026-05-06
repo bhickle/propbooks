@@ -133,6 +133,7 @@ export function Badge({ status }) {
     "Occupied": { bg: "var(--success-badge)", text: "#1a7a4a" },
     "Partial Vacancy": { bg: "var(--warning-bg)", text: "var(--warning-text)" },
     "Vacant": { bg: "var(--danger-badge)", text: "#c0392b" },
+    "Archived": { bg: "var(--surface-muted)", text: "var(--text-muted)" },
   };
   const s = map[status] || map["Occupied"];
   return (
