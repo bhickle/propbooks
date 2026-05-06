@@ -47,7 +47,7 @@ export function DealReports() {
   const [activeReport, setActiveReport] = useState("profitability");
   const [dealFilter, setDealFilter] = useState("all");
 
-  const deals = dealFilter === "all" ? _DEALS : _DEALS.filter(f => f.id === parseInt(dealFilter));
+  const deals = dealFilter === "all" ? _DEALS : _DEALS.filter(f => f.id === dealFilter);
   const allMetrics = deals.map(f => ({ ...f, m: calcDealMetrics(f) }));
 
   // Portfolio-level KPIs
@@ -119,7 +119,7 @@ export function DealReports() {
           ))}
           <div style={{ borderTop: "1px solid var(--border-subtle)", marginTop: 12, paddingTop: 12 }}>
             <p style={{ fontSize: 11, color: "var(--text-muted)", fontWeight: 600, textTransform: "uppercase", padding: "0 14px", marginBottom: 6 }}>Scope</p>
-            <p style={{ fontSize: 12, color: "var(--text-label)", padding: "0 14px", fontWeight: 600 }}>{dealFilter === "all" ? `All ${_DEALS.length} deals` : _DEALS.find(f => f.id === parseInt(dealFilter))?.name}</p>
+            <p style={{ fontSize: 12, color: "var(--text-label)", padding: "0 14px", fontWeight: 600 }}>{dealFilter === "all" ? `All ${_DEALS.length} deals` : _DEALS.find(f => f.id === dealFilter)?.name}</p>
             <p style={{ fontSize: 12, color: "var(--text-muted)", padding: "0 14px" }}>{deals.filter(d => d.stage === "Sold").length} sold · {deals.filter(d => d.stage !== "Sold").length} active</p>
           </div>
         </div>
@@ -392,7 +392,7 @@ function HoldingCostsReport({ deals }) {
 // 4. CONTRACTOR PAYMENTS
 // ═══════════════════════════════════════════════════════════════════════════════
 function ContractorPaymentsReport({ dealFilter }) {
-  const filterDealId = dealFilter !== "all" ? parseInt(dealFilter) : null;
+  const filterDealId = dealFilter !== "all" ? dealFilter : null;
 
   // Filter contractors to those relevant to the selected deal (or all)
   const contractors = _CON.filter(c => {
