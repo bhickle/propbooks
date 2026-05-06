@@ -39,7 +39,7 @@ function buildAssets() {
   return [...rentalRows, ...flipRows].sort((a, b) => b.sortKey.localeCompare(a.sortKey));
 }
 
-// ── Stage chip — works for both rental statuses and deal stages ─────────────
+// ── Stage chip — works for both rental statuses and project stages ─────────
 function TypeStageChip({ row }) {
   if (row.kind === "rental") {
     return (
@@ -219,7 +219,7 @@ export function AssetList({ onSelectRental, onSelectFlip, onAddRental, onAddFlip
           {[
             { id: "all",    label: `All (${rows.length})` },
             { id: "rental", label: `Rentals (${rentalCount})` },
-            { id: "flip",   label: `Deals (${flipCount})` },
+            { id: "flip",   label: `Projects (${flipCount})` },
           ].map(t => {
             const active = typeFilter === t.id;
             return (
@@ -248,7 +248,7 @@ export function AssetList({ onSelectRental, onSelectFlip, onAddRental, onAddFlip
         {filtered.length === 0 && (
           <div style={{ gridColumn: "1 / -1" }}>
             {rows.length === 0
-              ? <EmptyState icon={Home} title="No assets yet" subtitle="Add your first rental property or deal to start tracking your portfolio." actionLabel="Add Rental" onAction={onAddRental} />
+              ? <EmptyState icon={Home} title="No assets yet" subtitle="Add your first rental property or project to start tracking your portfolio." actionLabel="Add Rental" onAction={onAddRental} />
               : <EmptyState icon={Search} title="No assets match this filter" subtitle="Try selecting a different type or clearing the search." />
             }
           </div>
