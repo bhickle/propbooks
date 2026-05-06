@@ -16,11 +16,16 @@ import { useState, useMemo } from "react";
 import {
   Search, X, ArrowUpRight, ArrowDownRight, ExternalLink, Wallet,
   TrendingUp, TrendingDown, Hash, Plus, Home, Hammer, Building2,
-  Pencil, Trash2,
+  Pencil, Trash2, Paperclip, CheckCircle,
 } from "lucide-react";
-import { fmt, fmtK, DEALS, DEAL_EXPENSES, CONTRACTORS } from "../api.js";
+import {
+  newId, fmt, fmtK, DEALS, DEAL_EXPENSES, CONTRACTORS,
+  TRANSACTION_RECEIPTS, addTransactionReceipt,
+  DEAL_EXPENSE_RECEIPTS, addDealExpenseReceipt,
+} from "../api.js";
 import { PROPERTIES, TRANSACTIONS, TENANTS } from "../mockData.js";
 import { StatCard, EmptyState, Modal, iS } from "../shared.jsx";
+import { AttachmentZone, AttachmentList, OcrPrompt } from "./Attachments.jsx";
 import { createTransaction, updateTransaction, deleteTransaction } from "../db/transactions.js";
 import { createDealExpense, updateDealExpense, deleteDealExpense } from "../db/dealExpenses.js";
 import { updateRehabItem as dbUpdateRehabItem } from "../db/dealRehabItems.js";
@@ -189,6 +194,16 @@ function LedgerAddModal({ initialKind, editRow, onClose, onSaved }) {
   const [error, setError] = useState(null);
   const sf = k => e => setForm(f => ({ ...f, [k]: e.target.value }));
 
+  // Receipts — in-memory only for now, mirroring the legacy per-type forms.
+  // (Same caveat: lost on reload. Persisting via Supabase Storage like the
+  // documents bucket is a separate work item that lifts both the unified and
+  // legacy flows together.)
+  const [receipts, setReceipts] = useState(() => {
+    if (!editing) return [];
+    if (editRow.kind === "rental") return TRANSACTION_RECEIPTS.filter(r => r.transactionId === editRow.raw.id);
+    return DEAL_EXPENSE_RECEIPTS.filter(r => r.expenseId === editRow.raw.id);
+  });
+
   const setKindAndReset = (k) => {
     setKind(k);
     setForm(f => ({
@@ -271,12 +286,16 @@ function LedgerAddModal({ initialKind, editRow, onClose, onSaved }) {
           if (idxG !== -1) DEAL_EXPENSES[idxG] = saved;
           const newDeal = DEALS.find(d => d.id === saved.dealId);
           if (riIdx != null) await adjustRehabSpent(newDeal, riIdx, amt);
+          // Persist any new receipts that aren't already in the global store
+          receipts.filter(r => !DEAL_EXPENSE_RECEIPTS.some(er => er.id === r.id))
+            .forEach(r => addDealExpenseReceipt({ ...r, expenseId: prev.id }));
           onSaved && onSaved({ kind: "flip", row: saved });
         } else {
           const saved = await createDealExpense(dbFields);
           DEAL_EXPENSES.unshift(saved);
           const newDeal = DEALS.find(d => d.id === saved.dealId);
           if (riIdx != null) await adjustRehabSpent(newDeal, riIdx, amt);
+          receipts.forEach(r => addDealExpenseReceipt({ ...r, expenseId: saved.id }));
           onSaved && onSaved({ kind: "flip", row: saved });
         }
       } else {
@@ -305,10 +324,13 @@ function LedgerAddModal({ initialKind, editRow, onClose, onSaved }) {
           const saved = await updateTransaction(editRow.raw.id, dbFields);
           const idxG = TRANSACTIONS.findIndex(t => t.id === editRow.raw.id);
           if (idxG !== -1) TRANSACTIONS[idxG] = saved;
+          receipts.filter(r => !TRANSACTION_RECEIPTS.some(er => er.id === r.id))
+            .forEach(r => addTransactionReceipt({ ...r, transactionId: saved.id }));
           onSaved && onSaved({ kind: "rental", row: saved });
         } else {
           const saved = await createTransaction(dbFields);
           TRANSACTIONS.unshift(saved);
+          receipts.forEach(r => addTransactionReceipt({ ...r, transactionId: saved.id }));
           onSaved && onSaved({ kind: "rental", row: saved });
         }
       }
@@ -424,6 +446,57 @@ function LedgerAddModal({ initialKind, editRow, onClose, onSaved }) {
           <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>{counterpartyLabel}</label>
           <input type="text" placeholder={counterpartyPlaceholder} value={form.counterparty} onChange={sf("counterparty")} style={iS} />
         </div>
+
+        {kind !== "rental-income" && (
+          <div style={{ gridColumn: "1 / -1" }}>
+            <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>
+              <Paperclip size={13} style={{ marginRight: 4, verticalAlign: "middle" }} />Receipt / Attachment
+            </label>
+            <AttachmentZone
+              compact
+              label="Attach receipt or document"
+              onFiles={files => {
+                const newAtts = files.map(f => ({
+                  id: newId(), name: f.name, mimeType: f.type,
+                  size: f.size > 1024 * 1024 ? (f.size / (1024 * 1024)).toFixed(1) + " MB" : Math.round(f.size / 1024) + " KB",
+                  url: URL.createObjectURL(f), ocrData: null,
+                  createdAt: new Date().toISOString(), userId: "usr_001",
+                }));
+                setReceipts(prev => [...prev, ...newAtts]);
+              }}
+            />
+            {receipts.length > 0 && (
+              <div style={{ marginTop: 8 }}>
+                <AttachmentList
+                  items={receipts}
+                  onRemove={id => setReceipts(prev => prev.filter(r => r.id !== id))}
+                  compact
+                />
+                {/* OCR auto-fill prompt — only on expense (income receipts don't carry vendor info we need) */}
+                {receipts.filter(r => !r.ocrData).map(att => (
+                  <OcrPrompt key={att.id} attachment={att}
+                    onResult={(ocrData, a) => {
+                      setForm(f => ({
+                        ...f,
+                        counterparty: f.counterparty || ocrData.vendor || "",
+                        amount: f.amount || String(ocrData.amount || ""),
+                        date: f.date || ocrData.date || "",
+                        description: f.description || `Receipt — ${ocrData.vendor || "scanned"}`,
+                      }));
+                      setReceipts(prev => prev.map(r => r.id === a.id ? { ...r, ocrData } : r));
+                    }}
+                  />
+                ))}
+                {receipts.some(r => r.ocrData) && (
+                  <p style={{ fontSize: 11, color: "#1a7a4a", marginTop: 4, fontStyle: "italic" }}>
+                    <CheckCircle size={11} style={{ verticalAlign: "middle", marginRight: 3 }} />
+                    Fields auto-filled from receipt — please verify
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {error && (
