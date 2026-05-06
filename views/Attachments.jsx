@@ -9,10 +9,11 @@
 // =============================================================================
 import { useState, useRef } from "react";
 import {
-  UploadCloud, Loader, FileText, FileImage, X, ScanLine, Star, FilePlus, Trash2,
+  UploadCloud, Loader, FileText, FileImage, X, ScanLine, Star, FilePlus, Trash2, ExternalLink,
 } from "lucide-react";
 import { newId, mockOcrScan } from "../api.js";
 import { iS } from "../shared.jsx";
+import { getDocumentUrl } from "../db/documents.js";
 
 export const DOC_TYPE_OPTIONS = [
   { value: "lease", label: "Lease" }, { value: "contract", label: "Contract" }, { value: "insurance", label: "Insurance" },
@@ -230,10 +231,21 @@ export function DocumentsPanel({ documents, onAdd, onDelete, entityLabel = "item
               </div>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <span style={{ fontSize: 11, color: "var(--text-muted)" }}>{doc.date}</span>
-                <button onClick={() => setDeleteConfirm(doc)} style={{ background: "none", border: "none", cursor: "pointer", padding: 4, color: "var(--text-muted)", borderRadius: 6 }}
-                  onMouseEnter={e => e.currentTarget.style.color = "var(--c-red)"} onMouseLeave={e => e.currentTarget.style.color = "#94a3b8"}>
-                  <Trash2 size={14} />
-                </button>
+                <div style={{ display: "flex", gap: 4 }}>
+                  {doc.storagePath && (
+                    <button onClick={async () => {
+                      const url = await getDocumentUrl(doc);
+                      if (url) window.open(url, "_blank", "noopener,noreferrer");
+                    }} title="Open" style={{ background: "none", border: "none", cursor: "pointer", padding: 4, color: "var(--text-muted)", borderRadius: 6, display: "flex", alignItems: "center" }}
+                      onMouseEnter={e => e.currentTarget.style.color = "var(--c-blue)"} onMouseLeave={e => e.currentTarget.style.color = "#94a3b8"}>
+                      <ExternalLink size={14} />
+                    </button>
+                  )}
+                  <button onClick={() => setDeleteConfirm(doc)} title="Delete" style={{ background: "none", border: "none", cursor: "pointer", padding: 4, color: "var(--text-muted)", borderRadius: 6, display: "flex", alignItems: "center" }}
+                    onMouseEnter={e => e.currentTarget.style.color = "var(--c-red)"} onMouseLeave={e => e.currentTarget.style.color = "#94a3b8"}>
+                    <Trash2 size={14} />
+                  </button>
+                </div>
               </div>
             </div>
           ))}

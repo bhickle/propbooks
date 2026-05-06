@@ -10,7 +10,7 @@ import {
 import { createTransaction } from "../db/transactions.js";
 import { createRentalNote, deleteNote as dbDeleteNote } from "../db/notes.js";
 import { createMaintenanceRequest, updateMaintenanceRequest } from "../db/maintenanceRequests.js";
-import { createDocument as dbCreateDocument, deleteDocument as dbDeleteDocument } from "../db/documents.js";
+import { createDocument as dbCreateDocument, deleteDocument as dbDeleteDocument, getDocumentUrl } from "../db/documents.js";
 import { InfoTip, Modal, colorWithAlpha, iS } from "../shared.jsx";
 import { PROPERTIES, TRANSACTIONS } from "../mockData.js";
 import { useToast } from "../toast.jsx";
@@ -433,7 +433,16 @@ export function TenantDetail({ tenant, onBack, backLabel, onTenantUpdated, onSel
                   <p style={{ fontSize: 14, fontWeight: 600, color: "var(--text-primary)" }}>{d.name}</p>
                   <p style={{ fontSize: 12, color: "var(--text-muted)" }}>{d.type} &middot; {d.size} &middot; {d.date}</p>
                 </div>
-                <button onClick={async () => {
+                <div style={{ display: "flex", gap: 6 }}>
+                  {d.storagePath && (
+                    <button onClick={async () => {
+                      const url = await getDocumentUrl(d);
+                      if (url) window.open(url, "_blank", "noopener,noreferrer");
+                    }} title="Open" style={{ background: "var(--surface-muted)", border: "none", borderRadius: 8, padding: "5px 8px", cursor: "pointer", color: "var(--text-label)", display: "flex", alignItems: "center" }}>
+                      <UploadCloud size={13} style={{ transform: "rotate(180deg)" }} />
+                    </button>
+                  )}
+                  <button onClick={async () => {
                   try {
                     await dbDeleteDocument(d);
                     const idx = TENANT_DOCUMENTS.findIndex(td => td.id === d.id);
@@ -447,6 +456,7 @@ export function TenantDetail({ tenant, onBack, backLabel, onTenantUpdated, onSel
                 }} style={{ background: "var(--danger-badge)", border: "none", borderRadius: 8, padding: "5px 8px", cursor: "pointer", color: "var(--c-red)" }}>
                   <Trash2 size={13} />
                 </button>
+                </div>
               </div>
             ))}
             {documents.length === 0 && (
