@@ -8,9 +8,11 @@ import {
   newId, fmt,
   PROPERTY_DOCUMENTS,
   TRANSACTION_RECEIPTS, addTransactionReceipt,
-  RENTAL_NOTES,
+  RENTAL_NOTES, MAINTENANCE_REQUESTS,
 } from "../api.js";
+import { useToast } from "../toast.jsx";
 import { createTransaction, updateTransaction, deleteTransaction } from "../db/transactions.js";
+import { deleteProperty as dbDeleteProperty } from "../db/properties.js";
 import { createRentalNote, updateNote as dbUpdateNote, deleteNote as dbDeleteNote } from "../db/notes.js";
 import { createDocument as dbCreateDocument, deleteDocument as dbDeleteDocument } from "../db/documents.js";
 import { calcLoanBalance, getEffectiveMonthly, calcCapRate, calcCashOnCash } from "../finance.js";
@@ -21,6 +23,8 @@ import { AttachmentZone, AttachmentList, OcrPrompt, DocumentsPanel } from "./Att
 import { TxDetailPanel } from "./detailPanels.jsx";
 
 export function PropertyDetail({ property, onBack, backLabel, onEditProperty, onGoToTransactions, onNavigateToTransaction, onNavigateToTenant, initialTab, highlightTenantId, onClearHighlightTenant }) {
+  const { showToast } = useToast();
+  const [showDeleteProperty, setShowDeleteProperty] = useState(false);
   const calcBal = calcLoanBalance(property.loanAmount, property.loanRate, property.loanTermYears, property.loanStartDate);
   const effectiveMortgage = calcBal !== null ? calcBal : (property.mortgage || 0);
   const equity = property.currentValue - effectiveMortgage;
@@ -215,6 +219,9 @@ export function PropertyDetail({ property, onBack, backLabel, onEditProperty, on
                 <Badge status={property.status} />
                 <button onClick={() => onEditProperty && onEditProperty(property)} style={{ background: "rgba(255,255,255,0.7)", border: "1px solid rgba(0,0,0,0.08)", borderRadius: 8, padding: "4px 10px", fontSize: 12, fontWeight: 600, color: "var(--text-label)", cursor: "pointer", display: "flex", alignItems: "center", gap: 5 }}>
                   <Pencil size={12} /> Edit Property
+                </button>
+                <button onClick={() => setShowDeleteProperty(true)} style={{ background: "rgba(255,255,255,0.7)", border: "1px solid rgba(0,0,0,0.08)", borderRadius: 8, padding: "4px 10px", fontSize: 12, fontWeight: 600, color: "var(--c-red)", cursor: "pointer", display: "flex", alignItems: "center", gap: 5 }}>
+                  <Trash2 size={12} /> Delete
                 </button>
               </div>
             </div>
@@ -860,6 +867,60 @@ export function PropertyDetail({ property, onBack, backLabel, onEditProperty, on
           )}
         </div>
       )}
+
+      {showDeleteProperty && (() => {
+        // Surface the cascade so the user knows what's getting wiped.
+        const tenantCount = TENANTS.filter(t => t.propertyId === property.id).length;
+        const txCount = TRANSACTIONS.filter(t => t.propertyId === property.id).length;
+        const docCount = PROPERTY_DOCUMENTS.filter(d => d.propertyId === property.id).length;
+        const noteCount = RENTAL_NOTES.filter(n => n.propertyId === property.id).length;
+        const maintCount = MAINTENANCE_REQUESTS.filter(m => m.propertyId === property.id).length;
+        const linked = [
+          tenantCount && `${tenantCount} tenant${tenantCount !== 1 ? "s" : ""}`,
+          txCount && `${txCount} transaction${txCount !== 1 ? "s" : ""}`,
+          docCount && `${docCount} document${docCount !== 1 ? "s" : ""}`,
+          noteCount && `${noteCount} note${noteCount !== 1 ? "s" : ""}`,
+          maintCount && `${maintCount} maintenance request${maintCount !== 1 ? "s" : ""}`,
+        ].filter(Boolean);
+        return (
+          <Modal title="Delete Property" onClose={() => setShowDeleteProperty(false)} width={480}>
+            <p style={{ color: "var(--text-label)", fontSize: 14, marginBottom: 8 }}>Are you sure you want to permanently delete <strong>{property.name}</strong>?</p>
+            {linked.length > 0 ? (
+              <p style={{ color: "#9a3412", fontSize: 13, marginBottom: 18, padding: "10px 12px", background: "var(--warning-bg)", borderRadius: 8 }}>
+                This will also remove {linked.join(", ")} attached to this property. This action cannot be undone.
+              </p>
+            ) : (
+              <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 18 }}>This action cannot be undone.</p>
+            )}
+            <div style={{ display: "flex", gap: 10 }}>
+              <button onClick={() => setShowDeleteProperty(false)} style={{ flex: 1, padding: "12px", border: "1px solid var(--border)", borderRadius: 10, background: "var(--surface)", color: "var(--text-label)", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
+              <button onClick={async () => {
+                try {
+                  await dbDeleteProperty(property.id);
+                  // Splice from in-memory mirrors. Supabase FK cascades take care
+                  // of the linked rows server-side; we mirror locally so the UI
+                  // doesn't show stale relations until the next page load.
+                  const idx = PROPERTIES.findIndex(p => p.id === property.id);
+                  if (idx !== -1) PROPERTIES.splice(idx, 1);
+                  for (let i = TENANTS.length - 1; i >= 0; i--) if (TENANTS[i].propertyId === property.id) TENANTS.splice(i, 1);
+                  for (let i = TRANSACTIONS.length - 1; i >= 0; i--) if (TRANSACTIONS[i].propertyId === property.id) TRANSACTIONS.splice(i, 1);
+                  for (let i = PROPERTY_DOCUMENTS.length - 1; i >= 0; i--) if (PROPERTY_DOCUMENTS[i].propertyId === property.id) PROPERTY_DOCUMENTS.splice(i, 1);
+                  for (let i = RENTAL_NOTES.length - 1; i >= 0; i--) if (RENTAL_NOTES[i].propertyId === property.id) RENTAL_NOTES.splice(i, 1);
+                  for (let i = MAINTENANCE_REQUESTS.length - 1; i >= 0; i--) if (MAINTENANCE_REQUESTS[i].propertyId === property.id) MAINTENANCE_REQUESTS.splice(i, 1);
+                  setShowDeleteProperty(false);
+                  showToast(`"${property.name}" deleted`);
+                  if (onBack) onBack();
+                } catch (e) {
+                  console.error("[PropBooks] Delete property failed:", e);
+                  showToast("Couldn't delete — " + (e.message || "unknown error"));
+                }
+              }} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "var(--c-red)", color: "#fff", fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+                <Trash2 size={14} /> Delete Property
+              </button>
+            </div>
+          </Modal>
+        );
+      })()}
     </div>
   );
 }
