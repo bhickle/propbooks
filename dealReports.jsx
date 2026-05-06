@@ -188,7 +188,7 @@ export function DealReports() {
         ))}
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "220px 1fr", gap: 20 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "180px 1fr", gap: 20 }}>
         {/* Sidebar */}
         <div style={{ background: "var(--surface)", borderRadius: 16, padding: 10, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)", height: "fit-content" }}>
           <p style={{ fontSize: 10, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", padding: "8px 14px 4px" }}>Profitability</p>
@@ -244,7 +244,7 @@ function ProfitabilityReport({ deals }) {
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr>
-                {["Project", "Stage", "Purchase", "Rehab", "Holding", "Selling", "Invested", "Sale / ARV", "Profit", "ROI", "Annualized"].map(h => (
+                {["Project", "Stage", "Purchase", "Rehab", "Invested", "Sale / ARV", "Profit", "ROI", "Annualized"].map(h => (
                   <th key={h} style={{ ...thS, textAlign: h === "Project" || h === "Stage" ? "left" : "right" }}>{h}</th>
                 ))}
               </tr>
@@ -263,9 +263,7 @@ function ProfitabilityReport({ deals }) {
                     <td style={tdS}><span style={{ background: stg.bg, color: stg.text, borderRadius: 20, padding: "2px 10px", fontSize: 11, fontWeight: 600, whiteSpace: "nowrap", display: "inline-block", lineHeight: 1.4 }}>{d.stage}</span></td>
                     <td style={{ ...tdS, textAlign: "right" }}>{fmt(d.purchasePrice)}</td>
                     <td style={{ ...tdS, textAlign: "right" }}>{fmt(d.m.rehabSpent)}</td>
-                    <td style={{ ...tdS, textAlign: "right" }}>{fmt(d.m.totalHolding)}</td>
-                    <td style={{ ...tdS, textAlign: "right" }}>{fmt(d.m.sellingCosts)}</td>
-                    <td style={{ ...tdS, textAlign: "right", fontWeight: 600 }}>{fmt(d.m.totalInvested)}</td>
+                    <td style={{ ...tdS, textAlign: "right", fontWeight: 600 }} title={`Purchase ${fmt(d.purchasePrice)} + Rehab ${fmt(d.m.rehabSpent)} + Holding ${fmt(d.m.totalHolding)} + Selling ${fmt(d.m.sellingCosts)}`}>{fmt(d.m.totalInvested)}</td>
                     <td style={{ ...tdS, textAlign: "right" }}>{fmt(d.m.saleOrARV)}</td>
                     <td style={{ ...tdS, textAlign: "right", fontWeight: 700, color: d.m.profit >= 0 ? "#1a7a4a" : "#c0392b" }}>{fmt(d.m.profit)}</td>
                     <td style={{ ...tdS, textAlign: "right", fontWeight: 600, color: d.m.roi >= 0 ? "#1a7a4a" : "#c0392b" }}>{d.m.roi.toFixed(1)}%</td>
@@ -280,8 +278,6 @@ function ProfitabilityReport({ deals }) {
                   <td style={{ ...tdS, fontWeight: 700 }} colSpan={2}>Totals</td>
                   <td style={{ ...tdS, textAlign: "right", fontWeight: 700 }}>{fmt(sorted.reduce((s, d) => s + d.purchasePrice, 0))}</td>
                   <td style={{ ...tdS, textAlign: "right", fontWeight: 700 }}>{fmt(sorted.reduce((s, d) => s + d.m.rehabSpent, 0))}</td>
-                  <td style={{ ...tdS, textAlign: "right", fontWeight: 700 }}>{fmt(sorted.reduce((s, d) => s + d.m.totalHolding, 0))}</td>
-                  <td style={{ ...tdS, textAlign: "right", fontWeight: 700 }}>{fmt(sorted.reduce((s, d) => s + d.m.sellingCosts, 0))}</td>
                   <td style={{ ...tdS, textAlign: "right", fontWeight: 700 }}>{fmt(sorted.reduce((s, d) => s + d.m.totalInvested, 0))}</td>
                   <td style={{ ...tdS, textAlign: "right", fontWeight: 700 }}>{fmt(sorted.reduce((s, d) => s + d.m.saleOrARV, 0))}</td>
                   <td style={{ ...tdS, textAlign: "right", fontWeight: 700, color: sorted.reduce((s, d) => s + d.m.profit, 0) >= 0 ? "#1a7a4a" : "#c0392b" }}>{fmt(sorted.reduce((s, d) => s + d.m.profit, 0))}</td>
