@@ -244,8 +244,8 @@ function ProfitabilityReport({ deals }) {
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr>
-                {["Deal", "Stage", "Purchase", "Rehab", "Holding", "Selling", "Total Invested", "Sale / ARV", "Profit", "ROI", "Annualized"].map(h => (
-                  <th key={h} style={{ ...thS, textAlign: h === "Deal" || h === "Stage" ? "left" : "right" }}>{h}</th>
+                {["Project", "Stage", "Purchase", "Rehab", "Holding", "Selling", "Invested", "Sale / ARV", "Profit", "ROI", "Annualized"].map(h => (
+                  <th key={h} style={{ ...thS, textAlign: h === "Project" || h === "Stage" ? "left" : "right" }}>{h}</th>
                 ))}
               </tr>
             </thead>
@@ -296,7 +296,7 @@ function ProfitabilityReport({ deals }) {
       {/* Profit chart */}
       {chartData.length > 1 && (
         <div style={sectionS}>
-          <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--text-primary)", marginBottom: 4 }}>Profit by Deal</h3>
+          <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--text-primary)", marginBottom: 4 }}>Profit by Project</h3>
           <p style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 20 }}>Net profit comparison across projects</p>
           <ResponsiveContainer width="100%" height={280}>
             <BarChart data={chartData} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
@@ -349,6 +349,7 @@ function RehabBudgetReport({ deals }) {
             </div>
 
             {/* Category table */}
+            <div style={{ overflowX: "auto" }}>
             <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: 16 }}>
               <thead>
                 <tr>
@@ -383,6 +384,7 @@ function RehabBudgetReport({ deals }) {
                 })}
               </tbody>
             </table>
+            </div>
 
             {/* Grouped bar chart */}
             {chartData.length > 0 && (
@@ -419,11 +421,12 @@ function HoldingCostsReport({ deals }) {
         <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--text-primary)", marginBottom: 4 }}>Holding Cost Analysis</h3>
         <p style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 20 }}>Monthly burn rate, days held, and total holding costs per project</p>
 
+        <div style={{ overflowX: "auto" }}>
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
             <tr>
-              {["Deal", "Stage", "Days Held", "Monthly Burn", "Daily Burn", "Total Holding", "% of Investment", "Holding / Profit"].map(h => (
-                <th key={h} style={{ ...thS, textAlign: h === "Deal" || h === "Stage" ? "left" : "right" }}>{h}</th>
+              {["Project", "Stage", "Days Held", "Monthly Burn", "Daily Burn", "Total Holding", "% of Invest", "Holding / Profit"].map(h => (
+                <th key={h} style={{ ...thS, textAlign: h === "Project" || h === "Stage" ? "left" : "right" }}>{h}</th>
               ))}
             </tr>
           </thead>
@@ -453,11 +456,12 @@ function HoldingCostsReport({ deals }) {
             })}
           </tbody>
         </table>
+        </div>
       </div>
 
       {chartData.length > 1 && (
         <div style={sectionS}>
-          <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--text-primary)", marginBottom: 4 }}>Holding Costs by Deal</h3>
+          <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--text-primary)", marginBottom: 4 }}>Holding Costs by Project</h3>
           <p style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 20 }}>Total holding cost comparison</p>
           <ResponsiveContainer width="100%" height={260}>
             <BarChart data={chartData} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
@@ -542,10 +546,11 @@ function ContractorPaymentsReport({ dealFilter }) {
         {sorted.length === 0 ? (
           <div style={{ padding: 40, textAlign: "center", color: "var(--text-muted)", fontSize: 14 }}>No contractor activity to report.</div>
         ) : (
+          <div style={{ overflowX: "auto" }}>
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr>
-                {["Contractor", "Trade", "Deals", "Total Bids", "Accepted", "Paid", "Outstanding", "Acceptance Rate"].map(h => (
+                {["Contractor", "Trade", "Projects", "Total Bids", "Accepted", "Paid", "Outstanding", "Acceptance Rate"].map(h => (
                   <th key={h} style={{ ...thS, textAlign: h === "Contractor" || h === "Trade" ? "left" : "right" }}>{h}</th>
                 ))}
               </tr>
@@ -575,6 +580,7 @@ function ContractorPaymentsReport({ dealFilter }) {
               })}
             </tbody>
           </table>
+          </div>
         )}
       </div>
 
@@ -649,13 +655,14 @@ function CapitalGainsReport({ deals }) {
 
       <div style={sectionS}>
         <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--text-primary)", marginBottom: 4 }}>Capital Gains Projection</h3>
-        <p style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 20 }}>Estimated tax liability by deal — consult your CPA for actual filing</p>
+        <p style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 20 }}>Estimated tax liability by project — consult your CPA for actual filing</p>
 
+        <div style={{ overflowX: "auto" }}>
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
             <tr>
-              {["Deal", "Acquired", "Sold / Projected", "Days Held", "Type", "Gain / Loss", "Est. Tax Rate", "Est. Tax", "After Tax"].map(h => (
-                <th key={h} style={{ ...thS, textAlign: h === "Deal" ? "left" : "right" }}>{h}</th>
+              {["Project", "Acquired", "Sold / Projected", "Days Held", "Type", "Gain / Loss", "Tax Rate", "Est. Tax", "After Tax"].map(h => (
+                <th key={h} style={{ ...thS, textAlign: h === "Project" ? "left" : "right" }}>{h}</th>
               ))}
             </tr>
           </thead>
@@ -684,6 +691,7 @@ function CapitalGainsReport({ deals }) {
             ))}
           </tbody>
         </table>
+        </div>
 
         <p style={{ marginTop: 16, fontSize: 12, color: "var(--text-muted)", fontStyle: "italic" }}>
           Tax estimates use 22% for short-term and 15% for long-term gains. Actual rates depend on your income bracket. Consult a tax professional.
@@ -749,6 +757,7 @@ function CashFlowReport({ deals }) {
         <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--text-primary)", marginBottom: 4 }}>Cash Flow Detail</h3>
         <p style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 20 }}>Monthly breakdown of inflows and outflows</p>
 
+        <div style={{ overflowX: "auto" }}>
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
             <tr>
@@ -782,6 +791,7 @@ function CashFlowReport({ deals }) {
             </tr>
           </tfoot>
         </table>
+        </div>
       </div>
     </div>
   );
@@ -833,6 +843,7 @@ function PipelineReport({ deals }) {
         <p style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 20 }}>Project count, value, and projected profit at each stage</p>
 
         <div style={{ display: "grid", gridTemplateColumns: pieData.length > 1 ? "1fr 300px" : "1fr", gap: 24 }}>
+          <div style={{ overflowX: "auto" }}>
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr>
@@ -859,6 +870,7 @@ function PipelineReport({ deals }) {
               })}
             </tbody>
           </table>
+          </div>
 
           {pieData.length > 1 && (
             <ResponsiveContainer width="100%" height={280}>
@@ -879,13 +891,14 @@ function PipelineReport({ deals }) {
       {/* Deal timeline */}
       <div style={sectionS}>
         <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--text-primary)", marginBottom: 4 }}>Project Timeline</h3>
-        <p style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 20 }}>Key dates and projected milestones for each deal</p>
+        <p style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 20 }}>Key dates and projected milestones for each project</p>
 
+        <div style={{ overflowX: "auto" }}>
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
             <tr>
-              {["Deal", "Stage", "Acquired", "Rehab Start", "Rehab End", "List Date", "Close Date", "Days Owned"].map(h => (
-                <th key={h} style={{ ...thS, textAlign: h === "Deal" || h === "Stage" ? "left" : "right" }}>{h}</th>
+              {["Project", "Stage", "Acquired", "Rehab Start", "Rehab End", "Listed", "Closed", "Days"].map(h => (
+                <th key={h} style={{ ...thS, textAlign: h === "Project" || h === "Stage" ? "left" : "right" }}>{h}</th>
               ))}
             </tr>
           </thead>
@@ -912,6 +925,7 @@ function PipelineReport({ deals }) {
             })}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   );
