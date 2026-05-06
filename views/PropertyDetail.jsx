@@ -213,6 +213,9 @@ export function PropertyDetail({ property, onBack, backLabel, onEditProperty, on
                 <span style={{ background: "var(--hero-badge-bg)", borderRadius: 20, padding: "3px 10px", fontSize: 12, color: "var(--text-label)", fontWeight: 600 }}>{property.type}</span>
                 <span style={{ background: "var(--hero-badge-bg)", borderRadius: 20, padding: "3px 10px", fontSize: 12, color: "var(--text-label)", fontWeight: 600 }}>{property.units} unit{property.units > 1 ? "s" : ""}</span>
                 <Badge status={property.status} />
+                <button onClick={() => onEditProperty && onEditProperty(property)} style={{ background: "rgba(255,255,255,0.7)", border: "1px solid rgba(0,0,0,0.08)", borderRadius: 8, padding: "4px 10px", fontSize: 12, fontWeight: 600, color: "var(--text-label)", cursor: "pointer", display: "flex", alignItems: "center", gap: 5 }}>
+                  <Pencil size={12} /> Edit Property
+                </button>
               </div>
             </div>
           </div>
