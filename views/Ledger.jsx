@@ -584,9 +584,9 @@ function TypeChip({ row }) {
     return <span style={{ background: "var(--success-badge)", color: "#1a7a4a", borderRadius: 12, padding: "2px 8px", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.04em" }}>Rental Income</span>;
   }
   if (row.kind === "rental" && row.type === "expense") {
-    return <span style={{ background: "var(--info-tint)", color: "var(--c-blue)", borderRadius: 12, padding: "2px 8px", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.04em" }}>Rental</span>;
+    return <span style={{ background: "var(--info-tint)", color: "var(--c-blue)", borderRadius: 12, padding: "2px 8px", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.04em" }}>Rental Expense</span>;
   }
-  return <span style={{ background: "var(--warning-btn-bg)", color: "#c2410c", borderRadius: 12, padding: "2px 8px", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.04em" }}>Deal</span>;
+  return <span style={{ background: "var(--warning-btn-bg)", color: "#c2410c", borderRadius: 12, padding: "2px 8px", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.04em" }}>Deal Expense</span>;
 }
 
 export function Ledger({ highlightRowKey, initialAssetFilter, onClearHighlight }) {
