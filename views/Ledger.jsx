@@ -16,12 +16,14 @@ import { useState, useMemo } from "react";
 import {
   Search, X, ArrowUpRight, ArrowDownRight, ExternalLink, Wallet,
   TrendingUp, TrendingDown, Hash, Plus, Home, Hammer, Building2,
+  Pencil, Trash2,
 } from "lucide-react";
 import { fmt, fmtK, DEALS, DEAL_EXPENSES, CONTRACTORS } from "../api.js";
 import { PROPERTIES, TRANSACTIONS, TENANTS } from "../mockData.js";
 import { StatCard, EmptyState, Modal, iS } from "../shared.jsx";
-import { createTransaction } from "../db/transactions.js";
-import { createDealExpense } from "../db/dealExpenses.js";
+import { createTransaction, updateTransaction, deleteTransaction } from "../db/transactions.js";
+import { createDealExpense, updateDealExpense, deleteDealExpense } from "../db/dealExpenses.js";
+import { updateRehabItem as dbUpdateRehabItem } from "../db/dealRehabItems.js";
 
 // ── Row builder — one shape, two sources ─────────────────────────────────────
 function buildRows() {
@@ -140,19 +142,48 @@ function defaultCategory(kind) {
 
 // ── LedgerAddModal — one form, three save paths ─────────────────────────────
 // Asset-first workflow: pick the entry kind, the asset dropdown filters, the
-// rest of the form fields adapt. Defers the receipt-attachment + P/I-split
-// niceties from the legacy per-type forms until V2.
-function LedgerAddModal({ initialKind, onClose, onSaved }) {
-  const [kind, setKind] = useState(initialKind || "rental-expense");
-  const [form, setForm] = useState({
-    date: new Date().toISOString().slice(0, 10),
-    assetId: "",
-    tenantId: "",
-    contractorId: "",
-    category: defaultCategory(initialKind || "rental-expense"),
-    description: "",
-    amount: "",
-    counterparty: "", // payee for rental, vendor for flip
+// rest of the form fields adapt. Defers receipt attachment from the legacy
+// per-type forms until V2 — receipts still live on the per-type screens.
+//
+// editRow (optional) puts the modal in edit mode: kind is derived, asset is
+// locked (changing asset = different table = different record), and Save
+// updates instead of creates.
+function LedgerAddModal({ initialKind, editRow, onClose, onSaved }) {
+  const editing = !!editRow;
+
+  // Derive editing kind from the row's table + sign.
+  const derivedKind = editing
+    ? (editRow.kind === "flip" ? "flip-expense"
+       : editRow.type === "income" ? "rental-income" : "rental-expense")
+    : (initialKind || "rental-expense");
+
+  const [kind, setKind] = useState(derivedKind);
+  const [form, setForm] = useState(() => {
+    if (editing) {
+      const raw = editRow.raw;
+      return {
+        date: raw.date || "",
+        assetId: editRow.kind === "flip" ? raw.dealId : raw.propertyId,
+        tenantId: raw.tenantId || "",
+        contractorId: raw.contractorId || "",
+        rehabItemIdx: raw.rehabItemIdx != null ? String(raw.rehabItemIdx) : "",
+        category: raw.category || defaultCategory(derivedKind),
+        description: raw.description || "",
+        amount: String(Math.abs(raw.amount || 0)),
+        counterparty: raw.payee || raw.vendor || "",
+      };
+    }
+    return {
+      date: new Date().toISOString().slice(0, 10),
+      assetId: "",
+      tenantId: "",
+      contractorId: "",
+      rehabItemIdx: "",
+      category: defaultCategory(derivedKind),
+      description: "",
+      amount: "",
+      counterparty: "",
+    };
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
@@ -165,6 +196,7 @@ function LedgerAddModal({ initialKind, onClose, onSaved }) {
       assetId: "",
       tenantId: "",
       contractorId: "",
+      rehabItemIdx: "",
       category: defaultCategory(k),
     }));
   };
@@ -178,6 +210,13 @@ function LedgerAddModal({ initialKind, onClose, onSaved }) {
     ? TENANTS.filter(t => t.propertyId === selectedAsset.id && t.status !== "past" && t.status !== "vacant")
     : [];
 
+  // Rehab line items for the selected flip — used to scope an expense to a
+  // specific scope (Materials → Kitchen Cabinets) and auto-roll the spent
+  // total on that line item.
+  const rehabItemsForDeal = kind === "flip-expense" && selectedAsset
+    ? (selectedAsset.rehabItems || [])
+    : [];
+
   const groups = groupsForKind(kind);
 
   const counterpartyLabel = kind === "rental-income" ? "Received From" : "Paid To";
@@ -187,6 +226,21 @@ function LedgerAddModal({ initialKind, onClose, onSaved }) {
 
   const canSave = form.assetId && form.amount && Number(form.amount) > 0 && form.category;
 
+  // ── Rehab spent rollup helper ──
+  // When a flip expense is created/updated/deleted, the linked rehab line
+  // item's `spent` should reflect it. Mirrors the legacy DealExpenses form.
+  const adjustRehabSpent = async (deal, itemIdx, delta) => {
+    if (!deal || itemIdx == null || itemIdx === "") return;
+    const idx = parseInt(itemIdx);
+    const item = deal.rehabItems && deal.rehabItems[idx];
+    if (!item) return;
+    item.spent = Math.max(0, (item.spent || 0) + delta);
+    if (item.id) {
+      try { await dbUpdateRehabItem(item.id, { spent: item.spent }); }
+      catch (e) { console.error("[PropBooks] update rehab spent failed:", e); }
+    }
+  };
+
   const handleSave = async () => {
     if (!canSave) return;
     setSaving(true);
@@ -194,7 +248,8 @@ function LedgerAddModal({ initialKind, onClose, onSaved }) {
     try {
       const amt = Number(form.amount);
       if (kind === "flip-expense") {
-        const saved = await createDealExpense({
+        const riIdx = form.rehabItemIdx === "" ? null : parseInt(form.rehabItemIdx);
+        const dbFields = {
           dealId: form.assetId,
           contractorId: form.contractorId || null,
           date: form.date,
@@ -202,9 +257,28 @@ function LedgerAddModal({ initialKind, onClose, onSaved }) {
           category: form.category,
           description: form.description || "",
           amount: amt,
-        });
-        DEAL_EXPENSES.unshift(saved);
-        onSaved && onSaved({ kind: "flip", row: saved });
+          rehabItemIdx: riIdx,
+        };
+        if (editing) {
+          // Reverse the previous rehab-spent contribution before applying new one
+          const prev = editRow.raw;
+          const prevDeal = DEALS.find(d => d.id === prev.dealId);
+          if (prev.rehabItemIdx != null) {
+            await adjustRehabSpent(prevDeal, prev.rehabItemIdx, -prev.amount);
+          }
+          const saved = await updateDealExpense(prev.id, dbFields);
+          const idxG = DEAL_EXPENSES.findIndex(e => e.id === prev.id);
+          if (idxG !== -1) DEAL_EXPENSES[idxG] = saved;
+          const newDeal = DEALS.find(d => d.id === saved.dealId);
+          if (riIdx != null) await adjustRehabSpent(newDeal, riIdx, amt);
+          onSaved && onSaved({ kind: "flip", row: saved });
+        } else {
+          const saved = await createDealExpense(dbFields);
+          DEAL_EXPENSES.unshift(saved);
+          const newDeal = DEALS.find(d => d.id === saved.dealId);
+          if (riIdx != null) await adjustRehabSpent(newDeal, riIdx, amt);
+          onSaved && onSaved({ kind: "flip", row: saved });
+        }
       } else {
         // Rental income or rental expense. Income amounts stay positive,
         // expenses are stored negative — same convention as the existing
@@ -217,7 +291,7 @@ function LedgerAddModal({ initialKind, onClose, onSaved }) {
           const t = TENANTS.find(x => String(x.id) === String(form.tenantId));
           if (t) counterparty = t.name;
         }
-        const saved = await createTransaction({
+        const dbFields = {
           date: form.date,
           propertyId: form.assetId,
           tenantId: form.tenantId || null,
@@ -226,9 +300,17 @@ function LedgerAddModal({ initialKind, onClose, onSaved }) {
           description: form.description || "",
           amount: isIncome ? amt : -amt,
           payee: counterparty || null,
-        });
-        TRANSACTIONS.unshift(saved);
-        onSaved && onSaved({ kind: "rental", row: saved });
+        };
+        if (editing) {
+          const saved = await updateTransaction(editRow.raw.id, dbFields);
+          const idxG = TRANSACTIONS.findIndex(t => t.id === editRow.raw.id);
+          if (idxG !== -1) TRANSACTIONS[idxG] = saved;
+          onSaved && onSaved({ kind: "rental", row: saved });
+        } else {
+          const saved = await createTransaction(dbFields);
+          TRANSACTIONS.unshift(saved);
+          onSaved && onSaved({ kind: "rental", row: saved });
+        }
       }
       onClose();
     } catch (e) {
@@ -241,9 +323,10 @@ function LedgerAddModal({ initialKind, onClose, onSaved }) {
 
   const kindPill = (id, label, Icon, color) => {
     const active = kind === id;
+    const disabled = editing; // can't change kind on edit — it's a different table
     return (
-      <button key={id} onClick={() => setKindAndReset(id)}
-        style={{ flex: 1, padding: "10px 8px", borderRadius: 10, border: active ? `1.5px solid ${color}` : "1px solid var(--border)", background: active ? `${color}14` : "var(--surface)", color: active ? color : "var(--text-secondary)", fontWeight: active ? 700 : 600, fontSize: 12, cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 4, transition: "all 0.15s" }}>
+      <button key={id} onClick={() => !disabled && setKindAndReset(id)} disabled={disabled}
+        style={{ flex: 1, padding: "10px 8px", borderRadius: 10, border: active ? `1.5px solid ${color}` : "1px solid var(--border)", background: active ? `${color}14` : "var(--surface)", color: active ? color : "var(--text-secondary)", fontWeight: active ? 700 : 600, fontSize: 12, cursor: disabled ? "not-allowed" : "pointer", opacity: disabled && !active ? 0.4 : 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 4, transition: "all 0.15s" }}>
         <Icon size={14} />
         {label}
       </button>
@@ -251,9 +334,11 @@ function LedgerAddModal({ initialKind, onClose, onSaved }) {
   };
 
   return (
-    <Modal title="Add Ledger Entry" onClose={onClose} width={560}>
+    <Modal title={editing ? "Edit Ledger Entry" : "Add Ledger Entry"} onClose={onClose} width={560}>
       <div style={{ marginBottom: 16 }}>
-        <p style={{ fontSize: 12, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 8 }}>What kind of entry?</p>
+        <p style={{ fontSize: 12, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 8 }}>
+          {editing ? "Entry kind (locked on edit)" : "What kind of entry?"}
+        </p>
         <div style={{ display: "flex", gap: 8 }}>
           {kindPill("rental-income",  "Rental Income",  Home,   "var(--c-green)")}
           {kindPill("rental-expense", "Rental Expense", Home,   "var(--c-blue)")}
@@ -292,6 +377,20 @@ function LedgerAddModal({ initialKind, onClose, onSaved }) {
             <select value={form.contractorId} onChange={sf("contractorId")} style={iS}>
               <option value="">No contractor (vendor / supplier)</option>
               {CONTRACTORS.map(c => <option key={c.id} value={c.id}>{c.name}{c.trade ? ` — ${c.trade}` : ""}</option>)}
+            </select>
+          </div>
+        )}
+
+        {kind === "flip-expense" && rehabItemsForDeal.length > 0 && (
+          <div style={{ gridColumn: "1 / -1" }}>
+            <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>
+              Rehab line item <span style={{ color: "var(--text-muted)", fontWeight: 400 }}>(optional — auto-rolls into that scope's spent total)</span>
+            </label>
+            <select value={form.rehabItemIdx} onChange={sf("rehabItemIdx")} style={iS}>
+              <option value="">Not linked to a specific scope</option>
+              {rehabItemsForDeal.map((it, i) => (
+                <option key={i} value={i}>{it.category} — {fmt(it.budgeted || 0)} budget</option>
+              ))}
             </select>
           </div>
         )}
@@ -338,7 +437,7 @@ function LedgerAddModal({ initialKind, onClose, onSaved }) {
         </button>
         <button onClick={handleSave} disabled={!canSave || saving}
           style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: kind === "rental-income" ? "var(--c-green)" : kind === "flip-expense" ? "#e95e00" : "var(--c-blue)", color: "#fff", fontWeight: 700, cursor: (!canSave || saving) ? "not-allowed" : "pointer", opacity: (!canSave || saving) ? 0.5 : 1 }}>
-          {saving ? "Saving…" : "Save Entry"}
+          {saving ? "Saving…" : editing ? "Save Changes" : "Save Entry"}
         </button>
       </div>
     </Modal>
@@ -361,6 +460,8 @@ export function Ledger({ onOpenTx, onOpenDealExpense }) {
   const [dateRange, setDateRange] = useState("thisYear");
   const [search, setSearch] = useState("");
   const [showAdd, setShowAdd] = useState(null); // null | "rental-income" | "rental-expense" | "flip-expense"
+  const [editRow, setEditRow] = useState(null);  // a built row from buildRows()
+  const [deleteRow, setDeleteRow] = useState(null);
   const [renderKey, setRenderKey] = useState(0);
 
   const rows = useMemo(() => buildRows(), [renderKey]); // eslint-disable-line react-hooks/exhaustive-deps -- renderKey is the cache-bust counter for TRANSACTIONS / DEAL_EXPENSES
@@ -386,9 +487,43 @@ export function Ledger({ onOpenTx, onOpenDealExpense }) {
   const expenses = filtered.filter(r => r.amount < 0).reduce((s, r) => s + r.amount, 0);
   const net      = income + expenses;
 
-  const handleOpen = (row) => {
+  // Row click opens the unified edit modal in-place. Routing to the legacy
+  // per-type editors is still available via the small ↗ button so the
+  // receipt-attachment workflow has a fallback until the unified form catches up.
+  const handleEdit = (row) => setEditRow(row);
+  const handleOpenLegacy = (row) => {
     if (row.kind === "rental") onOpenTx && onOpenTx(row.raw.id);
     else onOpenDealExpense && onOpenDealExpense(row.raw.id);
+  };
+
+  const handleDelete = async (row) => {
+    try {
+      if (row.kind === "rental") {
+        await deleteTransaction(row.raw.id);
+        const i = TRANSACTIONS.findIndex(t => t.id === row.raw.id);
+        if (i !== -1) TRANSACTIONS.splice(i, 1);
+      } else {
+        // Reverse the rehab-spent rollup if this expense was linked
+        if (row.raw.rehabItemIdx != null) {
+          const deal = DEALS.find(d => d.id === row.raw.dealId);
+          const item = deal?.rehabItems?.[row.raw.rehabItemIdx];
+          if (item) {
+            item.spent = Math.max(0, (item.spent || 0) - row.raw.amount);
+            if (item.id) {
+              try { await dbUpdateRehabItem(item.id, { spent: item.spent }); }
+              catch (e) { console.error("[PropBooks] revert rehab spent failed:", e); }
+            }
+          }
+        }
+        await deleteDealExpense(row.raw.id);
+        const i = DEAL_EXPENSES.findIndex(e => e.id === row.raw.id);
+        if (i !== -1) DEAL_EXPENSES.splice(i, 1);
+      }
+      setDeleteRow(null);
+      setRenderKey(k => k + 1);
+    } catch (e) {
+      console.error("[PropBooks] Delete ledger entry failed:", e);
+    }
   };
 
   const clearAllFilters = () => {
@@ -495,7 +630,7 @@ export function Ledger({ onOpenTx, onOpenDealExpense }) {
               filtered.map((r, i) => {
                 const isIncome = r.amount > 0;
                 return (
-                  <tr key={r.key} onClick={() => handleOpen(r)}
+                  <tr key={r.key} onClick={() => handleEdit(r)}
                     style={{ borderTop: "1px solid var(--border-subtle)", cursor: "pointer", background: i % 2 === 0 ? "var(--surface)" : "var(--surface-alt)" }}
                     onMouseEnter={e => e.currentTarget.style.background = "var(--info-tint-alt)"}
                     onMouseLeave={e => e.currentTarget.style.background = i % 2 === 0 ? "var(--surface)" : "var(--surface-alt)"}>
@@ -517,11 +652,23 @@ export function Ledger({ onOpenTx, onOpenDealExpense }) {
                       </span>
                     </td>
                     <td style={{ padding: "12px 16px" }}>
-                      <button onClick={e => { e.stopPropagation(); handleOpen(r); }}
-                        title="Open in detail view"
-                        style={{ background: "var(--surface-muted)", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "var(--text-label)", display: "flex", alignItems: "center" }}>
-                        <ExternalLink size={13} />
-                      </button>
+                      <div style={{ display: "flex", gap: 4 }}>
+                        <button onClick={e => { e.stopPropagation(); handleEdit(r); }}
+                          title="Edit"
+                          style={{ background: "var(--surface-muted)", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "var(--text-label)", display: "flex", alignItems: "center" }}>
+                          <Pencil size={13} />
+                        </button>
+                        <button onClick={e => { e.stopPropagation(); setDeleteRow(r); }}
+                          title="Delete"
+                          style={{ background: "var(--danger-badge)", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "var(--c-red)", display: "flex", alignItems: "center" }}>
+                          <Trash2 size={13} />
+                        </button>
+                        <button onClick={e => { e.stopPropagation(); handleOpenLegacy(r); }}
+                          title="Open in legacy editor (with receipts)"
+                          style={{ background: "var(--surface-muted)", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "var(--text-muted)", display: "flex", alignItems: "center" }}>
+                          <ExternalLink size={13} />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 );
@@ -544,6 +691,34 @@ export function Ledger({ onOpenTx, onOpenDealExpense }) {
           onClose={() => setShowAdd(null)}
           onSaved={() => setRenderKey(k => k + 1)}
         />
+      )}
+
+      {editRow && (
+        <LedgerAddModal
+          editRow={editRow}
+          onClose={() => setEditRow(null)}
+          onSaved={() => setRenderKey(k => k + 1)}
+        />
+      )}
+
+      {deleteRow && (
+        <Modal title="Delete Ledger Entry" onClose={() => setDeleteRow(null)} width={420}>
+          <p style={{ color: "var(--text-label)", fontSize: 14, marginBottom: 8 }}>Are you sure you want to delete this entry?</p>
+          <div style={{ background: "var(--surface-alt)", borderRadius: 10, padding: 14, marginBottom: 18 }}>
+            <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>{deleteRow.description || deleteRow.category || "(no description)"}</p>
+            <p style={{ fontSize: 12, color: "var(--text-secondary)", marginTop: 4 }}>{deleteRow.date} · {deleteRow.assetName} · {fmt(Math.abs(deleteRow.amount))}</p>
+          </div>
+          {deleteRow.kind === "flip" && deleteRow.raw.rehabItemIdx != null && (
+            <p style={{ color: "#9a3412", fontSize: 12, marginBottom: 14, padding: "8px 10px", background: "var(--warning-bg)", borderRadius: 8 }}>
+              Heads up: this expense is linked to a rehab line item. Deleting will subtract it from that scope's spent total.
+            </p>
+          )}
+          <p style={{ color: "var(--text-muted)", fontSize: 12, marginBottom: 18 }}>This action cannot be undone.</p>
+          <div style={{ display: "flex", gap: 10 }}>
+            <button onClick={() => setDeleteRow(null)} style={{ flex: 1, padding: "12px", border: "1px solid var(--border)", borderRadius: 10, background: "var(--surface)", color: "var(--text-label)", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
+            <button onClick={() => handleDelete(deleteRow)} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "var(--c-red)", color: "#fff", fontWeight: 700, cursor: "pointer" }}>Delete</button>
+          </div>
+        </Modal>
       )}
     </div>
   );

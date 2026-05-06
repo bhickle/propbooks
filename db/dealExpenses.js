@@ -14,6 +14,7 @@ function fromRow(row) {
     category: row.category,
     description: row.description,
     amount: row.amount == null ? null : Number(row.amount),
+    rehabItemIdx: row.rehab_item_idx == null ? null : row.rehab_item_idx,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -28,6 +29,7 @@ function toRow(e) {
   if (e.category !== undefined) out.category = e.category;
   if (e.description !== undefined) out.description = e.description;
   if (e.amount !== undefined) out.amount = e.amount;
+  if (e.rehabItemIdx !== undefined) out.rehab_item_idx = e.rehabItemIdx == null ? null : e.rehabItemIdx;
   return out;
 }
 
