@@ -66,6 +66,8 @@ import { TenantManagement } from "./TenantManagement.jsx";
 import { TenantDetail } from "./TenantDetail.jsx";
 import { Reports } from "./Reports.jsx";
 import { Analytics } from "./Analytics.jsx";
+import { UnifiedReports } from "./UnifiedReports.jsx";
+import { UnifiedAnalytics } from "./UnifiedAnalytics.jsx";
 import { DealPipeline, StageBadge, RehabProgress } from "./DealPipeline.jsx";
 import { AssetList } from "./AssetList.jsx";
 import { Ledger } from "./Ledger.jsx";
@@ -305,25 +307,23 @@ export function AppShell() {
 
   const portfolioNavItem = { id: "portfolio", label: "Portfolio", icon: PieChartIcon };
 
-  // Transactions removed from rentals nav — replaced by the top-level Ledger.
+  // Transactions, Analytics, Reports removed from rentals nav — replaced by
+  // the top-level Ledger / Analytics / Reports entries that span both kinds.
   const rentalNavItems = [
     { id: "dashboard",    label: "Dashboard",    icon: LayoutDashboard },
     { id: "properties",   label: "Properties",   icon: Building2       },
     { id: "tenants",      label: "Tenants",        icon: Users           },
-    { id: "analytics",    label: "Analytics",     icon: BarChart3       },
-    { id: "reports",      label: "Reports",       icon: FileText        },
   ];
 
   // Rehab and Milestones moved out of the top-level nav — they're per-deal
   // concerns and live as tabs inside DealDetail. Cross-deal milestone view
   // remains reachable via DealDashboard's upcoming-milestone widget.
-  // Expenses removed — replaced by the top-level Ledger.
+  // Expenses, Analytics, Reports removed — replaced by top-level Ledger /
+  // Analytics / Reports that span both rentals and flips.
   const dealNavItems = [
     { id: "dealdashboard",   label: "Dashboard",      icon: LayoutDashboard },
     { id: "deals",           label: "Deals",           icon: Hammer          },
     { id: "dealcontractors", label: "Contractors",     icon: Users           },
-    { id: "dealanalytics",   label: "Analytics",       icon: BarChart3       },
-    { id: "dealreports",    label: "Reports",         icon: FileText        },
   ];
 
   // Cross-cutting tools — apply to both rentals and flips
@@ -398,6 +398,22 @@ export function AppShell() {
             <Users size={17} />
             Contractors
             <span style={{ marginLeft: "auto", fontSize: 9, fontWeight: 700, color: "#fbbf77", background: "rgba(233,94,0,0.18)", borderRadius: 6, padding: "2px 6px", letterSpacing: "0.04em" }}>NEW</span>
+          </button>
+          {/* Analytics (unified across rentals + flips, tab toggle inside) */}
+          <button onClick={() => { setActiveView("analytics"); setSelectedProperty(null); setSelectedDeal(null); setHighlightLedgerKey(null); setNavSource(null); }}
+            style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 10, border: "none", background: activeView === "analytics" ? "rgba(233,94,0,0.2)" : "transparent", color: activeView === "analytics" ? "#fbbf77" : "#64748b", fontWeight: activeView === "analytics" ? 700 : 500, fontSize: 14, cursor: "pointer", marginBottom: 2, textAlign: "left", transition: "all 0.15s" }}
+            onMouseEnter={e => { if (activeView !== "analytics") e.currentTarget.style.background = "rgba(255,255,255,0.05)"; }}
+            onMouseLeave={e => { if (activeView !== "analytics") e.currentTarget.style.background = "transparent"; }}>
+            <BarChart3 size={17} />
+            Analytics
+          </button>
+          {/* Reports (unified across rentals + flips, tab toggle inside) */}
+          <button onClick={() => { setActiveView("reports"); setSelectedProperty(null); setSelectedDeal(null); setHighlightLedgerKey(null); setNavSource(null); }}
+            style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 10, border: "none", background: activeView === "reports" ? "rgba(233,94,0,0.2)" : "transparent", color: activeView === "reports" ? "#fbbf77" : "#64748b", fontWeight: activeView === "reports" ? 700 : 500, fontSize: 14, cursor: "pointer", marginBottom: 2, textAlign: "left", transition: "all 0.15s" }}
+            onMouseEnter={e => { if (activeView !== "reports") e.currentTarget.style.background = "rgba(255,255,255,0.05)"; }}
+            onMouseLeave={e => { if (activeView !== "reports") e.currentTarget.style.background = "transparent"; }}>
+            <FileText size={17} />
+            Reports
           </button>
           <div style={{ height: 1, background: "rgba(255,255,255,0.07)", margin: "14px 8px 12px" }} />
           <p style={{ color: "var(--text-label)", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", padding: "0 8px", marginBottom: 8 }}>Rentals</p>
@@ -603,9 +619,9 @@ export function AppShell() {
           />}
           {activeView === "properties" && <Properties onSelect={handlePropertySelect} editPropertyId={editPropertyId} onClearEditId={() => setEditPropertyId(null)} convertDealData={convertDealData} onClearConvertFlip={() => setConvertDealData(null)} onGuidedSetup={() => setActiveView("rentalWizard")} />}
           {activeView === "propertyDetail" && selectedProperty && <PropertyDetail key={selectedProperty.id + "-" + (propDetailTab || "overview") + "-" + (propDetailTenantHighlight || "")} property={selectedProperty} onBack={() => { setActiveView(navSource === "dashboard" ? "dashboard" : navSource === "portfolio" ? "portfolio" : "properties"); setPropDetailTab(null); setPropDetailTenantHighlight(null); setPrevNavSource(null); setNavSource(null); }} backLabel={navSource === "dashboard" ? "Back to Dashboard" : navSource === "portfolio" ? "Back to Portfolio" : "Back to Properties"} onEditProperty={(p) => { setEditPropertyId(p.id); setActiveView("properties"); }} onGoToTransactions={() => { setHighlightLedgerKey(null); setLedgerInitialAssetFilter("rental:" + selectedProperty.id); setActiveView("ledger"); }} onNavigateToTransaction={(txId) => { if (txId) setHighlightLedgerKey("tx-" + txId); setLedgerInitialAssetFilter("rental:" + selectedProperty.id); setActiveView("ledger"); }} onNavigateToTenant={(tenantId) => { const t = TENANTS.find(x => x.id === tenantId); if (t) { handleTenantSelect(t, "propertyDetail"); } }} initialTab={propDetailTab} highlightTenantId={propDetailTenantHighlight} onClearHighlightTenant={() => setPropDetailTenantHighlight(null)} />}
-          {activeView === "analytics" && <Analytics />}
+          {activeView === "analytics" && <UnifiedAnalytics />}
           {activeView === "notes" && <UnifiedNotes highlightNoteId={highlightNoteId} highlightDealNoteId={highlightDealNoteId} autoOpenAdd={notesAutoAdd} onBack={navSource === "dashboard" ? () => { setActiveView("dashboard"); setHighlightNoteId(null); setNavSource(null); setNotesAutoAdd(false); } : navSource === "dealdashboard" ? () => { setActiveView("dealdashboard"); setHighlightDealNoteId(null); setNavSource(null); setNotesAutoAdd(false); } : null} onClearHighlight={() => { setHighlightNoteId(null); setHighlightDealNoteId(null); setNotesAutoAdd(false); }} />}
-          {activeView === "reports" && <Reports />}
+          {activeView === "reports" && <UnifiedReports />}
           {activeView === "dealdashboard"   && <DealDashboard onSelect={(f, tab) => handleDealSelect(f, tab, "dealdashboard")} onNavigateToNote={(noteId) => { setHighlightDealNoteId(noteId); setNavSource("dealdashboard"); setActiveView("notes"); }} onNavigateToExpense={(expId) => { setHighlightLedgerKey("dx-" + expId); setLedgerInitialAssetFilter(null); setActiveView("ledger"); }} onNavigateToMilestone={(msKey) => { setHighlightMilestoneKey(msKey); setNavSource("dealdashboard"); setActiveView("dealmilestones"); }} />}
           {activeView === "deals"           && <DealPipeline onSelect={(f, tab) => handleDealSelect(f, tab, "deals")} onGuidedSetup={() => setActiveView("flipWizard")} />}
           {activeView === "dealDetail"      && selectedDeal && <ErrorBoundary key={"eb-" + selectedDeal.id}><DealDetail key={selectedDeal.id + "-" + (dealInitialTab || "overview")} deal={selectedDeal} onBack={() => { setActiveView(dealNavSource || "deals"); setDealNavSource(null); setPrevDealNavSource(null); setDealInitialTab(null); }} backLabel={dealNavSource === "dealdashboard" ? "Back to Dashboard" : dealNavSource === "portfolio" ? "Back to Portfolio" : "Back to Deals"} onNavigateToExpense={navigateToDealExpense} onNavigateToContractor={(con, tab) => { setSelectedContractor(con); setContractorInitialTab(tab || null); setPrevDealNavSource(dealNavSource); setNavSource("dealDetail"); setActiveView("contractorDetail"); }} onNavigateToRehabItem={(idx) => { setSelectedRehabItem({ dealId: selectedDeal.id, itemIdx: idx }); setNavSource("dealDetail"); setPrevDealNavSource(dealNavSource); setActiveView("rehabItemDetail"); }} initialTab={dealInitialTab} onConvertToRental={(flipData) => { setConvertDealData(flipData); setActiveView("properties"); }} onDealUpdated={onDealUpdated} onNavigateToDeal={(f) => handleDealSelect(f, null, dealNavSource || "deals")} /></ErrorBoundary>}
