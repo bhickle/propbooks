@@ -434,7 +434,7 @@ export function Properties({ onSelect, editPropertyId, onClearEditId, convertDea
             <div>
               <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Status</label>
               <select value={form.status} onChange={sf("status")} style={iS}>
-                {["Occupied","Partial Vacancy","Vacant","Archived"].map(o => <option key={o}>{o}</option>)}
+                {["Occupied","Partial Vacancy","Vacant","Inactive"].map(o => <option key={o}>{o}</option>)}
               </select>
             </div>
           </div>

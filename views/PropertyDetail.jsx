@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import {
   FileText, Home, Plus, Search, ChevronRight, CheckCircle, AlertCircle, X,
   ChevronDown, User, MapPin, Clock, Users, Receipt, Trash2, Pencil, MessageSquare,
-  ArrowLeft, Paperclip, ScanLine,
+  ArrowLeft, Paperclip, ScanLine, DollarSign, RefreshCw, Archive,
 } from "lucide-react";
 import {
   newId, fmt,
@@ -12,19 +12,26 @@ import {
 } from "../api.js";
 import { useToast } from "../toast.jsx";
 import { createTransaction, updateTransaction, deleteTransaction } from "../db/transactions.js";
-import { deleteProperty as dbDeleteProperty } from "../db/properties.js";
+import { deleteProperty as dbDeleteProperty, updateProperty as dbUpdateProperty } from "../db/properties.js";
 import { createRentalNote, updateNote as dbUpdateNote, deleteNote as dbDeleteNote } from "../db/notes.js";
 import { createDocument as dbCreateDocument, deleteDocument as dbDeleteDocument } from "../db/documents.js";
 import { calcLoanBalance, getEffectiveMonthly, calcCapRate, calcCashOnCash } from "../finance.js";
 import { daysAgo, getPropertyHealth } from "../health.js";
 import { InfoTip, Modal, StatCard, Badge, iS } from "../shared.jsx";
-import { TRANSACTIONS, TENANTS } from "../mockData.js";
+import { PROPERTIES, TRANSACTIONS, TENANTS } from "../mockData.js";
 import { AttachmentZone, AttachmentList, OcrPrompt, DocumentsPanel } from "./Attachments.jsx";
 import { TxDetailPanel } from "./detailPanels.jsx";
 
-export function PropertyDetail({ property, onBack, backLabel, onEditProperty, onGoToTransactions, onNavigateToTransaction, onNavigateToTenant, initialTab, highlightTenantId, onClearHighlightTenant }) {
+export function PropertyDetail({ property, onBack, backLabel, onEditProperty, onGoToTransactions, onNavigateToTransaction, onNavigateToTenant, initialTab, highlightTenantId, onClearHighlightTenant, onPropertyUpdated }) {
   const { showToast } = useToast();
   const [showDeleteProperty, setShowDeleteProperty] = useState(false);
+  const [showMarkSold, setShowMarkSold] = useState(false);
+  const [showMarkInactive, setShowMarkInactive] = useState(false);
+  const [showReopenProperty, setShowReopenProperty] = useState(false);
+  const [saleForm, setSaleForm] = useState({
+    salePrice: "", saleDate: new Date().toISOString().slice(0, 10), sellingCosts: "", saleNotes: "",
+  });
+  const isClosed = property.status === "Sold" || property.status === "Inactive";
   const calcBal = calcLoanBalance(property.loanAmount, property.loanRate, property.loanTermYears, property.loanStartDate);
   const effectiveMortgage = calcBal !== null ? calcBal : (property.mortgage || 0);
   const equity = property.currentValue - effectiveMortgage;
@@ -220,6 +227,21 @@ export function PropertyDetail({ property, onBack, backLabel, onEditProperty, on
                 <button onClick={() => onEditProperty && onEditProperty(property)} style={{ background: "rgba(255,255,255,0.7)", border: "1px solid rgba(0,0,0,0.08)", borderRadius: 8, padding: "4px 10px", fontSize: 12, fontWeight: 600, color: "var(--text-label)", cursor: "pointer", display: "flex", alignItems: "center", gap: 5 }}>
                   <Pencil size={12} /> Edit Property
                 </button>
+                {!isClosed && (
+                  <>
+                    <button onClick={() => setShowMarkSold(true)} style={{ background: "rgba(255,255,255,0.7)", border: "1px solid rgba(0,0,0,0.08)", borderRadius: 8, padding: "4px 10px", fontSize: 12, fontWeight: 600, color: "var(--text-label)", cursor: "pointer", display: "flex", alignItems: "center", gap: 5 }}>
+                      <DollarSign size={12} /> Mark as Sold
+                    </button>
+                    <button onClick={() => setShowMarkInactive(true)} style={{ background: "rgba(255,255,255,0.7)", border: "1px solid rgba(0,0,0,0.08)", borderRadius: 8, padding: "4px 10px", fontSize: 12, fontWeight: 600, color: "var(--text-label)", cursor: "pointer", display: "flex", alignItems: "center", gap: 5 }}>
+                      <Archive size={12} /> Mark Inactive
+                    </button>
+                  </>
+                )}
+                {isClosed && (
+                  <button onClick={() => setShowReopenProperty(true)} style={{ background: "rgba(255,255,255,0.7)", border: "1px solid rgba(0,0,0,0.08)", borderRadius: 8, padding: "4px 10px", fontSize: 12, fontWeight: 600, color: "var(--text-label)", cursor: "pointer", display: "flex", alignItems: "center", gap: 5 }}>
+                    <RefreshCw size={12} /> Reopen Property
+                  </button>
+                )}
                 <button onClick={() => setShowDeleteProperty(true)} style={{ background: "rgba(255,255,255,0.7)", border: "1px solid rgba(0,0,0,0.08)", borderRadius: 8, padding: "4px 10px", fontSize: 12, fontWeight: 600, color: "var(--c-red)", cursor: "pointer", display: "flex", alignItems: "center", gap: 5 }}>
                   <Trash2 size={12} /> Delete
                 </button>
@@ -866,6 +888,118 @@ export function PropertyDetail({ property, onBack, backLabel, onEditProperty, on
             </div>
           )}
         </div>
+      )}
+
+      {showMarkSold && (
+        <Modal title="Mark as Sold" onClose={() => setShowMarkSold(false)} width={520}>
+          <p style={{ color: "var(--text-label)", fontSize: 14, marginBottom: 16 }}>Record the sale of <strong>{property.name}</strong>. Status changes to Sold and the property hides from the active Assets list (still visible in Reports for tax history).</p>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+            <div>
+              <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Sale Price *</label>
+              <input type="number" placeholder="0" value={saleForm.salePrice} onChange={e => setSaleForm(f => ({ ...f, salePrice: e.target.value }))} style={{ ...iS, width: "100%" }} />
+            </div>
+            <div>
+              <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Close Date *</label>
+              <input type="date" value={saleForm.saleDate} onChange={e => setSaleForm(f => ({ ...f, saleDate: e.target.value }))} style={{ ...iS, width: "100%" }} />
+            </div>
+            <div style={{ gridColumn: "1 / -1" }}>
+              <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Selling Costs <span style={{ color: "var(--text-muted)", fontWeight: 400 }}>(commission, closing fees, etc.)</span></label>
+              <input type="number" placeholder="0" value={saleForm.sellingCosts} onChange={e => setSaleForm(f => ({ ...f, sellingCosts: e.target.value }))} style={{ ...iS, width: "100%" }} />
+            </div>
+            <div style={{ gridColumn: "1 / -1" }}>
+              <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Notes</label>
+              <input type="text" placeholder="e.g. Sold to investor for cash" value={saleForm.saleNotes} onChange={e => setSaleForm(f => ({ ...f, saleNotes: e.target.value }))} style={{ ...iS, width: "100%" }} />
+            </div>
+          </div>
+          {saleForm.salePrice && (() => {
+            const sale = parseFloat(saleForm.salePrice) || 0;
+            const costs = parseFloat(saleForm.sellingCosts) || 0;
+            const basis = (property.purchasePrice || 0) + (property.closingCosts || 0);
+            const gain = sale - costs - basis;
+            return (
+              <div style={{ marginTop: 14, padding: "12px 14px", background: "var(--info-tint-alt)", borderRadius: 10, fontSize: 13 }}>
+                <p style={{ color: "var(--text-label)" }}>Estimated capital gain: <strong style={{ color: gain >= 0 ? "#1a7a4a" : "#c0392b" }}>{fmt(gain)}</strong></p>
+                <p style={{ color: "var(--text-muted)", fontSize: 11, marginTop: 2 }}>Sale ({fmt(sale)}) − Selling costs ({fmt(costs)}) − Basis ({fmt(basis)} = purchase + closing). Doesn't account for capital improvements or depreciation recapture — see your CPA for actual filing.</p>
+              </div>
+            );
+          })()}
+          <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
+            <button onClick={() => setShowMarkSold(false)} style={{ flex: 1, padding: "12px", border: "1px solid var(--border)", borderRadius: 10, background: "var(--surface)", color: "var(--text-label)", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
+            <button onClick={async () => {
+              const sale = parseFloat(saleForm.salePrice) || 0;
+              if (!sale || !saleForm.saleDate) return;
+              try {
+                const updates = {
+                  status: "Sold",
+                  salePrice: sale,
+                  saleDate: saleForm.saleDate,
+                  sellingCosts: parseFloat(saleForm.sellingCosts) || 0,
+                  saleNotes: saleForm.saleNotes || null,
+                };
+                const saved = await dbUpdateProperty(property.id, updates);
+                const idx = PROPERTIES.findIndex(p => p.id === property.id);
+                if (idx !== -1) PROPERTIES[idx] = { ...PROPERTIES[idx], ...saved };
+                setShowMarkSold(false);
+                showToast(`"${property.name}" marked as sold`);
+                if (onBack) onBack();
+              } catch (err) {
+                console.error("[PropBooks] Mark sold failed:", err);
+                showToast("Couldn't save — " + (err.message || "unknown error"));
+              }
+            }} disabled={!saleForm.salePrice || !saleForm.saleDate}
+              style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "#e95e00", color: "#fff", fontWeight: 700, cursor: (!saleForm.salePrice || !saleForm.saleDate) ? "not-allowed" : "pointer", opacity: (!saleForm.salePrice || !saleForm.saleDate) ? 0.5 : 1 }}>
+              Mark as Sold
+            </button>
+          </div>
+        </Modal>
+      )}
+
+      {showMarkInactive && (
+        <Modal title="Mark Inactive" onClose={() => setShowMarkInactive(false)} width={460}>
+          <p style={{ color: "var(--text-label)", fontSize: 14, marginBottom: 16 }}>Mark <strong>{property.name}</strong> as inactive? Use this when you've stopped managing the rental for a reason other than sale (transferred to LLC, foreclosed, paused, etc.).</p>
+          <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 18 }}>The property hides from the active Assets list. Tenants, transactions, and history are preserved. Reopen anytime.</p>
+          <div style={{ display: "flex", gap: 10 }}>
+            <button onClick={() => setShowMarkInactive(false)} style={{ flex: 1, padding: "12px", border: "1px solid var(--border)", borderRadius: 10, background: "var(--surface)", color: "var(--text-label)", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
+            <button onClick={async () => {
+              try {
+                const saved = await dbUpdateProperty(property.id, { status: "Inactive" });
+                const idx = PROPERTIES.findIndex(p => p.id === property.id);
+                if (idx !== -1) PROPERTIES[idx] = { ...PROPERTIES[idx], ...saved };
+                setShowMarkInactive(false);
+                showToast(`"${property.name}" marked inactive`);
+                if (onBack) onBack();
+              } catch (err) {
+                console.error("[PropBooks] Mark inactive failed:", err);
+                showToast("Couldn't save — " + (err.message || "unknown error"));
+              }
+            }} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "#e95e00", color: "#fff", fontWeight: 700, cursor: "pointer" }}>Mark Inactive</button>
+          </div>
+        </Modal>
+      )}
+
+      {showReopenProperty && (
+        <Modal title="Reopen Property" onClose={() => setShowReopenProperty(false)} width={460}>
+          <p style={{ color: "var(--text-label)", fontSize: 14, marginBottom: 12 }}>Reopen <strong>{property.name}</strong>? Status will reset to <strong>Vacant</strong> so you can update from there.</p>
+          {property.status === "Sold" && (
+            <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 18 }}>Sale data (price, close date, selling costs) is preserved on the property and can be cleared via Edit Property if needed.</p>
+          )}
+          <div style={{ display: "flex", gap: 10 }}>
+            <button onClick={() => setShowReopenProperty(false)} style={{ flex: 1, padding: "12px", border: "1px solid var(--border)", borderRadius: 10, background: "var(--surface)", color: "var(--text-label)", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
+            <button onClick={async () => {
+              try {
+                const saved = await dbUpdateProperty(property.id, { status: "Vacant" });
+                const idx = PROPERTIES.findIndex(p => p.id === property.id);
+                if (idx !== -1) PROPERTIES[idx] = { ...PROPERTIES[idx], ...saved };
+                setShowReopenProperty(false);
+                showToast(`"${property.name}" reopened — status set to Vacant`);
+                if (onPropertyUpdated) onPropertyUpdated();
+              } catch (err) {
+                console.error("[PropBooks] Reopen property failed:", err);
+                showToast("Couldn't save — " + (err.message || "unknown error"));
+              }
+            }} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "#e95e00", color: "#fff", fontWeight: 700, cursor: "pointer" }}>Reopen</button>
+          </div>
+        </Modal>
       )}
 
       {showDeleteProperty && (() => {

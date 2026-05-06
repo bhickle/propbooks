@@ -37,6 +37,10 @@ function fromRow(row) {
     monthlyRent: row.monthly_rent == null ? null : Number(row.monthly_rent),
     monthlyExpenses: row.monthly_expenses == null ? null : Number(row.monthly_expenses),
     purchaseDate: row.purchase_date,
+    salePrice: row.sale_price == null ? null : Number(row.sale_price),
+    saleDate: row.sale_date,
+    sellingCosts: row.selling_costs == null ? null : Number(row.selling_costs),
+    saleNotes: row.sale_notes,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -65,6 +69,10 @@ function toRow(p) {
   if (p.monthlyRent !== undefined) out.monthly_rent = p.monthlyRent;
   if (p.monthlyExpenses !== undefined) out.monthly_expenses = p.monthlyExpenses;
   if (p.purchaseDate !== undefined) out.purchase_date = p.purchaseDate;
+  if (p.salePrice !== undefined) out.sale_price = p.salePrice;
+  if (p.saleDate !== undefined) out.sale_date = p.saleDate;
+  if (p.sellingCosts !== undefined) out.selling_costs = p.sellingCosts;
+  if (p.saleNotes !== undefined) out.sale_notes = p.saleNotes;
   return out;
 }
 

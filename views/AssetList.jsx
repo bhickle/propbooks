@@ -134,12 +134,12 @@ function flipStats(d) {
   ];
 }
 
-// Treat archived rentals (status "Archived") and closed projects
+// Treat closed rentals (status "Sold" or "Inactive") and closed projects
 // (stage "Sold" or "Converted to Rental") as the same conceptual bucket —
 // no longer in the active portfolio. They stay in the data for reports
 // and tax history; AssetList just hides them by default.
-function isArchived(row) {
-  if (row.kind === "rental") return row.asset.status === "Archived";
+function isClosed(row) {
+  if (row.kind === "rental") return row.asset.status === "Sold" || row.asset.status === "Inactive";
   return row.asset.stage === "Sold" || row.asset.stage === "Converted to Rental";
 }
 
@@ -147,12 +147,12 @@ export function AssetList({ onSelectRental, onSelectFlip, onAddRental, onAddFlip
   const [typeFilter, setTypeFilter] = useState("all"); // "all" | "rental" | "flip"
   const [search, setSearch] = useState("");
   const [showAddMenu, setShowAddMenu] = useState(false);
-  const [showArchived, setShowArchived] = useState(false);
+  const [showClosed, setShowClosed] = useState(false);
 
   const rows = useMemo(() => buildAssets(), []);
 
   const filtered = rows.filter(r => {
-    if (!showArchived && isArchived(r)) return false;
+    if (!showClosed && isClosed(r)) return false;
     if (typeFilter === "rental" && r.kind !== "rental") return false;
     if (typeFilter === "flip" && r.kind !== "flip") return false;
     const q = search.toLowerCase().trim();
@@ -167,17 +167,17 @@ export function AssetList({ onSelectRental, onSelectFlip, onAddRental, onAddFlip
 
   // Header stats — count + roll-up. Rental + flip metrics aren't directly
   // additive (cap rate ≠ ARV) so the four cards lean on what's comparable.
-  // Stat counts always exclude archived so the headline numbers reflect
-  // active portfolio, regardless of the showArchived toggle.
-  const activeRows = rows.filter(r => !isArchived(r));
+  // Stat counts always exclude closed assets so the headline numbers reflect
+  // active portfolio, regardless of the showClosed toggle.
+  const activeRows = rows.filter(r => !isClosed(r));
   const rentalCount = activeRows.filter(r => r.kind === "rental").length;
   const flipCount = activeRows.filter(r => r.kind === "flip").length;
-  const archivedCount = rows.length - activeRows.length;
+  const closedCount = rows.length - activeRows.length;
   const totalValue = activeRows.reduce((s, r) => {
     if (r.kind === "rental") return s + (r.asset.currentValue || 0);
     return s + (r.asset.arv || 0);
   }, 0);
-  const monthlyCF = PROPERTIES.filter(p => p.status !== "Archived").reduce((s, p) => {
+  const monthlyCF = PROPERTIES.filter(p => p.status !== "Sold" && p.status !== "Inactive").reduce((s, p) => {
     const eff = getEffectiveMonthly(p, TRANSACTIONS);
     return s + (eff.monthlyIncome - eff.monthlyExpenses);
   }, 0);
@@ -250,14 +250,14 @@ export function AssetList({ onSelectRental, onSelectFlip, onAddRental, onAddFlip
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search assets..."
             style={{ width: "100%", paddingLeft: 36, paddingRight: 12, paddingTop: 9, paddingBottom: 9, border: "1px solid var(--border)", borderRadius: 10, fontSize: 13, color: "var(--text-primary)", background: "var(--surface)", outline: "none", boxSizing: "border-box" }} />
         </div>
-        {archivedCount > 0 && (
+        {closedCount > 0 && (
           <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 600, color: "var(--text-secondary)", cursor: "pointer" }}>
-            <input type="checkbox" checked={showArchived} onChange={e => setShowArchived(e.target.checked)} />
-            Show archived ({archivedCount})
+            <input type="checkbox" checked={showClosed} onChange={e => setShowClosed(e.target.checked)} />
+            Show closed ({closedCount})
           </label>
         )}
-        {(typeFilter !== "all" || search || showArchived) && (
-          <button onClick={() => { setTypeFilter("all"); setSearch(""); setShowArchived(false); }}
+        {(typeFilter !== "all" || search || showClosed) && (
+          <button onClick={() => { setTypeFilter("all"); setSearch(""); setShowClosed(false); }}
             style={{ background: "none", border: "none", color: "var(--text-muted)", fontSize: 12, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
             <X size={13} /> Clear filters
           </button>
