@@ -13,7 +13,7 @@ import {
   Clock, DollarSign, Receipt, FileText, MessageSquare, Search, Calendar, Flag,
   Target, User, Users, Home, MapPin, LayoutDashboard, Phone, Filter,
   AlertTriangle, ArrowRight, ArrowLeft, Camera, CheckSquare, Copy, UserCheck,
-  Image, CreditCard, List,
+  Image, CreditCard, List, RefreshCw,
 } from "lucide-react";
 import {
   newId, fmt, STAGE_ORDER, DEFAULT_MILESTONES,
@@ -183,6 +183,7 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
   const [showDeleteDeal, setShowDeleteDeal] = useState(false);
   const [stage, setStage] = useState(deal.stage);
   const [showCloseDeal, setShowCloseDeal] = useState(false);
+  const [showReopenConfirm, setShowReopenConfirm] = useState(false);
   const [closeDealStep, setCloseDealStep] = useState("choose"); // "choose" | "sold" | "convert"
   const [closeForm, setCloseForm] = useState({ salePrice: "", closeDate: "", sellingCosts: "", buyerCredit: "", closingNotes: "" });
   const sfClose = k => e => setCloseForm(f => ({ ...f, [k]: e.target.value }));
@@ -610,7 +611,13 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
               <div style={{ marginTop: 8, display: "flex", alignItems: "center", gap: 10 }}>
                 <StageBadge stage={stage} />
                 {stage === "Sold" || stage === "Converted to Rental" ? (
-                  <span style={{ fontSize: 12, color: "var(--text-muted)", fontStyle: "italic" }}>Project closed</span>
+                  <>
+                    <span style={{ fontSize: 12, color: "var(--text-muted)", fontStyle: "italic" }}>Project closed</span>
+                    <button onClick={() => setShowReopenConfirm(true)}
+                      style={{ background: "rgba(255,255,255,0.7)", border: "1px solid rgba(0,0,0,0.08)", borderRadius: 8, padding: "4px 10px", fontSize: 12, fontWeight: 600, color: "var(--text-label)", cursor: "pointer", display: "flex", alignItems: "center", gap: 5 }}>
+                      <RefreshCw size={12} /> Reopen Project
+                    </button>
+                  </>
                 ) : (
                   <select value={stage} onChange={handleStageChange} style={{ border: "1px solid rgba(0,0,0,0.12)", borderRadius: 8, padding: "4px 8px", fontSize: 12, background: "var(--hero-select-bg)", color: "var(--text-label)", cursor: "pointer", outline: "none" }}>
                     {STAGE_ORDER.filter(s => s !== "Converted to Rental").map(s => <option key={s}>{s}</option>)}
@@ -1969,6 +1976,34 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
           <div style={{ display: "flex", gap: 10, marginTop: 8 }}>
             <button onClick={() => setShowEditDeal(false)} style={{ flex: 1, padding: "12px", border: "1px solid var(--border)", borderRadius: 10, background: "var(--surface)", color: "var(--text-label)", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
             <button onClick={handleSaveDeal} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "#e95e00", color: "#fff", fontWeight: 700, cursor: "pointer" }}>Save Changes</button>
+          </div>
+        </Modal>
+      )}
+      {showReopenConfirm && (
+        <Modal title="Reopen Project" onClose={() => setShowReopenConfirm(false)} width={460}>
+          <p style={{ color: "var(--text-label)", fontSize: 14, marginBottom: 12 }}>
+            Reopen this project? Stage will reset to <strong>Listed</strong> so you can update from there.
+          </p>
+          {stage === "Sold" ? (
+            <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 18 }}>
+              Sale data (price, close date, net profit) is preserved on the project. Update or replace it once you re-sell.
+            </p>
+          ) : (
+            <p style={{ color: "#9a3412", fontSize: 13, marginBottom: 18, padding: "10px 12px", background: "var(--warning-bg)", borderRadius: 8 }}>
+              The rental property created when you converted this project still exists in your portfolio. Reopening only affects this project — manage the rental separately if you need to.
+            </p>
+          )}
+          <div style={{ display: "flex", gap: 10 }}>
+            <button onClick={() => setShowReopenConfirm(false)} style={{ flex: 1, padding: "12px", border: "1px solid var(--border)", borderRadius: 10, background: "var(--surface)", color: "var(--text-label)", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
+            <button onClick={() => {
+              setStage("Listed");
+              const idx = DEALS.findIndex(f => f.id === deal.id);
+              if (idx !== -1) DEALS[idx].stage = "Listed";
+              persistDealAsync(deal.id, { stage: "Listed" });
+              if (onDealUpdated) onDealUpdated();
+              setShowReopenConfirm(false);
+              showToast("Project reopened — stage set to Listed");
+            }} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "#e95e00", color: "#fff", fontWeight: 700, cursor: "pointer" }}>Reopen</button>
           </div>
         </Modal>
       )}
