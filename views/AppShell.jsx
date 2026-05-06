@@ -689,7 +689,18 @@ export function AppShell() {
         convertDealData={convertDealData}
         onClearConvertFlip={() => setConvertDealData(null)}
         onGuidedSetup={() => setActiveView("rentalWizard")}
-        onComplete={() => { setEditPropertyId(null); setConvertDealData(null); }}
+        onComplete={() => {
+          setEditPropertyId(null);
+          setConvertDealData(null);
+          // Refresh selectedProperty from the global PROPERTIES array so
+          // PropertyDetail re-renders with the saved values. Without this,
+          // PropertyDetail keeps holding the stale object reference it had
+          // before the edit modal opened.
+          if (selectedProperty) {
+            const fresh = PROPERTIES.find(p => p.id === selectedProperty.id);
+            if (fresh) setSelectedProperty(fresh);
+          }
+        }}
       />
 
       {/* Settings Modal */}
