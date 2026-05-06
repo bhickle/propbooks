@@ -46,7 +46,7 @@ import { useToast } from "../toast.jsx";
 import { useTheme } from "../theme.jsx";
 import { Settings, OnboardingWizard } from "../settings.jsx";
 import {
-  DealDashboard, RehabTracker, DealExpenses, DealContractors,
+  DealDashboard, RehabTracker, DealContractors,
   ContractorDetail, DealAnalytics, DealMilestones, DealNotes,
 } from "../deals.jsx";
 import { DealReports } from "../dealReports.jsx";
@@ -62,7 +62,6 @@ import { Properties } from "./Properties.jsx";
 import { PortfolioDashboard } from "./PortfolioDashboard.jsx";
 import { Dashboard } from "./Dashboard.jsx";
 import { PropertyDetail } from "./PropertyDetail.jsx";
-import { Transactions } from "./Transactions.jsx";
 import { TenantManagement } from "./TenantManagement.jsx";
 import { TenantDetail } from "./TenantDetail.jsx";
 import { Reports } from "./Reports.jsx";
@@ -157,8 +156,6 @@ export function AppShell() {
   const [selectedDeal, setSelectedDeal] = useState(null);
   const [showSettings, setShowSettings] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(user?.plan === "trial");
-  const [highlightTxId, setHighlightTxId] = useState(null);
-  const [highlightExpId, setHighlightExpId] = useState(null);
   // Ledger highlight key: "tx-<id>" or "dx-<id>" — used when routing in from
   // Dashboard / PortfolioDashboard / global search now that the legacy
   // Transactions and DealExpenses screens are gone.
@@ -308,11 +305,11 @@ export function AppShell() {
 
   const portfolioNavItem = { id: "portfolio", label: "Portfolio", icon: PieChartIcon };
 
+  // Transactions removed from rentals nav — replaced by the top-level Ledger.
   const rentalNavItems = [
     { id: "dashboard",    label: "Dashboard",    icon: LayoutDashboard },
     { id: "properties",   label: "Properties",   icon: Building2       },
     { id: "tenants",      label: "Tenants",        icon: Users           },
-    { id: "transactions", label: "Transactions",  icon: ArrowUpDown     },
     { id: "analytics",    label: "Analytics",     icon: BarChart3       },
     { id: "reports",      label: "Reports",       icon: FileText        },
   ];
@@ -320,10 +317,10 @@ export function AppShell() {
   // Rehab and Milestones moved out of the top-level nav — they're per-deal
   // concerns and live as tabs inside DealDetail. Cross-deal milestone view
   // remains reachable via DealDashboard's upcoming-milestone widget.
+  // Expenses removed — replaced by the top-level Ledger.
   const dealNavItems = [
     { id: "dealdashboard",   label: "Dashboard",      icon: LayoutDashboard },
     { id: "deals",           label: "Deals",           icon: Hammer          },
-    { id: "dealexpenses",    label: "Expenses",        icon: Receipt         },
     { id: "dealcontractors", label: "Contractors",     icon: Users           },
     { id: "dealanalytics",   label: "Analytics",       icon: BarChart3       },
     { id: "dealreports",    label: "Reports",         icon: FileText        },
@@ -363,7 +360,7 @@ export function AppShell() {
           {/* Portfolio button */}
           {portfolioNavItem && (
             <>
-              <button onClick={() => { setActiveView(portfolioNavItem.id); setSelectedProperty(null); setSelectedDeal(null); setHighlightTxId(null); setNavSource(null); }}
+              <button onClick={() => { setActiveView(portfolioNavItem.id); setSelectedProperty(null); setSelectedDeal(null); setHighlightLedgerKey(null); setNavSource(null); }}
                 style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 10, border: "none", background: activeView === portfolioNavItem.id ? "rgba(139,92,246,0.2)" : "transparent", color: activeView === portfolioNavItem.id ? "#c4b5fd" : "#64748b", fontWeight: activeView === portfolioNavItem.id ? 700 : 500, fontSize: 14, cursor: "pointer", marginBottom: 2, textAlign: "left", transition: "all 0.15s" }}
                 onMouseEnter={e => { if (activeView !== portfolioNavItem.id) e.currentTarget.style.background = "rgba(255,255,255,0.05)"; }}
                 onMouseLeave={e => { if (activeView !== portfolioNavItem.id) e.currentTarget.style.background = "transparent"; }}>
@@ -375,7 +372,7 @@ export function AppShell() {
             </>
           )}
           {/* Assets (preview) — unified rental + flip listing */}
-          <button onClick={() => { setActiveView("assets"); setSelectedProperty(null); setSelectedDeal(null); setHighlightTxId(null); setNavSource(null); }}
+          <button onClick={() => { setActiveView("assets"); setSelectedProperty(null); setSelectedDeal(null); setHighlightLedgerKey(null); setNavSource(null); }}
             style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 10, border: "none", background: activeView === "assets" ? "rgba(233,94,0,0.2)" : "transparent", color: activeView === "assets" ? "#fbbf77" : "#64748b", fontWeight: activeView === "assets" ? 700 : 500, fontSize: 14, cursor: "pointer", marginBottom: 2, textAlign: "left", transition: "all 0.15s" }}
             onMouseEnter={e => { if (activeView !== "assets") e.currentTarget.style.background = "rgba(255,255,255,0.05)"; }}
             onMouseLeave={e => { if (activeView !== "assets") e.currentTarget.style.background = "transparent"; }}>
@@ -384,7 +381,7 @@ export function AppShell() {
             <span style={{ marginLeft: "auto", fontSize: 9, fontWeight: 700, color: "#fbbf77", background: "rgba(233,94,0,0.18)", borderRadius: 6, padding: "2px 6px", letterSpacing: "0.04em" }}>NEW</span>
           </button>
           {/* Ledger (preview) — unified money in/out across rentals + flips */}
-          <button onClick={() => { setActiveView("ledger"); setSelectedProperty(null); setSelectedDeal(null); setHighlightTxId(null); setNavSource(null); }}
+          <button onClick={() => { setActiveView("ledger"); setSelectedProperty(null); setSelectedDeal(null); setHighlightLedgerKey(null); setNavSource(null); }}
             style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 10, border: "none", background: activeView === "ledger" ? "rgba(233,94,0,0.2)" : "transparent", color: activeView === "ledger" ? "#fbbf77" : "#64748b", fontWeight: activeView === "ledger" ? 700 : 500, fontSize: 14, cursor: "pointer", marginBottom: 2, textAlign: "left", transition: "all 0.15s" }}
             onMouseEnter={e => { if (activeView !== "ledger") e.currentTarget.style.background = "rgba(255,255,255,0.05)"; }}
             onMouseLeave={e => { if (activeView !== "ledger") e.currentTarget.style.background = "transparent"; }}>
@@ -394,7 +391,7 @@ export function AppShell() {
           </button>
           {/* Contractors (preview) — promoted to top-level so the same plumber
               who fixes a tenant drain and demos a flip lives in one place */}
-          <button onClick={() => { setActiveView("dealcontractors"); setSelectedProperty(null); setSelectedDeal(null); setHighlightTxId(null); setNavSource(null); }}
+          <button onClick={() => { setActiveView("dealcontractors"); setSelectedProperty(null); setSelectedDeal(null); setHighlightLedgerKey(null); setNavSource(null); }}
             style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 10, border: "none", background: activeView === "dealcontractors" ? "rgba(233,94,0,0.2)" : "transparent", color: activeView === "dealcontractors" ? "#fbbf77" : "#64748b", fontWeight: activeView === "dealcontractors" ? 700 : 500, fontSize: 14, cursor: "pointer", marginBottom: 2, textAlign: "left", transition: "all 0.15s" }}
             onMouseEnter={e => { if (activeView !== "dealcontractors") e.currentTarget.style.background = "rgba(255,255,255,0.05)"; }}
             onMouseLeave={e => { if (activeView !== "dealcontractors") e.currentTarget.style.background = "transparent"; }}>
@@ -407,7 +404,7 @@ export function AppShell() {
           {rentalNavItems.map(item => {
             const active = activeView === item.id || (item.id === "properties" && activeView === "propertyDetail");
             return (
-              <button key={item.id} onClick={() => { setActiveView(item.id); setSelectedProperty(null); setSelectedDeal(null); setHighlightTxId(null); setNavSource(null); }}
+              <button key={item.id} onClick={() => { setActiveView(item.id); setSelectedProperty(null); setSelectedDeal(null); setHighlightLedgerKey(null); setNavSource(null); }}
                 style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 10, border: "none", background: active ? "rgba(59,130,246,0.2)" : "transparent", color: active ? "#93c5fd" : "#64748b", fontWeight: active ? 700 : 500, fontSize: 14, cursor: "pointer", marginBottom: 2, textAlign: "left", transition: "all 0.15s" }}
                 onMouseEnter={e => { if (!active) e.currentTarget.style.background = "rgba(255,255,255,0.05)"; }}
                 onMouseLeave={e => { if (!active) e.currentTarget.style.background = "transparent"; }}>
@@ -422,7 +419,7 @@ export function AppShell() {
           {dealNavItems.map(item => {
             const active = activeView === item.id || (item.id === "deals" && activeView === "dealDetail");
             return (
-              <button key={item.id} onClick={() => { setActiveView(item.id); setSelectedDeal(null); setSelectedProperty(null); setHighlightTxId(null); setNavSource(null); }}
+              <button key={item.id} onClick={() => { setActiveView(item.id); setSelectedDeal(null); setSelectedProperty(null); setHighlightLedgerKey(null); setNavSource(null); }}
                 style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 10, border: "none", background: active ? "rgba(233,94,0,0.18)" : "transparent", color: active ? "#fb923c" : "#64748b", fontWeight: active ? 700 : 500, fontSize: 14, cursor: "pointer", marginBottom: 2, textAlign: "left", transition: "all 0.15s" }}
                 onMouseEnter={e => { if (!active) e.currentTarget.style.background = "rgba(255,255,255,0.05)"; }}
                 onMouseLeave={e => { if (!active) e.currentTarget.style.background = "transparent"; }}>
@@ -437,7 +434,7 @@ export function AppShell() {
           {toolNavItems.map(item => {
             const active = activeView === item.id;
             return (
-              <button key={item.id} onClick={() => { setActiveView(item.id); setSelectedDeal(null); setSelectedProperty(null); setHighlightTxId(null); setNavSource(null); }}
+              <button key={item.id} onClick={() => { setActiveView(item.id); setSelectedDeal(null); setSelectedProperty(null); setHighlightLedgerKey(null); setNavSource(null); }}
                 style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 10, border: "none", background: active ? "rgba(139,92,246,0.18)" : "transparent", color: active ? "#c4b5fd" : "#64748b", fontWeight: active ? 700 : 500, fontSize: 14, cursor: "pointer", marginBottom: 2, textAlign: "left", transition: "all 0.15s" }}
                 onMouseEnter={e => { if (!active) e.currentTarget.style.background = "rgba(255,255,255,0.05)"; }}
                 onMouseLeave={e => { if (!active) e.currentTarget.style.background = "transparent"; }}>
@@ -606,7 +603,6 @@ export function AppShell() {
           />}
           {activeView === "properties" && <Properties onSelect={handlePropertySelect} editPropertyId={editPropertyId} onClearEditId={() => setEditPropertyId(null)} convertDealData={convertDealData} onClearConvertFlip={() => setConvertDealData(null)} onGuidedSetup={() => setActiveView("rentalWizard")} />}
           {activeView === "propertyDetail" && selectedProperty && <PropertyDetail key={selectedProperty.id + "-" + (propDetailTab || "overview") + "-" + (propDetailTenantHighlight || "")} property={selectedProperty} onBack={() => { setActiveView(navSource === "dashboard" ? "dashboard" : navSource === "portfolio" ? "portfolio" : "properties"); setPropDetailTab(null); setPropDetailTenantHighlight(null); setPrevNavSource(null); setNavSource(null); }} backLabel={navSource === "dashboard" ? "Back to Dashboard" : navSource === "portfolio" ? "Back to Portfolio" : "Back to Properties"} onEditProperty={(p) => { setEditPropertyId(p.id); setActiveView("properties"); }} onGoToTransactions={() => { setHighlightLedgerKey(null); setLedgerInitialAssetFilter("rental:" + selectedProperty.id); setActiveView("ledger"); }} onNavigateToTransaction={(txId) => { if (txId) setHighlightLedgerKey("tx-" + txId); setLedgerInitialAssetFilter("rental:" + selectedProperty.id); setActiveView("ledger"); }} onNavigateToTenant={(tenantId) => { const t = TENANTS.find(x => x.id === tenantId); if (t) { handleTenantSelect(t, "propertyDetail"); } }} initialTab={propDetailTab} highlightTenantId={propDetailTenantHighlight} onClearHighlightTenant={() => setPropDetailTenantHighlight(null)} />}
-          {activeView === "transactions" && <Transactions highlightTxId={highlightTxId} backLabel={navSource === "ledger" ? "Back to Ledger" : navSource === "propertyDetail" ? "Back to Property" : navSource === "portfolio" ? "Back to Portfolio" : "Back to Dashboard"} onBack={navSource === "ledger" ? () => { setActiveView("ledger"); setHighlightTxId(null); setNavSource(null); setPrevNavSource(null); } : navSource === "dashboard" ? () => { setActiveView("dashboard"); setHighlightTxId(null); setNavSource(null); setPrevNavSource(null); } : navSource === "portfolio" ? () => { setActiveView("portfolio"); setHighlightTxId(null); setNavSource(null); setPrevNavSource(null); } : navSource === "propertyDetail" ? () => { setActiveView("propertyDetail"); setHighlightTxId(null); setNavSource(prevNavSource); setPrevNavSource(null); } : null} onClearHighlight={() => setHighlightTxId(null)} />}
           {activeView === "analytics" && <Analytics />}
           {activeView === "notes" && <UnifiedNotes highlightNoteId={highlightNoteId} highlightDealNoteId={highlightDealNoteId} autoOpenAdd={notesAutoAdd} onBack={navSource === "dashboard" ? () => { setActiveView("dashboard"); setHighlightNoteId(null); setNavSource(null); setNotesAutoAdd(false); } : navSource === "dealdashboard" ? () => { setActiveView("dealdashboard"); setHighlightDealNoteId(null); setNavSource(null); setNotesAutoAdd(false); } : null} onClearHighlight={() => { setHighlightNoteId(null); setHighlightDealNoteId(null); setNotesAutoAdd(false); }} />}
           {activeView === "reports" && <Reports />}
@@ -640,7 +636,6 @@ export function AppShell() {
               onNavigateToExpense={(expId) => { setHighlightLedgerKey("dx-" + expId); setLedgerInitialAssetFilter(null); setActiveView("ledger"); }}
             />;
           })()}
-          {activeView === "dealexpenses"    && <DealExpenses highlightExpId={highlightExpId} onBack={navSource === "ledger" ? () => { setActiveView("ledger"); setHighlightExpId(null); setNavSource(null); setPrevDealNavSource(null); } : navSource === "dealDetail" ? () => { setActiveView("dealDetail"); setHighlightExpId(null); setNavSource(null); setDealNavSource(prevDealNavSource); setPrevDealNavSource(null); } : navSource === "dealdashboard" ? () => { setActiveView("dealdashboard"); setHighlightExpId(null); setNavSource(null); } : navSource === "portfolio" ? () => { setActiveView("portfolio"); setHighlightExpId(null); setNavSource(null); } : null} backLabel={navSource === "ledger" ? "Back to Ledger" : navSource === "dealdashboard" ? "Back to Dashboard" : navSource === "portfolio" ? "Back to Portfolio" : "Back to Deal"} onClearHighlight={() => setHighlightExpId(null)} />}
           {activeView === "dealcontractors" && <DealContractors onSelectContractor={handleSelectContractor} />}
           {activeView === "contractorDetail" && selectedContractor && <ContractorDetail contractor={selectedContractor} initialTab={contractorInitialTab} onBack={() => { setSelectedContractor(null); setContractorInitialTab(null); if (navSource === "dealDetail" && selectedDeal) { setActiveView("dealDetail"); setDealInitialTab("contractors"); setNavSource(null); setDealNavSource(prevDealNavSource); setPrevDealNavSource(null); } else if (navSource === "rehabItemDetail" && selectedRehabItem) { setActiveView("rehabItemDetail"); setNavSource("dealDetail"); } else if (navSource === "portfolio") { setActiveView("portfolio"); setNavSource(null); } else { setActiveView("dealcontractors"); } }} />}
           {activeView === "dealmilestones"  && <DealMilestones highlightMilestoneKey={highlightMilestoneKey} onBack={navSource === "dealdashboard" ? () => { setActiveView("dealdashboard"); setHighlightMilestoneKey(null); setNavSource(null); } : null} onClearHighlight={() => setHighlightMilestoneKey(null)} />}
