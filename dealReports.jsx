@@ -12,9 +12,88 @@ import {
   Building2, AlertCircle, CheckCircle, Download, Target, ArrowUp,
   ArrowDown, Calendar,
 } from "lucide-react";
-import { fmt, fmtK, STAGE_ORDER, STAGE_COLORS } from "./api.js";
+import { fmt, fmtK, STAGE_ORDER, STAGE_COLORS, CONTRACTOR_BIDS as _BIDS, CONTRACTOR_PAYMENTS as _PAYS } from "./api.js";
 import { DEALS as _DEALS, DEAL_EXPENSES as _FE, CONTRACTORS as _CON } from "./api.js";
-import { InfoTip } from "./shared.jsx";
+import { InfoTip, downloadFile } from "./shared.jsx";
+
+// ─── CSV escaping ───────────────────────────────────────────────────────────
+// Wraps any field in quotes and escapes embedded quotes; safer than string
+// concatenation against fields that may contain commas, newlines, or quotes.
+function csvCell(v) {
+  if (v == null) return "";
+  const s = String(v);
+  if (/[",\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+  return s;
+}
+function csvRow(cells) { return cells.map(csvCell).join(",") + "\n"; }
+
+// ─── Per-report CSV builders ────────────────────────────────────────────────
+// One function per active report. Each takes the same inputs the on-screen
+// view uses (allMetrics + filter context) so the export reflects the user's
+// current scope. Keep these flat — investors take this CSV to a CPA.
+function buildProjectReportCSV(activeReport, allMetrics, dealFilter) {
+  const scopeName = dealFilter === "all" ? "All Projects" : _DEALS.find(f => f.id === dealFilter)?.name || "Project";
+  let csv = "";
+
+  if (activeReport === "profitability") {
+    csv += csvRow(["Project", "Stage", "Purchase Price", "Rehab Budget", "Rehab Spent", "Holding Costs", "Selling Costs", "Total Invested", "Sale / ARV", "Profit", "ROI %", "Annualized %"]);
+    [...allMetrics].sort((a, b) => b.m.profit - a.m.profit).forEach(d => {
+      csv += csvRow([d.name, d.stage, d.purchasePrice, d.m.rehabBudget, d.m.rehabSpent, d.m.totalHolding, d.m.sellingCosts, d.m.totalInvested, d.m.saleOrARV, d.m.profit, d.m.roi.toFixed(1), d.m.annualized.toFixed(1)]);
+    });
+
+  } else if (activeReport === "rehabBudget") {
+    csv += csvRow(["Project", "Stage", "Rehab Budget", "Rehab Spent", "Variance $", "Variance %"]);
+    allMetrics.forEach(d => {
+      const variance = d.m.rehabSpent - d.m.rehabBudget;
+      csv += csvRow([d.name, d.stage, d.m.rehabBudget, d.m.rehabSpent, variance, d.m.rehabVariance.toFixed(1)]);
+    });
+
+  } else if (activeReport === "holdingCosts") {
+    csv += csvRow(["Project", "Stage", "Days Owned", "Holding $/Month", "Total Holding", "Cost / Day"]);
+    allMetrics.forEach(d => {
+      const perDay = d.m.daysOwned > 0 ? Math.round(d.m.totalHolding / d.m.daysOwned) : 0;
+      csv += csvRow([d.name, d.stage, d.m.daysOwned, d.m.holdPerMonth, d.m.totalHolding, perDay]);
+    });
+
+  } else if (activeReport === "contractors") {
+    csv += csvRow(["Contractor", "Trade", "Project", "Accepted Bids", "Total Paid", "Outstanding"]);
+    const filterDealId = dealFilter !== "all" ? dealFilter : null;
+    _CON.forEach(c => {
+      const bids = _BIDS.filter(b => b.contractorId === c.id && b.status === "accepted" && (!filterDealId || b.dealId === filterDealId));
+      const pays = _PAYS.filter(p => p.contractorId === c.id && (!filterDealId || p.dealId === filterDealId));
+      if (bids.length === 0 && pays.length === 0) return;
+      const accepted = bids.reduce((s, b) => s + b.amount, 0);
+      const paid = pays.reduce((s, p) => s + p.amount, 0);
+      const projectName = filterDealId ? (_DEALS.find(f => f.id === filterDealId)?.name || "") : "(across all)";
+      csv += csvRow([c.name, c.trade || "", projectName, accepted, paid, accepted - paid]);
+    });
+
+  } else if (activeReport === "capitalGains") {
+    csv += csvRow(["Project", "Sale Price", "Total Basis", "Capital Gain", "Sold Date"]);
+    allMetrics.filter(d => d.stage === "Sold").forEach(d => {
+      csv += csvRow([d.name, d.salePrice || d.m.saleOrARV, d.m.totalInvested, d.m.profit, d.closeDate || ""]);
+    });
+
+  } else if (activeReport === "cashflow") {
+    csv += csvRow(["Project", "Stage", "Total Invested", "Sale / ARV", "Net Cash Flow", "Days Owned"]);
+    allMetrics.forEach(d => {
+      csv += csvRow([d.name, d.stage, d.m.totalInvested, d.m.saleOrARV, d.m.profit, d.m.daysOwned]);
+    });
+
+  } else if (activeReport === "pipeline") {
+    csv += csvRow(["Stage", "Project Count", "Total Value (Sale/ARV)", "Total Invested", "Projected Profit"]);
+    STAGE_ORDER.forEach(stage => {
+      const inStage = allMetrics.filter(d => d.stage === stage);
+      if (inStage.length === 0) return;
+      const totalValue = inStage.reduce((s, d) => s + d.m.saleOrARV, 0);
+      const totalInv = inStage.reduce((s, d) => s + d.m.totalInvested, 0);
+      const totalProfit = inStage.reduce((s, d) => s + d.m.profit, 0);
+      csv += csvRow([stage, inStage.length, totalValue, totalInv, totalProfit]);
+    });
+  }
+
+  return { csv, scopeName };
+}
 
 // ─── Shared styles ───────────────────────────────────────────────────────────
 const iS = { width: "100%", padding: "10px 14px", borderRadius: 10, border: "1.5px solid var(--border)", fontSize: 14, color: "var(--text-primary)", background: "var(--surface)", outline: "none" };
@@ -82,6 +161,14 @@ export function DealReports() {
             <option value="all">All Projects</option>
             {_DEALS.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
           </select>
+          <button onClick={() => {
+            const { csv, scopeName } = buildProjectReportCSV(activeReport, allMetrics, dealFilter);
+            const safeScope = scopeName.replace(/[^a-zA-Z0-9_-]/g, "_");
+            const ts = new Date().toISOString().slice(0, 10);
+            downloadFile(csv, `PropBooks_${activeReport}_${safeScope}_${ts}.csv`, "text/csv");
+          }} style={{ background: "var(--surface)", color: "var(--text-label)", border: "1px solid var(--border)", borderRadius: 10, padding: "10px 16px", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
+            <Download size={15} /> Export CSV
+          </button>
         </div>
       </div>
 

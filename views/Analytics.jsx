@@ -14,7 +14,8 @@ import { PROPERTIES, TRANSACTIONS, TENANTS } from '../mockData.js';
 
 export function Analytics() {
   const [selectedPropId, setSelectedPropId] = useState("");
-  const selectedProp = selectedPropId ? PROPERTIES.find(p => p.id === Number(selectedPropId)) : null;
+  // Property IDs are UUIDs after the Supabase migration — compare as strings.
+  const selectedProp = selectedPropId ? PROPERTIES.find(p => p.id === selectedPropId) : null;
 
   // Deterministic monthly expense variation (avoids Math.random re-renders)
   const EXP_FACTORS = [1.0, 0.88, 1.15, 0.92, 1.05, 1.18, 0.97, 1.22, 0.89, 1.08, 1.30, 0.95];
