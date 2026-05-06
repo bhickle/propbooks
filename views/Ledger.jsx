@@ -12,10 +12,10 @@
 // asset, and free-text search. The kind chip + asset link lets you skim a
 // month's full money flow without flipping between two screens.
 // =============================================================================
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import {
-  Search, X, ArrowUpRight, ArrowDownRight, ExternalLink, Wallet,
-  TrendingUp, TrendingDown, Hash, Plus, Home, Hammer, Building2,
+  Search, X, ArrowUpRight, ArrowDownRight, Wallet,
+  TrendingUp, TrendingDown, Hash, Plus, Home, Hammer,
   Pencil, Trash2, Paperclip, CheckCircle,
 } from "lucide-react";
 import {
@@ -26,6 +26,7 @@ import {
 import { PROPERTIES, TRANSACTIONS, TENANTS } from "../mockData.js";
 import { StatCard, EmptyState, Modal, iS } from "../shared.jsx";
 import { AttachmentZone, AttachmentList, OcrPrompt } from "./Attachments.jsx";
+import { calcPaymentInterest } from "../finance.js";
 import { createTransaction, updateTransaction, deleteTransaction } from "../db/transactions.js";
 import { createDealExpense, updateDealExpense, deleteDealExpense } from "../db/dealExpenses.js";
 import { updateRehabItem as dbUpdateRehabItem } from "../db/dealRehabItems.js";
@@ -176,6 +177,9 @@ function LedgerAddModal({ initialKind, editRow, onClose, onSaved }) {
         description: raw.description || "",
         amount: String(Math.abs(raw.amount || 0)),
         counterparty: raw.payee || raw.vendor || "",
+        piOverride: !!(raw.piPrincipal || raw.piInterest),
+        piPrincipal: raw.piPrincipal ? String(raw.piPrincipal) : "",
+        piInterest: raw.piInterest ? String(raw.piInterest) : "",
       };
     }
     return {
@@ -188,6 +192,9 @@ function LedgerAddModal({ initialKind, editRow, onClose, onSaved }) {
       description: "",
       amount: "",
       counterparty: "",
+      piOverride: false,
+      piPrincipal: "",
+      piInterest: "",
     };
   });
   const [saving, setSaving] = useState(false);
@@ -320,6 +327,24 @@ function LedgerAddModal({ initialKind, editRow, onClose, onSaved }) {
           amount: isIncome ? amt : -amt,
           payee: counterparty || null,
         };
+        // Mortgage P/I split — auto-compute interest from loan terms unless
+        // the user manually overrode it. Same logic the legacy form used.
+        const isMortgage = !isIncome && ["Mortgage Payment", "Mortgage"].includes(form.category);
+        if (isMortgage) {
+          if (form.piOverride && form.piPrincipal && form.piInterest) {
+            dbFields.piPrincipal = parseFloat(form.piPrincipal) || 0;
+            dbFields.piInterest = parseFloat(form.piInterest) || 0;
+          } else {
+            const prop = selectedAsset;
+            if (prop) {
+              const interest = calcPaymentInterest(prop.loanAmount, prop.loanRate, prop.loanTermYears, prop.loanStartDate, form.date);
+              if (interest !== null) {
+                dbFields.piInterest = interest;
+                dbFields.piPrincipal = Math.max(0, Math.round(amt - interest));
+              }
+            }
+          }
+        }
         if (editing) {
           const saved = await updateTransaction(editRow.raw.id, dbFields);
           const idxG = TRANSACTIONS.findIndex(t => t.id === editRow.raw.id);
@@ -442,6 +467,47 @@ function LedgerAddModal({ initialKind, editRow, onClose, onSaved }) {
           <input type="text" placeholder={kind === "rental-income" ? "e.g. March rent — Unit A" : kind === "flip-expense" ? "e.g. Hardwood flooring — 680 sqft" : "e.g. Q1 property insurance"} value={form.description} onChange={sf("description")} style={iS} />
         </div>
 
+        {/* Mortgage P/I auto-split — only for rental Mortgage Payment with loan terms */}
+        {kind === "rental-expense" && ["Mortgage Payment", "Mortgage"].includes(form.category) && selectedAsset && selectedAsset.loanAmount && selectedAsset.loanRate && (() => {
+          const interest = calcPaymentInterest(selectedAsset.loanAmount, selectedAsset.loanRate, selectedAsset.loanTermYears, selectedAsset.loanStartDate, form.date);
+          const amt = parseFloat(form.amount) || 0;
+          const autoPrincipal = interest !== null ? Math.max(0, Math.round(amt - interest)) : null;
+          const autoInterest = interest !== null ? Math.round(interest) : null;
+          return (
+            <div style={{ gridColumn: "1 / -1", padding: "12px 14px", background: "var(--info-tint-alt)", borderRadius: 10, border: "1px solid var(--info-border-alt)" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: form.piOverride ? 8 : 0 }}>
+                <div>
+                  <p style={{ fontSize: 12, fontWeight: 700, color: "var(--c-blue)", textTransform: "uppercase", letterSpacing: "0.04em" }}>Principal / Interest split</p>
+                  {!form.piOverride && autoInterest !== null && (
+                    <p style={{ fontSize: 12, color: "var(--text-secondary)", marginTop: 2 }}>
+                      Auto: <strong>{fmt(autoPrincipal)}</strong> principal · <strong>{fmt(autoInterest)}</strong> interest
+                    </p>
+                  )}
+                  {!form.piOverride && autoInterest === null && (
+                    <p style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>Need loan start date on the property to auto-compute.</p>
+                  )}
+                </div>
+                <label style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer", fontSize: 12, color: "var(--text-label)" }}>
+                  <input type="checkbox" checked={form.piOverride} onChange={e => setForm(f => ({ ...f, piOverride: e.target.checked }))} />
+                  Override
+                </label>
+              </div>
+              {form.piOverride && (
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                  <div>
+                    <label style={{ display: "block", color: "var(--text-muted)", fontSize: 11, fontWeight: 600, marginBottom: 4 }}>Principal</label>
+                    <input type="number" step="0.01" placeholder="0.00" value={form.piPrincipal} onChange={sf("piPrincipal")} style={iS} />
+                  </div>
+                  <div>
+                    <label style={{ display: "block", color: "var(--text-muted)", fontSize: 11, fontWeight: 600, marginBottom: 4 }}>Interest</label>
+                    <input type="number" step="0.01" placeholder="0.00" value={form.piInterest} onChange={sf("piInterest")} style={iS} />
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })()}
+
         <div style={{ gridColumn: "1 / -1" }}>
           <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>{counterpartyLabel}</label>
           <input type="text" placeholder={counterpartyPlaceholder} value={form.counterparty} onChange={sf("counterparty")} style={iS} />
@@ -527,15 +593,32 @@ function TypeChip({ row }) {
   return <span style={{ background: "var(--warning-btn-bg)", color: "#c2410c", borderRadius: 12, padding: "2px 8px", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.04em" }}>Flip</span>;
 }
 
-export function Ledger({ onOpenTx, onOpenDealExpense }) {
+export function Ledger({ highlightRowKey, initialAssetFilter, onClearHighlight }) {
   const [typeFilter, setTypeFilter] = useState("all");
-  const [assetFilter, setAssetFilter] = useState("all");
+  const [assetFilter, setAssetFilter] = useState(initialAssetFilter || "all");
   const [dateRange, setDateRange] = useState("thisYear");
   const [search, setSearch] = useState("");
   const [showAdd, setShowAdd] = useState(null); // null | "rental-income" | "rental-expense" | "flip-expense"
   const [editRow, setEditRow] = useState(null);  // a built row from buildRows()
   const [deleteRow, setDeleteRow] = useState(null);
   const [renderKey, setRenderKey] = useState(0);
+  const [flashKey, setFlashKey] = useState(highlightRowKey || null);
+  const highlightRef = useRef(null);
+
+  // Flash + scroll on incoming highlight (e.g., from Dashboard activity click)
+  useEffect(() => {
+    if (highlightRowKey) {
+      setFlashKey(highlightRowKey);
+      // Date range often hides the highlighted row — open it up so the flash lands.
+      setDateRange("all");
+      setTypeFilter("all");
+      setTimeout(() => {
+        if (highlightRef.current) highlightRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+      }, 100);
+      const t = setTimeout(() => { setFlashKey(null); onClearHighlight && onClearHighlight(); }, 2500);
+      return () => clearTimeout(t);
+    }
+  }, [highlightRowKey]); // eslint-disable-line react-hooks/exhaustive-deps -- onClearHighlight is an inline parent callback (new ref every render)
 
   const rows = useMemo(() => buildRows(), [renderKey]); // eslint-disable-line react-hooks/exhaustive-deps -- renderKey is the cache-bust counter for TRANSACTIONS / DEAL_EXPENSES
 
@@ -560,14 +643,8 @@ export function Ledger({ onOpenTx, onOpenDealExpense }) {
   const expenses = filtered.filter(r => r.amount < 0).reduce((s, r) => s + r.amount, 0);
   const net      = income + expenses;
 
-  // Row click opens the unified edit modal in-place. Routing to the legacy
-  // per-type editors is still available via the small ↗ button so the
-  // receipt-attachment workflow has a fallback until the unified form catches up.
+  // Row click opens the unified edit modal in-place.
   const handleEdit = (row) => setEditRow(row);
-  const handleOpenLegacy = (row) => {
-    if (row.kind === "rental") onOpenTx && onOpenTx(row.raw.id);
-    else onOpenDealExpense && onOpenDealExpense(row.raw.id);
-  };
 
   const handleDelete = async (row) => {
     try {
@@ -703,10 +780,10 @@ export function Ledger({ onOpenTx, onOpenDealExpense }) {
               filtered.map((r, i) => {
                 const isIncome = r.amount > 0;
                 return (
-                  <tr key={r.key} onClick={() => handleEdit(r)}
-                    style={{ borderTop: "1px solid var(--border-subtle)", cursor: "pointer", background: i % 2 === 0 ? "var(--surface)" : "var(--surface-alt)" }}
-                    onMouseEnter={e => e.currentTarget.style.background = "var(--info-tint-alt)"}
-                    onMouseLeave={e => e.currentTarget.style.background = i % 2 === 0 ? "var(--surface)" : "var(--surface-alt)"}>
+                  <tr key={r.key} ref={flashKey === r.key ? highlightRef : null} onClick={() => handleEdit(r)}
+                    style={{ borderTop: "1px solid var(--border-subtle)", cursor: "pointer", background: flashKey === r.key ? "var(--warning-bg)" : i % 2 === 0 ? "var(--surface)" : "var(--surface-alt)", boxShadow: flashKey === r.key ? "inset 3px 0 0 #e95e00" : "none", transition: "background 0.4s ease" }}
+                    onMouseEnter={e => { if (flashKey !== r.key) e.currentTarget.style.background = "var(--info-tint-alt)"; }}
+                    onMouseLeave={e => { if (flashKey !== r.key) e.currentTarget.style.background = i % 2 === 0 ? "var(--surface)" : "var(--surface-alt)"; }}>
                     <td style={{ padding: "12px 16px", fontSize: 13, color: "var(--text-secondary)", whiteSpace: "nowrap" }}>{r.date}</td>
                     <td style={{ padding: "12px 16px" }}><TypeChip row={r} /></td>
                     <td style={{ padding: "12px 16px" }}>
@@ -735,11 +812,6 @@ export function Ledger({ onOpenTx, onOpenDealExpense }) {
                           title="Delete"
                           style={{ background: "var(--danger-badge)", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "var(--c-red)", display: "flex", alignItems: "center" }}>
                           <Trash2 size={13} />
-                        </button>
-                        <button onClick={e => { e.stopPropagation(); handleOpenLegacy(r); }}
-                          title="Open in legacy editor (with receipts)"
-                          style={{ background: "var(--surface-muted)", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "var(--text-muted)", display: "flex", alignItems: "center" }}>
-                          <ExternalLink size={13} />
                         </button>
                       </div>
                     </td>

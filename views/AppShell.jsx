@@ -159,6 +159,11 @@ export function AppShell() {
   const [showOnboarding, setShowOnboarding] = useState(user?.plan === "trial");
   const [highlightTxId, setHighlightTxId] = useState(null);
   const [highlightExpId, setHighlightExpId] = useState(null);
+  // Ledger highlight key: "tx-<id>" or "dx-<id>" — used when routing in from
+  // Dashboard / PortfolioDashboard / global search now that the legacy
+  // Transactions and DealExpenses screens are gone.
+  const [highlightLedgerKey, setHighlightLedgerKey] = useState(null);
+  const [ledgerInitialAssetFilter, setLedgerInitialAssetFilter] = useState(null);
   const [highlightTenantId, setHighlightTenantId] = useState(null);
   const [highlightNoteId, setHighlightNoteId] = useState(null);
   const [highlightDealNoteId, setHighlightDealNoteId] = useState(null);
@@ -290,16 +295,15 @@ export function AppShell() {
   };
 
   const navigateToTransaction = (txId) => {
-    setHighlightTxId(txId);
-    setNavSource("dashboard");
-    setActiveView("transactions");
+    setHighlightLedgerKey("tx-" + txId);
+    setLedgerInitialAssetFilter(null);
+    setActiveView("ledger");
   };
 
   const navigateToDealExpense = (expId) => {
-    setHighlightExpId(expId);
-    setPrevDealNavSource(dealNavSource);
-    setNavSource("dealDetail");
-    setActiveView("dealexpenses");
+    setHighlightLedgerKey("dx-" + expId);
+    setLedgerInitialAssetFilter(null);
+    setActiveView("ledger");
   };
 
   const portfolioNavItem = { id: "portfolio", label: "Portfolio", icon: PieChartIcon };
@@ -484,11 +488,11 @@ export function AppShell() {
               if (item.type === "property") { handlePropertySelect(item.data); }
               else if (item.type === "tenant") { handleTenantSelect(item.data, "tenants"); }
               else if (item.type === "deal") { handleDealSelect(item.data, null, "deals"); }
-              else if (item.type === "transaction") { setHighlightTxId(item.data.id); setActiveView("transactions"); }
+              else if (item.type === "transaction") { setHighlightLedgerKey("tx-" + item.data.id); setLedgerInitialAssetFilter(null); setActiveView("ledger"); }
               else if (item.type === "contractor") { setSelectedContractor(item.data); setActiveView("contractorDetail"); }
               else if (item.type === "rental-note") { setHighlightNoteId(item.data.id); setActiveView("notes"); }
               else if (item.type === "deal-note") { setHighlightDealNoteId(item.data.id); setActiveView("notes"); }
-              else if (item.type === "deal-expense") { setHighlightExpId(item.data.id); setActiveView("dealexpenses"); }
+              else if (item.type === "deal-expense") { setHighlightLedgerKey("dx-" + item.data.id); setLedgerInitialAssetFilter(null); setActiveView("ledger"); }
             }} />
             <button onClick={toggleTheme} title={theme === "light" ? "Switch to dark mode" : "Switch to light mode"} style={{ background: "none", border: "none", cursor: "pointer", padding: 6, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center" }}
               onMouseEnter={e => e.currentTarget.style.background = "var(--hover-surface)"}
@@ -587,7 +591,7 @@ export function AppShell() {
           </div>
         </div>
         <div style={{ flex: 1, padding: 32, maxWidth: 1400, width: "100%" }}>
-          {activeView === "portfolio" && <PortfolioDashboard onNavigate={(view) => { if (view === "notes-add") { setNotesAutoAdd(true); setActiveView("notes"); } else { setActiveView(view); } }} onSelectProperty={(p, tab) => { setNavSource("portfolio"); setPropDetailTab(tab || null); setPropDetailTenantHighlight(null); handlePropertySelect(p); }} onSelectFlip={(f, tab) => { setNavSource("portfolio"); handleDealSelect(f, tab || null, "portfolio"); }} onNavigateToTx={(txId) => { setHighlightTxId(txId); setNavSource("portfolio"); setActiveView("transactions"); }} onNavigateToDealExpense={(expId) => { setHighlightExpId(expId); setNavSource("portfolio"); setActiveView("dealexpenses"); }} onNavigateToLease={(prop, tenantId) => { setSelectedProperty(prop); setPropDetailTab("tenants"); setPropDetailTenantHighlight(tenantId); setNavSource("portfolio"); setActiveView("propertyDetail"); }} onSelectContractor={(c) => { setSelectedContractor(c); setContractorInitialTab(null); setNavSource("portfolio"); setActiveView("contractorDetail"); }} />}
+          {activeView === "portfolio" && <PortfolioDashboard onNavigate={(view) => { if (view === "notes-add") { setNotesAutoAdd(true); setActiveView("notes"); } else { setActiveView(view); } }} onSelectProperty={(p, tab) => { setNavSource("portfolio"); setPropDetailTab(tab || null); setPropDetailTenantHighlight(null); handlePropertySelect(p); }} onSelectFlip={(f, tab) => { setNavSource("portfolio"); handleDealSelect(f, tab || null, "portfolio"); }} onNavigateToTx={(txId) => { setHighlightLedgerKey("tx-" + txId); setLedgerInitialAssetFilter(null); setActiveView("ledger"); }} onNavigateToDealExpense={(expId) => { setHighlightLedgerKey("dx-" + expId); setLedgerInitialAssetFilter(null); setActiveView("ledger"); }} onNavigateToLease={(prop, tenantId) => { setSelectedProperty(prop); setPropDetailTab("tenants"); setPropDetailTenantHighlight(tenantId); setNavSource("portfolio"); setActiveView("propertyDetail"); }} onSelectContractor={(c) => { setSelectedContractor(c); setContractorInitialTab(null); setNavSource("portfolio"); setActiveView("contractorDetail"); }} />}
           {activeView === "dashboard" && <Dashboard onNavigate={setActiveView} onNavigateToTx={navigateToTransaction} onSelectProperty={handlePropertySelect} onNavigateToTenantAdd={(propId, unit) => { setPrefillTenant({ propertyId: propId, unit }); setActiveView("tenants"); }} onNavigateToNote={(noteId) => { setHighlightNoteId(noteId); setNavSource("dashboard"); setActiveView("notes"); }} onNavigateToLease={(prop, tenantId) => { setSelectedProperty(prop); setPropDetailTab("tenants"); setPropDetailTenantHighlight(tenantId); setNavSource("dashboard"); setActiveView("propertyDetail"); }} />}
           {activeView === "assets" && <AssetList
             onSelectRental={handlePropertySelect}
@@ -596,16 +600,17 @@ export function AppShell() {
             onAddFlip={() => setActiveView("flipWizard")}
           />}
           {activeView === "ledger" && <Ledger
-            onOpenTx={(txId) => { setHighlightTxId(txId); setNavSource("ledger"); setActiveView("transactions"); }}
-            onOpenDealExpense={(expId) => { setHighlightExpId(expId); setNavSource("ledger"); setPrevDealNavSource(dealNavSource); setActiveView("dealexpenses"); }}
+            highlightRowKey={highlightLedgerKey}
+            initialAssetFilter={ledgerInitialAssetFilter}
+            onClearHighlight={() => { setHighlightLedgerKey(null); setLedgerInitialAssetFilter(null); }}
           />}
           {activeView === "properties" && <Properties onSelect={handlePropertySelect} editPropertyId={editPropertyId} onClearEditId={() => setEditPropertyId(null)} convertDealData={convertDealData} onClearConvertFlip={() => setConvertDealData(null)} onGuidedSetup={() => setActiveView("rentalWizard")} />}
-          {activeView === "propertyDetail" && selectedProperty && <PropertyDetail key={selectedProperty.id + "-" + (propDetailTab || "overview") + "-" + (propDetailTenantHighlight || "")} property={selectedProperty} onBack={() => { setActiveView(navSource === "dashboard" ? "dashboard" : navSource === "portfolio" ? "portfolio" : "properties"); setPropDetailTab(null); setPropDetailTenantHighlight(null); setPrevNavSource(null); setNavSource(null); }} backLabel={navSource === "dashboard" ? "Back to Dashboard" : navSource === "portfolio" ? "Back to Portfolio" : "Back to Properties"} onEditProperty={(p) => { setEditPropertyId(p.id); setActiveView("properties"); }} onGoToTransactions={() => setActiveView("transactions")} onNavigateToTransaction={(txId) => { if (txId) { setHighlightTxId(txId); } setPrevNavSource(navSource); setNavSource("propertyDetail"); setActiveView("transactions"); }} onNavigateToTenant={(tenantId) => { const t = TENANTS.find(x => x.id === tenantId); if (t) { handleTenantSelect(t, "propertyDetail"); } }} initialTab={propDetailTab} highlightTenantId={propDetailTenantHighlight} onClearHighlightTenant={() => setPropDetailTenantHighlight(null)} />}
+          {activeView === "propertyDetail" && selectedProperty && <PropertyDetail key={selectedProperty.id + "-" + (propDetailTab || "overview") + "-" + (propDetailTenantHighlight || "")} property={selectedProperty} onBack={() => { setActiveView(navSource === "dashboard" ? "dashboard" : navSource === "portfolio" ? "portfolio" : "properties"); setPropDetailTab(null); setPropDetailTenantHighlight(null); setPrevNavSource(null); setNavSource(null); }} backLabel={navSource === "dashboard" ? "Back to Dashboard" : navSource === "portfolio" ? "Back to Portfolio" : "Back to Properties"} onEditProperty={(p) => { setEditPropertyId(p.id); setActiveView("properties"); }} onGoToTransactions={() => { setHighlightLedgerKey(null); setLedgerInitialAssetFilter("rental:" + selectedProperty.id); setActiveView("ledger"); }} onNavigateToTransaction={(txId) => { if (txId) setHighlightLedgerKey("tx-" + txId); setLedgerInitialAssetFilter("rental:" + selectedProperty.id); setActiveView("ledger"); }} onNavigateToTenant={(tenantId) => { const t = TENANTS.find(x => x.id === tenantId); if (t) { handleTenantSelect(t, "propertyDetail"); } }} initialTab={propDetailTab} highlightTenantId={propDetailTenantHighlight} onClearHighlightTenant={() => setPropDetailTenantHighlight(null)} />}
           {activeView === "transactions" && <Transactions highlightTxId={highlightTxId} backLabel={navSource === "ledger" ? "Back to Ledger" : navSource === "propertyDetail" ? "Back to Property" : navSource === "portfolio" ? "Back to Portfolio" : "Back to Dashboard"} onBack={navSource === "ledger" ? () => { setActiveView("ledger"); setHighlightTxId(null); setNavSource(null); setPrevNavSource(null); } : navSource === "dashboard" ? () => { setActiveView("dashboard"); setHighlightTxId(null); setNavSource(null); setPrevNavSource(null); } : navSource === "portfolio" ? () => { setActiveView("portfolio"); setHighlightTxId(null); setNavSource(null); setPrevNavSource(null); } : navSource === "propertyDetail" ? () => { setActiveView("propertyDetail"); setHighlightTxId(null); setNavSource(prevNavSource); setPrevNavSource(null); } : null} onClearHighlight={() => setHighlightTxId(null)} />}
           {activeView === "analytics" && <Analytics />}
           {activeView === "notes" && <UnifiedNotes highlightNoteId={highlightNoteId} highlightDealNoteId={highlightDealNoteId} autoOpenAdd={notesAutoAdd} onBack={navSource === "dashboard" ? () => { setActiveView("dashboard"); setHighlightNoteId(null); setNavSource(null); setNotesAutoAdd(false); } : navSource === "dealdashboard" ? () => { setActiveView("dealdashboard"); setHighlightDealNoteId(null); setNavSource(null); setNotesAutoAdd(false); } : null} onClearHighlight={() => { setHighlightNoteId(null); setHighlightDealNoteId(null); setNotesAutoAdd(false); }} />}
           {activeView === "reports" && <Reports />}
-          {activeView === "dealdashboard"   && <DealDashboard onSelect={(f, tab) => handleDealSelect(f, tab, "dealdashboard")} onNavigateToNote={(noteId) => { setHighlightDealNoteId(noteId); setNavSource("dealdashboard"); setActiveView("notes"); }} onNavigateToExpense={(expId) => { setHighlightExpId(expId); setNavSource("dealdashboard"); setActiveView("dealexpenses"); }} onNavigateToMilestone={(msKey) => { setHighlightMilestoneKey(msKey); setNavSource("dealdashboard"); setActiveView("dealmilestones"); }} />}
+          {activeView === "dealdashboard"   && <DealDashboard onSelect={(f, tab) => handleDealSelect(f, tab, "dealdashboard")} onNavigateToNote={(noteId) => { setHighlightDealNoteId(noteId); setNavSource("dealdashboard"); setActiveView("notes"); }} onNavigateToExpense={(expId) => { setHighlightLedgerKey("dx-" + expId); setLedgerInitialAssetFilter(null); setActiveView("ledger"); }} onNavigateToMilestone={(msKey) => { setHighlightMilestoneKey(msKey); setNavSource("dealdashboard"); setActiveView("dealmilestones"); }} />}
           {activeView === "deals"           && <DealPipeline onSelect={(f, tab) => handleDealSelect(f, tab, "deals")} onGuidedSetup={() => setActiveView("flipWizard")} />}
           {activeView === "dealDetail"      && selectedDeal && <ErrorBoundary key={"eb-" + selectedDeal.id}><DealDetail key={selectedDeal.id + "-" + (dealInitialTab || "overview")} deal={selectedDeal} onBack={() => { setActiveView(dealNavSource || "deals"); setDealNavSource(null); setPrevDealNavSource(null); setDealInitialTab(null); }} backLabel={dealNavSource === "dealdashboard" ? "Back to Dashboard" : dealNavSource === "portfolio" ? "Back to Portfolio" : "Back to Deals"} onNavigateToExpense={navigateToDealExpense} onNavigateToContractor={(con, tab) => { setSelectedContractor(con); setContractorInitialTab(tab || null); setPrevDealNavSource(dealNavSource); setNavSource("dealDetail"); setActiveView("contractorDetail"); }} onNavigateToRehabItem={(idx) => { setSelectedRehabItem({ dealId: selectedDeal.id, itemIdx: idx }); setNavSource("dealDetail"); setPrevDealNavSource(dealNavSource); setActiveView("rehabItemDetail"); }} initialTab={dealInitialTab} onConvertToRental={(flipData) => { setConvertDealData(flipData); setActiveView("properties"); }} onDealUpdated={onDealUpdated} onNavigateToDeal={(f) => handleDealSelect(f, null, dealNavSource || "deals")} /></ErrorBoundary>}
           {activeView === "dealrehab"        && <RehabTracker onSelectRehabItem={(dealId, idx) => { setSelectedRehabItem({ dealId, itemIdx: idx }); setNavSource("dealrehab"); setActiveView("rehabItemDetail"); }} />}
@@ -632,7 +637,7 @@ export function AppShell() {
               }}
               backLabel={backToDeal ? `Back to ${rDeal.name}` : "Back to Rehab Tracker"}
               onNavigateToContractor={(con, tab) => { setSelectedContractor(con); setContractorInitialTab(tab || null); setNavSource("rehabItemDetail"); setActiveView("contractorDetail"); }}
-              onNavigateToExpense={(expId) => { setHighlightExpId(expId); setNavSource("rehabItemDetail"); setActiveView("dealexpenses"); }}
+              onNavigateToExpense={(expId) => { setHighlightLedgerKey("dx-" + expId); setLedgerInitialAssetFilter(null); setActiveView("ledger"); }}
             />;
           })()}
           {activeView === "dealexpenses"    && <DealExpenses highlightExpId={highlightExpId} onBack={navSource === "ledger" ? () => { setActiveView("ledger"); setHighlightExpId(null); setNavSource(null); setPrevDealNavSource(null); } : navSource === "dealDetail" ? () => { setActiveView("dealDetail"); setHighlightExpId(null); setNavSource(null); setDealNavSource(prevDealNavSource); setPrevDealNavSource(null); } : navSource === "dealdashboard" ? () => { setActiveView("dealdashboard"); setHighlightExpId(null); setNavSource(null); } : navSource === "portfolio" ? () => { setActiveView("portfolio"); setHighlightExpId(null); setNavSource(null); } : null} backLabel={navSource === "ledger" ? "Back to Ledger" : navSource === "dealdashboard" ? "Back to Dashboard" : navSource === "portfolio" ? "Back to Portfolio" : "Back to Deal"} onClearHighlight={() => setHighlightExpId(null)} />}
