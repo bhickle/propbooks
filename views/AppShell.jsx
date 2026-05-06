@@ -467,7 +467,17 @@ export function AppShell() {
                activeView === "dealdashboard" ? "Dashboard" :
                activeView === "assets" ? "Assets" :
                activeView === "ledger" ? "Ledger" :
-               [...rentalNavItems, ...dealNavItems, ...toolNavItems].find(n => n.id === activeView)?.label || ""}
+               activeView === "dealcontractors" ? "Contractors" :
+               activeView === "contractorDetail" && selectedContractor ? selectedContractor.name :
+               activeView === "tenants" ? "Tenants" :
+               activeView === "analytics" ? "Analytics" :
+               activeView === "reports" ? "Reports" :
+               activeView === "properties" ? "Properties" :
+               activeView === "deals" ? "Projects" :
+               activeView === "dealrehab" ? "Rehab Tracker" :
+               activeView === "dealmilestones" ? "Milestones" :
+               activeView === "rehabItemDetail" ? "Rehab Item" :
+               toolNavItems.find(n => n.id === activeView)?.label || ""}
             </span>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
