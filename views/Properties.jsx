@@ -161,16 +161,18 @@ export function Properties({ onSelect, editPropertyId, onClearEditId, convertDea
 
   const filtered = PROPERTIES.filter(p => p.name.toLowerCase().includes(search.toLowerCase()) || p.type.toLowerCase().includes(search.toLowerCase()));
 
-  // Modal-only mode lifecycle: track when the modal opens so we can fire
-  // onComplete when it closes. Without this, save/cancel would leave the
-  // user staring at an empty page.
+  // Fire onComplete whenever showModal transitions from open to closed.
+  // We can't gate on isModalOnly because the auto-open useEffect clears
+  // editPropertyId via onClearEditId before showModal becomes true, so
+  // (isModalOnly && showModal) is never simultaneously true.
   useEffect(() => {
-    if (isModalOnly && showModal) wasModalOnlyOpen.current = true;
     if (wasModalOnlyOpen.current && !showModal) {
       wasModalOnlyOpen.current = false;
       onComplete && onComplete();
+    } else if (showModal) {
+      wasModalOnlyOpen.current = true;
     }
-  }, [showModal, isModalOnly, onComplete]);
+  }, [showModal, onComplete]);
 
   // The legacy list view is gone — AssetList is the canonical entry. This
   // component is now purely a modal-host overlay that renders nothing unless

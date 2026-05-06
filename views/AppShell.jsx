@@ -181,7 +181,17 @@ export function AppShell() {
   const [selectedRehabItem, setSelectedRehabItem] = useState(null); // { dealId, itemIdx }
   const [convertDealData, setConvertDealData] = useState(null); // deal data to pre-fill Add Property for flip-to-rental conversion
   const [dealVersion, setDealVersion] = useState(0); // bump to force re-render of deal-dependent views
-  const onDealUpdated = useCallback(() => setDealVersion(v => v + 1), []);
+  // Bump version + replace selectedDeal with a fresh shallow copy so DealDetail
+  // sees a new prop reference and re-renders. Without the new reference,
+  // mutations to DEALS[idx] in place don't propagate (same object identity).
+  const onDealUpdated = useCallback(() => {
+    setDealVersion(v => v + 1);
+    setSelectedDeal(prev => {
+      if (!prev) return prev;
+      const fresh = DEALS.find(d => d.id === prev.id);
+      return fresh ? { ...fresh } : prev;
+    });
+  }, []);
   const [showNotifications, setShowNotifications] = useState(false);
   const notifRef = useRef(null);
 
