@@ -1,17 +1,17 @@
 // =============================================================================
-// AssetList — unified portfolio view across rentals + deals.
+// AssetList — unified portfolio view across rentals + projects.
 //
-// First step in collapsing the parallel Rentals/Deals navigation. Renders
+// First step in collapsing the parallel Rentals/Projects navigation. Renders
 // one filterable list of every asset Brandon owns or is working on, with
-// a type chip (Rental / Deal), stage badge, and the type-appropriate
+// a type chip (Rental / Project), stage badge, and the type-appropriate
 // summary stats. Clicking a card routes to PropertyDetail or DealDetail
 // based on the asset's type — the detail screens stay genuinely different
 // because the lifecycles are different (cap rate vs ARV is not the same
 // kind of metric).
 //
 // Internal `kind: "rental" | "flip"` is the in-memory discriminator;
-// user-facing text uses Rental / Deal to match the codebase's existing
-// vocabulary (Deal Pipeline, Deal Detail, Deal Analyzer, etc.).
+// user-facing text uses Rental / Project to match the codebase's existing
+// vocabulary (Project Pipeline, Project Detail, Project Analyzer, etc.).
 // =============================================================================
 import { useState, useMemo } from "react";
 import {
@@ -55,7 +55,7 @@ function TypeStageChip({ row }) {
   return (
     <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
       <span style={{ background: "var(--warning-btn-bg)", color: "#c2410c", borderRadius: 20, padding: "3px 10px", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.04em" }}>
-        Deal
+        Project
       </span>
       <span style={{ display: "inline-flex", alignItems: "center", gap: 5, background: s.bg, color: s.text, borderRadius: 20, padding: "3px 10px", fontSize: 12, fontWeight: 600 }}>
         <span style={{ width: 6, height: 6, borderRadius: "50%", background: s.dot, display: "inline-block" }} />
@@ -182,7 +182,7 @@ export function AssetList({ onSelectRental, onSelectFlip, onAddRental, onAddFlip
         <div>
           <h1 style={{ color: "var(--text-primary)", fontSize: 26, fontWeight: 700, marginBottom: 4 }}>Assets</h1>
           <p style={{ color: "var(--text-secondary)", fontSize: 15 }}>
-            {rentalCount} rental{rentalCount !== 1 ? "s" : ""} · {flipCount} deal{flipCount !== 1 ? "s" : ""}
+            {rentalCount} rental{rentalCount !== 1 ? "s" : ""} · {flipCount} project{flipCount !== 1 ? "s" : ""}
           </p>
         </div>
         <div style={{ position: "relative" }}>
@@ -200,7 +200,7 @@ export function AssetList({ onSelectRental, onSelectFlip, onAddRental, onAddFlip
               <button onClick={() => { setShowAddMenu(false); onAddFlip && onAddFlip(); }}
                 style={{ width: "100%", padding: "12px 16px", background: "none", border: "none", textAlign: "left", cursor: "pointer", display: "flex", alignItems: "center", gap: 10, fontSize: 13, color: "var(--text-primary)" }}>
                 <Hammer size={14} color="#e95e00" />
-                <span style={{ fontWeight: 600 }}>Add Deal</span>
+                <span style={{ fontWeight: 600 }}>Add Project</span>
               </button>
             </div>
           )}
@@ -208,10 +208,10 @@ export function AssetList({ onSelectRental, onSelectFlip, onAddRental, onAddFlip
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 24 }}>
-        <StatCard icon={Building2}  label="Total Assets"      value={rows.length}            sub={`${rentalCount} rentals · ${flipCount} deals`} color="var(--c-blue)"   tip="Rentals plus active and sold deals." />
-        <StatCard icon={TrendingUp} label="Portfolio Value"   value={fmtK(totalValue)}       sub="Current value + ARV"                          color="var(--c-purple)" tip="Sum of current value across rentals and ARV across deals." />
+        <StatCard icon={Building2}  label="Total Assets"      value={rows.length}            sub={`${rentalCount} rentals · ${flipCount} projects`} color="var(--c-blue)"   tip="Rentals plus active and sold projects." />
+        <StatCard icon={TrendingUp} label="Portfolio Value"   value={fmtK(totalValue)}       sub="Current value + ARV"                          color="var(--c-purple)" tip="Sum of current value across rentals and ARV across projects." />
         <StatCard icon={Home}       label="Monthly Cash Flow" value={fmt(monthlyCF)}         sub="Rentals only"                                  color="var(--c-green)"  tip="Sum of (rent − expenses) across rentals using the latest 3-month average where transactions exist." />
-        <StatCard icon={Hammer}     label="Projected Profit"  value={fmtK(Math.round(projectedProfit))} sub="Active deals"                       color="#e95e00"         tip="ARV − purchase − rehab − holding & selling costs across active deals." />
+        <StatCard icon={Hammer}     label="Projected Profit"  value={fmtK(Math.round(projectedProfit))} sub="Active projects"                       color="#e95e00"         tip="ARV − purchase − rehab − holding & selling costs across active projects." />
       </div>
 
       <div style={{ display: "flex", gap: 10, marginBottom: 20, flexWrap: "wrap", alignItems: "center" }}>

@@ -222,7 +222,7 @@ export function RehabItemDetail({ deal, itemIdx, onBack, backLabel, onNavigateTo
         <p style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 20 }}>Contractors working on this scope and their bid amounts</p>
         {assigned.length === 0 ? (
           <div style={{ padding: 32, textAlign: "center", color: "var(--text-muted)", fontSize: 13, background: "var(--surface-alt)", borderRadius: 12 }}>
-            {dealContractors.length === 0 ? "No contractors on this deal yet. Add contractors from the deal's Contractors tab." : "No contractors assigned to this scope yet."}
+            {dealContractors.length === 0 ? "No contractors on this project yet. Add contractors from the project's Contractors tab." : "No contractors assigned to this scope yet."}
           </div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
@@ -298,7 +298,7 @@ export function RehabItemDetail({ deal, itemIdx, onBack, backLabel, onNavigateTo
           <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--text-primary)" }}>Linked Expenses</h3>
           <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>{fmt(linkedTotal)} total</span>
         </div>
-        <p style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 20 }}>Deal expenses tagged to this rehab scope or matching category</p>
+        <p style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 20 }}>Project expenses tagged to this rehab scope or matching category</p>
         {linkedExpenses.length === 0 ? (
           <div style={{ padding: 32, textAlign: "center", color: "var(--text-muted)", fontSize: 13, background: "var(--surface-alt)", borderRadius: 12 }}>No expenses linked to this scope yet.</div>
         ) : (

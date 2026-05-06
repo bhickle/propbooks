@@ -248,10 +248,10 @@ export function DealDashboard({ onSelect, onNavigateToNote, onNavigateToExpense,
       <PageHeader title="Dashboard" sub="Here's where your deals stand." />
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 20 }}>
-        <StatCard icon={Hammer}     label="Active Deals"     value={active.length}              sub={isFiltered ? "Filtered" : "In pipeline"}        color="#e95e00" tip="Number of deals in active pipeline stages (not Sold)." />
-        <StatCard icon={DollarSign} label="Capital Deployed" value={fmtK(totalDeployed)}        sub={isFiltered ? "Filtered" : "Purchase + rehab"}   color="var(--c-blue)" tip="Total Purchase Price + Rehab Budget across active deals." />
-        <StatCard icon={TrendingUp} label="Projected Profit" value={fmtK(Math.round(projectedProfit))} sub={isFiltered ? "Filtered" : "Active deals"}  color="var(--c-green)" tip="ARV − Purchase − Rehab Budget − Estimated Holding & Selling Costs for all active deals." />
-        <StatCard icon={Star}       label="Realized Profit"  value={fmt(realizedProfit)}        sub={isFiltered ? "Filtered" : "Closed deals YTD"}   color="var(--c-purple)" tip="Actual profit from closed/sold deals this year." />
+        <StatCard icon={Hammer}     label="Active Projects"     value={active.length}              sub={isFiltered ? "Filtered" : "In pipeline"}        color="#e95e00" tip="Number of deals in active pipeline stages (not Sold)." />
+        <StatCard icon={DollarSign} label="Capital Deployed" value={fmtK(totalDeployed)}        sub={isFiltered ? "Filtered" : "Purchase + rehab"}   color="var(--c-blue)" tip="Total Purchase Price + Rehab Budget across active projects." />
+        <StatCard icon={TrendingUp} label="Projected Profit" value={fmtK(Math.round(projectedProfit))} sub={isFiltered ? "Filtered" : "Active projects"}  color="var(--c-green)" tip="ARV − Purchase − Rehab Budget − Estimated Holding & Selling Costs for all active projects." />
+        <StatCard icon={Star}       label="Realized Profit"  value={fmt(realizedProfit)}        sub={isFiltered ? "Filtered" : "Closed projects YTD"}   color="var(--c-purple)" tip="Actual profit from closed/sold projects this year." />
       </div>
 
       {/* Filter bar */}
@@ -276,9 +276,9 @@ export function DealDashboard({ onSelect, onNavigateToNote, onNavigateToExpense,
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 20, marginBottom: 20 }}>
-        {/* Active Deals Table */}
+        {/* Active Projects Table */}
         <div style={sharedSectionS}>
-          <h3 style={{ color: "var(--text-primary)", fontSize: 16, fontWeight: 700, marginBottom: 16 }}>Active Deals</h3>
+          <h3 style={{ color: "var(--text-primary)", fontSize: 16, fontWeight: 700, marginBottom: 16 }}>Active Projects</h3>
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr>
@@ -453,7 +453,7 @@ export function RehabTracker({ onSelectRehabItem } = {}) {
     }
   }
 
-  // Assign an existing global contractor to a row (auto-attaching to the deal first)
+  // Assign an existing global contractor to a row (auto-attaching to the project first)
   function assignContractorToRowGlobal(dealId, itemIdx, contractorId) {
     const gi = _CON.findIndex(c => c.id === contractorId);
     if (gi !== -1) {
@@ -525,7 +525,7 @@ export function RehabTracker({ onSelectRehabItem } = {}) {
   const [itemForm, setItemForm]       = useState(emptyItem);
   const sif = k => e => setItemForm(f => ({ ...f, [k]: e.target.value }));
   const [catFocus, setCatFocus] = useState(false);
-  // Canonical taxonomy + any custom categories that have been used across deals
+  // Canonical taxonomy + any custom categories that have been used across projects
   const allCategories = useMemo(() => {
     const canonicalLabels = new Set(REHAB_CATEGORIES.map(c => c.label.toLowerCase()));
     const customSet = new Set();
@@ -588,21 +588,21 @@ export function RehabTracker({ onSelectRehabItem } = {}) {
     <div>
       <PageHeader
         title="Rehab Tracker"
-        sub="All rehab line items across active deals"
+        sub="All rehab line items across active projects"
         filter={
           <select value={filterDeal} onChange={e => setFilterDeal(e.target.value)}
             style={{ ...iS, width: 200, fontSize: 14, padding: "9px 14px", fontWeight: 600 }}>
-            <option value="all">All Deals</option>
+            <option value="all">All Projects</option>
             {deals.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
           </select>
         }
       />
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 24 }}>
-        <StatCard icon={Target}      label="Total Budget"  value={fmtK(totalBudget)} sub="Active deals"   color="var(--c-blue)" tip="Sum of rehab budgets across all active deals." />
-        <StatCard icon={Receipt}     label="Total Spent"   value={fmt(totalSpent)}   sub="To date"        color="#e95e00" tip="Total amount spent on rehab across all deals to date." />
+        <StatCard icon={Target}      label="Total Budget"  value={fmtK(totalBudget)} sub="Active projects"   color="var(--c-blue)" tip="Sum of rehab budgets across all active projects." />
+        <StatCard icon={Receipt}     label="Total Spent"   value={fmt(totalSpent)}   sub="To date"        color="#e95e00" tip="Total amount spent on rehab across all projects to date." />
         <StatCard icon={DollarSign}  label="Budget Left"   value={fmt(totalLeft)}    sub={totalLeft < 0 ? "OVER BUDGET" : "Remaining"} color={totalLeft < 0 ? "var(--c-red)" : "var(--c-green)"} semantic tip="Total Budget − Total Spent. Negative means over budget." />
-        <StatCard icon={CheckCircle} label="Tasks Done"    value={`${complete}/${allItems.length}`} sub={`${inProgress} in progress`} color="var(--c-purple)" tip="Completed rehab line items out of total across all deals." />
+        <StatCard icon={CheckCircle} label="Tasks Done"    value={`${complete}/${allItems.length}`} sub={`${inProgress} in progress`} color="var(--c-purple)" tip="Completed rehab line items out of total across all projects." />
       </div>
 
       {/* Filters */}
@@ -844,7 +844,7 @@ export function RehabTracker({ onSelectRehabItem } = {}) {
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               <div>
-                <p style={{ fontSize: 12, fontWeight: 600, color: "var(--text-dim)", marginBottom: 5 }}>Deal *</p>
+                <p style={{ fontSize: 12, fontWeight: 600, color: "var(--text-dim)", marginBottom: 5 }}>Project *</p>
                 <select style={iS} value={itemForm.dealId} onChange={sif("dealId")}>
                   <option value="">Select deal...</option>
                   {deals.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
@@ -1074,16 +1074,16 @@ export function DealContractors({ onSelectContractor }) {
 
   return (
     <div>
-      <PageHeader title="Contractors" sub="Manage your contractor relationships across all deals"
+      <PageHeader title="Contractors" sub="Manage your contractor relationships across all projects"
         filter={
           <select value={filterDeal} onChange={e => setFilterDeal(e.target.value)} style={{ ...iS, width: 200, fontSize: 14, padding: "9px 14px", fontWeight: 600 }}>
-            <option value="all">All Deals</option>
+            <option value="all">All Projects</option>
             {_DEALS.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
           </select>
         } />
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 24 }}>
-        <StatCard icon={Users} label="Contractors" value={filtered.length} sub={filterDeal !== "all" ? `of ${_CON.length} total` : `${_CON.filter(c => (c.dealIds || []).length > 0).length} with active deals`} color="#e95e00" tip="Number of contractors matching the current filters." />
+        <StatCard icon={Users} label="Contractors" value={filtered.length} sub={filterDeal !== "all" ? `of ${_CON.length} total` : `${_CON.filter(c => (c.dealIds || []).length > 0).length} with active projects`} color="#e95e00" tip="Number of contractors matching the current filters." />
         <StatCard icon={DollarSign} label="Accepted Bids" value={fmt(totalBids)} sub={`${filtered.length} contractor${filtered.length !== 1 ? "s" : ""}`} color="#e95e00" tip="Sum of all accepted bid amounts for contractors in the current view." />
         <StatCard icon={CheckCircle} label="Total Paid" value={fmt(totalPaid)} sub="Disbursed to date" color="var(--c-green)" tip="Total payments disbursed to contractors in the current view." />
         <StatCard icon={AlertCircle} label="Outstanding" value={fmt(outstanding)} sub="Remaining balance" color={outstanding > 0 ? "#e95e00" : "var(--text-muted)"} semantic tip="Accepted Bids − Total Paid. Amount still owed to contractors in the current view." />
@@ -1134,7 +1134,7 @@ export function DealContractors({ onSelectContractor }) {
                   ))}
                 </div>
               )}
-              {deals.length === 0 && <p style={{ fontSize: 12, color: "#cbd5e1", fontStyle: "italic", marginBottom: 10 }}>No deals assigned yet</p>}
+              {deals.length === 0 && <p style={{ fontSize: 12, color: "#cbd5e1", fontStyle: "italic", marginBottom: 10 }}>No projects assigned yet</p>}
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
                 <span style={{ fontSize: 12, color: "var(--text-muted)" }}>Accepted: {fmt(totalConBids)}</span>
                 <span style={{ fontSize: 12, color: "var(--text-primary)", fontWeight: 600 }}>{fmt(totalConPaid)} paid</span>
@@ -1145,7 +1145,7 @@ export function DealContractors({ onSelectContractor }) {
               <div style={{ display: "flex", gap: 12, marginTop: 10, fontSize: 11, color: "var(--text-muted)" }}>
                 <span>{conBids.length} bid{conBids.length !== 1 ? "s" : ""}</span>
                 <span>{conDocs.length} doc{conDocs.length !== 1 ? "s" : ""}</span>
-                <span>{deals.length} deal{deals.length !== 1 ? "s" : ""}</span>
+                <span>{deals.length} project{deals.length !== 1 ? "s" : ""}</span>
               </div>
             </div>
           );
@@ -1289,7 +1289,7 @@ export function ContractorDetail({ contractor, onBack, initialTab }) {
           con.dealIds.push(fId);
           dbLinkContractorToDeal(con.id, fId).catch(e => console.error("[PropBooks] link contractor failed:", e));
         }
-        // Auto-create rehab item on the deal if it doesn't exist
+        // Auto-create rehab item on the project if it doesn't exist
         if (deal) {
           let item = (deal.rehabItems || []).find(i => i.category === rehabName);
           if (!item) {
@@ -1381,12 +1381,12 @@ export function ContractorDetail({ contractor, onBack, initialTab }) {
     { id: "overview", label: "Overview", icon: Home },
     { id: "bids", label: "Bids", icon: DollarSign, count: bids.length },
     { id: "documents", label: "Documents", icon: FileText, count: documents.length },
-    { id: "history", label: "Deal History", icon: Clock, count: deals.length },
+    { id: "history", label: "Project History", icon: Clock, count: deals.length },
   ];
 
   const selectedDealForBid = _DEALS.find(f => f.id === bidForm.dealId);
   const bidRehabOptions = selectedDealForBid ? (selectedDealForBid.rehabItems || []).map(i => i.category) : [];
-  // All rehab categories across all deals for typeahead suggestions
+  // All rehab categories across all projects for typeahead suggestions
   const allRehabCategories = useMemo(() => {
     const cats = new Set();
     _DEALS.forEach(f => (f.rehabItems || []).forEach(i => cats.add(i.category)));
@@ -1566,8 +1566,8 @@ export function ContractorDetail({ contractor, onBack, initialTab }) {
       {/* DEAL HISTORY TAB */}
       {activeTab === "history" && (
         <div>
-          <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--text-primary)", marginBottom: 16 }}>Deal History</h3>
-          {deals.length === 0 && <div style={{ padding: 40, textAlign: "center", color: "var(--text-muted)", fontSize: 14, background: "var(--surface)", borderRadius: 16, border: "1px solid var(--border-subtle)" }}>No deals assigned yet.</div>}
+          <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--text-primary)", marginBottom: 16 }}>Project History</h3>
+          {deals.length === 0 && <div style={{ padding: 40, textAlign: "center", color: "var(--text-muted)", fontSize: 14, background: "var(--surface)", borderRadius: 16, border: "1px solid var(--border-subtle)" }}>No projects assigned yet.</div>}
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             {deals.map(fl => {
               const dealBids = bids.filter(b => b.dealId === fl.id);
@@ -1645,23 +1645,23 @@ export function ContractorDetail({ contractor, onBack, initialTab }) {
                   }
                   return (
                     <div style={{ background: "var(--surface-alt)", border: "1px solid var(--border-subtle)", borderRadius: 10, padding: "10px 12px" }}>
-                      <p style={{ fontSize: 10, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 2 }}>Deal</p>
+                      <p style={{ fontSize: 10, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 2 }}>Project</p>
                       <p style={{ fontSize: 14, fontWeight: 600, color: "var(--text-primary)" }}>{myDeals[0].name}</p>
                     </div>
                   );
                 }
                 return (
                   <div>
-                    <p style={{ fontSize: 12, fontWeight: 600, color: "var(--text-dim)", marginBottom: 5 }}>Deal *</p>
+                    <p style={{ fontSize: 12, fontWeight: 600, color: "var(--text-dim)", marginBottom: 5 }}>Project *</p>
                     <select style={iS} value={bidForm.dealId} onChange={e => setBidForm(f => ({ ...f, dealId: e.target.value, rehabItem: "" }))}>
                       <option value="">Select deal...</option>
                       {myDeals.length > 0 && (
-                        <optgroup label={`${con.name}'s Deals`}>
+                        <optgroup label={`${con.name}'s Projects`}>
                           {myDeals.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
                         </optgroup>
                       )}
                       {otherDeals.length > 0 && (
-                        <optgroup label="Other Active Deals">
+                        <optgroup label="Other Active Projects">
                           {otherDeals.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
                         </optgroup>
                       )}
@@ -1678,7 +1678,7 @@ export function ContractorDetail({ contractor, onBack, initialTab }) {
                 {rehabFocus && bidForm.dealId && (() => {
                   const q = bidForm.rehabItem.toLowerCase().trim();
                   const canonMatches = REHAB_CATEGORIES.filter(c => !q || c.label.toLowerCase().includes(q));
-                  // Items already on this deal that aren't canonical → "On This Deal"
+                  // Items already on this project that aren't canonical → "On This Deal"
                   const dealLabels = bidRehabOptions.filter(c => !REHAB_CATEGORIES.some(cc => cc.label === c));
                   const dealCustomMatches = dealLabels.filter(c => !q || c.toLowerCase().includes(q));
                   const exactCanon = REHAB_CATEGORIES.some(c => c.label.toLowerCase() === q);
@@ -1756,7 +1756,7 @@ export function ContractorDetail({ contractor, onBack, initialTab }) {
                   </select>
                 </div>
                 <div>
-                  <p style={{ fontSize: 12, fontWeight: 600, color: "var(--text-dim)", marginBottom: 5 }}>Associated Deal <span style={{ color: "var(--text-muted)", fontWeight: 400 }}>(optional)</span></p>
+                  <p style={{ fontSize: 12, fontWeight: 600, color: "var(--text-dim)", marginBottom: 5 }}>Associated Project <span style={{ color: "var(--text-muted)", fontWeight: 400 }}>(optional)</span></p>
                   <select style={iS} value={docForm.dealId} onChange={e => setDocForm(f => ({ ...f, dealId: e.target.value }))}>
                     <option value="">General (no deal)</option>
                     {_DEALS.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
@@ -1840,7 +1840,7 @@ export function DealAnalytics() {
     });
   })();
 
-  // Profit breakdown per deal – stacked components
+  // Profit breakdown per project – stacked components
   const profitBreakdown = deals.map(f => {
     const purchase = f.purchasePrice;
     const rehab = f.stage === "Sold" ? f.rehabSpent : f.rehabBudget;
@@ -1902,12 +1902,12 @@ export function DealAnalytics() {
         <div>
           <h1 style={{ color: "var(--text-primary)", fontSize: 26, fontWeight: 700, marginBottom: 4 }}>Analytics</h1>
           <p style={{ color: "var(--text-secondary)", fontSize: 15 }}>
-            {singleDeal ? `Performance details — ${singleDeal.name}` : "Performance metrics across all deals"}
+            {singleDeal ? `Performance details — ${singleDeal.name}` : "Performance metrics across all projects"}
           </p>
         </div>
         <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
           <select value={filterDeal} onChange={e => setFilterDeal(e.target.value)} style={{ ...iS, width: 220, fontSize: 14, padding: "9px 14px", fontWeight: 600 }}>
-            <option value="all">All Deals</option>
+            <option value="all">All Projects</option>
             {allDeals.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
           </select>
         </div>
@@ -1920,7 +1920,7 @@ export function DealAnalytics() {
           <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
             <div style={{ width: 38, height: 38, borderRadius: 10, background: "#1e3a5f", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700, color: "#fff" }}>{singleDeal.image}</div>
             <div>
-              <h3 style={{ color: "var(--text-primary)", fontSize: 16, fontWeight: 700, marginBottom: 2 }}>Deal Scorecard</h3>
+              <h3 style={{ color: "var(--text-primary)", fontSize: 16, fontWeight: 700, marginBottom: 2 }}>Project Scorecard</h3>
               <p style={{ color: "var(--text-muted)", fontSize: 13, display: "flex", alignItems: "center", gap: 4 }}><MapPin size={11} /> {singleDeal.address}</p>
             </div>
             <div style={{ marginLeft: "auto" }}><StageDot stage={singleDeal.stage} /></div>
@@ -1929,7 +1929,7 @@ export function DealAnalytics() {
             {[
               { label: "Projected ROI", value: `${dealROI?.roi || 0}%`, color: "var(--c-green)", sub: singleDeal.stage === "Sold" ? "Realized return" : "Estimated return", tip: "Return on Investment = (Sale Price \u2212 Total Cost) \u00f7 Total Cost \u00d7 100. Total Cost includes purchase, rehab, holding, and selling costs." },
               { label: "Projected Profit", value: fmt(dealROI?.profit || 0), color: "var(--c-purple)", sub: singleDeal.stage === "Sold" ? "Realized" : "Based on ARV", tip: "ARV (or Sale Price) minus all costs: purchase price, rehab, holding costs, and estimated 6% selling costs." },
-              { label: "Cost Per Day", value: dealCostPerDay > 0 ? `${fmt(dealCostPerDay)}/day` : "N/A", color: "#e95e00", sub: `${singleDeal.daysOwned || 0} days owned`, tip: "Total spend (rehab + holding costs) divided by days owned. Helps quantify the daily burn rate on this deal." },
+              { label: "Cost Per Day", value: dealCostPerDay > 0 ? `${fmt(dealCostPerDay)}/day` : "N/A", color: "#e95e00", sub: `${singleDeal.daysOwned || 0} days owned`, tip: "Total spend (rehab + holding costs) divided by days owned. Helps quantify the daily burn rate on this project." },
             ].map((m, i) => (
               <div key={i} style={{ background: "var(--surface-alt)", borderRadius: 14, padding: "18px 16px", border: "1px solid var(--border-subtle)" }}>
                 <p style={{ color: "var(--text-muted)", fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6, display: "flex", alignItems: "center" }}>{m.label}<InfoTip text={m.tip} /></p>
@@ -2110,7 +2110,7 @@ export function DealAnalytics() {
               </tbody>
             </table>
           ) : (
-            <div style={{ padding: 30, textAlign: "center", color: "var(--text-muted)", fontSize: 13 }}>No expenses recorded for this deal</div>
+            <div style={{ padding: 30, textAlign: "center", color: "var(--text-muted)", fontSize: 13 }}>No expenses recorded for this project</div>
           )}
         </div>
       </>) : (<>
@@ -2119,9 +2119,9 @@ export function DealAnalytics() {
       {/* KPI cards with InfoTips — matches rental Analytics pattern */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 24 }}>
         {[
-          { label: "Avg ROI", value: `${avgROI}%`, color: "var(--c-green)", sub: "All deals", tip: "Average Return on Investment across all deals. ROI = (Sale/ARV \u2212 Total Cost) \u00f7 Total Cost \u00d7 100. Active deals use projected ARV and estimated costs." },
-          { label: "Avg Hold Time", value: `${avgDays} days`, color: "var(--c-blue)", sub: "Active deals", tip: "Average number of days properties have been owned. Shorter hold times mean less carrying cost and faster capital recycling." },
-          { label: "Total Realized", value: fmt(totalProfit), color: "var(--c-purple)", sub: "Closed deals", tip: "Sum of net profit from all sold deals. Net Profit = Sale Price \u2212 Purchase Price \u2212 Rehab Spent \u2212 Holding Costs \u2212 Selling Costs." },
+          { label: "Avg ROI", value: `${avgROI}%`, color: "var(--c-green)", sub: "All deals", tip: "Average Return on Investment across all projects. ROI = (Sale/ARV \u2212 Total Cost) \u00f7 Total Cost \u00d7 100. Active projects use projected ARV and estimated costs." },
+          { label: "Avg Hold Time", value: `${avgDays} days`, color: "var(--c-blue)", sub: "Active projects", tip: "Average number of days properties have been owned. Shorter hold times mean less carrying cost and faster capital recycling." },
+          { label: "Total Realized", value: fmt(totalProfit), color: "var(--c-purple)", sub: "Closed projects", tip: "Sum of net profit from all sold projects. Net Profit = Sale Price \u2212 Purchase Price \u2212 Rehab Spent \u2212 Holding Costs \u2212 Selling Costs." },
           { label: "Deals Analyzed", value: deals.length, color: "#e95e00", sub: `${sold.length} closed`, tip: "Total number of deals in your pipeline. Includes active, listed, under contract, and sold properties." },
         ].map((m, i) => (
           <div key={i} style={{ ...cardS, textAlign: "center" }}>
@@ -2133,7 +2133,7 @@ export function DealAnalytics() {
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
-        {/* ROI by Deal */}
+        {/* ROI by Project */}
         <div style={sectionS}>
           <h3 style={{ color: "var(--text-primary)", fontSize: 16, fontWeight: 700, marginBottom: 4 }}>ROI by Deal</h3>
           <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 20 }}>Actual (sold) vs projected (active)</p>
@@ -2153,7 +2153,7 @@ export function DealAnalytics() {
         {/* Expense Category Breakdown */}
         <div style={sectionS}>
           <h3 style={{ color: "var(--text-primary)", fontSize: 16, fontWeight: 700, marginBottom: 4 }}>Expense Breakdown</h3>
-          <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 20 }}>By category across all deals</p>
+          <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 20 }}>By category across all projects</p>
           <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
             <ResponsiveContainer width={160} height={160}>
               <PieChart>
@@ -2195,7 +2195,7 @@ export function DealAnalytics() {
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
-        {/* Hold Time by Deal */}
+        {/* Hold Time by Project */}
         <div style={sectionS}>
           <h3 style={{ color: "var(--text-primary)", fontSize: 16, fontWeight: 700, marginBottom: 4 }}>Hold Time by Deal</h3>
           <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 20 }}>Days owned per property{avgDays > 0 ? ` (avg ${avgDays}d)` : ""}</p>
@@ -2232,7 +2232,7 @@ export function DealAnalytics() {
         </div>
       </div>
 
-      {/* Profit Breakdown by Deal */}
+      {/* Profit Breakdown by Project */}
       <div style={sectionS}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 }}>
           <div>
@@ -2299,7 +2299,7 @@ export function DealAnalytics() {
       {/* Deal Summary Table */}
       <div style={{ background: "var(--surface)", borderRadius: 16, border: "1px solid var(--border-subtle)", boxShadow: "0 1px 3px rgba(0,0,0,0.06)", overflow: "hidden" }}>
         <div style={{ padding: "16px 24px", borderBottom: "1px solid var(--border-subtle)" }}>
-          <h3 style={{ color: "var(--text-primary)", fontSize: 16, fontWeight: 700 }}>Deal Summary</h3>
+          <h3 style={{ color: "var(--text-primary)", fontSize: 16, fontWeight: 700 }}>Project Summary</h3>
         </div>
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
@@ -2379,7 +2379,7 @@ export function DealMilestones({ highlightMilestoneKey, onBack, onClearHighlight
     return [...labels].sort();
   }, [renderKey]); // eslint-disable-line react-hooks/exhaustive-deps -- renderKey is the cache-bust counter for DEAL_MILESTONES
 
-  // Build flat list of all milestones across deals
+  // Build flat list of all milestones across projects
   const allMilestones = useMemo(() => {
     const list = [];
     _DEALS.forEach(f => {
@@ -2520,14 +2520,14 @@ export function DealMilestones({ highlightMilestoneKey, onBack, onClearHighlight
         sub="Track progress across all your deals"
         filter={
           <select value={filterDeal} onChange={e => setFilterDeal(e.target.value)} style={{ ...iS, width: 200, fontSize: 14, padding: "9px 14px", fontWeight: 600 }}>
-            <option value="all">All Deals</option>
+            <option value="all">All Projects</option>
             {_DEALS.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
           </select>
         }
       />
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, marginBottom: 24 }}>
-        <StatCard icon={CheckCircle} label="Completed" value={totalDone} sub={`of ${filtered.length} total`} color="var(--c-green)" tip="Milestones marked as done across all deals." />
+        <StatCard icon={CheckCircle} label="Completed" value={totalDone} sub={`of ${filtered.length} total`} color="var(--c-green)" tip="Milestones marked as done across all projects." />
         <StatCard icon={Clock} label="Upcoming" value={totalUpcoming} sub="Not yet done" color="var(--c-blue)" tip="Milestones not yet completed and within their target date." />
         <StatCard icon={AlertCircle} label="Overdue" value={totalOverdue} sub="Past target date" color={totalOverdue > 0 ? "var(--c-red)" : "var(--text-muted)"} semantic tip="Milestones past their target date that haven't been completed." />
       </div>
@@ -2650,7 +2650,7 @@ export function DealMilestones({ highlightMilestoneKey, onBack, onClearHighlight
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               <div>
-                <p style={{ fontSize: 12, fontWeight: 600, color: "var(--text-dim)", marginBottom: 5 }}>Deal *</p>
+                <p style={{ fontSize: 12, fontWeight: 600, color: "var(--text-dim)", marginBottom: 5 }}>Project *</p>
                 <select value={msForm.dealId} onChange={e => setMsForm(f => ({ ...f, dealId: e.target.value }))} style={iS}>
                   <option value="">Select deal...</option>
                   {_DEALS.filter(f => f.stage !== "Sold").map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
@@ -2747,7 +2747,7 @@ export function DealNotes({ highlightNoteId, onBack, onClearHighlight }) {
     }
   }, [highlightNoteId]); // eslint-disable-line react-hooks/exhaustive-deps -- onClearHighlight is an inline parent callback (new ref every render)
 
-  // Build flat list of all notes across deals (no memo — must recalculate after mutations)
+  // Build flat list of all notes across projects (no memo — must recalculate after mutations)
   const allNotes = (() => {
     const list = [];
     DEAL_NOTES.forEach(n => {
@@ -2828,11 +2828,11 @@ export function DealNotes({ highlightNoteId, onBack, onClearHighlight }) {
         </button>
       )}
       <PageHeader
-        title="Deal Notes"
-        sub={`${allNotes.length} note${allNotes.length !== 1 ? "s" : ""} across ${new Set(allNotes.map(n => n.dealId)).size} deal${new Set(allNotes.map(n => n.dealId)).size === 1 ? "" : "s"}`}
+        title="Project Notes"
+        sub={`${allNotes.length} note${allNotes.length !== 1 ? "s" : ""} across ${new Set(allNotes.map(n => n.dealId)).size} project${new Set(allNotes.map(n => n.dealId)).size === 1 ? "" : "s"}`}
         filter={
           <select value={filterDeal} onChange={e => setFilterDeal(e.target.value)} style={{ ...iS, width: 200, fontSize: 14, padding: "9px 14px", fontWeight: 600 }}>
-            <option value="all">All Deals</option>
+            <option value="all">All Projects</option>
             {_DEALS.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
           </select>
         }
@@ -2904,7 +2904,7 @@ export function DealNotes({ highlightNoteId, onBack, onClearHighlight }) {
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               <div>
-                <p style={{ fontSize: 12, fontWeight: 600, color: "var(--text-dim)", marginBottom: 5 }}>Deal *</p>
+                <p style={{ fontSize: 12, fontWeight: 600, color: "var(--text-dim)", marginBottom: 5 }}>Project *</p>
                 <select style={iS} value={noteForm.dealId} onChange={e => setNoteForm(f => ({ ...f, dealId: e.target.value }))} disabled={!!editId}>
                   <option value="">Select deal...</option>
                   {_DEALS.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}

@@ -133,7 +133,7 @@ export function MileageTracker() {
         </div>
         {linkedOptions.length > 0 && (
           <select value={linkedFilter} onChange={e => setLinkedFilter(e.target.value)} style={{ ...iS, width: "auto", minWidth: 160, fontSize: 13, padding: "9px 12px" }}>
-            <option value="all">All Properties / Deals</option>
+            <option value="all">All Properties / Projects</option>
             {linkedOptions.map(o => <option key={o} value={o}>{o}</option>)}
           </select>
         )}

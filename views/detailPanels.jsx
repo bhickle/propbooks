@@ -106,7 +106,7 @@ export function TxDetailPanel({ tx, onClose, onEdit, onDelete }) {
   );
 }
 
-// ─── Deal Expense Detail Slide-Over ────────────────────────────────────────
+// ─── Project Expense Detail Slide-Over ─────────────────────────────────────
 export function ExpDetailPanel({ exp, onClose, onEdit, onDelete }) {
   if (!exp) return null;
   const deal = DEALS.find(d => d.id === exp.dealId);
@@ -139,7 +139,7 @@ export function ExpDetailPanel({ exp, onClose, onEdit, onDelete }) {
               <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
                 <div style={{ width: 28, height: 28, borderRadius: 8, background: "var(--surface-muted)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 2 }}><Hammer size={14} color="#94a3b8" /></div>
                 <div>
-                  <p style={{ fontSize: 11, fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 3 }}>Deal</p>
+                  <p style={{ fontSize: 11, fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 3 }}>Project</p>
                   <div style={{ display: "flex", alignItems: "center", gap: 6 }}><span style={{ width: 8, height: 8, borderRadius: "50%", background: "#94a3b8", display: "inline-block" }} /><p style={{ fontSize: 14, color: "var(--text-primary)", fontWeight: 500 }}>{deal.name}</p></div>
                 </div>
               </div>

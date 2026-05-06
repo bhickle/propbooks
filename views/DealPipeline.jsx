@@ -123,19 +123,19 @@ export function DealPipeline({ onSelect, onGuidedSetup }) {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
         <div>
           <h1 style={{ color: "var(--text-primary)", fontSize: 26, fontWeight: 700, marginBottom: 4 }}>Deals</h1>
-          <p style={{ color: "var(--text-secondary)", fontSize: 15 }}>Track every deal from contract to close</p>
+          <p style={{ color: "var(--text-secondary)", fontSize: 15 }}>Track every project from contract to close</p>
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
           <button onClick={onGuidedSetup} style={{ background: "#e95e00", color: "#fff", border: "none", borderRadius: 10, padding: "10px 18px", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
-            <Plus size={16} /> Add Deal
+            <Plus size={16} /> Add Project
           </button>
         </div>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 24 }}>
-        <StatCard icon={Hammer}     label="Active Deals"     value={activeDeals.length}              sub="In pipeline"      color="#e95e00"        tip="Number of deals not yet sold." />
-        <StatCard icon={DollarSign} label="Capital Deployed" value={fmtK(totalDeployed)}             sub="Purchase + rehab" color="var(--c-blue)"  tip="Sum of purchase price + rehab spent across active deals." />
-        <StatCard icon={TrendingUp} label="Projected Profit" value={fmtK(Math.round(totalProjected))} sub="Active deals"     color="var(--c-green)" tip="ARV − Purchase − Rehab Budget − Estimated Holding & Selling Costs across active deals." />
-        <StatCard icon={Star}       label="Realized Profit"  value={fmt(realizedProfit)}             sub="Closed deals YTD" color="var(--c-purple)" tip="Actual net profit from deals closed/sold this year." />
+        <StatCard icon={Hammer}     label="Active Projects"     value={activeDeals.length}              sub="In pipeline"      color="#e95e00"        tip="Number of deals not yet sold." />
+        <StatCard icon={DollarSign} label="Capital Deployed" value={fmtK(totalDeployed)}             sub="Purchase + rehab" color="var(--c-blue)"  tip="Sum of purchase price + rehab spent across active projects." />
+        <StatCard icon={TrendingUp} label="Projected Profit" value={fmtK(Math.round(totalProjected))} sub="Active projects"     color="var(--c-green)" tip="ARV − Purchase − Rehab Budget − Estimated Holding & Selling Costs across active projects." />
+        <StatCard icon={Star}       label="Realized Profit"  value={fmt(realizedProfit)}             sub="Closed projects YTD" color="var(--c-purple)" tip="Actual net profit from deals closed/sold this year." />
       </div>
       <div style={{ display: "flex", gap: 10, marginBottom: 20, flexWrap: "wrap", alignItems: "center" }}>
         <div style={{ display: "flex", gap: 4, background: "var(--surface-alt)", borderRadius: 10, padding: 4, border: "1px solid var(--border)" }}>
@@ -155,12 +155,12 @@ export function DealPipeline({ onSelect, onGuidedSetup }) {
         )}
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 20 }}>
-        {filtered.map(f => <DealCard key={f.id} deal={f} onSelect={onSelect} />)}
+        {filtered.map(f => <DealCard key={f.id} project={f} onSelect={onSelect} />)}
         {filtered.length === 0 && (
           <div style={{ gridColumn: "1 / -1" }}>
             {DEALS.length === 0
-              ? <EmptyState icon={Layers} title="No deals yet" subtitle="Add your first deal to start tracking your pipeline." actionLabel="Add Deal" onAction={onGuidedSetup} />
-              : <EmptyState icon={Search} title="No deals match this filter" subtitle="Try selecting a different stage or clear the filter." />
+              ? <EmptyState icon={Layers} title="No projects yet" subtitle="Add your first deal to start tracking your pipeline." actionLabel="Add Project" onAction={onGuidedSetup} />
+              : <EmptyState icon={Search} title="No projects match this filter" subtitle="Try selecting a different stage or clear the filter." />
             }
           </div>
         )}

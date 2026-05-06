@@ -1,5 +1,5 @@
 // =============================================================================
-// FlipWizard — guided 4-step flow for adding a fix-and-flip deal:
+// FlipWizard — guided 4-step flow for adding a fix-and-project:
 // Deal Info → Financials → Rehab Scope → Review.
 // Mutates DEALS in place on submit. Seeds DEFAULT_MILESTONES into
 // _LOCAL_FLIP_MILESTONES for the new deal.
@@ -20,7 +20,7 @@ import { createMilestone } from "../db/dealMilestones.js";
 
 export function FlipWizard({ onComplete, onExit }) {
   const { showToast } = useToast();
-  const steps = ["Deal Info", "Financials", "Rehab Scope", "Review"];
+  const steps = ["Project Info", "Financials", "Rehab Scope", "Review"];
   const [step, setStep] = useState(0);
   const todayStr = new Date().toISOString().slice(0, 10);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
@@ -103,11 +103,11 @@ export function FlipWizard({ onComplete, onExit }) {
   };
   const handleSaveAndExit = () => {
     handleSave();
-    showToast(`"${basics.name}" saved — you can finish editing from the deal detail screen`);
+    showToast(`"${basics.name}" saved — you can finish editing from the project detail screen`);
   };
 
   return (
-    <WizardShell steps={steps} currentStep={step} onStepClick={setStep} title="Add Fix & Flip Deal" subtitle="We'll walk you through the deal details, financials, and rehab scope." onExit={handleExit}>
+    <WizardShell steps={steps} currentStep={step} onStepClick={setStep} title="Add Fix & Flip Deal" subtitle="We'll walk you through the project details, financials, and rehab scope." onExit={handleExit}>
       {showExitConfirm && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999 }}>
           <div style={{ background: "var(--surface)", borderRadius: 16, padding: 28, maxWidth: 400, width: "90%", boxShadow: "0 20px 60px rgba(0,0,0,0.15)" }}>
@@ -125,8 +125,8 @@ export function FlipWizard({ onComplete, onExit }) {
 
       {step === 0 && (
         <div style={{ background: "var(--surface)", borderRadius: 16, padding: 28, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)" }}>
-          <h2 style={{ fontSize: 18, fontWeight: 700, color: "var(--text-primary)", marginBottom: 4 }}>Deal Information</h2>
-          <p style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 24 }}>Basic info about the deal — name it something memorable.</p>
+          <h2 style={{ fontSize: 18, fontWeight: 700, color: "var(--text-primary)", marginBottom: 4 }}>Project Information</h2>
+          <p style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 24 }}>Basic info about the project — name it something memorable.</p>
           <WizardField label="Deal Name" required hint="e.g. '42 Oak Ave Flip' or 'The Blue House'">
             <input value={basics.name} onChange={sb("name")} style={wizardInput} placeholder="Enter deal name" autoFocus />
           </WizardField>
@@ -336,7 +336,7 @@ export function FlipWizard({ onComplete, onExit }) {
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "var(--surface-alt)", padding: "12px 16px", borderBottom: "1px solid var(--border)" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <Hammer size={16} color="#e95e00" />
-                <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)" }}>Deal Info</span>
+                <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)" }}>Project Info</span>
               </div>
               <button onClick={() => setStep(0)} style={{ fontSize: 12, fontWeight: 600, color: "var(--c-blue)", background: "none", border: "none", cursor: "pointer" }}>Edit</button>
             </div>

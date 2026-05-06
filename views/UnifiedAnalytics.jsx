@@ -13,7 +13,7 @@ export function UnifiedAnalytics() {
     <div>
       <div style={{ display: "flex", gap: 6, marginBottom: 24, background: "var(--surface-alt)", borderRadius: 10, padding: 4, border: "1px solid var(--border)", width: "fit-content" }}>
         <AnalyticsTab id="rentals" label="Rentals" Icon={Home}    active={tab === "rentals"} onClick={() => setTab("rentals")} />
-        <AnalyticsTab id="deals"   label="Deals"   Icon={Hammer}  active={tab === "deals"}   onClick={() => setTab("deals")} />
+        <AnalyticsTab id="deals"   label="Projects"   Icon={Hammer}  active={tab === "deals"}   onClick={() => setTab("deals")} />
       </div>
       {tab === "rentals" ? <RentalAnalytics /> : <DealAnalytics />}
     </div>

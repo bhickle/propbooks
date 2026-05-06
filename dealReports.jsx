@@ -58,7 +58,7 @@ export function DealReports() {
   const avgROI        = allMetrics.length > 0 ? allMetrics.reduce((s, d) => s + d.m.roi, 0) / allMetrics.length : 0;
 
   const profitReports = [
-    { id: "profitability",  label: "Deal Profitability",    icon: DollarSign  },
+    { id: "profitability",  label: "Project Profitability",    icon: DollarSign  },
     { id: "rehabBudget",    label: "Rehab Budget vs Actual",icon: BarChart3   },
     { id: "holdingCosts",   label: "Holding Costs",         icon: Clock       },
   ];
@@ -74,12 +74,12 @@ export function DealReports() {
       {/* Header */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
         <div>
-          <h1 style={{ color: "var(--text-primary)", fontSize: 26, fontWeight: 700, marginBottom: 4 }}>Deal Reports</h1>
+          <h1 style={{ color: "var(--text-primary)", fontSize: 26, fontWeight: 700, marginBottom: 4 }}>Project Reports</h1>
           <p style={{ color: "var(--text-secondary)", fontSize: 15 }}>Profitability, rehab analysis, contractor payments, and projections</p>
         </div>
         <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
           <select value={dealFilter} onChange={e => setDealFilter(e.target.value)} style={{ ...iS, width: 220 }}>
-            <option value="all">All Deals</option>
+            <option value="all">All Projects</option>
             {_DEALS.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
           </select>
         </div>
@@ -90,8 +90,8 @@ export function DealReports() {
         {[
           { label: "Total Invested",  value: fmt(totalInvested), tip: "Purchase + rehab spent + holding costs + selling costs" },
           { label: "Total Profit",    value: fmt(totalProfit),   tip: "Sale price (or ARV) minus total invested" },
-          { label: "Avg ROI",         value: `${avgROI.toFixed(1)}%`, tip: "Average return on investment across all deals" },
-          { label: "Rehab Spend",     value: fmt(totalRehab),    tip: "Total rehab dollars spent across all deals" },
+          { label: "Avg ROI",         value: `${avgROI.toFixed(1)}%`, tip: "Average return on investment across all projects" },
+          { label: "Rehab Spend",     value: fmt(totalRehab),    tip: "Total rehab dollars spent across all projects" },
           { label: "Budget Variance", value: `${totalBudget > 0 ? (((totalRehab - totalBudget) / totalBudget) * 100).toFixed(1) : 0}%`, tip: "How much total rehab spend is over/under total budget" },
         ].map((m, i) => (
           <div key={i} style={{ background: "var(--surface)", borderRadius: 14, padding: "14px 16px", border: "1px solid var(--border-subtle)", boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
@@ -119,7 +119,7 @@ export function DealReports() {
           ))}
           <div style={{ borderTop: "1px solid var(--border-subtle)", marginTop: 12, paddingTop: 12 }}>
             <p style={{ fontSize: 11, color: "var(--text-muted)", fontWeight: 600, textTransform: "uppercase", padding: "0 14px", marginBottom: 6 }}>Scope</p>
-            <p style={{ fontSize: 12, color: "var(--text-label)", padding: "0 14px", fontWeight: 600 }}>{dealFilter === "all" ? `All ${_DEALS.length} deals` : _DEALS.find(f => f.id === dealFilter)?.name}</p>
+            <p style={{ fontSize: 12, color: "var(--text-label)", padding: "0 14px", fontWeight: 600 }}>{dealFilter === "all" ? `All ${_DEALS.length} projects` : _DEALS.find(f => f.id === dealFilter)?.name}</p>
             <p style={{ fontSize: 12, color: "var(--text-muted)", padding: "0 14px" }}>{deals.filter(d => d.stage === "Sold").length} sold · {deals.filter(d => d.stage !== "Sold").length} active</p>
           </div>
         </div>
@@ -150,8 +150,8 @@ function ProfitabilityReport({ deals }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
       <div style={sectionS}>
-        <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--text-primary)", marginBottom: 4 }}>Deal Profitability Summary</h3>
-        <p style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 20 }}>Profit, ROI, and cost breakdown per deal</p>
+        <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--text-primary)", marginBottom: 4 }}>Project Profitability Summary</h3>
+        <p style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 20 }}>Profit, ROI, and cost breakdown per project</p>
 
         <div style={{ overflowX: "auto" }}>
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
@@ -210,7 +210,7 @@ function ProfitabilityReport({ deals }) {
       {chartData.length > 1 && (
         <div style={sectionS}>
           <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--text-primary)", marginBottom: 4 }}>Profit by Deal</h3>
-          <p style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 20 }}>Net profit comparison across deals</p>
+          <p style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 20 }}>Net profit comparison across projects</p>
           <ResponsiveContainer width="100%" height={280}>
             <BarChart data={chartData} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
@@ -330,7 +330,7 @@ function HoldingCostsReport({ deals }) {
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
       <div style={sectionS}>
         <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--text-primary)", marginBottom: 4 }}>Holding Cost Analysis</h3>
-        <p style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 20 }}>Monthly burn rate, days held, and total holding costs per deal</p>
+        <p style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 20 }}>Monthly burn rate, days held, and total holding costs per project</p>
 
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
@@ -548,7 +548,7 @@ function CapitalGainsReport({ deals }) {
       {/* Summary */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14 }}>
         {[
-          { label: "Total Capital Gains", value: fmt(totalGains), color: totalGains >= 0 ? "#1a7a4a" : "#c0392b", tip: "Sum of profit across all deals" },
+          { label: "Total Capital Gains", value: fmt(totalGains), color: totalGains >= 0 ? "#1a7a4a" : "#c0392b", tip: "Sum of profit across all projects" },
           { label: "Estimated Tax",       value: fmt(totalTax),   color: "#c0392b", tip: "22% short-term, 15% long-term estimate" },
           { label: "Short-Term Deals",    value: String(shortCount), color: "#f59e0b", tip: "Held less than 1 year — taxed as ordinary income" },
           { label: "Long-Term Deals",     value: String(longCount),  color: "#1a7a4a", tip: "Held 1+ years — lower capital gains rate" },
@@ -729,9 +729,9 @@ function PipelineReport({ deals }) {
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14 }}>
         {[
           { label: "Total Pipeline Value",  value: fmt(totalPipeline),   color: "#3b82f6", tip: "Combined ARV / sale price of all deals" },
-          { label: "Active Deals",          value: String(activeDeals.length), color: "#f59e0b", tip: "Deals not yet sold" },
-          { label: "Projected Profit",      value: fmt(projectedProfit), color: "#8b5cf6", tip: "Estimated profit on unsold deals (ARV minus costs)" },
-          { label: "Realized Profit",       value: fmt(realizedProfit),  color: "#1a7a4a", tip: "Actual profit from sold deals" },
+          { label: "Active Projects",          value: String(activeDeals.length), color: "#f59e0b", tip: "Deals not yet sold" },
+          { label: "Projected Profit",      value: fmt(projectedProfit), color: "#8b5cf6", tip: "Estimated profit on unsold projects (ARV minus costs)" },
+          { label: "Realized Profit",       value: fmt(realizedProfit),  color: "#1a7a4a", tip: "Actual profit from sold projects" },
         ].map((m, i) => (
           <div key={i} style={{ background: "var(--surface)", borderRadius: 16, padding: "18px 20px", border: "1px solid var(--border-subtle)" }}>
             <p style={{ color: "var(--text-muted)", fontSize: 10, fontWeight: 600, textTransform: "uppercase", marginBottom: 4 }}>{m.label}<InfoTip text={m.tip} /></p>
@@ -743,7 +743,7 @@ function PipelineReport({ deals }) {
       {/* Stage breakdown */}
       <div style={sectionS}>
         <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--text-primary)", marginBottom: 4 }}>Pipeline by Stage</h3>
-        <p style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 20 }}>Deal count, value, and projected profit at each stage</p>
+        <p style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 20 }}>Project count, value, and projected profit at each stage</p>
 
         <div style={{ display: "grid", gridTemplateColumns: pieData.length > 1 ? "1fr 300px" : "1fr", gap: 24 }}>
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
@@ -791,7 +791,7 @@ function PipelineReport({ deals }) {
 
       {/* Deal timeline */}
       <div style={sectionS}>
-        <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--text-primary)", marginBottom: 4 }}>Deal Timeline</h3>
+        <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--text-primary)", marginBottom: 4 }}>Project Timeline</h3>
         <p style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 20 }}>Key dates and projected milestones for each deal</p>
 
         <table style={{ width: "100%", borderCollapse: "collapse" }}>

@@ -1,12 +1,12 @@
 // =============================================================================
-// Ledger — unified money-in / money-out view across rentals + deals.
+// Ledger — unified money-in / money-out view across rentals + projects.
 //
 // Reads the existing TRANSACTIONS (rental income/expense) and DEAL_EXPENSES
-// (deal expenses) arrays without merging schemas. Each row carries a `kind`
-// discriminator. Filters are by *type chip* (rental income / rental expense /
-// deal expense), asset, and free-text search. Internal `kind: "flip"` is
-// kept as the in-memory key; user-facing labels say Deal to match the rest
-// of the codebase.
+// (project expenses) arrays without merging schemas. Each row carries a
+// `kind` discriminator. Filters are by *type chip* (rental income / rental
+// expense / project expense), asset, and free-text search. Internal
+// `kind: "flip"` is kept as the in-memory key; user-facing labels say
+// Project (the codebase term that covers both flips and BRRRRs).
 // =============================================================================
 import { useState, useMemo, useEffect, useRef } from "react";
 import {
@@ -245,7 +245,7 @@ function LedgerAddModal({ initialKind, editRow, onClose, onSaved }) {
   const canSave = form.assetId && form.amount && Number(form.amount) > 0 && form.category;
 
   // ── Rehab spent rollup helper ──
-  // When a flip expense is created/updated/deleted, the linked rehab line
+  // When a project expense is created/updated/deleted, the linked rehab line
   // item's `spent` should reflect it. Mirrors the legacy DealExpenses form.
   const adjustRehabSpent = async (deal, itemIdx, delta) => {
     if (!deal || itemIdx == null || itemIdx === "") return;
@@ -385,14 +385,14 @@ function LedgerAddModal({ initialKind, editRow, onClose, onSaved }) {
         <div style={{ display: "flex", gap: 8 }}>
           {kindPill("rental-income",  "Rental Income",  Home,   "var(--c-green)")}
           {kindPill("rental-expense", "Rental Expense", Home,   "var(--c-blue)")}
-          {kindPill("flip-expense",   "Deal Expense",   Hammer, "#e95e00")}
+          {kindPill("flip-expense",   "Project Expense",   Hammer, "#e95e00")}
         </div>
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
         <div style={{ gridColumn: "1 / -1" }}>
           <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>
-            {kind === "flip-expense" ? "Deal *" : "Property *"}
+            {kind === "flip-expense" ? "Project *" : "Property *"}
           </label>
           <select value={form.assetId} onChange={sf("assetId")} style={iS}>
             <option value="">Select {kind === "flip-expense" ? "a deal" : "a property"}…</option>
@@ -586,7 +586,7 @@ function TypeChip({ row }) {
   if (row.kind === "rental" && row.type === "expense") {
     return <span style={{ background: "var(--info-tint)", color: "var(--c-blue)", borderRadius: 12, padding: "2px 8px", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.04em" }}>Rental Expense</span>;
   }
-  return <span style={{ background: "var(--warning-btn-bg)", color: "#c2410c", borderRadius: 12, padding: "2px 8px", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.04em" }}>Deal Expense</span>;
+  return <span style={{ background: "var(--warning-btn-bg)", color: "#c2410c", borderRadius: 12, padding: "2px 8px", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.04em" }}>Project Expense</span>;
 }
 
 export function Ledger({ highlightRowKey, initialAssetFilter, onClearHighlight }) {
@@ -686,7 +686,7 @@ export function Ledger({ highlightRowKey, initialAssetFilter, onClearHighlight }
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
         <div>
           <h1 style={{ color: "var(--text-primary)", fontSize: 26, fontWeight: 700, marginBottom: 4 }}>Ledger</h1>
-          <p style={{ color: "var(--text-secondary)", fontSize: 15 }}>Every dollar in and out, across rentals and deals</p>
+          <p style={{ color: "var(--text-secondary)", fontSize: 15 }}>Every dollar in and out, across rentals and projects</p>
         </div>
         <button onClick={() => setShowAdd("rental-expense")}
           style={{ background: "#e95e00", color: "#fff", border: "none", borderRadius: 10, padding: "10px 18px", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
@@ -708,7 +708,7 @@ export function Ledger({ highlightRowKey, initialAssetFilter, onClearHighlight }
             { id: "all",             label: "All" },
             { id: "rental-income",   label: "Rental Income" },
             { id: "rental-expense",  label: "Rental Expense" },
-            { id: "flip-expense",    label: "Deal Expense" },
+            { id: "flip-expense",    label: "Project Expense" },
           ].map(t => {
             const active = typeFilter === t.id;
             return (
@@ -769,7 +769,7 @@ export function Ledger({ highlightRowKey, initialAssetFilter, onClearHighlight }
                 <EmptyState
                   icon={Wallet}
                   title={rows.length === 0 ? "No transactions yet" : "No entries match your filters"}
-                  subtitle={rows.length === 0 ? "Income and expenses recorded across your rentals and deals will appear here." : "Try clearing some filters or expanding the date range."}
+                  subtitle={rows.length === 0 ? "Income and expenses recorded across your rentals and projects will appear here." : "Try clearing some filters or expanding the date range."}
                 />
               </td></tr>
             ) : (

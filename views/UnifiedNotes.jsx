@@ -100,7 +100,7 @@ export function UnifiedNotes({ highlightNoteId, highlightDealNoteId, onBack, onC
   const tabs = [
     { id: "all", label: "All", count: allNotes.length },
     { id: "properties", label: "Properties", count: propCount },
-    { id: "deals", label: "Deals", count: dealCount },
+    { id: "deals", label: "Projects", count: dealCount },
     { id: "general", label: "General", count: genCount },
   ];
 
@@ -231,7 +231,7 @@ export function UnifiedNotes({ highlightNoteId, highlightDealNoteId, onBack, onC
         )}
         {activeTab === "deals" && (
           <select value={flipFilter} onChange={e => setFlipFilter(e.target.value)} style={{ ...iS, width: 200, fontSize: 14, padding: "9px 14px", fontWeight: 600 }}>
-            <option value="all">All Deals</option>
+            <option value="all">All Projects</option>
             {DEALS.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
           </select>
         )}
@@ -360,7 +360,7 @@ export function UnifiedNotes({ highlightNoteId, highlightDealNoteId, onBack, onC
               )}
               {noteForm.category === "deal" && (
                 <div>
-                  <p style={{ fontSize: 12, fontWeight: 600, color: "var(--text-dim)", marginBottom: 5 }}>Deal *</p>
+                  <p style={{ fontSize: 12, fontWeight: 600, color: "var(--text-dim)", marginBottom: 5 }}>Project *</p>
                   <select style={iS} value={noteForm.entityId} onChange={e => setNoteForm(f => ({ ...f, entityId: e.target.value }))} disabled={!!editId}>
                     <option value="">Select deal...</option>
                     {DEALS.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
