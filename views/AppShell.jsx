@@ -626,7 +626,9 @@ export function AppShell() {
             initialAssetFilter={ledgerInitialAssetFilter}
             onClearHighlight={() => { setHighlightLedgerKey(null); setLedgerInitialAssetFilter(null); }}
           />}
-          {activeView === "properties" && <Properties onSelect={handlePropertySelect} editPropertyId={editPropertyId} onClearEditId={() => setEditPropertyId(null)} convertDealData={convertDealData} onClearConvertFlip={() => setConvertDealData(null)} onGuidedSetup={() => setActiveView("rentalWizard")} onComplete={() => { setEditPropertyId(null); setConvertDealData(null); setActiveView("assets"); }} />}
+          {/* Properties view is gone — AssetList replaced the list. The
+              edit/add modal lives in <Properties> below, rendered outside
+              the activeView switch so it pops up wherever the user is. */}
           {activeView === "propertyDetail" && selectedProperty && <PropertyDetail key={selectedProperty.id + "-" + (propDetailTab || "overview") + "-" + (propDetailTenantHighlight || "")} property={selectedProperty} onBack={() => { setActiveView(navSource === "dashboard" ? "dashboard" : navSource === "portfolio" ? "portfolio" : "assets"); setPropDetailTab(null); setPropDetailTenantHighlight(null); setPrevNavSource(null); setNavSource(null); }} backLabel={navSource === "dashboard" ? "Back to Dashboard" : navSource === "portfolio" ? "Back to Portfolio" : "Back to Assets"} onEditProperty={(p) => { setEditPropertyId(p.id); setActiveView("properties"); }} onGoToTransactions={() => { setHighlightLedgerKey(null); setLedgerInitialAssetFilter("rental:" + selectedProperty.id); setActiveView("ledger"); }} onNavigateToTransaction={(txId) => { if (txId) setHighlightLedgerKey("tx-" + txId); setLedgerInitialAssetFilter("rental:" + selectedProperty.id); setActiveView("ledger"); }} onNavigateToTenant={(tenantId) => { const t = TENANTS.find(x => x.id === tenantId); if (t) { handleTenantSelect(t, "propertyDetail"); } }} initialTab={propDetailTab} highlightTenantId={propDetailTenantHighlight} onClearHighlightTenant={() => setPropDetailTenantHighlight(null)} />}
           {activeView === "analytics" && <UnifiedAnalytics />}
           {activeView === "notes" && <UnifiedNotes highlightNoteId={highlightNoteId} highlightDealNoteId={highlightDealNoteId} autoOpenAdd={notesAutoAdd} onBack={navSource === "dashboard" ? () => { setActiveView("dashboard"); setHighlightNoteId(null); setNavSource(null); setNotesAutoAdd(false); } : navSource === "dealdashboard" ? () => { setActiveView("dealdashboard"); setHighlightDealNoteId(null); setNavSource(null); setNotesAutoAdd(false); } : null} onClearHighlight={() => { setHighlightNoteId(null); setHighlightDealNoteId(null); setNotesAutoAdd(false); }} />}
@@ -676,6 +678,19 @@ export function AppShell() {
           {activeView === "welcome" && <WelcomeScreen onStartRental={() => setActiveView("rentalWizard")} onStartFlip={() => setActiveView("flipWizard")} />}
         </div>
       </div>
+
+      {/* Property edit/convert modal — rendered as a permanent overlay so
+          PropertyDetail's Edit button and DealDetail's Convert-to-Rental
+          button can trigger it without changing activeView. */}
+      <Properties
+        onSelect={handlePropertySelect}
+        editPropertyId={editPropertyId}
+        onClearEditId={() => setEditPropertyId(null)}
+        convertDealData={convertDealData}
+        onClearConvertFlip={() => setConvertDealData(null)}
+        onGuidedSetup={() => setActiveView("rentalWizard")}
+        onComplete={() => { setEditPropertyId(null); setConvertDealData(null); }}
+      />
 
       {/* Settings Modal */}
       {showSettings && (

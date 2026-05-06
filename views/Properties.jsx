@@ -172,9 +172,14 @@ export function Properties({ onSelect, editPropertyId, onClearEditId, convertDea
     }
   }, [showModal, isModalOnly, onComplete]);
 
+  // The legacy list view is gone — AssetList is the canonical entry. This
+  // component is now purely a modal-host overlay that renders nothing unless
+  // an edit or convert trigger is active.
+  if (!isModalOnly && !showModal) return null;
+
   return (
     <div>
-      {!isModalOnly && (<>
+      {false && (<>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
         <div>
           <h1 style={{ color: "var(--text-primary)", fontSize: 26, fontWeight: 700, marginBottom: 4 }}>Properties</h1>
