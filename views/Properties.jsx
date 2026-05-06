@@ -2,7 +2,7 @@
 // Properties — grid/list view of the rental portfolio with add/edit/delete
 // modal. Mutates PROPERTIES in place.
 // =============================================================================
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Plus, Search, Filter, Pencil, Trash2, MapPin, Home, X, UploadCloud } from "lucide-react";
 import { fmt, fmtK, PROP_COLORS } from "../api.js";
 import { PROPERTIES, TRANSACTIONS } from "../mockData.js";
@@ -12,7 +12,13 @@ import { useToast } from "../toast.jsx";
 import { Modal, Badge, EmptyState, iS } from "../shared.jsx";
 import { createProperty, updateProperty as dbUpdateProperty, deleteProperty as dbDeleteProperty } from "../db/properties.js";
 
-export function Properties({ onSelect, editPropertyId, onClearEditId, convertDealData, onClearConvertFlip, onGuidedSetup }) {
+export function Properties({ onSelect, editPropertyId, onClearEditId, convertDealData, onClearConvertFlip, onGuidedSetup, onComplete }) {
+  // Modal-only mode: when an edit or convert trigger is set, hide the list
+  // and treat the screen as a modal-host overlay. After the modal closes the
+  // onComplete callback runs so the caller can navigate the user back to
+  // whatever surface they came from (typically Assets).
+  const isModalOnly = !!editPropertyId || !!convertDealData;
+  const wasModalOnlyOpen = useRef(false);
   const { showToast } = useToast();
   // Read/write the global PROPERTIES store directly — same pattern DEALS and
   // TRANSACTIONS use. A local React state copy here caused add/edit/delete
@@ -155,8 +161,20 @@ export function Properties({ onSelect, editPropertyId, onClearEditId, convertDea
 
   const filtered = PROPERTIES.filter(p => p.name.toLowerCase().includes(search.toLowerCase()) || p.type.toLowerCase().includes(search.toLowerCase()));
 
+  // Modal-only mode lifecycle: track when the modal opens so we can fire
+  // onComplete when it closes. Without this, save/cancel would leave the
+  // user staring at an empty page.
+  useEffect(() => {
+    if (isModalOnly && showModal) wasModalOnlyOpen.current = true;
+    if (wasModalOnlyOpen.current && !showModal) {
+      wasModalOnlyOpen.current = false;
+      onComplete && onComplete();
+    }
+  }, [showModal, isModalOnly, onComplete]);
+
   return (
     <div>
+      {!isModalOnly && (<>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
         <div>
           <h1 style={{ color: "var(--text-primary)", fontSize: 26, fontWeight: 700, marginBottom: 4 }}>Properties</h1>
@@ -338,6 +356,7 @@ export function Properties({ onSelect, editPropertyId, onClearEditId, convertDea
           </table>
         </div>
       )}
+      </>)}
       {showModal && (
         <Modal title={editId ? "Edit Property" : "Add Property"} onClose={() => setShowModal(false)} width={580}>
           {/* Photo Upload */}
