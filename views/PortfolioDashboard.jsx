@@ -1,5 +1,5 @@
 // =============================================================================
-// PortfolioDashboard — top-level overview combining rentals + projects.
+// PortfolioDashboard — top-level overview combining rentals + rehabs.
 // KPI strip, quick actions, cash flow trend, rentals/deals snapshots,
 // Needs Attention alerts, and Recent Activity.
 // =============================================================================
@@ -127,24 +127,24 @@ export function PortfolioDashboard({ onNavigate, onSelectProperty, onSelectFlip,
       {/* Header */}
       <div style={{ marginBottom: 28 }}>
         <h1 style={{ fontSize: 26, fontWeight: 700, color: "var(--text-primary)", margin: "0 0 8px 0" }}>Portfolio Overview</h1>
-        <p style={{ fontSize: 15, color: "var(--text-secondary)", margin: 0 }}>Your complete real estate snapshot — rentals and projects combined.</p>
+        <p style={{ fontSize: 15, color: "var(--text-secondary)", margin: 0 }}>Your complete real estate snapshot — rentals and rehabs combined.</p>
       </div>
 
       {/* Row 1: KPI Cards */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 20, marginBottom: 28 }}>
-        <StatCard icon={Wallet} label="Total Equity" value={fmt(totalEquity)} color="var(--c-blue)" tip="Sum of rental equity (property value − mortgage balance) plus deal purchase prices invested." />
+        <StatCard icon={Wallet} label="Total Equity" value={fmt(totalEquity)} color="var(--c-blue)" tip="Sum of rental equity (property value − mortgage balance) plus rehab purchase prices invested." />
         <StatCard icon={TrendingUp} label="Monthly Cash Flow" value={fmt(netCashFlow)} color="var(--c-green)" tip="Net rental income across all properties (income minus expenses)." />
-        <StatCard icon={Target} label="Active Projects" value={String(activeDeals)} color="#e95e00" tip="Number of deals currently in progress (not sold)." />
-        <StatCard icon={DollarSign} label="Capital Deployed" value={fmt(capitalDeployed)} color="var(--c-purple)" tip="Total money invested in active projects (purchase price + rehab spent)." />
+        <StatCard icon={Target} label="Active Rehabs" value={String(activeDeals)} color="#e95e00" tip="Number of rehabs currently in progress (not sold)." />
+        <StatCard icon={DollarSign} label="Capital Deployed" value={fmt(capitalDeployed)} color="var(--c-purple)" tip="Total money invested in active rehabs (purchase price + rehab spent)." />
       </div>
 
       {/* Row 2: Quick Actions */}
       <div style={{ display: "flex", gap: 12, marginBottom: 28 }}>
         {[
           { label: "Add Rental Transaction", icon: ArrowUpDown, action: () => onNavigate("transactions") },
-          { label: "Add Project Expense", icon: Hammer, action: () => onNavigate("dealexpenses") },
+          { label: "Add Rehab Expense", icon: Hammer, action: () => onNavigate("dealexpenses") },
           { label: "Add Property", icon: Building2, action: () => onNavigate("rentalWizard") },
-          { label: "Add Project", icon: Target, action: () => onNavigate("flipWizard") },
+          { label: "Add Rehab", icon: Target, action: () => onNavigate("flipWizard") },
           { label: "Add Note", icon: MessageSquare, action: () => onNavigate("notes-add") },
         ].map((qa, i) => (
           <button key={i} onClick={qa.action} style={qaBtnS}
@@ -232,7 +232,7 @@ export function PortfolioDashboard({ onNavigate, onSelectProperty, onSelectFlip,
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <Hammer size={18} color="#e95e00" />
-              <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>Active Projects</h3>
+              <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>Active Rehabs</h3>
               <span style={{ fontSize: 13, color: "var(--text-muted)", fontWeight: 500 }}>({dealSnapshots.length})</span>
             </div>
             <button onClick={() => onNavigate("dealdashboard")} style={{ background: "none", border: "none", color: "#e95e00", cursor: "pointer", fontSize: 13, fontWeight: 600, display: "flex", alignItems: "center", gap: 4 }}>

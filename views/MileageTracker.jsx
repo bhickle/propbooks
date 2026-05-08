@@ -133,7 +133,7 @@ export function MileageTracker() {
         </div>
         {linkedOptions.length > 0 && (
           <select value={linkedFilter} onChange={e => setLinkedFilter(e.target.value)} style={{ ...iS, width: "auto", minWidth: 160, fontSize: 13, padding: "9px 12px" }}>
-            <option value="all">All Properties / Projects</option>
+            <option value="all">All Properties / Rehabs</option>
             {linkedOptions.map(o => <option key={o} value={o}>{o}</option>)}
           </select>
         )}
@@ -228,7 +228,7 @@ export function MileageTracker() {
             </select>
           </div>
           <div style={{ marginBottom: 16 }}>
-            <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Linked Property / Deal</label>
+            <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Linked Property / Rehab</label>
             <select value={form.linkedTo} onChange={sf("linkedTo")} style={iS}>
               <option value="">None</option>
               <optgroup label="Properties">

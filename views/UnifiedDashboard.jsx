@@ -1,6 +1,6 @@
 // =============================================================================
 // UnifiedDashboard — single nav entry replacing the prior trio of Portfolio
-// + Rentals→Dashboard + Projects→Dashboard. Tab toggle inside renders the
+// + Rentals→Dashboard + Rehabs→Dashboard. Tab toggle inside renders the
 // existing components (PortfolioDashboard / Dashboard / DealDashboard) so
 // no widget logic was rewritten — this is purely an IA wrapper.
 // =============================================================================
@@ -17,11 +17,11 @@ export function UnifiedDashboard(props) {
       <div style={{ display: "flex", gap: 6, marginBottom: 24, background: "var(--surface-alt)", borderRadius: 10, padding: 4, border: "1px solid var(--border)", width: "fit-content" }}>
         <DashTab id="portfolio" label="Portfolio" Icon={PieChartIcon} active={tab === "portfolio"} onClick={() => setTab("portfolio")} />
         <DashTab id="rentals"   label="Rentals"   Icon={Home}         active={tab === "rentals"}   onClick={() => setTab("rentals")} />
-        <DashTab id="projects"  label="Projects"  Icon={Hammer}       active={tab === "projects"}  onClick={() => setTab("projects")} />
+        <DashTab id="rehabs"  label="Rehabs"  Icon={Hammer}       active={tab === "rehabs"}  onClick={() => setTab("rehabs")} />
       </div>
       {tab === "portfolio" && <PortfolioDashboard {...props.portfolioProps} />}
       {tab === "rentals"   && <RentalDashboard   {...props.rentalProps} />}
-      {tab === "projects"  && <DealDashboard     {...props.projectProps} />}
+      {tab === "rehabs"  && <DealDashboard     {...props.projectProps} />}
     </div>
   );
 }

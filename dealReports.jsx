@@ -32,31 +32,31 @@ function csvRow(cells) { return cells.map(csvCell).join(",") + "\n"; }
 // view uses (allMetrics + filter context) so the export reflects the user's
 // current scope. Keep these flat — investors take this CSV to a CPA.
 function buildProjectReportCSV(activeReport, allMetrics, dealFilter) {
-  const scopeName = dealFilter === "all" ? "All Projects" : _DEALS.find(f => f.id === dealFilter)?.name || "Project";
+  const scopeName = dealFilter === "all" ? "All Rehabs" : _DEALS.find(f => f.id === dealFilter)?.name || "Rehab";
   let csv = "";
 
   if (activeReport === "profitability") {
-    csv += csvRow(["Project", "Stage", "Purchase Price", "Rehab Budget", "Rehab Spent", "Holding Costs", "Selling Costs", "Total Invested", "Sale / ARV", "Profit", "ROI %", "Annualized %"]);
+    csv += csvRow(["Rehab", "Stage", "Purchase Price", "Rehab Budget", "Rehab Spent", "Holding Costs", "Selling Costs", "Total Invested", "Sale / ARV", "Profit", "ROI %", "Annualized %"]);
     [...allMetrics].sort((a, b) => b.m.profit - a.m.profit).forEach(d => {
       csv += csvRow([d.name, d.stage, d.purchasePrice, d.m.rehabBudget, d.m.rehabSpent, d.m.totalHolding, d.m.sellingCosts, d.m.totalInvested, d.m.saleOrARV, d.m.profit, d.m.roi.toFixed(1), d.m.annualized.toFixed(1)]);
     });
 
   } else if (activeReport === "rehabBudget") {
-    csv += csvRow(["Project", "Stage", "Rehab Budget", "Rehab Spent", "Variance $", "Variance %"]);
+    csv += csvRow(["Rehab", "Stage", "Rehab Budget", "Rehab Spent", "Variance $", "Variance %"]);
     allMetrics.forEach(d => {
       const variance = d.m.rehabSpent - d.m.rehabBudget;
       csv += csvRow([d.name, d.stage, d.m.rehabBudget, d.m.rehabSpent, variance, d.m.rehabVariance.toFixed(1)]);
     });
 
   } else if (activeReport === "holdingCosts") {
-    csv += csvRow(["Project", "Stage", "Days Owned", "Holding $/Month", "Total Holding", "Cost / Day"]);
+    csv += csvRow(["Rehab", "Stage", "Days Owned", "Holding $/Month", "Total Holding", "Cost / Day"]);
     allMetrics.forEach(d => {
       const perDay = d.m.daysOwned > 0 ? Math.round(d.m.totalHolding / d.m.daysOwned) : 0;
       csv += csvRow([d.name, d.stage, d.m.daysOwned, d.m.holdPerMonth, d.m.totalHolding, perDay]);
     });
 
   } else if (activeReport === "contractors") {
-    csv += csvRow(["Contractor", "Trade", "Project", "Accepted Bids", "Total Paid", "Outstanding"]);
+    csv += csvRow(["Contractor", "Trade", "Rehab", "Accepted Bids", "Total Paid", "Outstanding"]);
     const filterDealId = dealFilter !== "all" ? dealFilter : null;
     _CON.forEach(c => {
       const bids = _BIDS.filter(b => b.contractorId === c.id && b.status === "accepted" && (!filterDealId || b.dealId === filterDealId));
@@ -69,19 +69,19 @@ function buildProjectReportCSV(activeReport, allMetrics, dealFilter) {
     });
 
   } else if (activeReport === "capitalGains") {
-    csv += csvRow(["Project", "Sale Price", "Total Basis", "Capital Gain", "Sold Date"]);
+    csv += csvRow(["Rehab", "Sale Price", "Total Basis", "Capital Gain", "Sold Date"]);
     allMetrics.filter(d => d.stage === "Sold").forEach(d => {
       csv += csvRow([d.name, d.salePrice || d.m.saleOrARV, d.m.totalInvested, d.m.profit, d.closeDate || ""]);
     });
 
   } else if (activeReport === "cashflow") {
-    csv += csvRow(["Project", "Stage", "Total Invested", "Sale / ARV", "Net Cash Flow", "Days Owned"]);
+    csv += csvRow(["Rehab", "Stage", "Total Invested", "Sale / ARV", "Net Cash Flow", "Days Owned"]);
     allMetrics.forEach(d => {
       csv += csvRow([d.name, d.stage, d.m.totalInvested, d.m.saleOrARV, d.m.profit, d.m.daysOwned]);
     });
 
   } else if (activeReport === "pipeline") {
-    csv += csvRow(["Stage", "Project Count", "Total Value (Sale/ARV)", "Total Invested", "Projected Profit"]);
+    csv += csvRow(["Stage", "Rehab Count", "Total Value (Sale/ARV)", "Total Invested", "Projected Profit"]);
     STAGE_ORDER.forEach(stage => {
       const inStage = allMetrics.filter(d => d.stage === stage);
       if (inStage.length === 0) return;
@@ -137,7 +137,7 @@ export function DealReports() {
   const avgROI        = allMetrics.length > 0 ? allMetrics.reduce((s, d) => s + d.m.roi, 0) / allMetrics.length : 0;
 
   const profitReports = [
-    { id: "profitability",  label: "Project Profitability",    icon: DollarSign  },
+    { id: "profitability",  label: "Rehab Profitability",    icon: DollarSign  },
     { id: "rehabBudget",    label: "Rehab Budget vs Actual",icon: BarChart3   },
     { id: "holdingCosts",   label: "Holding Costs",         icon: Clock       },
   ];
@@ -153,12 +153,12 @@ export function DealReports() {
       {/* Header */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
         <div>
-          <h1 style={{ color: "var(--text-primary)", fontSize: 26, fontWeight: 700, marginBottom: 4 }}>Project Reports</h1>
+          <h1 style={{ color: "var(--text-primary)", fontSize: 26, fontWeight: 700, marginBottom: 4 }}>Rehab Reports</h1>
           <p style={{ color: "var(--text-secondary)", fontSize: 15 }}>Profitability, rehab analysis, contractor payments, and projections</p>
         </div>
         <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
           <select value={dealFilter} onChange={e => setDealFilter(e.target.value)} style={{ ...iS, width: 220 }}>
-            <option value="all">All Projects</option>
+            <option value="all">All Rehabs</option>
             {_DEALS.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
           </select>
           <button onClick={() => {
@@ -177,8 +177,8 @@ export function DealReports() {
         {[
           { label: "Total Invested",  value: fmt(totalInvested), tip: "Purchase + rehab spent + holding costs + selling costs" },
           { label: "Total Profit",    value: fmt(totalProfit),   tip: "Sale price (or ARV) minus total invested" },
-          { label: "Avg ROI",         value: `${avgROI.toFixed(1)}%`, tip: "Average return on investment across all projects" },
-          { label: "Rehab Spend",     value: fmt(totalRehab),    tip: "Total rehab dollars spent across all projects" },
+          { label: "Avg ROI",         value: `${avgROI.toFixed(1)}%`, tip: "Average return on investment across all rehabs" },
+          { label: "Rehab Spend",     value: fmt(totalRehab),    tip: "Total rehab dollars spent across all rehabs" },
           { label: "Budget Variance", value: `${totalBudget > 0 ? (((totalRehab - totalBudget) / totalBudget) * 100).toFixed(1) : 0}%`, tip: "How much total rehab spend is over/under total budget" },
         ].map((m, i) => (
           <div key={i} style={{ background: "var(--surface)", borderRadius: 14, padding: "14px 16px", border: "1px solid var(--border-subtle)", boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
@@ -206,7 +206,7 @@ export function DealReports() {
           ))}
           <div style={{ borderTop: "1px solid var(--border-subtle)", marginTop: 12, paddingTop: 12 }}>
             <p style={{ fontSize: 11, color: "var(--text-muted)", fontWeight: 600, textTransform: "uppercase", padding: "0 14px", marginBottom: 6 }}>Scope</p>
-            <p style={{ fontSize: 12, color: "var(--text-label)", padding: "0 14px", fontWeight: 600 }}>{dealFilter === "all" ? `All ${_DEALS.length} projects` : _DEALS.find(f => f.id === dealFilter)?.name}</p>
+            <p style={{ fontSize: 12, color: "var(--text-label)", padding: "0 14px", fontWeight: 600 }}>{dealFilter === "all" ? `All ${_DEALS.length} rehabs` : _DEALS.find(f => f.id === dealFilter)?.name}</p>
             <p style={{ fontSize: 12, color: "var(--text-muted)", padding: "0 14px" }}>{deals.filter(d => d.stage === "Sold").length} sold · {deals.filter(d => d.stage !== "Sold").length} active</p>
           </div>
         </div>
@@ -237,15 +237,15 @@ function ProfitabilityReport({ deals }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
       <div style={sectionS}>
-        <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--text-primary)", marginBottom: 4 }}>Project Profitability Summary</h3>
-        <p style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 20 }}>Profit, ROI, and cost breakdown per project</p>
+        <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--text-primary)", marginBottom: 4 }}>Rehab Profitability Summary</h3>
+        <p style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 20 }}>Profit, ROI, and cost breakdown per rehab</p>
 
         <div style={{ overflowX: "auto" }}>
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr>
-                {["Project", "Stage", "Purchase", "Rehab", "Invested", "Sale / ARV", "Profit", "ROI", "Annualized"].map(h => (
-                  <th key={h} style={{ ...thS, textAlign: h === "Project" || h === "Stage" ? "left" : "right" }}>{h}</th>
+                {["Rehab", "Stage", "Purchase", "Rehab", "Invested", "Sale / ARV", "Profit", "ROI", "Annualized"].map(h => (
+                  <th key={h} style={{ ...thS, textAlign: h === "Rehab" || h === "Stage" ? "left" : "right" }}>{h}</th>
                 ))}
               </tr>
             </thead>
@@ -292,8 +292,8 @@ function ProfitabilityReport({ deals }) {
       {/* Profit chart */}
       {chartData.length > 1 && (
         <div style={sectionS}>
-          <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--text-primary)", marginBottom: 4 }}>Profit by Project</h3>
-          <p style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 20 }}>Net profit comparison across projects</p>
+          <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--text-primary)", marginBottom: 4 }}>Profit by Rehab</h3>
+          <p style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 20 }}>Net profit comparison across rehabs</p>
           <ResponsiveContainer width="100%" height={280}>
             <BarChart data={chartData} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
@@ -415,14 +415,14 @@ function HoldingCostsReport({ deals }) {
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
       <div style={sectionS}>
         <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--text-primary)", marginBottom: 4 }}>Holding Cost Analysis</h3>
-        <p style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 20 }}>Monthly burn rate, days held, and total holding costs per project</p>
+        <p style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 20 }}>Monthly burn rate, days held, and total holding costs per rehab</p>
 
         <div style={{ overflowX: "auto" }}>
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
             <tr>
-              {["Project", "Stage", "Days Held", "Monthly Burn", "Daily Burn", "Total Holding", "% of Invest", "Holding / Profit"].map(h => (
-                <th key={h} style={{ ...thS, textAlign: h === "Project" || h === "Stage" ? "left" : "right" }}>{h}</th>
+              {["Rehab", "Stage", "Days Held", "Monthly Burn", "Daily Burn", "Total Holding", "% of Invest", "Holding / Profit"].map(h => (
+                <th key={h} style={{ ...thS, textAlign: h === "Rehab" || h === "Stage" ? "left" : "right" }}>{h}</th>
               ))}
             </tr>
           </thead>
@@ -457,7 +457,7 @@ function HoldingCostsReport({ deals }) {
 
       {chartData.length > 1 && (
         <div style={sectionS}>
-          <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--text-primary)", marginBottom: 4 }}>Holding Costs by Project</h3>
+          <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--text-primary)", marginBottom: 4 }}>Holding Costs by Rehab</h3>
           <p style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 20 }}>Total holding cost comparison</p>
           <ResponsiveContainer width="100%" height={260}>
             <BarChart data={chartData} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
@@ -546,7 +546,7 @@ function ContractorPaymentsReport({ dealFilter }) {
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr>
-                {["Contractor", "Trade", "Projects", "Total Bids", "Accepted", "Paid", "Outstanding", "Acceptance Rate"].map(h => (
+                {["Contractor", "Trade", "Rehabs", "Total Bids", "Accepted", "Paid", "Outstanding", "Acceptance Rate"].map(h => (
                   <th key={h} style={{ ...thS, textAlign: h === "Contractor" || h === "Trade" ? "left" : "right" }}>{h}</th>
                 ))}
               </tr>
@@ -637,7 +637,7 @@ function CapitalGainsReport({ deals }) {
       {/* Summary */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14 }}>
         {[
-          { label: "Total Capital Gains", value: fmt(totalGains), color: totalGains >= 0 ? "#1a7a4a" : "#c0392b", tip: "Sum of profit across all projects" },
+          { label: "Total Capital Gains", value: fmt(totalGains), color: totalGains >= 0 ? "#1a7a4a" : "#c0392b", tip: "Sum of profit across all rehabs" },
           { label: "Estimated Tax",       value: fmt(totalTax),   color: "#c0392b", tip: "22% short-term, 15% long-term estimate" },
           { label: "Short-Term Deals",    value: String(shortCount), color: "#f59e0b", tip: "Held less than 1 year — taxed as ordinary income" },
           { label: "Long-Term Deals",     value: String(longCount),  color: "#1a7a4a", tip: "Held 1+ years — lower capital gains rate" },
@@ -651,14 +651,14 @@ function CapitalGainsReport({ deals }) {
 
       <div style={sectionS}>
         <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--text-primary)", marginBottom: 4 }}>Capital Gains Projection</h3>
-        <p style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 20 }}>Estimated tax liability by project — consult your CPA for actual filing</p>
+        <p style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 20 }}>Estimated tax liability by rehab — consult your CPA for actual filing</p>
 
         <div style={{ overflowX: "auto" }}>
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
             <tr>
-              {["Project", "Acquired", "Sold / Projected", "Days Held", "Type", "Gain / Loss", "Tax Rate", "Est. Tax", "After Tax"].map(h => (
-                <th key={h} style={{ ...thS, textAlign: h === "Project" ? "left" : "right" }}>{h}</th>
+              {["Rehab", "Acquired", "Sold / Projected", "Days Held", "Type", "Gain / Loss", "Tax Rate", "Est. Tax", "After Tax"].map(h => (
+                <th key={h} style={{ ...thS, textAlign: h === "Rehab" ? "left" : "right" }}>{h}</th>
               ))}
             </tr>
           </thead>
@@ -821,10 +821,10 @@ function PipelineReport({ deals }) {
       {/* Summary */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14 }}>
         {[
-          { label: "Total Pipeline Value",  value: fmt(totalPipeline),   color: "#3b82f6", tip: "Combined ARV / sale price of all deals" },
-          { label: "Active Projects",          value: String(activeDeals.length), color: "#f59e0b", tip: "Deals not yet sold" },
-          { label: "Projected Profit",      value: fmt(projectedProfit), color: "#8b5cf6", tip: "Estimated profit on unsold projects (ARV minus costs)" },
-          { label: "Realized Profit",       value: fmt(realizedProfit),  color: "#1a7a4a", tip: "Actual profit from sold projects" },
+          { label: "Total Pipeline Value",  value: fmt(totalPipeline),   color: "#3b82f6", tip: "Combined ARV / sale price of all rehabs" },
+          { label: "Active Rehabs",          value: String(activeDeals.length), color: "#f59e0b", tip: "Rehabs not yet sold" },
+          { label: "Projected Profit",      value: fmt(projectedProfit), color: "#8b5cf6", tip: "Estimated profit on unsold rehabs (ARV minus costs)" },
+          { label: "Realized Profit",       value: fmt(realizedProfit),  color: "#1a7a4a", tip: "Actual profit from sold rehabs" },
         ].map((m, i) => (
           <div key={i} style={{ background: "var(--surface)", borderRadius: 16, padding: "18px 20px", border: "1px solid var(--border-subtle)" }}>
             <p style={{ color: "var(--text-muted)", fontSize: 10, fontWeight: 600, textTransform: "uppercase", marginBottom: 4 }}>{m.label}<InfoTip text={m.tip} /></p>
@@ -836,14 +836,14 @@ function PipelineReport({ deals }) {
       {/* Stage breakdown */}
       <div style={sectionS}>
         <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--text-primary)", marginBottom: 4 }}>Pipeline by Stage</h3>
-        <p style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 20 }}>Project count, value, and projected profit at each stage</p>
+        <p style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 20 }}>Rehab count, value, and projected profit at each stage</p>
 
         <div style={{ display: "grid", gridTemplateColumns: pieData.length > 1 ? "1fr 300px" : "1fr", gap: 24 }}>
           <div style={{ overflowX: "auto" }}>
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr>
-                {["Stage", "Deals", "Total ARV / Sale", "Total Invested", "Projected Profit", "Avg ROI"].map(h => (
+                {["Stage", "Rehabs", "Total ARV / Sale", "Total Invested", "Projected Profit", "Avg ROI"].map(h => (
                   <th key={h} style={{ ...thS, textAlign: h === "Stage" ? "left" : "right" }}>{h}</th>
                 ))}
               </tr>
@@ -886,15 +886,15 @@ function PipelineReport({ deals }) {
 
       {/* Deal timeline */}
       <div style={sectionS}>
-        <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--text-primary)", marginBottom: 4 }}>Project Timeline</h3>
-        <p style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 20 }}>Key dates and projected milestones for each project</p>
+        <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--text-primary)", marginBottom: 4 }}>Rehab Timeline</h3>
+        <p style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 20 }}>Key dates and projected milestones for each rehab</p>
 
         <div style={{ overflowX: "auto" }}>
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
             <tr>
-              {["Project", "Stage", "Acquired", "Rehab Start", "Rehab End", "Listed", "Closed", "Days"].map(h => (
-                <th key={h} style={{ ...thS, textAlign: h === "Project" || h === "Stage" ? "left" : "right" }}>{h}</th>
+              {["Rehab", "Stage", "Acquired", "Rehab Start", "Rehab End", "Listed", "Closed", "Days"].map(h => (
+                <th key={h} style={{ ...thS, textAlign: h === "Rehab" || h === "Stage" ? "left" : "right" }}>{h}</th>
               ))}
             </tr>
           </thead>

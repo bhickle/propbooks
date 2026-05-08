@@ -1,5 +1,5 @@
 // =============================================================================
-// DealAnalyzer — pre-purchase calculator for fix-and-flip projects and
+// DealAnalyzer — pre-purchase calculator for fix-and-flip rehabs and
 // buy-and-hold rentals. Computes ARV-derived projections, MAO rules, cap
 // rate, cash-on-cash, DSCR, and rule-of-thumb checks.
 // =============================================================================
@@ -53,7 +53,7 @@ export function DealAnalyzer() {
   return (
     <div>
       <div style={{ marginBottom: 24 }}>
-        <h1 style={{ color: "var(--text-primary)", fontSize: 26, fontWeight: 700, marginBottom: 4 }}>Project Analyzer</h1>
+        <h1 style={{ color: "var(--text-primary)", fontSize: 26, fontWeight: 700, marginBottom: 4 }}>Rehab Analyzer</h1>
         <p style={{ color: "var(--text-secondary)", fontSize: 15 }}>Run the numbers before you make an offer</p>
       </div>
       <div style={{ display: "flex", background: "var(--surface-alt)", borderRadius: 10, padding: 4, width: "fit-content", marginBottom: 28, border: "1px solid var(--border)" }}>
@@ -71,7 +71,7 @@ export function DealAnalyzer() {
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
           <div style={{ background: "var(--surface)", borderRadius: 16, padding: 24, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
-              <h3 style={{ color: "var(--text-primary)", fontSize: 16, fontWeight: 700 }}>Project Inputs</h3>
+              <h3 style={{ color: "var(--text-primary)", fontSize: 16, fontWeight: 700 }}>Rehab Inputs</h3>
               {(dealCalc.arv || dealCalc.purchase || dealCalc.rehab) && (
                 <button onClick={() => setDealCalc({ arv: "", purchase: "", rehab: "", holdMonths: "4", sellingPct: "6" })} style={{ background: "none", border: "none", color: "var(--text-muted)", fontSize: 12, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
                   <X size={13} /> Reset

@@ -318,16 +318,16 @@ export function AppShell() {
 
   // After consolidation: a single flat top-level nav. Portfolio + the per-kind
   // dashboards live behind one "Dashboard" entry (UnifiedDashboard wraps them
-  // with a tab toggle). Rentals/Projects sub-sections are gone — the unified
+  // with a tab toggle). Rentals/Rehabs sub-sections are gone — the unified
   // Assets / Ledger / Contractors / Tenants / Analytics / Reports cover both.
   // The "properties" / "deals" / "dealdashboard" / "portfolio" activeView IDs
   // stay registered downstream so deep-link back-nav from detail screens
   // doesn't break.
 
-  // Cross-cutting tools — apply to both rentals and projects
+  // Cross-cutting tools — apply to both rentals and rehabs
   const toolNavItems = [
     { id: "notes",         label: "Notes",            icon: MessageSquare },
-    { id: "dealanalyzer",  label: "Project Analyzer",    icon: Calculator },
+    { id: "dealanalyzer",  label: "Rehab Analyzer",    icon: Calculator },
     { id: "mileage",       label: "Mileage Tracker",  icon: Car        },
   ];
 
@@ -355,7 +355,7 @@ export function AppShell() {
           </div>
         </div>
         <nav style={{ flex: 1, padding: "16px 12px", overflowY: "auto" }}>
-          {/* Dashboard — UnifiedDashboard wraps Portfolio + rental + project dashboards */}
+          {/* Dashboard — UnifiedDashboard wraps Portfolio + rental + rehab dashboards */}
           {(() => {
             const isDashActive = activeView === "dashboard" || activeView === "portfolio" || activeView === "dealdashboard";
             return (
@@ -372,7 +372,7 @@ export function AppShell() {
               </>
             );
           })()}
-          {/* Assets — unified rental + project listing */}
+          {/* Assets — unified rental + rehab listing */}
           <button onClick={() => { setActiveView("assets"); setSelectedProperty(null); setSelectedDeal(null); setHighlightLedgerKey(null); setNavSource(null); }}
             style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 10, border: "none", background: activeView === "assets" ? "rgba(233,94,0,0.2)" : "transparent", color: activeView === "assets" ? "#fbbf77" : "#64748b", fontWeight: activeView === "assets" ? 700 : 500, fontSize: 14, cursor: "pointer", marginBottom: 2, textAlign: "left", transition: "all 0.15s" }}
             onMouseEnter={e => { if (activeView !== "assets") e.currentTarget.style.background = "rgba(255,255,255,0.05)"; }}
@@ -380,7 +380,7 @@ export function AppShell() {
             <Building2 size={17} />
             Assets
           </button>
-          {/* Ledger (preview) — unified money in/out across rentals + projects */}
+          {/* Ledger (preview) — unified money in/out across rentals + rehabs */}
           <button onClick={() => { setActiveView("ledger"); setSelectedProperty(null); setSelectedDeal(null); setHighlightLedgerKey(null); setNavSource(null); }}
             style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 10, border: "none", background: activeView === "ledger" ? "rgba(233,94,0,0.2)" : "transparent", color: activeView === "ledger" ? "#fbbf77" : "#64748b", fontWeight: activeView === "ledger" ? 700 : 500, fontSize: 14, cursor: "pointer", marginBottom: 2, textAlign: "left", transition: "all 0.15s" }}
             onMouseEnter={e => { if (activeView !== "ledger") e.currentTarget.style.background = "rgba(255,255,255,0.05)"; }}
@@ -389,7 +389,7 @@ export function AppShell() {
             Ledger
           </button>
           {/* Contractors — top-level so the same plumber who fixes a tenant
-              drain and the one demoing a project lives in one place */}
+              drain and the one demoing a rehab lives in one place */}
           <button onClick={() => { setActiveView("dealcontractors"); setSelectedProperty(null); setSelectedDeal(null); setHighlightLedgerKey(null); setNavSource(null); }}
             style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 10, border: "none", background: activeView === "dealcontractors" ? "rgba(233,94,0,0.2)" : "transparent", color: activeView === "dealcontractors" ? "#fbbf77" : "#64748b", fontWeight: activeView === "dealcontractors" ? 700 : 500, fontSize: 14, cursor: "pointer", marginBottom: 2, textAlign: "left", transition: "all 0.15s" }}
             onMouseEnter={e => { if (activeView !== "dealcontractors") e.currentTarget.style.background = "rgba(255,255,255,0.05)"; }}
@@ -412,7 +412,7 @@ export function AppShell() {
               </button>
             );
           })()}
-          {/* Analytics (unified across rentals + projects, tab toggle inside) */}
+          {/* Analytics (unified across rentals + rehabs, tab toggle inside) */}
           <button onClick={() => { setActiveView("analytics"); setSelectedProperty(null); setSelectedDeal(null); setHighlightLedgerKey(null); setNavSource(null); }}
             style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 10, border: "none", background: activeView === "analytics" ? "rgba(233,94,0,0.2)" : "transparent", color: activeView === "analytics" ? "#fbbf77" : "#64748b", fontWeight: activeView === "analytics" ? 700 : 500, fontSize: 14, cursor: "pointer", marginBottom: 2, textAlign: "left", transition: "all 0.15s" }}
             onMouseEnter={e => { if (activeView !== "analytics") e.currentTarget.style.background = "rgba(255,255,255,0.05)"; }}
@@ -420,7 +420,7 @@ export function AppShell() {
             <BarChart3 size={17} />
             Analytics
           </button>
-          {/* Reports (unified across rentals + projects, tab toggle inside) */}
+          {/* Reports (unified across rentals + rehabs, tab toggle inside) */}
           <button onClick={() => { setActiveView("reports"); setSelectedProperty(null); setSelectedDeal(null); setHighlightLedgerKey(null); setNavSource(null); }}
             style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 10, border: "none", background: activeView === "reports" ? "rgba(233,94,0,0.2)" : "transparent", color: activeView === "reports" ? "#fbbf77" : "#64748b", fontWeight: activeView === "reports" ? 700 : 500, fontSize: 14, cursor: "pointer", marginBottom: 2, textAlign: "left", transition: "all 0.15s" }}
             onMouseEnter={e => { if (activeView !== "reports") e.currentTarget.style.background = "rgba(255,255,255,0.05)"; }}
@@ -483,7 +483,7 @@ export function AppShell() {
                activeView === "analytics" ? "Analytics" :
                activeView === "reports" ? "Reports" :
                activeView === "properties" ? "Properties" :
-               activeView === "deals" ? "Projects" :
+               activeView === "deals" ? "Rehabs" :
                activeView === "dealrehab" ? "Rehab Tracker" :
                activeView === "dealmilestones" ? "Milestones" :
                activeView === "rehabItemDetail" ? "Rehab Item" :
@@ -644,7 +644,7 @@ export function AppShell() {
           {activeView === "notes" && <UnifiedNotes highlightNoteId={highlightNoteId} highlightDealNoteId={highlightDealNoteId} autoOpenAdd={notesAutoAdd} onBack={navSource === "dashboard" ? () => { setActiveView("dashboard"); setHighlightNoteId(null); setNavSource(null); setNotesAutoAdd(false); } : navSource === "dealdashboard" ? () => { setActiveView("dealdashboard"); setHighlightDealNoteId(null); setNavSource(null); setNotesAutoAdd(false); } : null} onClearHighlight={() => { setHighlightNoteId(null); setHighlightDealNoteId(null); setNotesAutoAdd(false); }} />}
           {activeView === "reports" && <UnifiedReports />}
           {/* Old "dealdashboard" route folded into UnifiedDashboard above */}
-          {/* "deals" route retired — Assets covers the project list. */}
+          {/* "deals" route retired — Assets covers the rehab list. */}
           {activeView === "dealDetail"      && selectedDeal && <ErrorBoundary key={"eb-" + selectedDeal.id}><DealDetail key={selectedDeal.id + "-" + (dealInitialTab || "overview")} deal={selectedDeal} onBack={() => { setActiveView(dealNavSource || "assets"); setDealNavSource(null); setPrevDealNavSource(null); setDealInitialTab(null); }} backLabel={dealNavSource === "dealdashboard" ? "Back to Dashboard" : dealNavSource === "portfolio" ? "Back to Portfolio" : "Back to Assets"} onNavigateToExpense={navigateToDealExpense} onNavigateToContractor={(con, tab) => { setSelectedContractor(con); setContractorInitialTab(tab || null); setPrevDealNavSource(dealNavSource); setNavSource("dealDetail"); setActiveView("contractorDetail"); }} onNavigateToRehabItem={(idx) => { setSelectedRehabItem({ dealId: selectedDeal.id, itemIdx: idx }); setNavSource("dealDetail"); setPrevDealNavSource(dealNavSource); setActiveView("rehabItemDetail"); }} initialTab={dealInitialTab} onConvertToRental={(flipData) => { setConvertDealData(flipData); }} onDealUpdated={onDealUpdated} onNavigateToDeal={(f) => handleDealSelect(f, null, dealNavSource || "assets")} /></ErrorBoundary>}
           {activeView === "dealrehab"        && <RehabTracker onSelectRehabItem={(dealId, idx) => { setSelectedRehabItem({ dealId, itemIdx: idx }); setNavSource("dealrehab"); setActiveView("rehabItemDetail"); }} />}
           {activeView === "rehabItemDetail" && selectedRehabItem && (() => {

@@ -1,17 +1,17 @@
 // =============================================================================
-// AssetList — unified portfolio view across rentals + projects.
+// AssetList — unified portfolio view across rentals + rehabs.
 //
-// First step in collapsing the parallel Rentals/Projects navigation. Renders
+// First step in collapsing the parallel Rentals/Rehabs navigation. Renders
 // one filterable list of every asset Brandon owns or is working on, with
-// a type chip (Rental / Project), stage badge, and the type-appropriate
+// a type chip (Rental / Rehab), stage badge, and the type-appropriate
 // summary stats. Clicking a card routes to PropertyDetail or DealDetail
 // based on the asset's type — the detail screens stay genuinely different
 // because the lifecycles are different (cap rate vs ARV is not the same
 // kind of metric).
 //
 // Internal `kind: "rental" | "flip"` is the in-memory discriminator;
-// user-facing text uses Rental / Project to match the codebase's existing
-// vocabulary (Project Pipeline, Project Detail, Project Analyzer, etc.).
+// user-facing text uses Rental / Rehab to match the codebase's existing
+// vocabulary (Rehab Pipeline, Rehab Detail, Rehab Analyzer, etc.).
 // =============================================================================
 import { useState, useMemo } from "react";
 import {
@@ -39,7 +39,7 @@ function buildAssets() {
   return [...rentalRows, ...flipRows].sort((a, b) => b.sortKey.localeCompare(a.sortKey));
 }
 
-// ── Stage chip — works for both rental statuses and project stages ─────────
+// ── Stage chip — works for both rental statuses and rehab stages ─────────
 function TypeStageChip({ row }) {
   if (row.kind === "rental") {
     return (
@@ -55,7 +55,7 @@ function TypeStageChip({ row }) {
   return (
     <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
       <span style={{ background: "var(--warning-btn-bg)", color: "#c2410c", borderRadius: 20, padding: "3px 10px", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.04em" }}>
-        Project
+        Rehab
       </span>
       <span style={{ display: "inline-flex", alignItems: "center", gap: 5, background: s.bg, color: s.text, borderRadius: 20, padding: "3px 10px", fontSize: 12, fontWeight: 600 }}>
         <span style={{ width: 6, height: 6, borderRadius: "50%", background: s.dot, display: "inline-block" }} />
@@ -134,7 +134,7 @@ function flipStats(d) {
   ];
 }
 
-// Treat closed rentals (status "Sold" or "Inactive") and closed projects
+// Treat closed rentals (status "Sold" or "Inactive") and closed rehabs
 // (stage "Sold" or "Converted to Rental") as the same conceptual bucket —
 // no longer in the active portfolio. They stay in the data for reports
 // and tax history; AssetList just hides them by default.
@@ -197,7 +197,7 @@ export function AssetList({ onSelectRental, onSelectFlip, onAddRental, onAddFlip
         <div>
           <h1 style={{ color: "var(--text-primary)", fontSize: 26, fontWeight: 700, marginBottom: 4 }}>Assets</h1>
           <p style={{ color: "var(--text-secondary)", fontSize: 15 }}>
-            {rentalCount} rental{rentalCount !== 1 ? "s" : ""} · {flipCount} project{flipCount !== 1 ? "s" : ""}
+            {rentalCount} rental{rentalCount !== 1 ? "s" : ""} · {flipCount} rehab{flipCount !== 1 ? "s" : ""}
           </p>
         </div>
         <div style={{ position: "relative" }}>
@@ -215,7 +215,7 @@ export function AssetList({ onSelectRental, onSelectFlip, onAddRental, onAddFlip
               <button onClick={() => { setShowAddMenu(false); onAddFlip && onAddFlip(); }}
                 style={{ width: "100%", padding: "12px 16px", background: "none", border: "none", textAlign: "left", cursor: "pointer", display: "flex", alignItems: "center", gap: 10, fontSize: 13, color: "var(--text-primary)" }}>
                 <Hammer size={14} color="#e95e00" />
-                <span style={{ fontWeight: 600 }}>Add Project</span>
+                <span style={{ fontWeight: 600 }}>Add Rehab</span>
               </button>
             </div>
           )}
@@ -223,10 +223,10 @@ export function AssetList({ onSelectRental, onSelectFlip, onAddRental, onAddFlip
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 24 }}>
-        <StatCard icon={Building2}  label="Total Assets"      value={activeRows.length}      sub={`${rentalCount} rentals · ${flipCount} projects`} color="var(--c-blue)"   tip="Active rentals + active projects. Archived rentals and closed projects are excluded — toggle 'Show archived' below to see them." />
-        <StatCard icon={TrendingUp} label="Portfolio Value"   value={fmtK(totalValue)}       sub="Current value + ARV"                          color="var(--c-purple)" tip="Sum of current value across active rentals and ARV across active projects." />
+        <StatCard icon={Building2}  label="Total Assets"      value={activeRows.length}      sub={`${rentalCount} rentals · ${flipCount} rehabs`} color="var(--c-blue)"   tip="Active rentals + active rehabs. Archived rentals and closed rehabs are excluded — toggle 'Show archived' below to see them." />
+        <StatCard icon={TrendingUp} label="Portfolio Value"   value={fmtK(totalValue)}       sub="Current value + ARV"                          color="var(--c-purple)" tip="Sum of current value across active rentals and ARV across active rehabs." />
         <StatCard icon={Home}       label="Monthly Cash Flow" value={fmt(monthlyCF)}         sub="Active rentals"                                color="var(--c-green)"  tip="Sum of (rent − expenses) across active rentals using the latest 3-month average where transactions exist. Archived rentals excluded." />
-        <StatCard icon={Hammer}     label="Projected Profit"  value={fmtK(Math.round(projectedProfit))} sub="Active projects"                       color="#e95e00"         tip="ARV − purchase − rehab − holding & selling costs across active projects (excludes Sold and Converted to Rental)." />
+        <StatCard icon={Hammer}     label="Projected Profit"  value={fmtK(Math.round(projectedProfit))} sub="Active rehabs"                       color="#e95e00"         tip="ARV − purchase − rehab − holding & selling costs across active rehabs (excludes Sold and Converted to Rental)." />
       </div>
 
       <div style={{ display: "flex", gap: 10, marginBottom: 20, flexWrap: "wrap", alignItems: "center" }}>
@@ -234,7 +234,7 @@ export function AssetList({ onSelectRental, onSelectFlip, onAddRental, onAddFlip
           {[
             { id: "all",    label: `All (${activeRows.length})` },
             { id: "rental", label: `Rentals (${rentalCount})` },
-            { id: "flip",   label: `Projects (${flipCount})` },
+            { id: "flip",   label: `Rehabs (${flipCount})` },
           ].map(t => {
             const active = typeFilter === t.id;
             return (
@@ -269,7 +269,7 @@ export function AssetList({ onSelectRental, onSelectFlip, onAddRental, onAddFlip
         {filtered.length === 0 && (
           <div style={{ gridColumn: "1 / -1" }}>
             {rows.length === 0
-              ? <EmptyState icon={Home} title="No assets yet" subtitle="Add your first rental property or project to start tracking your portfolio." actionLabel="Add Rental" onAction={onAddRental} />
+              ? <EmptyState icon={Home} title="No assets yet" subtitle="Add your first rental property or rehab to start tracking your portfolio." actionLabel="Add Rental" onAction={onAddRental} />
               : <EmptyState icon={Search} title="No assets match this filter" subtitle="Try selecting a different type or clearing the search." />
             }
           </div>

@@ -15,7 +15,7 @@ export function UnifiedReports() {
     <div>
       <div style={{ display: "flex", gap: 6, marginBottom: 24, background: "var(--surface-alt)", borderRadius: 10, padding: 4, border: "1px solid var(--border)", width: "fit-content" }}>
         <ReportTab id="rentals" label="Rentals" Icon={Home}    active={tab === "rentals"} onClick={() => setTab("rentals")} />
-        <ReportTab id="deals"   label="Projects"   Icon={Hammer}  active={tab === "deals"}   onClick={() => setTab("deals")} />
+        <ReportTab id="deals"   label="Rehabs"   Icon={Hammer}  active={tab === "deals"}   onClick={() => setTab("deals")} />
       </div>
       {tab === "rentals" ? <RentalReports /> : <DealReports />}
     </div>

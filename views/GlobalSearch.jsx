@@ -77,7 +77,7 @@ export function GlobalSearch({ onNavigate }) {
       }
     });
 
-    // Project Notes
+    // Rehab Notes
     DEAL_NOTES.forEach(n => {
       if (n.text.toLowerCase().includes(q)) {
         const deal = DEALS.find(f => f.id === n.dealId);
@@ -85,7 +85,7 @@ export function GlobalSearch({ onNavigate }) {
       }
     });
 
-    // Project Expenses
+    // Rehab Expenses
     DEAL_EXPENSES.filter(e => e.description.toLowerCase().includes(q) || (e.vendor && e.vendor.toLowerCase().includes(q)))
       .slice(0, MAX_PER).forEach(e => {
         const deal = DEALS.find(f => f.id === e.dealId);
@@ -98,7 +98,7 @@ export function GlobalSearch({ onNavigate }) {
   // Group results by type for display
   const grouped = useMemo(() => {
     const map = new Map();
-    const labels = { property: "Properties", tenant: "Tenants", deal: "Projects", transaction: "Transactions", contractor: "Contractors", "rental-note": "Rental Notes", "deal-note": "Project Notes", "deal-expense": "Project Expenses" };
+    const labels = { property: "Properties", tenant: "Tenants", deal: "Rehabs", transaction: "Transactions", contractor: "Contractors", "rental-note": "Rental Notes", "deal-note": "Rehab Notes", "deal-expense": "Rehab Expenses" };
     results.forEach(r => {
       const label = labels[r.type] || r.type;
       if (!map.has(label)) map.set(label, []);

@@ -1,12 +1,12 @@
 // =============================================================================
-// Ledger — unified money-in / money-out view across rentals + projects.
+// Ledger — unified money-in / money-out view across rentals + rehabs.
 //
 // Reads the existing TRANSACTIONS (rental income/expense) and DEAL_EXPENSES
-// (project expenses) arrays without merging schemas. Each row carries a
+// (rehab expenses) arrays without merging schemas. Each row carries a
 // `kind` discriminator. Filters are by *type chip* (rental income / rental
-// expense / project expense), asset, and free-text search. Internal
+// expense / rehab expense), asset, and free-text search. Internal
 // `kind: "flip"` is kept as the in-memory key; user-facing labels say
-// Project (the codebase term that covers both flips and BRRRRs).
+// Rehab (the codebase term that covers both flips and BRRRRs).
 // =============================================================================
 import { useState, useMemo, useEffect, useRef } from "react";
 import {
@@ -245,7 +245,7 @@ function LedgerAddModal({ initialKind, editRow, onClose, onSaved }) {
   const canSave = form.assetId && form.amount && Number(form.amount) > 0 && form.category;
 
   // ── Rehab spent rollup helper ──
-  // When a project expense is created/updated/deleted, the linked rehab line
+  // When a rehab expense is created/updated/deleted, the linked rehab line
   // item's `spent` should reflect it. Mirrors the legacy DealExpenses form.
   const adjustRehabSpent = async (deal, itemIdx, delta) => {
     if (!deal || itemIdx == null || itemIdx === "") return;
@@ -385,17 +385,17 @@ function LedgerAddModal({ initialKind, editRow, onClose, onSaved }) {
         <div style={{ display: "flex", gap: 8 }}>
           {kindPill("rental-income",  "Rental Income",  Home,   "var(--c-green)")}
           {kindPill("rental-expense", "Rental Expense", Home,   "var(--c-blue)")}
-          {kindPill("flip-expense",   "Project Expense",   Hammer, "#e95e00")}
+          {kindPill("flip-expense",   "Rehab Expense",   Hammer, "#e95e00")}
         </div>
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
         <div style={{ gridColumn: "1 / -1" }}>
           <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>
-            {kind === "flip-expense" ? "Project *" : "Property *"}
+            {kind === "flip-expense" ? "Rehab *" : "Property *"}
           </label>
           <select value={form.assetId} onChange={sf("assetId")} style={iS}>
-            <option value="">Select {kind === "flip-expense" ? "a deal" : "a property"}…</option>
+            <option value="">Select {kind === "flip-expense" ? "a rehab" : "a property"}…</option>
             {assetOptions.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
           </select>
         </div>
@@ -586,7 +586,7 @@ function TypeChip({ row }) {
   if (row.kind === "rental" && row.type === "expense") {
     return <span style={{ background: "var(--info-tint)", color: "var(--c-blue)", borderRadius: 12, padding: "2px 8px", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.04em" }}>Rental Expense</span>;
   }
-  return <span style={{ background: "var(--warning-btn-bg)", color: "#c2410c", borderRadius: 12, padding: "2px 8px", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.04em" }}>Project Expense</span>;
+  return <span style={{ background: "var(--warning-btn-bg)", color: "#c2410c", borderRadius: 12, padding: "2px 8px", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.04em" }}>Rehab Expense</span>;
 }
 
 export function Ledger({ highlightRowKey, initialAssetFilter, onClearHighlight }) {
@@ -686,7 +686,7 @@ export function Ledger({ highlightRowKey, initialAssetFilter, onClearHighlight }
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
         <div>
           <h1 style={{ color: "var(--text-primary)", fontSize: 26, fontWeight: 700, marginBottom: 4 }}>Ledger</h1>
-          <p style={{ color: "var(--text-secondary)", fontSize: 15 }}>Every dollar in and out, across rentals and projects</p>
+          <p style={{ color: "var(--text-secondary)", fontSize: 15 }}>Every dollar in and out, across rentals and rehabs</p>
         </div>
         <button onClick={() => setShowAdd("rental-expense")}
           style={{ background: "#e95e00", color: "#fff", border: "none", borderRadius: 10, padding: "10px 18px", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
@@ -695,9 +695,9 @@ export function Ledger({ highlightRowKey, initialAssetFilter, onClearHighlight }
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 24 }}>
-        <StatCard icon={TrendingUp}   label="Income"   value={fmt(income)}        sub={`Filtered · ${dateRangeLabel(dateRange)}`}   color="var(--c-green)"  tip="Sum of positive amounts in the filtered ledger view (rental income only — deals don't have income rows until sale)." />
-        <StatCard icon={TrendingDown} label="Expenses" value={fmt(Math.abs(expenses))} sub={`Filtered · ${dateRangeLabel(dateRange)}`} color="var(--c-red)" tip="Sum of money-out across both rental expenses and deal expenses, scoped to the current filters." />
-        <StatCard icon={Wallet}       label="Net"      value={fmt(net)}           sub="Income − Expenses"                            color={net >= 0 ? "var(--c-green)" : "var(--c-red)"} tip="Income minus Expenses for the filtered view. For a deal-only filter this will always be negative since deals don't have income rows until sale." />
+        <StatCard icon={TrendingUp}   label="Income"   value={fmt(income)}        sub={`Filtered · ${dateRangeLabel(dateRange)}`}   color="var(--c-green)"  tip="Sum of positive amounts in the filtered ledger view (rental income only — rehabs don't have income rows until sale)." />
+        <StatCard icon={TrendingDown} label="Expenses" value={fmt(Math.abs(expenses))} sub={`Filtered · ${dateRangeLabel(dateRange)}`} color="var(--c-red)" tip="Sum of money-out across both rental expenses and rehab expenses, scoped to the current filters." />
+        <StatCard icon={Wallet}       label="Net"      value={fmt(net)}           sub="Income − Expenses"                            color={net >= 0 ? "var(--c-green)" : "var(--c-red)"} tip="Income minus Expenses for the filtered view. For a rehab-only filter this will always be negative since rehabs don't have income rows until sale." />
         <StatCard icon={Hash}         label="Entries"  value={filtered.length}    sub={`of ${rows.length} total`}                    color="var(--c-blue)"   tip="Count of ledger rows matching the current filters." />
       </div>
 
@@ -708,7 +708,7 @@ export function Ledger({ highlightRowKey, initialAssetFilter, onClearHighlight }
             { id: "all",             label: "All" },
             { id: "rental-income",   label: "Rental Income" },
             { id: "rental-expense",  label: "Rental Expense" },
-            { id: "flip-expense",    label: "Project Expense" },
+            { id: "flip-expense",    label: "Rehab Expense" },
           ].map(t => {
             const active = typeFilter === t.id;
             return (
@@ -726,7 +726,7 @@ export function Ledger({ highlightRowKey, initialAssetFilter, onClearHighlight }
           <optgroup label="Rentals">
             {PROPERTIES.map(p => <option key={`rental:${p.id}`} value={`rental:${p.id}`}>{p.name}</option>)}
           </optgroup>
-          <optgroup label="Deals">
+          <optgroup label="Rehabs">
             {DEALS.map(d => <option key={`flip:${d.id}`} value={`flip:${d.id}`}>{d.name}</option>)}
           </optgroup>
         </select>
@@ -769,7 +769,7 @@ export function Ledger({ highlightRowKey, initialAssetFilter, onClearHighlight }
                 <EmptyState
                   icon={Wallet}
                   title={rows.length === 0 ? "No transactions yet" : "No entries match your filters"}
-                  subtitle={rows.length === 0 ? "Income and expenses recorded across your rentals and projects will appear here." : "Try clearing some filters or expanding the date range."}
+                  subtitle={rows.length === 0 ? "Income and expenses recorded across your rentals and rehabs will appear here." : "Try clearing some filters or expanding the date range."}
                 />
               </td></tr>
             ) : (

@@ -77,7 +77,7 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
   );
   // Sync local milestone state back to global DEAL_MILESTONES array
   useEffect(() => {
-    // Remove old entries for this project
+    // Remove old entries for this rehab
     const idx = DEAL_MILESTONES.findIndex(m => m.dealId === deal.id);
     while (idx >= 0 && DEAL_MILESTONES.findIndex(m => m.dealId === deal.id) >= 0) {
       DEAL_MILESTONES.splice(DEAL_MILESTONES.findIndex(m => m.dealId === deal.id), 1);
@@ -107,7 +107,7 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
   const [rehabForm, setRehabForm] = useState(emptyRehab);
   const sfR = k => e => setRehabForm(f => ({ ...f, [k]: e.target.value }));
   const [catFocus, setCatFocus] = useState(false);
-  // Union of canonical categories + any custom strings already in use across projects
+  // Union of canonical categories + any custom strings already in use across rehabs
   const allCategories = useMemo(() => {
     const custom = new Set(DEALS.flatMap(f => (f.rehabItems || []).map(i => i.category)).filter(Boolean));
     REHAB_CATEGORIES.forEach(c => custom.delete(c.label));
@@ -145,7 +145,7 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
   const [assignTA, setAssignTA] = useState({ rowIdx: null, query: "" });
   const [pendingAssignRowIdx, setPendingAssignRowIdx] = useState(null);
   const assignContractorToRow = (itemIdx, contractorId) => {
-    // Auto-attach to this project if not already
+    // Auto-attach to this rehab if not already
     const gi = CONTRACTORS.findIndex(c => c.id === contractorId);
     if (gi !== -1) {
       const ids = CONTRACTORS[gi].dealIds || [];
@@ -275,7 +275,7 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
     if (setAllFlips) setAllFlips(prev => prev.map(f => f.id === deal.id ? { ...f, ...updated } : f));
     persistDealAsync(deal.id, updated);
     if (onDealUpdated) onDealUpdated();
-    showToast("Deal updated");
+    showToast("Rehab updated");
     setShowEditDeal(false);
   };
 
@@ -304,7 +304,7 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
     setShowContractorModal(true);
   };
 
-  // Helper: derive bid/payment totals for this project
+  // Helper: derive bid/payment totals for this rehab
   const conTotals = (c) => {
     const flipBids = CONTRACTOR_BIDS.filter(b => b.contractorId === c.id && b.dealId === deal.id);
     const flipPayments = CONTRACTOR_PAYMENTS.filter(p => p.contractorId === c.id && p.dealId === deal.id);
@@ -473,7 +473,7 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
     }
   };
 
-  // Attach an existing contractor from the global CONTRACTORS list to this project
+  // Attach an existing contractor from the global CONTRACTORS list to this rehab
   const attachExistingContractor = (conId) => {
     const gi = CONTRACTORS.findIndex(c => c.id === conId);
     if (gi === -1) return;
@@ -510,7 +510,7 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
   const handleStageChange = (e) => {
     const newStage = e.target.value;
     if (newStage === "Sold") {
-      // Intercept — open Close Project modal at the "sold" step
+      // Intercept — open Close Rehab modal at the "sold" step
       const estSellingCosts = Math.round((deal.arv || 0) * ((deal.sellingCostPct || 6) / 100));
       setCloseForm({ salePrice: String(deal.arv || ""), closeDate: today, sellingCosts: String(estSellingCosts || ""), buyerCredit: "", closingNotes: "" });
       setCloseDealStep("sold");
@@ -599,7 +599,7 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
   return (
     <div>
       <button onClick={onBack} style={{ display: "flex", alignItems: "center", gap: 6, color: "#e95e00", fontWeight: 600, fontSize: 14, background: "none", border: "none", cursor: "pointer", marginBottom: 20 }}>
-        {backLabel || "Back to Projects"}
+        {backLabel || "Back to Rehabs"}
       </button>
       <div style={{ background: "var(--hero-bg)", borderRadius: 20, padding: 28, marginBottom: 20, border: "1px solid var(--hero-border)" }}>
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
@@ -612,10 +612,10 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
                 <StageBadge stage={stage} />
                 {stage === "Sold" || stage === "Converted to Rental" ? (
                   <>
-                    <span style={{ fontSize: 12, color: "var(--text-muted)", fontStyle: "italic" }}>Project closed</span>
+                    <span style={{ fontSize: 12, color: "var(--text-muted)", fontStyle: "italic" }}>Rehab closed</span>
                     <button onClick={() => setShowReopenConfirm(true)}
                       style={{ background: "rgba(255,255,255,0.7)", border: "1px solid rgba(0,0,0,0.08)", borderRadius: 8, padding: "4px 10px", fontSize: 12, fontWeight: 600, color: "var(--text-label)", cursor: "pointer", display: "flex", alignItems: "center", gap: 5 }}>
-                      <RefreshCw size={12} /> Reopen Project
+                      <RefreshCw size={12} /> Reopen Rehab
                     </button>
                   </>
                 ) : (
@@ -648,7 +648,7 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
                 <Copy size={12} /> Clone Deal
               </button>
               <button onClick={openEditDeal} style={{ background: "rgba(255,255,255,0.7)", border: "1px solid rgba(0,0,0,0.08)", borderRadius: 8, padding: "6px 12px", fontSize: 12, fontWeight: 600, color: "var(--text-label)", cursor: "pointer", display: "flex", alignItems: "center", gap: 5 }}>
-                <Pencil size={12} /> Edit Project
+                <Pencil size={12} /> Edit Rehab
               </button>
               <button onClick={() => setShowDeleteDeal(true)} style={{ background: "rgba(255,255,255,0.7)", border: "1px solid rgba(0,0,0,0.08)", borderRadius: 8, padding: "6px 12px", fontSize: 12, fontWeight: 600, color: "var(--c-red)", cursor: "pointer", display: "flex", alignItems: "center", gap: 5 }}>
                 <Trash2 size={12} /> Delete
@@ -679,7 +679,7 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
                     setCloseDealStep("choose");
                     setShowCloseDeal(true);
                   }} style={{ background: "#e95e00", border: "none", borderRadius: 8, padding: "6px 12px", fontSize: 12, fontWeight: 600, color: "#fff", cursor: "pointer", display: "flex", alignItems: "center", gap: 5 }}>
-                    <CheckCircle size={12} /> Close Project
+                    <CheckCircle size={12} /> Close Rehab
                   </button>
                 </>);
               })()}
@@ -693,7 +693,7 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
               const arvDays = Math.round((new Date() - new Date(deal.arvUpdatedAt)) / 86400000);
               const isStale = arvDays > 90;
               return <p style={{ color: isStale ? "#c2410c" : "var(--text-muted)", fontSize: 12, marginTop: 2 }}>
-                {isStale ? "⚠ ARV may be outdated — edit deal to update" : `ARV as of ${daysAgo(deal.arvUpdatedAt)}`}
+                {isStale ? "⚠ ARV may be outdated — edit rehab to update" : `ARV as of ${daysAgo(deal.arvUpdatedAt)}`}
               </p>;
             })()}
           </div>
@@ -713,7 +713,7 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
       {activeTab === "overview" && (<>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 24 }}>
         <div style={{ background: "var(--surface)", borderRadius: 16, padding: 24, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)" }}>
-          <h3 style={{ color: "var(--text-primary)", fontSize: 16, fontWeight: 700, marginBottom: 16 }}>Project Profit &amp; Loss</h3>
+          <h3 style={{ color: "var(--text-primary)", fontSize: 16, fontWeight: 700, marginBottom: 16 }}>Rehab Profit &amp; Loss</h3>
           {[
             { label: stage === "Sold" ? "Sale Price" : "ARV (Target)", value: fmt(saleOrARV), color: "#1a7a4a", sign: "+" },
             { label: "Purchase Price", value: fmt(deal.purchasePrice), color: "#c0392b", sign: "-" },
@@ -734,7 +734,7 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
             <span style={{ fontSize: 20, fontWeight: 800, color: profit >= 0 ? "var(--c-green)" : "var(--c-red)" }}>{profit >= 0 ? "+" : ""}{fmt(profit)}</span>
           </div>
           <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4 }}>
-            <span style={{ fontSize: 13, color: "var(--text-muted)", display: "flex", alignItems: "center" }}>ROI on cash invested<InfoTip text="Net Profit ÷ Total Cash Invested × 100. Measures return as a percentage of the actual cash you put into the project." /></span>
+            <span style={{ fontSize: 13, color: "var(--text-muted)", display: "flex", alignItems: "center" }}>ROI on cash invested<InfoTip text="Net Profit ÷ Total Cash Invested × 100. Measures return as a percentage of the actual cash you put into the rehab." /></span>
             <span style={{ fontSize: 14, fontWeight: 700, color: "var(--c-blue)" }}>{roi}%</span>
           </div>
         </div>
@@ -804,7 +804,7 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
         <RehabProgress items={rehabItems} />
         <div style={{ display: "flex", gap: 20, marginTop: 12 }}>
           <div style={{ flex: 1, background: "var(--surface-alt)", borderRadius: 10, padding: "10px 14px", textAlign: "center" }}>
-            <p style={{ color: "var(--text-muted)", fontSize: 11, fontWeight: 600, textTransform: "uppercase", marginBottom: 2, display: "flex", alignItems: "center", justifyContent: "center" }}>Budget<InfoTip text="Sum of budgeted amounts across all rehab line items for this project." /></p>
+            <p style={{ color: "var(--text-muted)", fontSize: 11, fontWeight: 600, textTransform: "uppercase", marginBottom: 2, display: "flex", alignItems: "center", justifyContent: "center" }}>Budget<InfoTip text="Sum of budgeted amounts across all rehab line items for this rehab." /></p>
             <p style={{ color: "var(--text-primary)", fontSize: 16, fontWeight: 700 }}>{fmt(rehabTotalBudget)}</p>
           </div>
           <div style={{ flex: 1, background: "var(--surface-alt)", borderRadius: 10, padding: "10px 14px", textAlign: "center" }}>
@@ -816,7 +816,7 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
             <p style={{ color: "var(--c-blue)", fontSize: 16, fontWeight: 700 }}>{fmt(Math.max(0, rehabTotalBudget - rehabTotalSpent))}</p>
           </div>
           <div style={{ flex: 1, background: "var(--surface-alt)", borderRadius: 10, padding: "10px 14px", textAlign: "center" }}>
-            <p style={{ color: "var(--text-muted)", fontSize: 11, fontWeight: 600, textTransform: "uppercase", marginBottom: 2, display: "flex", alignItems: "center", justifyContent: "center" }}>Items<InfoTip text="Rehab line items marked complete out of the total count for this project." /></p>
+            <p style={{ color: "var(--text-muted)", fontSize: 11, fontWeight: 600, textTransform: "uppercase", marginBottom: 2, display: "flex", alignItems: "center", justifyContent: "center" }}>Items<InfoTip text="Rehab line items marked complete out of the total count for this rehab." /></p>
             <p style={{ color: "var(--text-primary)", fontSize: 16, fontWeight: 700 }}>{rehabComplete}/{rehabItems.length} done</p>
           </div>
         </div>
@@ -857,10 +857,10 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
           const rehabInProgress = rehabItems.filter(i => i.status === "in-progress").length;
           return (
             <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 24 }}>
-              <StatCard icon={Target}      label="Total Budget"  value={fmt(rehabTotalBudget)} sub="This deal"                                     color="var(--c-blue)" tip="Sum of budgeted amounts across all rehab line items for this project." />
-              <StatCard icon={Receipt}     label="Total Spent"   value={fmt(rehabTotalSpent)}  sub="To date"                                       color="#e95e00" tip="Sum of amounts spent to date across all rehab line items for this project." />
+              <StatCard icon={Target}      label="Total Budget"  value={fmt(rehabTotalBudget)} sub="This rehab"                                     color="var(--c-blue)" tip="Sum of budgeted amounts across all rehab line items for this rehab." />
+              <StatCard icon={Receipt}     label="Total Spent"   value={fmt(rehabTotalSpent)}  sub="To date"                                       color="#e95e00" tip="Sum of amounts spent to date across all rehab line items for this rehab." />
               <StatCard icon={DollarSign}  label="Budget Left"   value={fmt(rehabBudgetLeft)}  sub={rehabBudgetLeft < 0 ? "OVER BUDGET" : "Remaining"} color={rehabBudgetLeft < 0 ? "var(--c-red)" : "var(--c-green)"} semantic tip="Total Budget − Total Spent. Negative means over budget." />
-              <StatCard icon={CheckCircle} label="Tasks Done"    value={`${rehabComplete}/${rehabItems.length}`} sub={`${rehabInProgress} in progress`} color="var(--c-purple)" tip="Completed rehab line items out of the total for this project." />
+              <StatCard icon={CheckCircle} label="Tasks Done"    value={`${rehabComplete}/${rehabItems.length}`} sub={`${rehabInProgress} in progress`} color="var(--c-purple)" tip="Completed rehab line items out of the total for this rehab." />
             </div>
           );
         })()}
@@ -991,7 +991,7 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
                                           onMouseEnter={e => e.currentTarget.style.background = "var(--surface-alt)"}
                                           onMouseLeave={e => e.currentTarget.style.background = "var(--surface)"}>
                                           <span style={{ color: "var(--text-dim)", fontWeight: 600 }}>{c.name}</span>
-                                          <span style={{ fontSize: 11, color: "var(--text-muted)" }}>{c.trade || ""}{!onDeal ? " · not on deal" : ""}</span>
+                                          <span style={{ fontSize: 11, color: "var(--text-muted)" }}>{c.trade || ""}{!onDeal ? " · not on rehab" : ""}</span>
                                         </div>
                                       );
                                     })}
@@ -1183,7 +1183,7 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
               const total = flipExpenses.filter(e => subs.includes(e.category)).reduce((s, e) => s + e.amount, 0);
               return (
                 <div key={group} style={{ background: "var(--surface)", borderRadius: 12, padding: "12px 16px", boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)", minWidth: 130, flex: "1 0 auto" }}>
-                  <p style={{ color: "var(--text-muted)", fontSize: 10, fontWeight: 600, textTransform: "uppercase", marginBottom: 4, whiteSpace: "nowrap", display: "flex", alignItems: "center" }}>{group}<InfoTip text={`Sum of ${group} expenses for this project. Includes categories: ${subs.join(", ")}.`} /></p>
+                  <p style={{ color: "var(--text-muted)", fontSize: 10, fontWeight: 600, textTransform: "uppercase", marginBottom: 4, whiteSpace: "nowrap", display: "flex", alignItems: "center" }}>{group}<InfoTip text={`Sum of ${group} expenses for this rehab. Includes categories: ${subs.join(", ")}.`} /></p>
                   <p style={{ color: total > 0 ? "var(--text-primary)" : "var(--border-strong)", fontSize: 16, fontWeight: 700 }}>{total > 0 ? fmt(total) : "-"}</p>
                 </div>
               );
@@ -1248,7 +1248,7 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
                 ) : (
                   <>
                     <p style={{ fontWeight: 600, marginBottom: 4 }}>No expenses logged yet</p>
-                    <p style={{ fontSize: 13 }}>Click &ldquo;Add Expense&rdquo; to start tracking spend for this project.</p>
+                    <p style={{ fontSize: 13 }}>Click &ldquo;Add Expense&rdquo; to start tracking spend for this rehab.</p>
                   </>
                 )}
               </div>
@@ -1306,13 +1306,13 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
           {expDetailItem && <ExpDetailPanel exp={expDetailItem} onClose={() => setExpDetailItem(null)} onEdit={e => { setExpDetailItem(null); openEditExp(e); }} onDelete={e => { setExpDetailItem(null); setDeleteConfirm({ type: "expense", item: e }); }} />}
           {onNavigateToExpense && flipExpenses.length > 0 && (
             <button onClick={() => onNavigateToExpense(flipExpenses[0].id)} style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: "none", color: "#e95e00", fontSize: 13, fontWeight: 600, cursor: "pointer", padding: "12px 0 0", marginLeft: "auto" }}>
-              View all expenses across projects <ChevronRight size={14} />
+              View all expenses across rehabs <ChevronRight size={14} />
             </button>
           )}
           {showExpenseModal && (() => {
             const PaidToDropdown = () => {
               const q = (expForm.vendor || "").toLowerCase();
-              // Contractors on this project — show all on empty, filter on query
+              // Contractors on this rehab — show all on empty, filter on query
               const conMatches = q ? conData.filter(c => c.name.toLowerCase().includes(q)) : conData.slice(0, 6);
               // Previous vendors (excluding contractor names to avoid duplicates) — show first 6 on empty
               const conNames = new Set(conData.map(c => c.name.toLowerCase()));
@@ -1326,7 +1326,7 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
                 <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, boxShadow: "0 8px 24px rgba(0,0,0,0.10)", zIndex: 200, overflow: "hidden", maxHeight: 280, overflowY: "auto" }}>
                   {conMatches.length > 0 && (
                     <>
-                      <div style={{ padding: "6px 14px", background: "var(--surface-alt)", fontSize: 10, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em" }}>Project Contractors</div>
+                      <div style={{ padding: "6px 14px", background: "var(--surface-alt)", fontSize: 10, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em" }}>Rehab Contractors</div>
                       {conMatches.slice(0, 5).map(c => (
                         <button key={`con-${c.id}`} onMouseDown={() => { setExpForm(f => ({ ...f, vendor: c.name, contractorId: String(c.id) })); setVendorFocus(false); }}
                           style={{ width: "100%", padding: "10px 14px", background: "none", border: "none", borderBottom: "1px solid var(--border-subtle)", textAlign: "left", cursor: "pointer", fontSize: 13, color: "var(--text-primary)", display: "flex", alignItems: "center", gap: 8 }}>
@@ -1412,7 +1412,7 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
                     ))}
                   </select>
                   {rehabItems.length === 0 && (
-                    <p style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4, fontStyle: "italic" }}>No rehab items on this project yet — add them in the Rehab tab to link expenses</p>
+                    <p style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4, fontStyle: "italic" }}>No rehab items on this rehab yet — add them in the Rehab tab to link expenses</p>
                   )}
                 </div>
                 <div style={{ gridColumn: "1 / -1" }}>
@@ -1435,7 +1435,7 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
       {activeTab === "contractors" && (
         <div>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-            <p style={{ color: "var(--text-secondary)", fontSize: 14 }}>{flipContractors.length} contractor{flipContractors.length !== 1 ? "s" : ""} on this project</p>
+            <p style={{ color: "var(--text-secondary)", fontSize: 14 }}>{flipContractors.length} contractor{flipContractors.length !== 1 ? "s" : ""} on this rehab</p>
             <button onClick={() => { setEditingConId(null); setConForm(emptyCon); setShowContractorModal(true); }} style={{ background: "#e95e00", color: "#fff", border: "none", borderRadius: 10, padding: "10px 16px", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
               <Plus size={15} /> Add Contractor
             </button>
@@ -1478,15 +1478,15 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
                     </div>
                     <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
                       <div style={{ background: "var(--surface-alt)", borderRadius: 10, padding: "10px 12px" }}>
-                        <p style={{ color: "var(--text-muted)", fontSize: 10, fontWeight: 600, textTransform: "uppercase", marginBottom: 3, display: "flex", alignItems: "center" }}>Bids (This Deal)<InfoTip text="Number of bids this contractor has submitted on this project. Pending count shown in parentheses if any are awaiting acceptance." /></p>
+                        <p style={{ color: "var(--text-muted)", fontSize: 10, fontWeight: 600, textTransform: "uppercase", marginBottom: 3, display: "flex", alignItems: "center" }}>Bids (This Rehab)<InfoTip text="Number of bids this contractor has submitted on this rehab. Pending count shown in parentheses if any are awaiting acceptance." /></p>
                         <p style={{ color: "var(--text-primary)", fontSize: 13, fontWeight: 700 }}>{t.bidCount}{t.pendingBids > 0 ? ` (${t.pendingBids} pending)` : ""}</p>
                       </div>
                       <div style={{ background: "var(--surface-alt)", borderRadius: 10, padding: "10px 12px" }}>
-                        <p style={{ color: "var(--text-muted)", fontSize: 10, fontWeight: 600, textTransform: "uppercase", marginBottom: 3, display: "flex", alignItems: "center" }}>Total Bid<InfoTip text="Sum of all accepted bid amounts from this contractor on this project." /></p>
+                        <p style={{ color: "var(--text-muted)", fontSize: 10, fontWeight: 600, textTransform: "uppercase", marginBottom: 3, display: "flex", alignItems: "center" }}>Total Bid<InfoTip text="Sum of all accepted bid amounts from this contractor on this rehab." /></p>
                         <p style={{ color: "var(--text-primary)", fontSize: 13, fontWeight: 700 }}>{fmt(t.totalBid)}</p>
                       </div>
                       <div style={{ background: t.owed > 0 ? "var(--warning-bg)" : t.totalBid > 0 ? "var(--success-badge)" : "var(--surface-alt)", borderRadius: 10, padding: "10px 12px" }}>
-                        <p style={{ color: "var(--text-muted)", fontSize: 10, fontWeight: 600, textTransform: "uppercase", marginBottom: 3, display: "flex", alignItems: "center" }}>Balance Owed<InfoTip text="Total Bid − Paid to Date. What you still owe this contractor on this project." /></p>
+                        <p style={{ color: "var(--text-muted)", fontSize: 10, fontWeight: 600, textTransform: "uppercase", marginBottom: 3, display: "flex", alignItems: "center" }}>Balance Owed<InfoTip text="Total Bid − Paid to Date. What you still owe this contractor on this rehab." /></p>
                         <p style={{ color: t.owed > 0 ? "#9a3412" : "#1a7a4a", fontSize: 13, fontWeight: 700 }}>{t.totalBid > 0 ? (t.owed > 0 ? fmt(t.owed) : "Paid in full") : "—"}</p>
                       </div>
                     </div>
@@ -1597,7 +1597,7 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
                     ))}
                     {customMatches.length > 0 && (
                       <div>
-                        <div style={{ padding: "8px 14px 4px", fontSize: 10, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em", background: "var(--surface-alt)" }}>On This Deal</div>
+                        <div style={{ padding: "8px 14px 4px", fontSize: 10, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em", background: "var(--surface-alt)" }}>On This Rehab</div>
                         {customMatches.slice(0, 6).map(c => (
                           <button key={c} onMouseDown={() => { setQuickBid(qq => ({ ...qq, rehabItem: c, canonicalCategory: null })); setQuickBidRehabFocus(false); }}
                             style={{ width: "100%", padding: "8px 14px", background: "none", border: "none", borderBottom: "1px solid #f8fafc", textAlign: "left", cursor: "pointer", fontSize: 13, color: "var(--text-primary)", display: "flex", alignItems: "center", gap: 8 }}>
@@ -1646,7 +1646,7 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
                 <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>{con.trade}</span>
               </div>
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-                <span style={{ fontSize: 13, color: "var(--text-secondary)" }}>Total Bid (This Deal)</span>
+                <span style={{ fontSize: 13, color: "var(--text-secondary)" }}>Total Bid (This Rehab)</span>
                 <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>{fmt(t.totalBid)}</span>
               </div>
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
@@ -1728,7 +1728,7 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
             <div style={{ background: "var(--surface)", borderRadius: 16, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)", textAlign: "center", padding: 48, color: "var(--text-muted)" }}>
               <CheckSquare size={32} style={{ margin: "0 auto 12px", display: "block" }} />
               <p style={{ fontWeight: 600, marginBottom: 4 }}>No milestones yet</p>
-              <p style={{ fontSize: 13 }}>Add milestones to track your deal's progress.</p>
+              <p style={{ fontSize: 13 }}>Add milestones to track your rehab's progress.</p>
             </div>
           ) : (
             <div style={{ background: "var(--surface)", borderRadius: 16, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)", padding: 20 }}>
@@ -1850,7 +1850,7 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
               console.error("[PropBooks] Delete deal document failed:", e);
             }
           }}
-          entityLabel="deal"
+          entityLabel="rehab"
         />
       )}
 
@@ -1886,7 +1886,7 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
           )}
           {showNoteInput && (
             <div style={{ background: "var(--surface)", borderRadius: 16, padding: 20, marginBottom: 16, border: "1px solid var(--border-subtle)", boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
-              <textarea value={noteText} onChange={e => setNoteText(e.target.value)} placeholder="Add a note about this project... e.g. 'Spoke with inspector, needs structural review on back wall'" rows={3} style={{ ...iS, resize: "vertical", fontFamily: "inherit" }} autoFocus />
+              <textarea value={noteText} onChange={e => setNoteText(e.target.value)} placeholder="Add a note about this rehab... e.g. 'Spoke with inspector, needs structural review on back wall'" rows={3} style={{ ...iS, resize: "vertical", fontFamily: "inherit" }} autoFocus />
               <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 10 }}>
                 <button onClick={() => { setShowNoteInput(false); setNoteText(""); }} style={{ padding: "8px 16px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text-secondary)", fontWeight: 600, fontSize: 13, cursor: "pointer" }}>Cancel</button>
                 <button onClick={addNote} style={{ padding: "8px 16px", borderRadius: 8, border: "none", background: "#e95e00", color: "#fff", fontWeight: 600, fontSize: 13, cursor: "pointer", opacity: noteText.trim() ? 1 : 0.5 }}>Save Note</button>
@@ -1898,7 +1898,7 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
               <div style={{ textAlign: "center", padding: 48, color: "var(--text-muted)" }}>
                 <MessageSquare size={32} style={{ margin: "0 auto 12px", display: "block" }} />
                 <p style={{ fontWeight: 600, marginBottom: 4 }}>No notes yet</p>
-                <p style={{ fontSize: 13 }}>Keep a running journal of updates, calls, and decisions for this project.</p>
+                <p style={{ fontSize: 13 }}>Keep a running journal of updates, calls, and decisions for this rehab.</p>
               </div>
             ) : filtered.length === 0 ? (
               <div style={{ textAlign: "center", padding: 36, color: "var(--text-muted)" }}>
@@ -1926,10 +1926,10 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
         );
       })()}
       {showEditDeal && (
-        <Modal title="Edit Project" onClose={() => setShowEditDeal(false)}>
+        <Modal title="Edit Rehab" onClose={() => setShowEditDeal(false)}>
           <div style={{ maxHeight: "60vh", overflowY: "auto", paddingRight: 4 }}>
             {[
-              { label: "Deal Name", key: "name", type: "text", placeholder: "e.g. Oakdale Craftsman" },
+              { label: "Rehab Name", key: "name", type: "text", placeholder: "e.g. Oakdale Craftsman" },
               { label: "Address", key: "address", type: "text", placeholder: "Full address" },
             ].map(f => (
               <div key={f.key} style={{ marginBottom: 14 }}>
@@ -1980,17 +1980,17 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
         </Modal>
       )}
       {showReopenConfirm && (
-        <Modal title="Reopen Project" onClose={() => setShowReopenConfirm(false)} width={460}>
+        <Modal title="Reopen Rehab" onClose={() => setShowReopenConfirm(false)} width={460}>
           <p style={{ color: "var(--text-label)", fontSize: 14, marginBottom: 12 }}>
-            Reopen this project? Stage will reset to <strong>Listed</strong> so you can update from there.
+            Reopen this rehab? Stage will reset to <strong>Listed</strong> so you can update from there.
           </p>
           {stage === "Sold" ? (
             <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 18 }}>
-              Sale data (price, close date, net profit) is preserved on the project. Update or replace it once you re-sell.
+              Sale data (price, close date, net profit) is preserved on the rehab. Update or replace it once you re-sell.
             </p>
           ) : (
             <p style={{ color: "#9a3412", fontSize: 13, marginBottom: 18, padding: "10px 12px", background: "var(--warning-bg)", borderRadius: 8 }}>
-              The rental property created when you converted this project still exists in your portfolio. Reopening only affects this project — manage the rental separately if you need to.
+              The rental property created when you converted this rehab still exists in your portfolio. Reopening only affects this rehab — manage the rental separately if you need to.
             </p>
           )}
           <div style={{ display: "flex", gap: 10 }}>
@@ -2002,13 +2002,13 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
               persistDealAsync(deal.id, { stage: "Listed" });
               if (onDealUpdated) onDealUpdated();
               setShowReopenConfirm(false);
-              showToast("Project reopened — stage set to Listed");
+              showToast("Rehab reopened — stage set to Listed");
             }} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "#e95e00", color: "#fff", fontWeight: 700, cursor: "pointer" }}>Reopen</button>
           </div>
         </Modal>
       )}
       {showCloseDeal && (
-        <Modal title={closeDealStep === "choose" ? "Close Project" : closeDealStep === "sold" ? "Mark as Sold" : "Convert to Rental"} onClose={() => setShowCloseDeal(false)}>
+        <Modal title={closeDealStep === "choose" ? "Close Rehab" : closeDealStep === "sold" ? "Mark as Sold" : "Convert to Rental"} onClose={() => setShowCloseDeal(false)}>
           {/* Step 1: Choose path */}
           {closeDealStep === "choose" && (<>
             <p style={{ color: "var(--text-label)", fontSize: 14, marginBottom: 20 }}>
@@ -2021,7 +2021,7 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
                 </div>
                 <div>
                   <p style={{ fontSize: 15, fontWeight: 700, color: "var(--text-primary)", marginBottom: 3 }}>Mark as Sold</p>
-                  <p style={{ fontSize: 13, color: "var(--text-secondary)" }}>Enter sale price, close date, and selling costs to finalize the project</p>
+                  <p style={{ fontSize: 13, color: "var(--text-secondary)" }}>Enter sale price, close date, and selling costs to finalize the rehab</p>
                 </div>
               </button>
               {onConvertToRental && (
@@ -2124,7 +2124,7 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
                 if (closeForm.closingNotes.trim()) {
                   pushDealNote(closeForm.closingNotes);
                 }
-                pushDealNote(`Project closed — sold for ${fmt(sp)} with net profit of ${fmt(netProfit)}.`);
+                pushDealNote(`Rehab closed — sold for ${fmt(sp)} with net profit of ${fmt(netProfit)}.`);
                 if (onDealUpdated) onDealUpdated();
                 showToast(`Deal marked as sold — ${fmt(netProfit)} net profit`);
                 setShowCloseDeal(false);
@@ -2140,7 +2140,7 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
               <ArrowLeft size={12} /> Back
             </button>
             <p style={{ color: "var(--text-label)", fontSize: 14, marginBottom: 16 }}>
-              Convert this project into a rental property in your portfolio. The deal will be marked as "Converted to Rental" and a new property will be created with the details below.
+              Convert this rehab into a rental property in your portfolio. The deal will be marked as "Converted to Rental" and a new property will be created with the details below.
             </p>
             <div style={{ background: "var(--surface-alt)", borderRadius: 12, padding: 16, marginBottom: 16, border: "1px solid var(--border)" }}>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
@@ -2165,7 +2165,7 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
             <div style={{ background: "var(--warning-bg)", borderRadius: 10, padding: 12, marginBottom: 20, border: "1px solid #fdba74" }}>
               <p style={{ fontSize: 13, color: "#9a3412", fontWeight: 600 }}>What happens next:</p>
               <p style={{ fontSize: 12, color: "#9a3412", marginTop: 4 }}>
-                You'll be taken to the Add Property form pre-filled with this project's info. You can review and adjust the details (rent amount, loan info, etc.) before saving.
+                You'll be taken to the Add Property form pre-filled with this rehab's info. You can review and adjust the details (rent amount, loan info, etc.) before saving.
               </p>
             </div>
             <div style={{ display: "flex", gap: 10 }}>
@@ -2194,9 +2194,9 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
         </Modal>
       )}
       {showDeleteDeal && (
-        <Modal title="Delete Project" onClose={() => setShowDeleteDeal(false)}>
+        <Modal title="Delete Rehab" onClose={() => setShowDeleteDeal(false)}>
           <p style={{ color: "var(--text-label)", fontSize: 14, marginBottom: 8 }}>Are you sure you want to permanently delete <strong>{deal.name}</strong>?</p>
-          <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 18 }}>This will remove the project, its expenses, rehab items, milestones, and notes. This action cannot be undone.</p>
+          <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 18 }}>This will remove the rehab, its expenses, rehab items, milestones, and notes. This action cannot be undone.</p>
           <div style={{ display: "flex", gap: 10 }}>
             <button onClick={() => setShowDeleteDeal(false)} style={{ flex: 1, padding: "12px", border: "1px solid var(--border)", borderRadius: 10, background: "var(--surface)", color: "var(--text-label)", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
             <button onClick={() => {
@@ -2215,7 +2215,7 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
               setShowDeleteDeal(false);
               if (onBack) onBack();
             }} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "var(--c-red)", color: "#fff", fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
-              <Trash2 size={14} /> Delete Project
+              <Trash2 size={14} /> Delete Rehab
             </button>
           </div>
         </Modal>
