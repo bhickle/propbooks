@@ -717,7 +717,7 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
 
   const tabs = [
     { id: "overview", label: "Overview", icon: LayoutDashboard },
-    { id: "plan", label: `Scope and Schedule (${planDoneCount}/${planTotalItems})`, icon: CheckSquare },
+    { id: "plan", label: `Roadmap (${planDoneCount}/${planTotalItems})`, icon: CheckSquare },
     { id: "contractors", label: `Contractors (${flipContractors.length})`, icon: UserCheck },
     { id: "expenses", label: `Expenses (${flipExpenses.length})`, icon: Receipt },
     { id: "documents", label: `Documents (${dealDocs.length})`, icon: FileText },
