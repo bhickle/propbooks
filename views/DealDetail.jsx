@@ -664,10 +664,60 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
   const rehabComplete = rehabItems.filter(i => i.status === "complete").length;
   const dealDocs = DEAL_DOCUMENTS.filter(d => d.dealId === deal.id);
   const [, dealDocRerender] = useState(0);
+  // Plan tab: merged milestones + rehab line items in one chronological feed.
+  const planTotalItems = milestones.length + rehabItems.length;
+  const planDoneCount = doneCount + rehabComplete;
+  const planPctComplete = planTotalItems > 0 ? Math.round((planDoneCount / planTotalItems) * 100) : 0;
+  const planOverdueMs = milestones.filter(m => !m.done && m.targetDate && m.targetDate < today).length;
+  const planOverBudget = rehabItems.filter(r => r.status !== "complete" && (r.spent || 0) > (r.budgeted || 0)).length;
+  const planNeedsAttn = planOverdueMs + planOverBudget;
+  const planCloseDateStr = stage === "Sold" ? deal.closeDate : (deal.projectedCloseDate || deal.closeDate);
+  const planDaysToClose = (() => {
+    if (!planCloseDateStr) return null;
+    const ms = new Date(planCloseDateStr) - new Date(today);
+    return Math.round(ms / 86400000);
+  })();
+  const [planFilter, setPlanFilterState] = useState("all");
+  // Build the unified feed: milestones + rehab items, sorted by status bucket.
+  const planFeed = useMemo(() => {
+    const items = [];
+    milestones.forEach((m, i) => {
+      const overdue = !m.done && m.targetDate && m.targetDate < today;
+      let bucket;
+      if (overdue) bucket = 0;
+      else if (m.done) bucket = 4;
+      else if (m.targetDate) bucket = 2;
+      else bucket = 3;
+      items.push({
+        type: "milestone", key: `ms-${m.id || `i${i}`}`, idx: i,
+        title: m.label, targetDate: m.targetDate, completedDate: m.date,
+        done: !!m.done, overdue, bucket,
+        sortKey: m.targetDate || "9999",
+        _data: m,
+      });
+    });
+    rehabItems.forEach((r, i) => {
+      const over = (r.spent || 0) > (r.budgeted || 0) && r.status !== "complete";
+      let bucket;
+      if (over) bucket = 0;
+      else if (r.status === "in-progress") bucket = 1;
+      else if (r.status === "complete") bucket = 4;
+      else bucket = 3;
+      items.push({
+        type: "construction", key: `re-${r.id || `i${i}`}`, idx: i,
+        title: r.category, budget: r.budgeted || 0, spent: r.spent || 0,
+        contractors: r.contractors || [], status: r.status, overBudget: over,
+        bucket, sortKey: r.category || "",
+        _data: r,
+      });
+    });
+    return items.sort((a, b) => a.bucket - b.bucket || a.sortKey.localeCompare(b.sortKey));
+  }, [milestones, rehabItems, today]);
+  const planFeedFiltered = planFeed.filter(it => planFilter === "all" || it.type === planFilter);
+
   const tabs = [
     { id: "overview", label: "Overview", icon: LayoutDashboard },
-    { id: "milestones", label: `Milestones (${doneCount}/${milestones.length})`, icon: CheckSquare },
-    { id: "rehab", label: `Rehab (${rehabComplete}/${rehabItems.length})`, icon: Wrench },
+    { id: "plan", label: `Plan (${planDoneCount}/${planTotalItems})`, icon: CheckSquare },
     { id: "contractors", label: `Contractors (${flipContractors.length})`, icon: UserCheck },
     { id: "expenses", label: `Expenses (${flipExpenses.length})`, icon: Receipt },
     { id: "documents", label: `Documents (${dealDocs.length})`, icon: FileText },
@@ -896,7 +946,7 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
             <Wrench size={16} color="#e95e00" />
             <h3 style={{ color: "var(--text-primary)", fontSize: 15, fontWeight: 700 }}>Rehab Progress</h3>
           </div>
-          <button onClick={() => setActiveTab("rehab")} style={{ background: "none", border: "none", color: "var(--c-blue)", fontSize: 13, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
+          <button onClick={() => setActiveTab("plan")} style={{ background: "none", border: "none", color: "var(--c-blue)", fontSize: 13, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
             View Details <ChevronRight size={14} />
           </button>
         </div>
@@ -948,320 +998,306 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
       })()}
       </>)}
 
-      {activeTab === "rehab" && (
-      <div>
-        {/* Stat cards — matches RehabTracker pattern */}
-        {(() => {
-          const rehabBudgetLeft = rehabTotalBudget - rehabTotalSpent;
-          const rehabInProgress = rehabItems.filter(i => i.status === "in-progress").length;
-          return (
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 24 }}>
-              <StatCard icon={Target}      label="Total Budget"  value={fmt(rehabTotalBudget)} sub="This rehab"                                     color="var(--c-blue)" tip="Sum of budgeted amounts across all rehab line items for this rehab." />
-              <StatCard icon={Receipt}     label="Total Spent"   value={fmt(rehabTotalSpent)}  sub="To date"                                       color="#e95e00" tip="Sum of amounts spent to date across all rehab line items for this rehab." />
-              <StatCard icon={DollarSign}  label="Budget Left"   value={fmt(rehabBudgetLeft)}  sub={rehabBudgetLeft < 0 ? "OVER BUDGET" : "Remaining"} color={rehabBudgetLeft < 0 ? "var(--c-red)" : "var(--c-green)"} semantic tip="Total Budget − Total Spent. Negative means over budget." />
-              <StatCard icon={CheckCircle} label="Tasks Done"    value={`${rehabComplete}/${rehabItems.length}`} sub={`${rehabInProgress} in progress`} color="var(--c-purple)" tip="Completed rehab line items out of the total for this rehab." />
-            </div>
-          );
-        })()}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-          <div>
-            <p style={{ color: "var(--text-secondary)", fontSize: 14 }}>
-              {rehabItems.length} item{rehabItems.length !== 1 ? "s" : ""}
-            </p>
-          </div>
-          <button onClick={() => { setEditingRehabIdx(null); setRehabForm(emptyRehab); setShowAddRehab(true); }} style={{ background: "#e95e00", color: "#fff", border: "none", borderRadius: 10, padding: "10px 16px", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
-            <Plus size={15} /> Add Rehab Item
-          </button>
-        </div>
-        {rehabItems.length === 0 ? (
-          <div style={{ background: "var(--surface)", borderRadius: 16, padding: 32, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)" }}>
-            <div style={{ textAlign: "center", marginBottom: 24 }}>
-              <div style={{ width: 56, height: 56, borderRadius: 14, background: "var(--warning-bg)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 12px" }}>
-                <Wrench size={24} color="#e95e00" />
+      {activeTab === "plan" && (
+        <div>
+          {/* KPI strip */}
+          {(() => {
+            const rehabBudgetLeft = rehabTotalBudget - rehabTotalSpent;
+            return (
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 24 }}>
+                <StatCard icon={DollarSign} label="Budget Left" value={fmt(rehabBudgetLeft)} sub={rehabBudgetLeft < 0 ? "OVER BUDGET" : "Remaining"} color={rehabBudgetLeft < 0 ? "var(--c-red)" : "var(--c-green)"} semantic tip="Total Rehab Budget − Total Spent across all construction items. Negative means over budget." />
+                <StatCard icon={Calendar} label="Days to Close" value={planDaysToClose == null ? "—" : (planDaysToClose < 0 ? `${Math.abs(planDaysToClose)} late` : String(planDaysToClose))} sub={planCloseDateStr || "No target set"} color={planDaysToClose != null && planDaysToClose < 0 ? "var(--c-red)" : "var(--c-blue)"} semantic tip="Days until projected close. Negative means past the target date." />
+                <StatCard icon={CheckCircle} label="Progress" value={`${planPctComplete}%`} sub={`${planDoneCount}/${planTotalItems} done`} color="var(--c-purple)" tip="Completed milestones plus completed construction line items, out of total." />
+                <StatCard icon={AlertTriangle} label="Needs Attention" value={String(planNeedsAttn)} sub={planNeedsAttn === 0 ? "All on track" : `${planOverdueMs} overdue · ${planOverBudget} over budget`} color={planNeedsAttn > 0 ? "var(--c-red)" : "var(--text-muted)"} semantic tip="Overdue milestones plus over-budget construction items." />
               </div>
-              <h3 style={{ fontSize: 17, fontWeight: 700, color: "var(--text-primary)", marginBottom: 6 }}>Start your rehab scope</h3>
-              <p style={{ fontSize: 13, color: "var(--text-secondary)", maxWidth: 460, margin: "0 auto" }}>Pick a template to pre-populate standard scopes with suggested budgets, or build your own from scratch.</p>
-            </div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(230px, 1fr))", gap: 12, marginBottom: 14 }}>
-              {REHAB_TEMPLATES.map(tpl => {
-                const total = tpl.items.reduce((s, i) => s + (i.budgeted || 0), 0);
+            );
+          })()}
+
+          {/* Filter chips + Add buttons */}
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 12 }}>
+            <div style={{ display: "flex", gap: 4, background: "var(--surface-alt)", borderRadius: 10, padding: 4, border: "1px solid var(--border)" }}>
+              {[
+                { id: "all", label: `All (${planFeed.length})` },
+                { id: "construction", label: `Construction (${planFeed.filter(i => i.type === "construction").length})` },
+                { id: "milestone", label: `Milestones (${planFeed.filter(i => i.type === "milestone").length})` },
+              ].map(f => {
+                const active = planFilter === f.id;
                 return (
-                  <button key={tpl.id} onClick={() => {
-                    const seeded = tpl.items.map(i => {
-                      const canon = getCanonicalBySlug(i.slug);
-                      return { category: canon?.label || i.slug, canonicalCategory: i.slug, budgeted: i.budgeted || 0, spent: 0, status: "pending", contractors: [] };
-                    });
-                    setRehabItems(seeded);
-                    if (!deal.rehabItems) deal.rehabItems = [];
-                    deal.rehabItems.splice(0, deal.rehabItems.length, ...seeded);
-                    showToast(`${tpl.name} template loaded — ${seeded.length} items`);
-                  }} style={{ background: "var(--surface)", border: "1.5px solid var(--border)", borderRadius: 14, padding: 18, textAlign: "left", cursor: "pointer", transition: "all 0.15s" }}
-                    onMouseEnter={e => { e.currentTarget.style.borderColor = "#e95e00"; e.currentTarget.style.background = "var(--warning-bg)"; }}
-                    onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.background = "var(--surface)"; }}>
-                    <p style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)", marginBottom: 4 }}>{tpl.name}</p>
-                    <p style={{ fontSize: 11, color: "var(--text-secondary)", lineHeight: 1.5, marginBottom: 10, minHeight: 30 }}>{tpl.description}</p>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 10, borderTop: "1px solid var(--border-subtle)" }}>
-                      <span style={{ fontSize: 11, color: "var(--text-muted)", fontWeight: 600 }}>{tpl.items.length} items</span>
-                      <span style={{ fontSize: 12, color: "var(--text-primary)", fontWeight: 700 }}>{fmt(total)}</span>
-                    </div>
+                  <button key={f.id} onClick={() => setPlanFilterState(f.id)} style={{ padding: "7px 14px", borderRadius: 8, border: "none", background: active ? "#e95e00" : "transparent", color: active ? "#fff" : "var(--text-secondary)", fontWeight: active ? 700 : 500, fontSize: 12, cursor: "pointer", whiteSpace: "nowrap", transition: "all 0.15s" }}>
+                    {f.label}
                   </button>
                 );
               })}
             </div>
-            <div style={{ textAlign: "center" }}>
-              <button onClick={() => { setEditingRehabIdx(null); setRehabForm(emptyRehab); setShowAddRehab(true); }} style={{ background: "none", border: "none", color: "var(--text-secondary)", fontSize: 13, fontWeight: 600, cursor: "pointer", textDecoration: "underline" }}>or start from scratch</button>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button onClick={() => { setEditingMilestoneId(null); setMilestoneForm(emptyMilestone); setShowMilestoneModal(true); }} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: "10px 14px", fontWeight: 600, fontSize: 13, cursor: "pointer", color: "var(--text-label)", display: "flex", alignItems: "center", gap: 6 }}>
+                <Flag size={14} /> Add Milestone
+              </button>
+              <button onClick={() => { setEditingRehabIdx(null); setRehabForm(emptyRehab); setShowAddRehab(true); }} style={{ background: "#e95e00", color: "#fff", border: "none", borderRadius: 10, padding: "10px 14px", fontWeight: 600, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
+                <Wrench size={14} /> Add Construction
+              </button>
             </div>
           </div>
-        ) : (
-        <div style={{ background: "var(--surface)", borderRadius: 16, padding: 24, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)" }}>
-          <RehabProgress items={rehabItems} />
-          <div style={{ marginTop: 20 }}>
-            <table style={{ width: "100%", borderCollapse: "collapse" }}>
-              <thead>
-                <tr style={{ background: "var(--surface-alt)" }}>
-                  {["Category", "Contractor", "Budgeted", "Spent", "Remaining", "Status", ""].map(h => (
-                    <th key={h} style={{ padding: "10px 16px", textAlign: "left", color: "var(--text-muted)", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {rehabItems.map((item, i) => {
-                  const remaining = item.budgeted - item.spent;
-                  const over = remaining < 0;
-                  const assigned = item.contractors || [];
-                  const assignedIds = assigned.map(c => c.id);
-                  const unassigned = dealContractorsList.filter(c => !assignedIds.includes(c.id));
-                  const stop = e => e.stopPropagation();
+
+          {/* Empty state with templates if no rehab items yet */}
+          {rehabItems.length === 0 && milestones.filter(m => m.id).length === 0 && (
+            <div style={{ background: "var(--surface)", borderRadius: 16, padding: 32, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)", marginBottom: 16 }}>
+              <div style={{ textAlign: "center", marginBottom: 24 }}>
+                <div style={{ width: 56, height: 56, borderRadius: 14, background: "var(--warning-bg)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 12px" }}>
+                  <Wrench size={24} color="#e95e00" />
+                </div>
+                <h3 style={{ fontSize: 17, fontWeight: 700, color: "var(--text-primary)", marginBottom: 6 }}>Start your rehab scope</h3>
+                <p style={{ fontSize: 13, color: "var(--text-secondary)", maxWidth: 460, margin: "0 auto" }}>Pick a template to pre-populate standard scopes with suggested budgets, or add items one at a time using the buttons above.</p>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(230px, 1fr))", gap: 12 }}>
+                {REHAB_TEMPLATES.map(tpl => {
+                  const total = tpl.items.reduce((s, i) => s + (i.budgeted || 0), 0);
                   return (
-                    <tr key={i} onClick={() => onNavigateToRehabItem && onNavigateToRehabItem(i)}
-                      onMouseEnter={e => { if (onNavigateToRehabItem) e.currentTarget.style.background = "var(--surface-alt)"; }}
-                      onMouseLeave={e => { e.currentTarget.style.background = "transparent"; }}
-                      style={{ borderTop: "1px solid var(--border-subtle)", cursor: onNavigateToRehabItem ? "pointer" : "default", transition: "background 0.15s" }}>
-                      <td style={{ padding: "12px 16px", fontSize: 14, fontWeight: 600, color: "var(--text-primary)" }}>
-                        <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-                          {item.category}
-                          {onNavigateToRehabItem && <ChevronRight size={14} color="#cbd5e1" />}
-                        </span>
-                      </td>
-                      <td style={{ padding: "12px 16px", minWidth: 220 }} onClick={stop}>
-                        <div style={{ display: "flex", flexWrap: "wrap", gap: 4, alignItems: "center" }}>
-                          {assigned.map(asgn => {
-                            const con = CONTRACTORS.find(c => c.id === asgn.id);
-                            if (!con) return null;
-                            return (
-                              <div key={asgn.id} style={{ display: "flex", alignItems: "center", gap: 5, background: "var(--surface-muted)", borderRadius: 20, padding: "4px 8px 4px 6px" }}>
-                                <div style={{ width: 18, height: 18, borderRadius: "50%", background: "linear-gradient(135deg, #e95e00, #041830)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                                  <Truck size={9} color="#fff" />
-                                </div>
-                                <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-dim)" }}>{con.name}</span>
-                                {asgn.bid > 0 && <span style={{ fontSize: 11, color: "var(--text-secondary)", fontWeight: 500 }}>{fmt(asgn.bid)}</span>}
-                                <button onClick={(e) => { e.stopPropagation(); removeContractorFromRehabItem(i, asgn.id); }} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)", padding: 0, display: "flex", alignItems: "center" }}>
-                                  <X size={10} />
-                                </button>
-                              </div>
-                            );
-                          })}
-                        {assignTA.rowIdx === i ? (
-                          <div style={{ position: "relative" }}>
-                            <input
-                              autoFocus
-                              value={assignTA.query}
-                              onChange={e => setAssignTA({ rowIdx: i, query: e.target.value })}
-                              onBlur={() => setTimeout(() => setAssignTA(s => s.rowIdx === i ? { rowIdx: null, query: "" } : s), 180)}
-                              onKeyDown={e => { if (e.key === "Escape") setAssignTA({ rowIdx: null, query: "" }); }}
-                              placeholder="Type contractor name..."
-                              style={{ border: "1.5px solid #cbd5e1", borderRadius: 8, padding: "5px 10px", fontSize: 12, color: "var(--text-dim)", background: "var(--surface)", outline: "none", width: 200 }} />
-                            <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 8, boxShadow: "0 4px 12px rgba(0,0,0,0.08)", zIndex: 100, minWidth: 240, maxHeight: 240, overflowY: "auto" }}>
-                              {(() => {
-                                const q = assignTA.query.trim().toLowerCase();
-                                const matches = CONTRACTORS.filter(c => !assignedIds.includes(c.id) && (!q || c.name.toLowerCase().includes(q))).slice(0, 8);
-                                return (
-                                  <>
-                                    {matches.length === 0 && (
-                                      <div style={{ padding: "8px 12px", fontSize: 12, color: "var(--text-muted)" }}>{q ? "No matches" : "No contractors yet"}</div>
-                                    )}
-                                    {matches.map(c => {
-                                      const onDeal = (c.dealIds || []).includes(deal.id);
-                                      return (
-                                        <div key={c.id}
-                                          onMouseDown={e => { e.preventDefault(); assignContractorToRow(i, c.id); }}
-                                          style={{ padding: "8px 12px", fontSize: 12, cursor: "pointer", borderBottom: "1px solid var(--border-subtle)", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}
-                                          onMouseEnter={e => e.currentTarget.style.background = "var(--surface-alt)"}
-                                          onMouseLeave={e => e.currentTarget.style.background = "var(--surface)"}>
-                                          <span style={{ color: "var(--text-dim)", fontWeight: 600 }}>{c.name}</span>
-                                          <span style={{ fontSize: 11, color: "var(--text-muted)" }}>{c.trade || ""}{!onDeal ? " · not on rehab" : ""}</span>
-                                        </div>
-                                      );
-                                    })}
-                                    <div onMouseDown={e => { e.preventDefault(); openAddContractorForRow(i, assignTA.query); }}
-                                      style={{ padding: "10px 12px", fontSize: 12, cursor: "pointer", color: "#e95e00", fontWeight: 700, background: "var(--warning-bg)", borderTop: "1px solid var(--border-subtle)", display: "flex", alignItems: "center", gap: 6 }}
-                                      onMouseEnter={e => e.currentTarget.style.background = "var(--warning-btn-bg)"}
-                                      onMouseLeave={e => e.currentTarget.style.background = "var(--warning-bg)"}>
-                                      <Plus size={12} /> Add new contractor{assignTA.query.trim() ? ` "${assignTA.query.trim()}"` : ""}
-                                    </div>
-                                  </>
-                                );
-                              })()}
-                            </div>
-                          </div>
-                        ) : (
-                          <button onClick={() => setAssignTA({ rowIdx: i, query: "" })}
-                            style={{ border: "1.5px dashed #cbd5e1", borderRadius: 8, padding: "5px 10px", fontSize: 12, color: "var(--text-muted)", background: "var(--surface-alt)", cursor: "pointer" }}>
-                            {assigned.length > 0 ? "+ Add" : "+ Assign contractor"}
-                          </button>
-                        )}
-                        </div>
-                      </td>
-                      <td style={{ padding: "12px 16px", fontSize: 13, color: "var(--text-label)" }}>{fmt(item.budgeted)}</td>
-                      <td style={{ padding: "12px 16px", fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>{fmt(item.spent)}</td>
-                      <td style={{ padding: "12px 16px", fontSize: 13, fontWeight: 700, color: over ? "#c0392b" : "#1a7a4a" }}>
-                        {over ? `-${fmt(Math.abs(remaining))}` : fmt(remaining)}
-                      </td>
-                      <td style={{ padding: "12px 16px" }} onClick={stop}>
-                        <button onClick={() => cycleRehabStatus(i)} title="Click to cycle status" style={{ background: statusBg[item.status], color: statusColors[item.status], borderRadius: 20, padding: "3px 10px", fontSize: 12, fontWeight: 600, border: "none", cursor: "pointer" }}>
-                          {statusIcons[item.status]} {item.status}
-                        </button>
-                      </td>
-                      <td style={{ padding: "12px 16px" }} onClick={stop}>
-                        <div style={{ display: "flex", gap: 4 }}>
-                          <button onClick={() => openEditRehab(item, i)} style={{ background: "var(--surface-muted)", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "var(--text-label)", display: "flex", alignItems: "center" }} title="Edit"><Pencil size={13} /></button>
-                          <button onClick={() => setDeleteConfirm({ type: "rehab", item: item, index: i })} style={{ background: "var(--danger-badge)", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "var(--c-red)", display: "flex", alignItems: "center" }} title="Delete"><Trash2 size={13} /></button>
-                        </div>
-                      </td>
-                    </tr>
+                    <button key={tpl.id} onClick={async () => {
+                      try {
+                        const seeded = [];
+                        for (let idx = 0; idx < tpl.items.length; idx++) {
+                          const i = tpl.items[idx];
+                          const canon = getCanonicalBySlug(i.slug);
+                          const saved = await dbCreateRehabItem({ dealId: deal.id, category: canon?.label || i.slug, slug: i.slug, budgeted: i.budgeted || 0, spent: 0, status: "pending", sortOrder: idx });
+                          seeded.push({ ...saved, canonicalCategory: i.slug, contractors: [] });
+                        }
+                        setRehabItems(seeded);
+                        if (!deal.rehabItems) deal.rehabItems = [];
+                        deal.rehabItems.splice(0, deal.rehabItems.length, ...seeded);
+                        showToast(`${tpl.name} template loaded — ${seeded.length} items`);
+                      } catch (e) {
+                        console.error("[PropBooks] Load template failed:", e);
+                        showToast("Couldn't load template — " + (e.message || "unknown error"));
+                      }
+                    }} style={{ background: "var(--surface)", border: "1.5px solid var(--border)", borderRadius: 14, padding: 18, textAlign: "left", cursor: "pointer", transition: "all 0.15s" }}
+                      onMouseEnter={e => { e.currentTarget.style.borderColor = "#e95e00"; e.currentTarget.style.background = "var(--warning-bg)"; }}
+                      onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.background = "var(--surface)"; }}>
+                      <p style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)", marginBottom: 4 }}>{tpl.name}</p>
+                      <p style={{ fontSize: 11, color: "var(--text-secondary)", lineHeight: 1.5, marginBottom: 10, minHeight: 30 }}>{tpl.description}</p>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 10, borderTop: "1px solid var(--border-subtle)" }}>
+                        <span style={{ fontSize: 11, color: "var(--text-muted)", fontWeight: 600 }}>{tpl.items.length} items</span>
+                        <span style={{ fontSize: 12, color: "var(--text-primary)", fontWeight: 700 }}>{fmt(total)}</span>
+                      </div>
+                    </button>
                   );
                 })}
-              </tbody>
-            </table>
-          </div>
-        </div>
-        )}
-
-        {showAddRehab && (
-          <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
-            <div style={{ background: "var(--surface)", borderRadius: 20, width: 480, padding: 28 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-                <h2 style={{ color: "var(--text-primary)", fontSize: 18, fontWeight: 700 }}>{editingRehabIdx !== null ? "Edit Rehab Item" : "Add Rehab Item"}</h2>
-                <button onClick={() => { setShowAddRehab(false); setRehabForm(emptyRehab); setEditingRehabIdx(null); }} style={{ background: "var(--surface-muted)", border: "none", borderRadius: 8, width: 32, height: 32, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><X size={16} color="var(--text-secondary)" /></button>
-              </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-                <div style={{ position: "relative" }}>
-                  <label style={{ display: "block", color: "var(--text-dim)", fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Category *</label>
-                  <input value={rehabForm.category} placeholder="Start typing or pick from the list..." style={iS}
-                    onChange={e => { setRehabForm(f => ({ ...f, category: e.target.value, canonicalCategory: null })); setCatFocus(true); }}
-                    onFocus={() => setCatFocus(true)} onBlur={() => setTimeout(() => setCatFocus(false), 150)} />
-                  {!catFocus && !rehabForm.category && <p style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4, fontStyle: "italic" }}>Pick a standard category or type your own</p>}
-                  {rehabForm.canonicalCategory && (
-                    <span style={{ display: "inline-flex", alignItems: "center", gap: 4, marginTop: 4, fontSize: 11, fontWeight: 600, color: "#1a7a4a" }}><CheckCircle size={11} /> Standard category</span>
-                  )}
-                  {catFocus && (() => {
-                    const q = rehabForm.category.toLowerCase().trim();
-                    const canonMatches = REHAB_CATEGORIES.filter(c => !q || c.label.toLowerCase().includes(q));
-                    const customMatches = allCategories.custom.filter(c => !q || c.toLowerCase().includes(q));
-                    const exactCanon = REHAB_CATEGORIES.some(c => c.label.toLowerCase() === q);
-                    const exactCustom = allCategories.custom.some(c => c.toLowerCase() === q);
-                    const showNew = q && !exactCanon && !exactCustom;
-                    const grouped = {};
-                    canonMatches.forEach(c => { if (!grouped[c.group]) grouped[c.group] = []; grouped[c.group].push(c); });
-                    const groupKeys = REHAB_CATEGORY_GROUPS.filter(g => grouped[g] && grouped[g].length > 0);
-                    if (groupKeys.length === 0 && customMatches.length === 0 && !showNew) return null;
-                    return (
-                      <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, boxShadow: "0 8px 24px rgba(0,0,0,0.10)", zIndex: 200, overflow: "hidden", maxHeight: 320, overflowY: "auto" }}>
-                        {groupKeys.map(g => (
-                          <div key={g}>
-                            <div style={{ padding: "8px 14px 4px", fontSize: 10, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em", background: "var(--surface-alt)" }}>{g}</div>
-                            {grouped[g].map(c => (
-                              <button key={c.slug} onMouseDown={() => { setRehabForm(f => ({ ...f, category: c.label, canonicalCategory: c.slug })); setCatFocus(false); }}
-                                style={{ width: "100%", padding: "8px 14px", background: "none", border: "none", borderBottom: "1px solid #f8fafc", textAlign: "left", cursor: "pointer", fontSize: 13, color: "var(--text-primary)", display: "flex", alignItems: "center", gap: 8 }}>
-                                <Wrench size={12} style={{ color: "var(--text-muted)", flexShrink: 0 }} />
-                                <span>{c.label}</span>
-                              </button>
-                            ))}
-                          </div>
-                        ))}
-                        {customMatches.length > 0 && (
-                          <div>
-                            <div style={{ padding: "8px 14px 4px", fontSize: 10, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em", background: "var(--surface-alt)" }}>Your Custom</div>
-                            {customMatches.slice(0, 6).map(c => (
-                              <button key={c} onMouseDown={() => { setRehabForm(f => ({ ...f, category: c, canonicalCategory: null })); setCatFocus(false); }}
-                                style={{ width: "100%", padding: "8px 14px", background: "none", border: "none", borderBottom: "1px solid #f8fafc", textAlign: "left", cursor: "pointer", fontSize: 13, color: "var(--text-primary)", display: "flex", alignItems: "center", gap: 8 }}>
-                                <Wrench size={12} style={{ color: "var(--text-muted)", flexShrink: 0 }} />
-                                <span>{c}</span>
-                              </button>
-                            ))}
-                          </div>
-                        )}
-                        {showNew && (
-                          <button onMouseDown={() => setCatFocus(false)}
-                            style={{ width: "100%", padding: "10px 14px", display: "flex", alignItems: "center", gap: 8, background: "var(--warning-bg)", border: "none", borderTop: "1px solid var(--border)", cursor: "pointer", textAlign: "left" }}>
-                            <Plus size={13} style={{ color: "#e95e00", flexShrink: 0 }} />
-                            <span style={{ fontSize: 13, color: "#e95e00", fontWeight: 600 }}>Add &ldquo;{rehabForm.category}&rdquo; as custom</span>
-                          </button>
-                        )}
-                      </div>
-                    );
-                  })()}
-                </div>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-                  <div>
-                    <label style={{ display: "block", color: "var(--text-dim)", fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Budget *</label>
-                    <input value={rehabForm.budgeted} onChange={sfR("budgeted")} type="number" placeholder="18000" style={iS} />
-                  </div>
-                  <div>
-                    <label style={{ display: "block", color: "var(--text-dim)", fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Spent So Far</label>
-                    <input value={rehabForm.spent} onChange={sfR("spent")} type="number" placeholder="0" style={iS} />
-                  </div>
-                </div>
-                <div>
-                  <label style={{ display: "block", color: "var(--text-dim)", fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Status</label>
-                  <select value={rehabForm.status} onChange={sfR("status")} style={iS}>
-                    <option value="pending">Pending</option>
-                    <option value="in-progress">In Progress</option>
-                    <option value="complete">Complete</option>
-                  </select>
-                </div>
-              </div>
-              <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 22 }}>
-                <button onClick={() => { setShowAddRehab(false); setRehabForm(emptyRehab); setEditingRehabIdx(null); }} style={{ padding: "10px 20px", borderRadius: 10, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text-secondary)", fontWeight: 600, fontSize: 14, cursor: "pointer" }}>Cancel</button>
-                <button onClick={async () => {
-                  if (!rehabForm.category || !rehabForm.budgeted) return;
-                  // Infer canonical slug if user typed a label that matches one exactly
-                  const canon = rehabForm.canonicalCategory || getCanonicalByLabel(rehabForm.category)?.slug || null;
-                  const fields = {
-                    category: rehabForm.category,
-                    slug: canon,
-                    budgeted: parseFloat(rehabForm.budgeted) || 0,
-                    spent: parseFloat(rehabForm.spent) || 0,
-                    status: rehabForm.status,
-                  };
-                  try {
-                    if (editingRehabIdx !== null) {
-                      const existing = rehabItems[editingRehabIdx];
-                      let saved = existing;
-                      if (existing?.id) saved = await dbUpdateRehabItem(existing.id, fields);
-                      const merged = { ...existing, ...saved, canonicalCategory: canon, contractors: existing?.contractors || [] };
-                      setRehabItems(prev => prev.map((item, idx) => idx === editingRehabIdx ? merged : item));
-                      if (deal.rehabItems && deal.rehabItems[editingRehabIdx]) deal.rehabItems[editingRehabIdx] = merged;
-                      setEditingRehabIdx(null);
-                    } else {
-                      const sortOrder = rehabItems.length;
-                      const saved = await dbCreateRehabItem({ dealId: deal.id, ...fields, sortOrder });
-                      const newItem = { ...saved, canonicalCategory: canon, contractors: [] };
-                      setRehabItems(prev => [...prev, newItem]);
-                      if (deal.rehabItems) deal.rehabItems.push(newItem); else deal.rehabItems = [newItem];
-                    }
-                    setRehabForm(emptyRehab);
-                    setShowAddRehab(false);
-                  } catch (e) {
-                    console.error("[PropBooks] Save rehab item failed:", e);
-                    showToast("Couldn't save rehab item — " + (e.message || "unknown error"));
-                  }
-                }} style={{ padding: "10px 24px", borderRadius: 10, border: "none", background: "#e95e00", color: "#fff", fontWeight: 600, fontSize: 14, cursor: "pointer", opacity: (!rehabForm.category || !rehabForm.budgeted) ? 0.5 : 1 }}>{editingRehabIdx !== null ? "Save Changes" : "Add Item"}</button>
               </div>
             </div>
+          )}
+
+          {/* Plan feed */}
+          {planFeedFiltered.length > 0 && (
+            <div style={{ background: "var(--surface)", borderRadius: 16, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)", overflow: "hidden" }}>
+              {planFeedFiltered.map((it, listIdx) => {
+                const prev = listIdx > 0 ? planFeedFiltered[listIdx - 1] : null;
+                const showHeader = !prev || prev.bucket !== it.bucket;
+                const headerLabel = it.bucket === 0 ? "Needs Attention" : it.bucket === 1 ? "In Progress" : it.bucket === 2 ? "Upcoming" : it.bucket === 3 ? "Pending" : "Done";
+                const headerColor = it.bucket === 0 ? "var(--c-red)" : it.bucket === 1 ? "#e95e00" : it.bucket === 2 ? "var(--c-blue)" : it.bucket === 3 ? "var(--text-muted)" : "var(--c-green)";
+                return (
+                  <div key={it.key}>
+                    {showHeader && (
+                      <div style={{ padding: "10px 18px 8px", background: "var(--surface-alt)", borderTop: listIdx > 0 ? "1px solid var(--border-subtle)" : "none", borderBottom: "1px solid var(--border-subtle)" }}>
+                        <p style={{ fontSize: 11, fontWeight: 700, color: headerColor, textTransform: "uppercase", letterSpacing: "0.05em" }}>{headerLabel}</p>
+                      </div>
+                    )}
+                    <div style={{ display: "flex", alignItems: "center", gap: 14, padding: "14px 18px", borderTop: !showHeader && listIdx > 0 ? "1px solid var(--border-subtle)" : "none", cursor: it.type === "construction" && onNavigateToRehabItem ? "pointer" : "default" }}
+                      onClick={() => { if (it.type === "construction" && onNavigateToRehabItem) onNavigateToRehabItem(it.idx); }}>
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 10, fontWeight: 700, color: it.type === "construction" ? "#9a3412" : "var(--c-blue)", background: it.type === "construction" ? "var(--warning-bg)" : "var(--info-tint)", borderRadius: 6, padding: "3px 8px", textTransform: "uppercase", letterSpacing: "0.05em", flexShrink: 0, whiteSpace: "nowrap" }}>
+                        {it.type === "construction" ? <><Wrench size={10} /> Build</> : <><Flag size={10} /> Milestone</>}
+                      </span>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={{ fontSize: 14, fontWeight: 600, color: it.done ? "var(--text-secondary)" : "var(--text-primary)", textDecoration: it.done ? "line-through" : "none" }}>{it.title}</p>
+                        <p style={{ fontSize: 11, color: it.overdue || it.overBudget ? "var(--c-red)" : "var(--text-muted)", marginTop: 2 }}>
+                          {it.type === "milestone" && it.done && it.completedDate && `Completed ${new Date(it.completedDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`}
+                          {it.type === "milestone" && !it.done && it.targetDate && `${it.overdue ? "Overdue: " : "Target: "}${new Date(it.targetDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`}
+                          {it.type === "milestone" && !it.done && !it.targetDate && "No target date"}
+                          {it.type === "construction" && (it.contractors.length > 0 ? `${it.contractors.length} contractor${it.contractors.length > 1 ? "s" : ""} assigned` : "No contractor")}
+                        </p>
+                      </div>
+                      {it.type === "construction" && (
+                        <div style={{ textAlign: "right", flexShrink: 0 }}>
+                          <p style={{ fontSize: 13, fontWeight: 700, color: it.overBudget ? "var(--c-red)" : "var(--text-primary)" }}>{fmt(it.spent)} / {fmt(it.budget)}</p>
+                          <p style={{ fontSize: 10, color: "var(--text-muted)", marginTop: 1 }}>{it.budget > 0 ? `${Math.round((it.spent / it.budget) * 100)}% used` : ""}</p>
+                        </div>
+                      )}
+                      {it.type === "construction" ? (
+                        <button onClick={(e) => { e.stopPropagation(); cycleRehabStatus(it.idx); }} title="Click to cycle status" style={{ background: statusBg[it.status], color: statusColors[it.status], borderRadius: 20, padding: "3px 10px", fontSize: 11, fontWeight: 600, border: "none", cursor: "pointer", flexShrink: 0, textTransform: "capitalize" }}>
+                          {it.status}
+                        </button>
+                      ) : (
+                        <button onClick={async (e) => {
+                          e.stopPropagation();
+                          const target = milestones[it.idx];
+                          if (!it.done) {
+                            const date = new Date().toISOString().split("T")[0];
+                            try {
+                              if (target?.id) await dbUpdateMilestone(target.id, { done: true, date });
+                              const updated = milestones.map((m, idx) => idx === it.idx ? { ...m, done: true, date } : m);
+                              setMilestones(updated);
+                              const gi = DEAL_MILESTONES.findIndex(m => m.id === target?.id);
+                              if (gi !== -1) DEAL_MILESTONES[gi] = { ...DEAL_MILESTONES[gi], done: true, date };
+                            } catch (err) {
+                              console.error("[PropBooks] Complete milestone failed:", err);
+                              showToast("Couldn't update milestone — " + (err.message || "unknown error"));
+                            }
+                          } else {
+                            try {
+                              if (target?.id) await dbUpdateMilestone(target.id, { done: false, date: null });
+                              const updated = milestones.map((m, idx) => idx === it.idx ? { ...m, done: false, date: null } : m);
+                              setMilestones(updated);
+                              const gi = DEAL_MILESTONES.findIndex(m => m.id === target?.id);
+                              if (gi !== -1) DEAL_MILESTONES[gi] = { ...DEAL_MILESTONES[gi], done: false, date: null };
+                            } catch (err) {
+                              console.error("[PropBooks] Uncomplete milestone failed:", err);
+                              showToast("Couldn't update milestone — " + (err.message || "unknown error"));
+                            }
+                          }
+                        }} style={{ background: it.done ? "var(--success-badge)" : it.overdue ? "var(--danger-badge)" : "var(--surface-muted)", color: it.done ? "#1a7a4a" : it.overdue ? "var(--c-red)" : "var(--text-label)", borderRadius: 20, padding: "3px 10px", fontSize: 11, fontWeight: 600, border: "none", cursor: "pointer", flexShrink: 0 }}>
+                          {it.done ? "Done" : it.overdue ? "Overdue" : "Open"}
+                        </button>
+                      )}
+                      <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
+                        <button onClick={(e) => { e.stopPropagation(); if (it.type === "construction") openEditRehab(it._data, it.idx); else openEditMilestone(it._data, it.idx); }} style={{ background: "var(--surface-muted)", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "var(--text-label)", display: "flex", alignItems: "center" }} title="Edit"><Pencil size={13} /></button>
+                        <button onClick={(e) => { e.stopPropagation(); setDeleteConfirm({ type: it.type === "construction" ? "rehab" : "milestone", item: it._data, index: it.idx }); }} style={{ background: "var(--danger-badge)", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "var(--c-red)", display: "flex", alignItems: "center" }} title="Delete"><Trash2 size={13} /></button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+          {planFeedFiltered.length === 0 && (rehabItems.length > 0 || milestones.filter(m => m.id).length > 0) && (
+            <div style={{ background: "var(--surface)", borderRadius: 16, padding: 40, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)", textAlign: "center", color: "var(--text-muted)" }}>
+              <p style={{ fontSize: 13 }}>No items match this filter.</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Add Rehab Modal — used by the Plan tab */}
+      {showAddRehab && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
+          <div style={{ background: "var(--surface)", borderRadius: 20, width: 480, padding: 28 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+              <h2 style={{ color: "var(--text-primary)", fontSize: 18, fontWeight: 700 }}>{editingRehabIdx !== null ? "Edit Construction Item" : "Add Construction Item"}</h2>
+              <button onClick={() => { setShowAddRehab(false); setRehabForm(emptyRehab); setEditingRehabIdx(null); }} style={{ background: "var(--surface-muted)", border: "none", borderRadius: 8, width: 32, height: 32, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><X size={16} color="var(--text-secondary)" /></button>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+              <div style={{ position: "relative" }}>
+                <label style={{ display: "block", color: "var(--text-dim)", fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Category *</label>
+                <input value={rehabForm.category} placeholder="Start typing or pick from the list..." style={iS}
+                  onChange={e => { setRehabForm(f => ({ ...f, category: e.target.value, canonicalCategory: null })); setCatFocus(true); }}
+                  onFocus={() => setCatFocus(true)} onBlur={() => setTimeout(() => setCatFocus(false), 150)} />
+                {!catFocus && !rehabForm.category && <p style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4, fontStyle: "italic" }}>Pick a standard category or type your own</p>}
+                {rehabForm.canonicalCategory && (
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 4, marginTop: 4, fontSize: 11, fontWeight: 600, color: "#1a7a4a" }}><CheckCircle size={11} /> Standard category</span>
+                )}
+                {catFocus && (() => {
+                  const q = rehabForm.category.toLowerCase().trim();
+                  const canonMatches = REHAB_CATEGORIES.filter(c => !q || c.label.toLowerCase().includes(q));
+                  const customMatches = allCategories.custom.filter(c => !q || c.toLowerCase().includes(q));
+                  const exactCanon = REHAB_CATEGORIES.some(c => c.label.toLowerCase() === q);
+                  const exactCustom = allCategories.custom.some(c => c.toLowerCase() === q);
+                  const showNew = q && !exactCanon && !exactCustom;
+                  const grouped = {};
+                  canonMatches.forEach(c => { if (!grouped[c.group]) grouped[c.group] = []; grouped[c.group].push(c); });
+                  const groupKeys = REHAB_CATEGORY_GROUPS.filter(g => grouped[g] && grouped[g].length > 0);
+                  if (groupKeys.length === 0 && customMatches.length === 0 && !showNew) return null;
+                  return (
+                    <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, boxShadow: "0 8px 24px rgba(0,0,0,0.10)", zIndex: 200, overflow: "hidden", maxHeight: 320, overflowY: "auto" }}>
+                      {groupKeys.map(g => (
+                        <div key={g}>
+                          <div style={{ padding: "8px 14px 4px", fontSize: 10, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em", background: "var(--surface-alt)" }}>{g}</div>
+                          {grouped[g].map(c => (
+                            <button key={c.slug} onMouseDown={() => { setRehabForm(f => ({ ...f, category: c.label, canonicalCategory: c.slug })); setCatFocus(false); }}
+                              style={{ width: "100%", padding: "8px 14px", background: "none", border: "none", borderBottom: "1px solid #f8fafc", textAlign: "left", cursor: "pointer", fontSize: 13, color: "var(--text-primary)", display: "flex", alignItems: "center", gap: 8 }}>
+                              <Wrench size={12} style={{ color: "var(--text-muted)", flexShrink: 0 }} />
+                              <span>{c.label}</span>
+                            </button>
+                          ))}
+                        </div>
+                      ))}
+                      {customMatches.length > 0 && (
+                        <div>
+                          <div style={{ padding: "8px 14px 4px", fontSize: 10, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em", background: "var(--surface-alt)" }}>Your Custom</div>
+                          {customMatches.slice(0, 6).map(c => (
+                            <button key={c} onMouseDown={() => { setRehabForm(f => ({ ...f, category: c, canonicalCategory: null })); setCatFocus(false); }}
+                              style={{ width: "100%", padding: "8px 14px", background: "none", border: "none", borderBottom: "1px solid #f8fafc", textAlign: "left", cursor: "pointer", fontSize: 13, color: "var(--text-primary)", display: "flex", alignItems: "center", gap: 8 }}>
+                              <Wrench size={12} style={{ color: "var(--text-muted)", flexShrink: 0 }} />
+                              <span>{c}</span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                      {showNew && (
+                        <button onMouseDown={() => setCatFocus(false)}
+                          style={{ width: "100%", padding: "10px 14px", display: "flex", alignItems: "center", gap: 8, background: "var(--warning-bg)", border: "none", borderTop: "1px solid var(--border)", cursor: "pointer", textAlign: "left" }}>
+                          <Plus size={13} style={{ color: "#e95e00", flexShrink: 0 }} />
+                          <span style={{ fontSize: 13, color: "#e95e00", fontWeight: 600 }}>Add &ldquo;{rehabForm.category}&rdquo; as custom</span>
+                        </button>
+                      )}
+                    </div>
+                  );
+                })()}
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                <div>
+                  <label style={{ display: "block", color: "var(--text-dim)", fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Budget *</label>
+                  <input value={rehabForm.budgeted} onChange={sfR("budgeted")} type="number" placeholder="18000" style={iS} />
+                </div>
+                <div>
+                  <label style={{ display: "block", color: "var(--text-dim)", fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Spent So Far</label>
+                  <input value={rehabForm.spent} onChange={sfR("spent")} type="number" placeholder="0" style={iS} />
+                </div>
+              </div>
+              <div>
+                <label style={{ display: "block", color: "var(--text-dim)", fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Status</label>
+                <select value={rehabForm.status} onChange={sfR("status")} style={iS}>
+                  <option value="pending">Pending</option>
+                  <option value="in-progress">In Progress</option>
+                  <option value="complete">Complete</option>
+                </select>
+              </div>
+            </div>
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 22 }}>
+              <button onClick={() => { setShowAddRehab(false); setRehabForm(emptyRehab); setEditingRehabIdx(null); }} style={{ padding: "10px 20px", borderRadius: 10, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text-secondary)", fontWeight: 600, fontSize: 14, cursor: "pointer" }}>Cancel</button>
+              <button onClick={async () => {
+                if (!rehabForm.category || !rehabForm.budgeted) return;
+                const canon = rehabForm.canonicalCategory || getCanonicalByLabel(rehabForm.category)?.slug || null;
+                const fields = {
+                  category: rehabForm.category,
+                  slug: canon,
+                  budgeted: parseFloat(rehabForm.budgeted) || 0,
+                  spent: parseFloat(rehabForm.spent) || 0,
+                  status: rehabForm.status,
+                };
+                try {
+                  if (editingRehabIdx !== null) {
+                    const existing = rehabItems[editingRehabIdx];
+                    let saved = existing;
+                    if (existing?.id) saved = await dbUpdateRehabItem(existing.id, fields);
+                    const merged = { ...existing, ...saved, canonicalCategory: canon, contractors: existing?.contractors || [] };
+                    setRehabItems(prev => prev.map((item, idx) => idx === editingRehabIdx ? merged : item));
+                    if (deal.rehabItems && deal.rehabItems[editingRehabIdx]) deal.rehabItems[editingRehabIdx] = merged;
+                    setEditingRehabIdx(null);
+                  } else {
+                    const sortOrder = rehabItems.length;
+                    const saved = await dbCreateRehabItem({ dealId: deal.id, ...fields, sortOrder });
+                    const newItem = { ...saved, canonicalCategory: canon, contractors: [] };
+                    setRehabItems(prev => [...prev, newItem]);
+                    if (deal.rehabItems) deal.rehabItems.push(newItem); else deal.rehabItems = [newItem];
+                  }
+                  setRehabForm(emptyRehab);
+                  setShowAddRehab(false);
+                } catch (e) {
+                  console.error("[PropBooks] Save rehab item failed:", e);
+                  showToast("Couldn't save rehab item — " + (e.message || "unknown error"));
+                }
+              }} style={{ padding: "10px 24px", borderRadius: 10, border: "none", background: "#e95e00", color: "#fff", fontWeight: 600, fontSize: 14, cursor: "pointer", opacity: (!rehabForm.category || !rehabForm.budgeted) ? 0.5 : 1 }}>{editingRehabIdx !== null ? "Save Changes" : "Add Item"}</button>
+            </div>
           </div>
-        )}
-      </div>
+        </div>
       )}
 
       {activeTab === "expenses" && (
@@ -1787,138 +1823,6 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
           </Modal>
         );
       })()}
-      {activeTab === "milestones" && (
-        <div>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-            <div>
-              <p style={{ color: "var(--text-secondary)", fontSize: 14 }}>
-                {doneCount} of {milestones.length} complete
-                {overdueCount > 0 && <span style={{ color: "var(--c-red)", fontWeight: 700 }}> . {overdueCount} overdue</span>}
-              </p>
-            </div>
-            <div style={{ display: "flex", gap: 8 }}>
-              {milestones.some(m => !m.targetDate && !m.done) && (
-                <button onClick={async () => {
-                  // Auto-fill target dates: spread remaining milestones evenly from today to projected close or +90 days
-                  const endDate = deal.projectedCloseDate || deal.closeDate;
-                  const end = endDate ? new Date(endDate) : new Date(Date.now() + 90 * 86400000);
-                  const pending = milestones.map((m, i) => ({ m, i })).filter(({ m }) => !m.done && !m.targetDate);
-                  if (pending.length === 0) return;
-                  const start = new Date();
-                  const interval = (end - start) / (pending.length + 1);
-                  const updated = [...milestones];
-                  const writes = [];
-                  pending.forEach(({ i }, idx) => {
-                    const d = new Date(start.getTime() + interval * (idx + 1));
-                    const targetDate = d.toISOString().split("T")[0];
-                    updated[i] = { ...updated[i], targetDate };
-                    if (updated[i].id) writes.push(dbUpdateMilestone(updated[i].id, { targetDate }));
-                  });
-                  try {
-                    await Promise.all(writes);
-                    setMilestones(updated);
-                    updated.forEach(m => {
-                      const gi = DEAL_MILESTONES.findIndex(x => x.id === m.id);
-                      if (gi !== -1) DEAL_MILESTONES[gi] = { ...DEAL_MILESTONES[gi], targetDate: m.targetDate };
-                    });
-                  } catch (e) {
-                    console.error("[PropBooks] Auto-fill dates failed:", e);
-                    showToast("Couldn't auto-fill dates — " + (e.message || "unknown error"));
-                  }
-                }} style={{ background: "var(--info-tint)", color: "var(--c-blue)", border: "1px solid var(--info-border)", borderRadius: 10, padding: "10px 16px", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
-                  <Calendar size={15} /> Auto-Fill Dates
-                </button>
-              )}
-              <button onClick={() => { setEditingMilestoneId(null); setMilestoneForm(emptyMilestone); setShowMilestoneModal(true); }} style={{ background: "#e95e00", color: "#fff", border: "none", borderRadius: 10, padding: "10px 16px", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
-                <Plus size={15} /> Add Milestone
-              </button>
-            </div>
-          </div>
-          {/* Progress bar */}
-          <div style={{ background: "var(--surface)", borderRadius: 12, padding: "14px 20px", marginBottom: 16, border: "1px solid var(--border-subtle)", display: "flex", alignItems: "center", gap: 16 }}>
-            <div style={{ flex: 1, height: 8, background: "var(--surface-muted)", borderRadius: 99, overflow: "hidden" }}>
-              <div style={{ height: "100%", width: `${milestones.length > 0 ? Math.round((doneCount / milestones.length) * 100) : 0}%`, background: "var(--c-green)", borderRadius: 99, transition: "width 0.3s" }} />
-            </div>
-            <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)", whiteSpace: "nowrap" }}>{milestones.length > 0 ? Math.round((doneCount / milestones.length) * 100) : 0}%</span>
-          </div>
-          {milestones.length === 0 ? (
-            <div style={{ background: "var(--surface)", borderRadius: 16, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)", textAlign: "center", padding: 48, color: "var(--text-muted)" }}>
-              <CheckSquare size={32} style={{ margin: "0 auto 12px", display: "block" }} />
-              <p style={{ fontWeight: 600, marginBottom: 4 }}>No milestones yet</p>
-              <p style={{ fontSize: 13 }}>Add milestones to track your rehab's progress.</p>
-            </div>
-          ) : (
-            <div style={{ background: "var(--surface)", borderRadius: 16, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)", padding: 20 }}>
-              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                {milestones.map((m, i) => {
-                  const overdue = !m.done && m.targetDate && m.targetDate < today;
-                  const isCompleting = completingMsIdx === i;
-                  return isCompleting ? (
-                    <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", borderRadius: 8, background: "var(--success-tint)", border: "1px solid #9fcfb4" }}>
-                      <CheckCircle size={18} color="var(--c-green)" />
-                      <span style={{ fontSize: 13, fontWeight: 500, color: "var(--text-primary)", flex: 1 }}>{m.label}</span>
-                      <span style={{ fontSize: 11, color: "var(--text-secondary)" }}>Completed:</span>
-                      <input type="date" value={msCompletionDate} onChange={e => setMsCompletionDate(e.target.value)} style={{ ...iS, width: 140, padding: "5px 10px", fontSize: 12 }} />
-                      <button onClick={async () => {
-                        const target = milestones[i];
-                        try {
-                          if (target?.id) await dbUpdateMilestone(target.id, { done: true, date: msCompletionDate });
-                          const updated = milestones.map((item, idx) => idx === i ? { ...item, done: true, date: msCompletionDate } : item);
-                          setMilestones(updated);
-                          const gi = DEAL_MILESTONES.findIndex(m => m.id === target?.id);
-                          if (gi !== -1) DEAL_MILESTONES[gi] = { ...DEAL_MILESTONES[gi], done: true, date: msCompletionDate };
-                          setCompletingMsIdx(null);
-                        } catch (e) {
-                          console.error("[PropBooks] Complete milestone failed:", e);
-                          showToast("Couldn't update milestone — " + (e.message || "unknown error"));
-                        }
-                      }} style={{ background: "var(--c-green)", color: "#fff", border: "none", borderRadius: 6, padding: "5px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>Confirm</button>
-                      <button onClick={() => setCompletingMsIdx(null)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)", padding: 0 }}><X size={14} /></button>
-                    </div>
-                  ) : (
-                    <div key={i} onMouseEnter={e => { e.currentTarget.style.background = m.done ? "var(--success-tint)" : overdue ? "var(--danger-tint)" : "var(--surface-muted)"; }} onMouseLeave={e => { e.currentTarget.style.background = m.done ? "var(--success-tint)" : overdue ? "var(--danger-tint)" : "var(--surface-alt)"; }} style={{ display: "flex", alignItems: "center", gap: 12, padding: "8px 10px", borderRadius: 8, background: m.done ? "var(--success-tint)" : overdue ? "var(--danger-tint)" : "var(--surface-alt)", border: `1px solid ${m.done ? "var(--success-border)" : overdue ? "var(--danger-border)" : "var(--border-subtle)"}`, transition: "all 0.15s ease" }}>
-                      <button onClick={async () => {
-                        if (!m.done) {
-                          setCompletingMsIdx(i);
-                          setMsCompletionDate(today);
-                          return;
-                        }
-                        try {
-                          if (m.id) await dbUpdateMilestone(m.id, { done: false, date: null });
-                          const updated = milestones.map((item, idx) => idx === i ? { ...item, done: false, date: null } : item);
-                          setMilestones(updated);
-                          const gi = DEAL_MILESTONES.findIndex(x => x.id === m.id);
-                          if (gi !== -1) DEAL_MILESTONES[gi] = { ...DEAL_MILESTONES[gi], done: false, date: null };
-                        } catch (e) {
-                          console.error("[PropBooks] Uncomplete milestone failed:", e);
-                          showToast("Couldn't update milestone — " + (e.message || "unknown error"));
-                        }
-                      }} style={{ background: "none", border: "none", cursor: "pointer", padding: 0, display: "flex", flexShrink: 0 }}>
-                        {m.done ? <CheckCircle size={18} color="var(--c-green)" /> : <Circle size={18} color={overdue ? "var(--c-red)" : "#cbd5e1"} />}
-                      </button>
-                      <span style={{ flex: 1, fontSize: 13, fontWeight: 500, color: m.done ? "var(--text-secondary)" : "var(--text-primary)", textDecoration: m.done ? "line-through" : "none" }}>{m.label}</span>
-                      {m.targetDate && !m.done && (
-                        <span style={{ fontSize: 11, color: overdue ? "var(--c-red)" : "#94a3b8", fontWeight: overdue ? 600 : 400, flexShrink: 0 }}>
-                          {overdue ? "Overdue: " : "Target: "}{new Date(m.targetDate).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-                        </span>
-                      )}
-                      {m.done && m.date && (
-                        <span style={{ fontSize: 11, color: "var(--c-green)", flexShrink: 0 }}>
-                          {new Date(m.date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-                        </span>
-                      )}
-                      <div style={{ display: "flex", gap: 4, flexShrink: 0, marginLeft: 4 }}>
-                        <button onClick={() => openEditMilestone(m, i)} style={{ background: "var(--surface-muted)", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "var(--text-label)", display: "flex", alignItems: "center" }} title="Edit"><Pencil size={13} /></button>
-                        <button onClick={() => setDeleteConfirm({ type: "milestone", item: m, index: i })} style={{ background: "var(--danger-badge)", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "var(--c-red)", display: "flex", alignItems: "center" }} title="Delete"><Trash2 size={13} /></button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
       {showMilestoneModal && (
         <Modal title={editingMilestoneId !== null ? "Edit Milestone" : "Add Milestone"} onClose={() => { setShowMilestoneModal(false); setEditingMilestoneId(null); setMilestoneForm(emptyMilestone); }}>
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
