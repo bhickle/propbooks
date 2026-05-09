@@ -3,12 +3,10 @@
 // Used by Transactions, PropertyDetail (tx mini-list), and Reports.
 // =============================================================================
 import {
-  X, Tag, Building2, Users, User, MessageSquare, Paperclip, FileText,
-  FileImage, Pencil, Trash2, Hammer, Layers, UserCheck,
+  X, Tag, Building2, Users, User, MessageSquare, Pencil, Trash2,
+  Hammer, Layers, UserCheck,
 } from "lucide-react";
-import {
-  fmt, DEALS, CONTRACTORS, TRANSACTION_RECEIPTS, DEAL_EXPENSE_RECEIPTS,
-} from "../api.js";
+import { fmt, DEALS, CONTRACTORS } from "../api.js";
 import { PROPERTIES, TENANTS } from "../mockData.js";
 
 // ─── Transaction Detail Slide-Over ─────────────────────────────────────────
@@ -16,7 +14,6 @@ export function TxDetailPanel({ tx, onClose, onEdit, onDelete }) {
   if (!tx) return null;
   const property = PROPERTIES.find(p => p.id === tx.propertyId);
   const tenant = tx.tenantId ? TENANTS.find(t => t.id === tx.tenantId) : null;
-  const receipts = TRANSACTION_RECEIPTS.filter(r => r.transactionId === tx.id);
   const isIncome = tx.type === "income";
   const color = isIncome ? "#1a7a4a" : "#c0392b";
   const bgColor = isIncome ? "var(--success-badge)" : "var(--danger-badge)";
@@ -65,37 +62,6 @@ export function TxDetailPanel({ tx, onClose, onEdit, onDelete }) {
               </div>
             </div>
           )}
-          <div>
-            <p style={{ fontSize: 11, fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 12, display: "flex", alignItems: "center", gap: 6 }}>
-              <Paperclip size={12} /> Attachments{receipts.length > 0 && <span style={{ background: "var(--border)", borderRadius: 20, padding: "1px 7px", fontSize: 11, color: "var(--text-label)", marginLeft: 2 }}>{receipts.length}</span>}
-            </p>
-            {receipts.length === 0 ? (
-              <div style={{ background: "var(--surface-alt)", border: "1px dashed var(--border)", borderRadius: 12, padding: "28px 20px", textAlign: "center" }}>
-                <Paperclip size={20} color="#cbd5e1" style={{ display: "block", margin: "0 auto 8px" }} />
-                <p style={{ fontSize: 13, color: "var(--text-muted)" }}>No receipts attached</p>
-              </div>
-            ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                {receipts.map(r => (
-                  <div key={r.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", background: "var(--surface-alt)", borderRadius: 10, border: "1px solid var(--border)" }}>
-                    <div style={{ width: 36, height: 36, borderRadius: 8, background: r.mimeType?.includes("pdf") ? "var(--danger-badge)" : "var(--info-tint)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                      {r.mimeType?.includes("pdf") ? <FileText size={16} color="var(--c-red)" /> : <FileImage size={16} color="var(--c-blue)" />}
-                    </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)", marginBottom: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.name}</p>
-                      <p style={{ fontSize: 11, color: "var(--text-muted)" }}>{r.size}</p>
-                    </div>
-                    {r.ocrData && (
-                      <div style={{ textAlign: "right", flexShrink: 0 }}>
-                        <p style={{ fontSize: 11, color: "var(--text-secondary)", marginBottom: 1 }}>{r.ocrData.vendor}</p>
-                        <p style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)" }}>{fmt(r.ocrData.amount)}</p>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
         </div>
         <div style={{ padding: "18px 28px", borderTop: "1px solid var(--border-subtle)", display: "flex", gap: 10, background: "var(--surface)" }}>
           <button onClick={() => { onClose(); onEdit(tx); }} style={{ flex: 1, padding: "11px 0", background: "var(--surface-muted)", border: "none", borderRadius: 10, cursor: "pointer", fontSize: 14, fontWeight: 600, color: "var(--text-label)", display: "flex", alignItems: "center", justifyContent: "center", gap: 7 }}><Pencil size={14} /> Edit</button>
@@ -112,7 +78,6 @@ export function ExpDetailPanel({ exp, onClose, onEdit, onDelete }) {
   const deal = DEALS.find(d => d.id === exp.dealId);
   const contractor = CONTRACTORS.find(c => c.id === exp.contractorId);
   const rehabItem = (exp.rehabItemIdx != null && deal?.rehabItems) ? deal.rehabItems[exp.rehabItemIdx] : null;
-  const receipts = DEAL_EXPENSE_RECEIPTS.filter(r => r.expenseId === exp.id);
   const isPaid = (exp.status || "paid") === "paid";
   return (
     <>
@@ -177,37 +142,6 @@ export function ExpDetailPanel({ exp, onClose, onEdit, onDelete }) {
                   <p style={{ fontSize: 14, color: "var(--text-primary)", fontWeight: 500 }}>{contractor.name}</p>
                   {contractor.trade && <p style={{ fontSize: 12, color: "var(--text-secondary)" }}>{contractor.trade}</p>}
                 </div>
-              </div>
-            )}
-          </div>
-          <div>
-            <p style={{ fontSize: 11, fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 12, display: "flex", alignItems: "center", gap: 6 }}>
-              <Paperclip size={12} /> Attachments{receipts.length > 0 && <span style={{ background: "var(--border)", borderRadius: 20, padding: "1px 7px", fontSize: 11, color: "var(--text-label)", marginLeft: 2 }}>{receipts.length}</span>}
-            </p>
-            {receipts.length === 0 ? (
-              <div style={{ background: "var(--surface-alt)", border: "1px dashed var(--border)", borderRadius: 12, padding: "28px 20px", textAlign: "center" }}>
-                <Paperclip size={20} color="#cbd5e1" style={{ display: "block", margin: "0 auto 8px" }} />
-                <p style={{ fontSize: 13, color: "var(--text-muted)" }}>No receipts attached</p>
-              </div>
-            ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                {receipts.map(r => (
-                  <div key={r.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", background: "var(--surface-alt)", borderRadius: 10, border: "1px solid var(--border)" }}>
-                    <div style={{ width: 36, height: 36, borderRadius: 8, background: r.mimeType?.includes("pdf") ? "var(--danger-badge)" : "var(--warning-bg)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                      {r.mimeType?.includes("pdf") ? <FileText size={16} color="var(--c-red)" /> : <FileImage size={16} color="#e95e00" />}
-                    </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)", marginBottom: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.name}</p>
-                      <p style={{ fontSize: 11, color: "var(--text-muted)" }}>{r.size}</p>
-                    </div>
-                    {r.ocrData && (
-                      <div style={{ textAlign: "right", flexShrink: 0 }}>
-                        <p style={{ fontSize: 11, color: "var(--text-secondary)", marginBottom: 1 }}>{r.ocrData.vendor}</p>
-                        <p style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)" }}>{fmt(r.ocrData.amount)}</p>
-                      </div>
-                    )}
-                  </div>
-                ))}
               </div>
             )}
           </div>

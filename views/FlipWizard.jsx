@@ -1,8 +1,7 @@
 // =============================================================================
 // FlipWizard — guided 4-step flow for adding a fix-and-rehab:
-// Deal Info → Financials → Rehab Scope → Review.
-// Mutates DEALS in place on submit. Seeds DEFAULT_MILESTONES into
-// _LOCAL_FLIP_MILESTONES for the new deal.
+// Rehab Info → Financials → Rehab Scope → Review.
+// Persists deal + rehab items + DEFAULT_MILESTONES via Supabase.
 // =============================================================================
 import { useState, useMemo } from "react";
 import { DollarSign, TrendingUp, Hammer, Wrench, Plus, X } from "lucide-react";
@@ -11,7 +10,6 @@ import {
   REHAB_CATEGORIES, REHAB_CATEGORY_GROUPS, REHAB_TEMPLATES,
   getCanonicalBySlug, getCanonicalByLabel,
 } from "../api.js";
-import { _LOCAL_FLIP_MILESTONES } from "../mockData.js";
 import { useToast } from "../toast.jsx";
 import { WizardShell, WizardNav, WizardField, wizardInput, wizardSelect } from "./wizardPrimitives.jsx";
 import { createDeal } from "../db/deals.js";

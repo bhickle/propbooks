@@ -11,7 +11,7 @@ import { useState, useRef } from "react";
 import {
   UploadCloud, Loader, FileText, FileImage, X, ScanLine, Star, FilePlus, Trash2, ExternalLink,
 } from "lucide-react";
-import { newId, mockOcrScan } from "../api.js";
+import { newId } from "../api.js";
 import { iS } from "../shared.jsx";
 import { getDocumentUrl } from "../db/documents.js";
 

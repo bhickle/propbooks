@@ -14,6 +14,10 @@ import { InfoTip, sectionS as sharedSectionS, cardS as sharedCardS } from "../sh
 import { useToast } from "../toast.jsx";
 import { createDealNote as dbCreateDealNote, deleteNote as dbDeleteNote } from "../db/notes.js";
 import { updateRehabItem as dbUpdateRehabItem } from "../db/dealRehabItems.js";
+import {
+  createContractorBid as dbCreateContractorBid,
+  deleteContractorBid as dbDeleteContractorBid,
+} from "../db/contractorBids.js";
 
 export function RehabItemDetail({ deal, itemIdx, onBack, backLabel, onNavigateToContractor, onNavigateToExpense }) {
   const { showToast } = useToast();
@@ -102,15 +106,33 @@ export function RehabItemDetail({ deal, itemIdx, onBack, backLabel, onNavigateTo
     }
   };
 
-  const addContractor = (conId) => {
+  const addContractor = async (conId) => {
     const cons = item.contractors || [];
     if (cons.some(c => c.id === conId)) return;
-    deal.rehabItems[itemIdx] = { ...item, contractors: [...cons, { id: conId, bid: 0 }] };
-    bump();
+    try {
+      const saved = await dbCreateContractorBid({ contractorId: conId, dealId: deal.id, rehabItem: item.category, amount: 0, status: "pending", date: new Date().toISOString().slice(0, 10) });
+      CONTRACTOR_BIDS.push(saved);
+      deal.rehabItems[itemIdx] = { ...item, contractors: [...cons, { id: conId, bid: 0 }] };
+      bump();
+    } catch (e) {
+      console.error("[PropBooks] Assign contractor to scope failed:", e);
+      showToast("Couldn't assign contractor — " + (e.message || "unknown error"));
+    }
   };
-  const removeContractor = (conId) => {
-    deal.rehabItems[itemIdx] = { ...item, contractors: (item.contractors || []).filter(c => c.id !== conId) };
-    bump();
+  const removeContractor = async (conId) => {
+    const matchingBids = CONTRACTOR_BIDS.filter(b => b.contractorId === conId && b.dealId === deal.id && b.rehabItem === item.category);
+    try {
+      for (const b of matchingBids) await dbDeleteContractorBid(b.id);
+      for (const b of matchingBids) {
+        const gi = CONTRACTOR_BIDS.findIndex(x => x.id === b.id);
+        if (gi !== -1) CONTRACTOR_BIDS.splice(gi, 1);
+      }
+      deal.rehabItems[itemIdx] = { ...item, contractors: (item.contractors || []).filter(c => c.id !== conId) };
+      bump();
+    } catch (e) {
+      console.error("[PropBooks] Remove contractor from scope failed:", e);
+      showToast("Couldn't remove contractor — " + (e.message || "unknown error"));
+    }
   };
 
   const addNote = async () => {

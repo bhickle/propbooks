@@ -448,17 +448,6 @@ export const MAINTENANCE_REQUESTS = [
   { id: 4006, tenantId: 8, propertyId: 5, title: "Commercial hood vent inspection", description: "Annual hood vent cleaning and inspection due per lease", priority: "medium", status: "open", createdAt: "2026-04-01T10:00:00Z", scheduledDate: null, resolvedDate: null, cost: null, vendor: null },
 ];
 
-// ── Receipt / attachment records on transactions and expenses ──
-export const TRANSACTION_RECEIPTS = [
-  { id: 701, transactionId: 3, name: "HVAC_repair_receipt.jpg", mimeType: "image/jpeg", size: "1.4 MB", url: null, ocrData: { vendor: "AirPro HVAC Services", amount: 420, date: "2026-03-18" }, createdAt: "2026-03-18T11:30:00Z", userId: "usr_001" },
-  { id: 702, transactionId: 8, name: "StateFarm_Q1_invoice.pdf", mimeType: "application/pdf", size: "380 KB", url: null, ocrData: null, createdAt: "2026-03-05T14:00:00Z", userId: "usr_001" },
-];
-
-export const DEAL_EXPENSE_RECEIPTS = [
-  { id: 801, expenseId: 1, name: "HomeDepot_flooring_receipt.jpg", mimeType: "image/jpeg", size: "2.1 MB", url: null, ocrData: { vendor: "Home Depot", amount: 2890, date: "2026-03-18" }, createdAt: "2026-03-18T12:00:00Z", userId: "usr_001" },
-  { id: 802, expenseId: 4, name: "Nashville_permit_receipt.pdf", mimeType: "application/pdf", size: "156 KB", url: null, ocrData: null, createdAt: "2026-03-04T15:00:00Z", userId: "usr_001" },
-];
-
 export const DEAL_MILESTONES = [
   // Deal 1 milestones (id 3001-3012)
   { id: 3001, dealId: 1, label: "Contract Executed", done: true, date: "2026-01-06", createdAt:"2026-01-06T09:00:00Z", updatedAt:"2026-01-06T09:00:00Z", userId:"usr_001" },
@@ -574,8 +563,6 @@ export function clearDemoData() {
   DEAL_DOCUMENTS.length     = 0;
   TENANT_DOCUMENTS.length   = 0;
   MAINTENANCE_REQUESTS.length=0;
-  TRANSACTION_RECEIPTS.length=0;
-  DEAL_EXPENSE_RECEIPTS.length=0;
   RENTAL_NOTES.length       = 0;
   DEAL_NOTES.length         = 0;
   GENERAL_NOTES.length      = 0;
@@ -713,8 +700,6 @@ const _snap = {
   dealDocuments:        JSON.parse(JSON.stringify(DEAL_DOCUMENTS)),
   tenantDocuments:      JSON.parse(JSON.stringify(TENANT_DOCUMENTS)),
   maintenanceRequests:  JSON.parse(JSON.stringify(MAINTENANCE_REQUESTS)),
-  transactionReceipts:  JSON.parse(JSON.stringify(TRANSACTION_RECEIPTS)),
-  dealExpenseReceipts:  JSON.parse(JSON.stringify(DEAL_EXPENSE_RECEIPTS)),
   rentalNotes:          JSON.parse(JSON.stringify(RENTAL_NOTES)),
   dealNotes:            JSON.parse(JSON.stringify(DEAL_NOTES)),
   generalNotes:         JSON.parse(JSON.stringify(GENERAL_NOTES)),
@@ -741,8 +726,6 @@ export function restoreDemoData() {
   refill(DEAL_DOCUMENTS,       _snap.dealDocuments);
   refill(TENANT_DOCUMENTS,     _snap.tenantDocuments);
   refill(MAINTENANCE_REQUESTS, _snap.maintenanceRequests);
-  refill(TRANSACTION_RECEIPTS, _snap.transactionReceipts);
-  refill(DEAL_EXPENSE_RECEIPTS,_snap.dealExpenseReceipts);
   refill(RENTAL_NOTES,         _snap.rentalNotes);
   refill(DEAL_NOTES,           _snap.dealNotes);
   refill(GENERAL_NOTES,        _snap.generalNotes);
@@ -816,52 +799,3 @@ export function getMaintenanceRequests(tenantId) { return MAINTENANCE_REQUESTS.f
 export function addMaintenanceRequest(r) { MAINTENANCE_REQUESTS.push(r); return r; }
 export function updateMaintenanceRequest(id, updates) { const i = MAINTENANCE_REQUESTS.findIndex(r => r.id === id); if (i !== -1) Object.assign(MAINTENANCE_REQUESTS[i], updates); return MAINTENANCE_REQUESTS[i]; }
 
-export function getTransactionReceipts(transactionId) { return TRANSACTION_RECEIPTS.filter(r => r.transactionId === transactionId); }
-export function addTransactionReceipt(r) { TRANSACTION_RECEIPTS.push(r); return r; }
-export function deleteTransactionReceipt(id) { const i = TRANSACTION_RECEIPTS.findIndex(r => r.id === id); if (i !== -1) TRANSACTION_RECEIPTS.splice(i, 1); }
-
-export function getDealExpenseReceipts(expenseId) { return DEAL_EXPENSE_RECEIPTS.filter(r => r.expenseId === expenseId); }
-export function addDealExpenseReceipt(r) { DEAL_EXPENSE_RECEIPTS.push(r); return r; }
-export function deleteDealExpenseReceipt(id) { const i = DEAL_EXPENSE_RECEIPTS.findIndex(r => r.id === id); if (i !== -1) DEAL_EXPENSE_RECEIPTS.splice(i, 1); }
-
-// ── Mock OCR — simulates receipt scanning ────────────────────────────────────
-// In production, replace with Google Cloud Vision / AWS Textract API call.
-// Returns a promise that resolves with extracted fields after a simulated delay.
-export async function mockOcrScan(file) {
-  await new Promise(r => setTimeout(r, 1200)); // simulate processing time
-  // Generate plausible receipt data based on filename hints
-  const name = (file.name || "").toLowerCase();
-  const vendors = {
-    homedepot: { vendor: "Home Depot", categories: ["Materials & Supplies"] },
-    lowes:     { vendor: "Lowe's", categories: ["Materials & Supplies"] },
-    sherwin:   { vendor: "Sherwin-Williams", categories: ["Materials & Supplies"] },
-    statefarm: { vendor: "State Farm", categories: ["Insurance"] },
-    hvac:      { vendor: "AirPro HVAC Services", categories: ["Maintenance"] },
-    plumbing:  { vendor: "ABC Plumbing", categories: ["Maintenance"] },
-    permit:    { vendor: "City Permits Office", categories: ["Permits"] },
-    electric:  { vendor: "Elite Electric", categories: ["Utilities"] },
-  };
-  let match = null;
-  for (const [key, val] of Object.entries(vendors)) {
-    if (name.includes(key)) { match = val; break; }
-  }
-  if (!match) {
-    // Fallback: generate generic receipt data
-    const genericVendors = ["Home Depot", "Lowe's", "Ace Hardware", "Menards", "Harbor Freight"];
-    match = { vendor: genericVendors[Math.floor(Math.random() * genericVendors.length)], categories: ["Materials & Supplies"] };
-  }
-  const amount = parseFloat((Math.random() * 500 + 20).toFixed(2));
-  const today = new Date().toISOString().slice(0, 10);
-  return {
-    vendor: match.vendor,
-    amount,
-    date: today,
-    category: match.categories[0],
-    tax: parseFloat((amount * 0.0825).toFixed(2)),
-    subtotal: parseFloat((amount - amount * 0.0825).toFixed(2)),
-    confidence: 0.87 + Math.random() * 0.12, // 87-99% confidence
-    lineItems: [
-      { description: "Item from receipt", qty: 1, amount },
-    ],
-  };
-}

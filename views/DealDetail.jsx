@@ -30,7 +30,9 @@ import { daysAgo } from "../health.js";
 import { DocumentsPanel } from "./Attachments.jsx";
 import { StageBadge, RehabProgress } from "./DealPipeline.jsx";
 import {
-  deleteDeal as dbDeleteDeal, updateDeal as dbUpdateDeal,
+  createDeal as dbCreateDeal,
+  deleteDeal as dbDeleteDeal,
+  updateDeal as dbUpdateDeal,
 } from "../db/deals.js";
 import {
   createContractor as dbCreateContractor,
@@ -62,6 +64,10 @@ import {
   deleteRehabItem as dbDeleteRehabItem,
 } from "../db/dealRehabItems.js";
 import { createContractorPayment as dbCreateContractorPayment } from "../db/contractorPayments.js";
+import {
+  createContractorBid as dbCreateContractorBid,
+  deleteContractorBid as dbDeleteContractorBid,
+} from "../db/contractorBids.js";
 
 // Fire-and-forget DB sync for legacy sync handlers that mutate DEALS in place.
 // The optimistic in-memory mutation has already happened; this just persists.
@@ -120,7 +126,7 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
   const [completingMsIdx, setCompletingMsIdx] = useState(null);
   const [msCompletionDate, setMsCompletionDate] = useState(new Date().toISOString().split("T")[0]);
   const [showAddRehab, setShowAddRehab] = useState(false);
-  const emptyRehab = { category: "", canonicalCategory: null, budgeted: "", spent: "0", status: "pending", photos: [] };
+  const emptyRehab = { category: "", canonicalCategory: null, budgeted: "", spent: "0", status: "pending" };
   const [rehabForm, setRehabForm] = useState(emptyRehab);
   const sfR = k => e => setRehabForm(f => ({ ...f, [k]: e.target.value }));
   const [catFocus, setCatFocus] = useState(false);
@@ -138,36 +144,55 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
   const [rehabVersion, setRehabVersion] = useState(0);
   const bumpRehab = () => setRehabVersion(v => v + 1);
   const dealContractorsList = useMemo(() => CONTRACTORS.filter(c => (c.dealIds || []).includes(deal.id)), [deal.id, conData]); // eslint-disable-line react-hooks/exhaustive-deps -- conData is the cache-bust counter for CONTRACTORS
-  const addContractorToRehabItem = (itemIdx, contractorId) => {
+  const addContractorToRehabItem = async (itemIdx, contractorId) => {
     const item = rehabItems[itemIdx];
     if (!item) return;
     const cons = item.contractors || [];
     if (cons.some(c => c.id === contractorId)) return;
-    const next = [...rehabItems];
-    next[itemIdx] = { ...item, contractors: [...cons, { id: contractorId, bid: 0 }] };
-    setRehabItems(next);
-    if (deal.rehabItems && deal.rehabItems[itemIdx]) deal.rehabItems[itemIdx].contractors = next[itemIdx].contractors;
-    bumpRehab();
+    try {
+      const saved = await dbCreateContractorBid({ contractorId, dealId: deal.id, rehabItem: item.category, amount: 0, status: "pending", date: new Date().toISOString().slice(0, 10) });
+      CONTRACTOR_BIDS.push(saved);
+      const next = [...rehabItems];
+      next[itemIdx] = { ...item, contractors: [...cons, { id: contractorId, bid: 0 }] };
+      setRehabItems(next);
+      if (deal.rehabItems && deal.rehabItems[itemIdx]) deal.rehabItems[itemIdx].contractors = next[itemIdx].contractors;
+      bumpRehab();
+    } catch (e) {
+      console.error("[PropBooks] Add contractor to rehab item failed:", e);
+      showToast("Couldn't assign contractor — " + (e.message || "unknown error"));
+    }
   };
-  const removeContractorFromRehabItem = (itemIdx, contractorId) => {
+  const removeContractorFromRehabItem = async (itemIdx, contractorId) => {
     const item = rehabItems[itemIdx];
     if (!item) return;
-    const next = [...rehabItems];
-    next[itemIdx] = { ...item, contractors: (item.contractors || []).filter(c => c.id !== contractorId) };
-    setRehabItems(next);
-    if (deal.rehabItems && deal.rehabItems[itemIdx]) deal.rehabItems[itemIdx].contractors = next[itemIdx].contractors;
-    bumpRehab();
+    const matchingBids = CONTRACTOR_BIDS.filter(b => b.contractorId === contractorId && b.dealId === deal.id && b.rehabItem === item.category);
+    try {
+      for (const b of matchingBids) await dbDeleteContractorBid(b.id);
+      for (const b of matchingBids) {
+        const gi = CONTRACTOR_BIDS.findIndex(x => x.id === b.id);
+        if (gi !== -1) CONTRACTOR_BIDS.splice(gi, 1);
+      }
+      const next = [...rehabItems];
+      next[itemIdx] = { ...item, contractors: (item.contractors || []).filter(c => c.id !== contractorId) };
+      setRehabItems(next);
+      if (deal.rehabItems && deal.rehabItems[itemIdx]) deal.rehabItems[itemIdx].contractors = next[itemIdx].contractors;
+      bumpRehab();
+    } catch (e) {
+      console.error("[PropBooks] Remove contractor from rehab item failed:", e);
+      showToast("Couldn't remove contractor — " + (e.message || "unknown error"));
+    }
   };
   // Option 2 — single "Assigned To" per rehab line item with typeahead + Add-new button
   const [assignTA, setAssignTA] = useState({ rowIdx: null, query: "" });
   const [pendingAssignRowIdx, setPendingAssignRowIdx] = useState(null);
-  const assignContractorToRow = (itemIdx, contractorId) => {
-    // Auto-attach to this rehab if not already
+  const assignContractorToRow = async (itemIdx, contractorId) => {
+    // Auto-attach contractor to this deal if not already linked
     const gi = CONTRACTORS.findIndex(c => c.id === contractorId);
     if (gi !== -1) {
       const ids = CONTRACTORS[gi].dealIds || [];
       if (!ids.includes(deal.id)) {
         CONTRACTORS[gi] = { ...CONTRACTORS[gi], dealIds: [...ids, deal.id] };
+        try { await dbLinkContractorToDeal(contractorId, deal.id); } catch (e) { console.error("[PropBooks] link contractor failed:", e); }
         setConData(prev => prev.some(c => c.id === contractorId) ? prev : [...prev, CONTRACTORS[gi]]);
       }
     }
@@ -178,11 +203,7 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
       setAssignTA({ rowIdx: null, query: "" });
       return;
     }
-    const next = [...rehabItems];
-    next[itemIdx] = { ...item, contractors: [...existing, { id: contractorId, bid: 0 }] };
-    setRehabItems(next);
-    if (deal.rehabItems && deal.rehabItems[itemIdx]) deal.rehabItems[itemIdx].contractors = next[itemIdx].contractors;
-    bumpRehab();
+    await addContractorToRehabItem(itemIdx, contractorId);
     setAssignTA({ rowIdx: null, query: "" });
   };
   // Open the Add Contractor modal from a rehab row's typeahead.
@@ -202,7 +223,7 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
   const [showCloseDeal, setShowCloseDeal] = useState(false);
   const [showReopenConfirm, setShowReopenConfirm] = useState(false);
   const [closeDealStep, setCloseDealStep] = useState("choose"); // "choose" | "sold" | "convert"
-  const [closeForm, setCloseForm] = useState({ salePrice: "", closeDate: "", sellingCosts: "", buyerCredit: "", closingNotes: "" });
+  const [closeForm, setCloseForm] = useState({ salePrice: "", closeDate: "", sellingCosts: "", closingNotes: "" });
   const sfClose = k => e => setCloseForm(f => ({ ...f, [k]: e.target.value }));
 
   // Expense tab filters
@@ -365,7 +386,7 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
   const [editingRehabIdx, setEditingRehabIdx] = useState(null);
   const openEditRehab = (item, idx) => {
     setEditingRehabIdx(idx);
-    setRehabForm({ category: item.category, canonicalCategory: item.canonicalCategory || getCanonicalByLabel(item.category)?.slug || null, budgeted: String(item.budgeted), spent: String(item.spent), status: item.status, photos: item.photos || [] });
+    setRehabForm({ category: item.category, canonicalCategory: item.canonicalCategory || getCanonicalByLabel(item.category)?.slug || null, budgeted: String(item.budgeted), spent: String(item.spent), status: item.status });
     setShowAddRehab(true);
   };
 
@@ -458,37 +479,38 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
     }
   };
 
-  // Push a bid into the shared CONTRACTOR_BIDS store. Returns the new bid.
-  const pushContractorBid = (contractorId, rehabItem, canonicalCategory, amount) => {
+  // Persist a bid via dbCreateContractorBid and reflect it in the local
+  // CONTRACTOR_BIDS mirror + the matching rehab item's contractors[].
+  const pushContractorBid = async (contractorId, rehabItem, canonicalCategory, amount) => {
     const amt = parseFloat(amount) || 0;
     if (!contractorId || !rehabItem || !amt) return null;
-    const newBid = {
-      id: newId(),
-      contractorId,
-      dealId: deal.id,
-      rehabItem,
-      canonicalCategory: canonicalCategory || null,
-      amount: amt,
-      status: "pending",
-      date: new Date().toISOString().slice(0, 10),
-    };
-    CONTRACTOR_BIDS.push(newBid);
-    // Also wire the contractor into the matching rehab item's contractors[] if we can match
-    const matchingIdx = rehabItems.findIndex(ri =>
-      (canonicalCategory && ri.canonicalCategory === canonicalCategory) ||
-      ri.category === rehabItem
-    );
-    if (matchingIdx !== -1) {
-      const existing = rehabItems[matchingIdx].contractors || [];
-      if (!existing.some(c => c.id === contractorId)) {
-        const updatedContractors = [...existing, { id: contractorId, bid: amt }];
-        setRehabItems(prev => prev.map((it, i) => i === matchingIdx ? { ...it, contractors: updatedContractors } : it));
-        if (deal.rehabItems && deal.rehabItems[matchingIdx]) {
-          deal.rehabItems[matchingIdx] = { ...deal.rehabItems[matchingIdx], contractors: updatedContractors };
+    try {
+      const saved = await dbCreateContractorBid({
+        contractorId, dealId: deal.id, rehabItem, amount: amt,
+        status: "pending", date: new Date().toISOString().slice(0, 10),
+      });
+      CONTRACTOR_BIDS.push(saved);
+      // Reflect in the matching rehab item's contractors[] if we can match
+      const matchingIdx = rehabItems.findIndex(ri =>
+        (canonicalCategory && ri.canonicalCategory === canonicalCategory) ||
+        ri.category === rehabItem
+      );
+      if (matchingIdx !== -1) {
+        const existing = rehabItems[matchingIdx].contractors || [];
+        if (!existing.some(c => c.id === contractorId)) {
+          const updatedContractors = [...existing, { id: contractorId, bid: amt }];
+          setRehabItems(prev => prev.map((it, i) => i === matchingIdx ? { ...it, contractors: updatedContractors } : it));
+          if (deal.rehabItems && deal.rehabItems[matchingIdx]) {
+            deal.rehabItems[matchingIdx] = { ...deal.rehabItems[matchingIdx], contractors: updatedContractors };
+          }
         }
       }
+      return saved;
+    } catch (e) {
+      console.error("[PropBooks] Save bid failed:", e);
+      showToast("Couldn't save bid — " + (e.message || "unknown error"));
+      return null;
     }
-    return newBid;
   };
 
   const handleSaveCon = async () => {
@@ -518,12 +540,7 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
           const idx = pendingAssignRowIdx;
           const item = rehabItems[idx];
           if (item) {
-            const existing = item.contractors || [];
-            const next = [...rehabItems];
-            next[idx] = { ...item, contractors: [...existing, { id: newCon.id, bid: 0 }] };
-            setRehabItems(next);
-            if (deal.rehabItems && deal.rehabItems[idx]) deal.rehabItems[idx].contractors = next[idx].contractors;
-            bumpRehab();
+            await addContractorToRehabItem(idx, newCon.id);
           }
           setPendingAssignRowIdx(null);
         }
@@ -537,14 +554,14 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
   };
 
   // Attach an existing contractor from the global CONTRACTORS list to this rehab
-  const attachExistingContractor = (conId) => {
+  const attachExistingContractor = async (conId) => {
     const gi = CONTRACTORS.findIndex(c => c.id === conId);
     if (gi === -1) return;
     const existing = CONTRACTORS[gi];
     const ids = existing.dealIds || [];
     if (!ids.includes(deal.id)) {
       CONTRACTORS[gi] = { ...existing, dealIds: [...ids, deal.id] };
-      dbLinkContractorToDeal(conId, deal.id).catch(e => console.error("[PropBooks] link contractor failed:", e));
+      try { await dbLinkContractorToDeal(conId, deal.id); } catch (e) { console.error("[PropBooks] link contractor failed:", e); }
     }
     setConData(prev => prev.some(c => c.id === conId) ? prev : [...prev, CONTRACTORS[gi]]);
     // If this Add was opened from a rehab row's typeahead, also assign to that row
@@ -554,11 +571,7 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
       if (item) {
         const existingCons = item.contractors || [];
         if (!existingCons.some(c => c.id === conId)) {
-          const next = [...rehabItems];
-          next[idx] = { ...item, contractors: [...existingCons, { id: conId, bid: 0 }] };
-          setRehabItems(next);
-          if (deal.rehabItems && deal.rehabItems[idx]) deal.rehabItems[idx].contractors = next[idx].contractors;
-          bumpRehab();
+          await addContractorToRehabItem(idx, conId);
         }
       }
       setPendingAssignRowIdx(null);
@@ -575,7 +588,7 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
     if (newStage === "Sold") {
       // Intercept — open Close Rehab modal at the "sold" step
       const estSellingCosts = Math.round((deal.arv || 0) * ((deal.sellingCostPct || 6) / 100));
-      setCloseForm({ salePrice: String(deal.arv || ""), closeDate: today, sellingCosts: String(estSellingCosts || ""), buyerCredit: "", closingNotes: "" });
+      setCloseForm({ salePrice: String(deal.arv || ""), closeDate: today, sellingCosts: String(estSellingCosts || ""), closingNotes: "" });
       setCloseDealStep("sold");
       setShowCloseDeal(true);
       return;
@@ -700,24 +713,45 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
           </div>
           <div style={{ textAlign: "right" }}>
             <div style={{ display: "flex", gap: 6, marginBottom: 8, justifyContent: "flex-end" }}>
-              <button onClick={() => {
+              <button onClick={async () => {
                 const initials = deal.name.split(/\s+/).map(w => w[0]).join("").toUpperCase().slice(0, 2);
                 const colors = ["#e95e00", "var(--c-blue)", "var(--c-green)", "var(--c-purple)", "var(--c-red)", "#ec4899"];
-                const cloned = {
-                  id: newId(), name: deal.name + " (Copy)", address: "", stage: "Under Contract",
-                  image: initials, color: colors[DEALS.length % colors.length],
-                  purchasePrice: 0, arv: deal.arv, rehabBudget: deal.rehabBudget, rehabSpent: 0,
-                  holdingCostsPerMonth: deal.holdingCostsPerMonth, daysOwned: 0,
-                  rehabItems: rehabItems.map(r => ({ category: r.category, budgeted: r.budgeted, spent: 0, status: "pending", contractors: [], photos: [] })),
-                };
-                DEALS.push(cloned);
-                _LOCAL_FLIP_MILESTONES[cloned.id] = milestones.map(m => ({ label: m.label, done: false, date: null, targetDate: null }));
-                if (setAllFlips) setAllFlips([...DEALS]);
-                if (onDealUpdated) onDealUpdated();
-                showToast(`"${cloned.name}" created`);
-                if (onNavigateToDeal) onNavigateToDeal(cloned);
+                const color = colors[DEALS.length % colors.length];
+                try {
+                  const savedDeal = await dbCreateDeal({
+                    name: deal.name + " (Copy)", address: "", stage: "Under Contract",
+                    image: initials,
+                    purchasePrice: 0, arv: deal.arv, rehabBudget: deal.rehabBudget, rehabSpent: 0,
+                    holdingCostsPerMonth: deal.holdingCostsPerMonth, daysOwned: 0,
+                  });
+                  const savedItems = await Promise.all(
+                    rehabItems.map((r, sort_order) => dbCreateRehabItem({
+                      dealId: savedDeal.id,
+                      category: r.category,
+                      slug: r.canonicalCategory || null,
+                      budgeted: r.budgeted, spent: 0,
+                      status: "pending", sortOrder: sort_order,
+                    }))
+                  );
+                  const savedMilestones = await Promise.all(
+                    milestones.map((m, idx) => dbCreateMilestone({
+                      dealId: savedDeal.id, label: m.label,
+                      done: false, date: null, targetDate: null, sortOrder: idx,
+                    }))
+                  );
+                  const cloned = { ...savedDeal, color, rehabItems: savedItems.map(it => ({ ...it, contractors: [] })) };
+                  DEALS.push(cloned);
+                  DEAL_MILESTONES.push(...savedMilestones);
+                  if (setAllFlips) setAllFlips([...DEALS]);
+                  if (onDealUpdated) onDealUpdated();
+                  showToast(`"${cloned.name}" created`);
+                  if (onNavigateToDeal) onNavigateToDeal(cloned);
+                } catch (e) {
+                  console.error("[PropBooks] Clone rehab failed:", e);
+                  showToast("Couldn't clone rehab — " + (e.message || "unknown error"));
+                }
               }} style={{ background: "rgba(255,255,255,0.7)", border: "1px solid rgba(0,0,0,0.08)", borderRadius: 8, padding: "6px 12px", fontSize: 12, fontWeight: 600, color: "var(--text-label)", cursor: "pointer", display: "flex", alignItems: "center", gap: 5 }}>
-                <Copy size={12} /> Clone Deal
+                <Copy size={12} /> Clone Rehab
               </button>
               <button onClick={openEditDeal} style={{ background: "rgba(255,255,255,0.7)", border: "1px solid rgba(0,0,0,0.08)", borderRadius: 8, padding: "6px 12px", fontSize: 12, fontWeight: 600, color: "var(--text-label)", cursor: "pointer", display: "flex", alignItems: "center", gap: 5 }}>
                 <Pencil size={12} /> Edit Rehab
@@ -747,7 +781,7 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
                   <button onClick={() => {
                     const rehabSpent = (rehabItems || []).reduce((s, i) => s + (i.spent || 0), 0);
                     const estSellingCosts = Math.round((deal.arv || 0) * ((deal.sellingCostPct || 6) / 100));
-                    setCloseForm({ salePrice: String(deal.arv || ""), closeDate: today, sellingCosts: String(estSellingCosts || ""), buyerCredit: "", closingNotes: "" });
+                    setCloseForm({ salePrice: String(deal.arv || ""), closeDate: today, sellingCosts: String(estSellingCosts || ""), closingNotes: "" });
                     setCloseDealStep("choose");
                     setShowCloseDeal(true);
                   }} style={{ background: "#e95e00", border: "none", borderRadius: 8, padding: "6px 12px", fontSize: 12, fontWeight: 600, color: "#fff", cursor: "pointer", display: "flex", alignItems: "center", gap: 5 }}>
@@ -962,7 +996,7 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
                   <button key={tpl.id} onClick={() => {
                     const seeded = tpl.items.map(i => {
                       const canon = getCanonicalBySlug(i.slug);
-                      return { category: canon?.label || i.slug, canonicalCategory: i.slug, budgeted: i.budgeted || 0, spent: 0, status: "pending", contractors: [], photos: [] };
+                      return { category: canon?.label || i.slug, canonicalCategory: i.slug, budgeted: i.budgeted || 0, spent: 0, status: "pending", contractors: [] };
                     });
                     setRehabItems(seeded);
                     if (!deal.rehabItems) deal.rehabItems = [];
@@ -1013,7 +1047,6 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
                       <td style={{ padding: "12px 16px", fontSize: 14, fontWeight: 600, color: "var(--text-primary)" }}>
                         <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
                           {item.category}
-                          {(item.photos || []).length > 0 && <span style={{ color: "var(--c-blue)", fontSize: 11 }} title={`${item.photos.length} photo(s)`}><Image size={12} style={{ display: "inline" }} /> {item.photos.length}</span>}
                           {onNavigateToRehabItem && <ChevronRight size={14} color="#cbd5e1" />}
                         </span>
                       </td>
@@ -1199,7 +1232,6 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
                 <button onClick={() => { setShowAddRehab(false); setRehabForm(emptyRehab); setEditingRehabIdx(null); }} style={{ padding: "10px 20px", borderRadius: 10, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text-secondary)", fontWeight: 600, fontSize: 14, cursor: "pointer" }}>Cancel</button>
                 <button onClick={async () => {
                   if (!rehabForm.category || !rehabForm.budgeted) return;
-                  const photos = rehabForm.photos || [];
                   // Infer canonical slug if user typed a label that matches one exactly
                   const canon = rehabForm.canonicalCategory || getCanonicalByLabel(rehabForm.category)?.slug || null;
                   const fields = {
@@ -1214,14 +1246,14 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
                       const existing = rehabItems[editingRehabIdx];
                       let saved = existing;
                       if (existing?.id) saved = await dbUpdateRehabItem(existing.id, fields);
-                      const merged = { ...existing, ...saved, canonicalCategory: canon, photos, contractors: existing?.contractors || [] };
+                      const merged = { ...existing, ...saved, canonicalCategory: canon, contractors: existing?.contractors || [] };
                       setRehabItems(prev => prev.map((item, idx) => idx === editingRehabIdx ? merged : item));
                       if (deal.rehabItems && deal.rehabItems[editingRehabIdx]) deal.rehabItems[editingRehabIdx] = merged;
                       setEditingRehabIdx(null);
                     } else {
                       const sortOrder = rehabItems.length;
                       const saved = await dbCreateRehabItem({ dealId: deal.id, ...fields, sortOrder });
-                      const newItem = { ...saved, canonicalCategory: canon, contractors: [], photos };
+                      const newItem = { ...saved, canonicalCategory: canon, contractors: [] };
                       setRehabItems(prev => [...prev, newItem]);
                       if (deal.rehabItems) deal.rehabItems.push(newItem); else deal.rehabItems = [newItem];
                     }
@@ -1343,7 +1375,19 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
                       <td style={{ padding: "13px 18px", fontSize: 13, color: "var(--text-label)" }}>{e.description}</td>
                       <td style={{ padding: "13px 18px", fontSize: 14, fontWeight: 700, color: "#c0392b" }}>{fmt(e.amount)}</td>
                       <td style={{ padding: "13px 18px" }}>
-                        <button onClick={ev => { ev.stopPropagation(); setExpData(prev => prev.map(x => x.id === e.id ? { ...x, status: x.status === "paid" ? "pending" : "paid" } : x)); }} style={{ background: (e.status || "paid") === "paid" ? "var(--success-badge)" : "var(--warning-bg)", color: (e.status || "paid") === "paid" ? "#1a7a4a" : "#9a3412", borderRadius: 20, padding: "3px 10px", fontSize: 11, fontWeight: 600, border: "none", cursor: "pointer", textTransform: "capitalize" }}>
+                        <button onClick={async ev => {
+                          ev.stopPropagation();
+                          const next = (e.status || "paid") === "paid" ? "pending" : "paid";
+                          try {
+                            const saved = await dbUpdateDealExpense(e.id, { status: next });
+                            setExpData(prev => prev.map(x => x.id === e.id ? { ...x, status: saved.status } : x));
+                            const gi = DEAL_EXPENSES.findIndex(d => d.id === e.id);
+                            if (gi !== -1) DEAL_EXPENSES[gi] = { ...DEAL_EXPENSES[gi], status: saved.status };
+                          } catch (err) {
+                            console.error("[PropBooks] Toggle expense status failed:", err);
+                            showToast("Couldn't update status — " + (err.message || "unknown error"));
+                          }
+                        }} style={{ background: (e.status || "paid") === "paid" ? "var(--success-badge)" : "var(--warning-bg)", color: (e.status || "paid") === "paid" ? "#1a7a4a" : "#9a3412", borderRadius: 20, padding: "3px 10px", fontSize: 11, fontWeight: 600, border: "none", cursor: "pointer", textTransform: "capitalize" }}>
                           {(e.status || "paid") === "paid" ? "Paid" : "Pending"}
                         </button>
                       </td>
@@ -1689,11 +1733,13 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
             </div>
             <div style={{ display: "flex", gap: 10 }}>
               <button onClick={() => { setQuickBid(null); setQuickBidRehabFocus(false); }} style={{ flex: 1, padding: "12px", border: "1px solid var(--border)", borderRadius: 10, background: "var(--surface)", color: "var(--text-label)", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
-              <button disabled={!quickBid.rehabItem || !quickBid.amount} onClick={() => {
+              <button disabled={!quickBid.rehabItem || !quickBid.amount} onClick={async () => {
                 const canon = quickBid.canonicalCategory || getCanonicalByLabel(quickBid.rehabItem)?.slug || null;
-                pushContractorBid(quickBid.contractorId, quickBid.rehabItem, canon, quickBid.amount);
-                setQuickBid(null);
-                setQuickBidRehabFocus(false);
+                const saved = await pushContractorBid(quickBid.contractorId, quickBid.rehabItem, canon, quickBid.amount);
+                if (saved) {
+                  setQuickBid(null);
+                  setQuickBidRehabFocus(false);
+                }
               }} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "#e95e00", color: "#fff", fontWeight: 600, cursor: (quickBid.rehabItem && quickBid.amount) ? "pointer" : "not-allowed", opacity: (quickBid.rehabItem && quickBid.amount) ? 1 : 0.5 }}>Add Bid</button>
             </div>
           </Modal>
@@ -2163,10 +2209,6 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
                 <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Selling Costs ($)</label>
                 <input type="number" placeholder="Agent commissions, title, etc." value={closeForm.sellingCosts} onChange={sfClose("sellingCosts")} style={iS} />
               </div>
-              <div>
-                <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Buyer Credit ($)</label>
-                <input type="number" placeholder="0" value={closeForm.buyerCredit} onChange={sfClose("buyerCredit")} style={iS} />
-              </div>
             </div>
             <div style={{ marginBottom: 16 }}>
               <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Closing Notes (optional)</label>
@@ -2175,11 +2217,10 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
             {(() => {
               const sp = parseFloat(closeForm.salePrice) || 0;
               const sc = parseFloat(closeForm.sellingCosts) || 0;
-              const bc = parseFloat(closeForm.buyerCredit) || 0;
               const rehabSpent = (rehabItems || []).reduce((s, i) => s + (i.spent || 0), 0);
               const holdDays = closeForm.closeDate && deal.acquisitionDate ? Math.max(0, Math.ceil((new Date(closeForm.closeDate) - new Date(deal.acquisitionDate)) / 86400000)) : (deal.daysOwned || 0);
               const totalHolding = Math.round((deal.holdingCostsPerMonth || 0) * (holdDays / 30));
-              const netProfit = sp - deal.purchasePrice - rehabSpent - totalHolding - sc - bc;
+              const netProfit = sp - deal.purchasePrice - rehabSpent - totalHolding - sc;
               return (
                 <div style={{ background: netProfit >= 0 ? "var(--success-tint)" : "var(--danger-tint)", borderRadius: 12, padding: 16, marginBottom: 20, border: `1px solid ${netProfit >= 0 ? "var(--success-border)" : "var(--danger-border)"}` }}>
                   <p style={{ fontSize: 11, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 8 }}>Profit Preview</p>
@@ -2190,7 +2231,7 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
                     </div>
                     <div>
                       <p style={{ fontSize: 11, color: "var(--text-secondary)" }}>Total Costs</p>
-                      <p style={{ fontSize: 14, fontWeight: 700, color: "#c0392b" }}>{fmt(deal.purchasePrice + rehabSpent + totalHolding + sc + bc)}</p>
+                      <p style={{ fontSize: 14, fontWeight: 700, color: "#c0392b" }}>{fmt(deal.purchasePrice + rehabSpent + totalHolding + sc)}</p>
                     </div>
                     <div>
                       <p style={{ fontSize: 11, color: "var(--text-secondary)" }}>Net Profit</p>
@@ -2202,7 +2243,6 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
                     <span>Rehab: {fmt(rehabSpent)}</span>
                     <span>Holding ({holdDays}d): {fmt(totalHolding)}</span>
                     <span>Selling: {fmt(sc)}</span>
-                    {bc > 0 && <span>Credit: {fmt(bc)}</span>}
                   </div>
                 </div>
               );
@@ -2213,14 +2253,13 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
                 const sp = parseFloat(closeForm.salePrice) || 0;
                 if (!sp || !closeForm.closeDate) return;
                 const sc = parseFloat(closeForm.sellingCosts) || 0;
-                const bc = parseFloat(closeForm.buyerCredit) || 0;
                 const rehabSpent = (rehabItems || []).reduce((s, i) => s + (i.spent || 0), 0);
                 const holdDays = Math.max(0, Math.ceil((new Date(closeForm.closeDate) - new Date(deal.acquisitionDate || deal.contractDate)) / 86400000));
                 const totalHolding = Math.round((deal.holdingCostsPerMonth || 0) * (holdDays / 30));
-                const netProfit = sp - deal.purchasePrice - rehabSpent - totalHolding - sc - bc;
+                const netProfit = sp - deal.purchasePrice - rehabSpent - totalHolding - sc;
                 const soldData = {
                   stage: "Sold", salePrice: sp, closeDate: closeForm.closeDate,
-                  sellingCosts: sc, buyerCredit: bc, rehabSpent, daysOwned: holdDays,
+                  sellingCosts: sc, rehabSpent, daysOwned: holdDays,
                   totalHoldingCosts: totalHolding, netProfit,
                 };
                 const idx = DEALS.findIndex(f => f.id === deal.id);

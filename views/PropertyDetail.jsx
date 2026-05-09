@@ -2,12 +2,11 @@ import { useState, useEffect, useMemo } from "react";
 import {
   FileText, Home, Plus, Search, ChevronRight, CheckCircle, AlertCircle, X,
   ChevronDown, User, MapPin, Clock, Users, Receipt, Trash2, Pencil, MessageSquare,
-  ArrowLeft, Paperclip, ScanLine, DollarSign, RefreshCw, Archive,
+  ArrowLeft, DollarSign, RefreshCw, Archive,
 } from "lucide-react";
 import {
   newId, fmt,
   PROPERTY_DOCUMENTS,
-  TRANSACTION_RECEIPTS, addTransactionReceipt,
   RENTAL_NOTES, MAINTENANCE_REQUESTS,
 } from "../api.js";
 import { useToast } from "../toast.jsx";
@@ -19,7 +18,7 @@ import { calcLoanBalance, getEffectiveMonthly, calcCapRate, calcCashOnCash } fro
 import { daysAgo, getPropertyHealth } from "../health.js";
 import { InfoTip, Modal, StatCard, Badge, iS } from "../shared.jsx";
 import { PROPERTIES, TRANSACTIONS, TENANTS } from "../mockData.js";
-import { AttachmentZone, AttachmentList, OcrPrompt, DocumentsPanel } from "./Attachments.jsx";
+import { DocumentsPanel } from "./Attachments.jsx";
 import { TxDetailPanel } from "./detailPanels.jsx";
 
 export function PropertyDetail({ property, onBack, backLabel, onEditProperty, onGoToTransactions, onNavigateToTransaction, onNavigateToTenant, initialTab, highlightTenantId, onClearHighlightTenant, onPropertyUpdated }) {
@@ -100,8 +99,6 @@ export function PropertyDetail({ property, onBack, backLabel, onEditProperty, on
   const [txDeleteConfirm, setTxDeleteConfirm] = useState(null);
   const [txPayeeFocus, setTxPayeeFocus] = useState(false);
   const [txRenderKey, txForceRender] = useState(0);
-  const [txReceipts, setTxReceipts] = useState([]);  // receipts attached to current transaction in modal
-  const [txScanning, setTxScanning] = useState(false);
 
   const INCOME_GROUPS = {
     "Rent":           ["Rent Income", "Parking / Storage", "Laundry Income"],
@@ -136,15 +133,13 @@ export function PropertyDetail({ property, onBack, backLabel, onEditProperty, on
   const [txForm, setTxForm] = useState(txEmptyIncome);
   const txSf = k => e => setTxForm(f => ({ ...f, [k]: e.target.value }));
 
-  const txCloseModal = () => { setTxShowModal(false); setTxPayeeFocus(false); setTxReceipts([]); setTxScanning(false); };
-  const txOpenAddIncome  = () => { setTxEditId(null); setTxForm(txEmptyIncome);  setTxPayeeFocus(false); setTxReceipts([]); setTxShowModal("income");  };
-  const txOpenAddExpense = () => { setTxEditId(null); setTxForm(txEmptyExpense); setTxPayeeFocus(false); setTxReceipts([]); setTxShowModal("expense"); };
+  const txCloseModal = () => { setTxShowModal(false); setTxPayeeFocus(false); };
+  const txOpenAddIncome  = () => { setTxEditId(null); setTxForm(txEmptyIncome);  setTxPayeeFocus(false); setTxShowModal("income");  };
+  const txOpenAddExpense = () => { setTxEditId(null); setTxForm(txEmptyExpense); setTxPayeeFocus(false); setTxShowModal("expense"); };
   const txOpenEdit = t => {
     setTxEditId(t.id);
     setTxForm({ date: t.date, propertyId: t.propertyId, type: t.type, category: t.category, description: t.description, amount: String(Math.abs(t.amount)), payee: t.payee || "" });
     setTxPayeeFocus(false);
-    // Load existing receipts for this transaction
-    setTxReceipts(TRANSACTION_RECEIPTS.filter(r => r.transactionId === t.id));
     setTxShowModal(t.type);
   };
 
@@ -160,11 +155,9 @@ export function PropertyDetail({ property, onBack, backLabel, onEditProperty, on
         const saved = await updateTransaction(txEditId, built);
         const idx = TRANSACTIONS.findIndex(t => t.id === txEditId);
         if (idx !== -1) TRANSACTIONS[idx] = saved;
-        txReceipts.filter(r => !TRANSACTION_RECEIPTS.some(er => er.id === r.id)).forEach(r => addTransactionReceipt({ ...r, transactionId: txEditId }));
       } else {
         const saved = await createTransaction(built);
         TRANSACTIONS.unshift(saved);
-        txReceipts.forEach(r => addTransactionReceipt({ ...r, transactionId: saved.id }));
       }
       txCloseModal();
       txForceRender(n => n + 1);
@@ -521,16 +514,6 @@ export function PropertyDetail({ property, onBack, backLabel, onEditProperty, on
                   <span style={{ fontSize: 13, fontWeight: 700, color: accentColor }}>{isIncome ? "Income" : "Expense"}</span>
                 </div>
 
-                {/* OCR hint — expense only, hides once a receipt is attached */}
-                {!isIncome && txReceipts.length === 0 && (
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 14px", background: "var(--info-tint-alt)", borderRadius: 10, border: "1px solid var(--info-border-alt)", marginBottom: 16 }}>
-                    <ScanLine size={16} color="var(--c-blue)" />
-                    <p style={{ fontSize: 12, color: "var(--text-primary)", margin: 0 }}>
-                      <strong>Have a receipt?</strong> Attach it below and we can auto-fill the details for you.
-                    </p>
-                  </div>
-                )}
-
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
                   <div>
                     <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Date</label>
@@ -569,46 +552,6 @@ export function PropertyDetail({ property, onBack, backLabel, onEditProperty, on
                     </select>
                   </div>
 
-                  {/* Receipt / Attachment */}
-                  <div style={{ gridColumn: "1 / -1" }}>
-                    <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>
-                      <Paperclip size={13} style={{ marginRight: 4, verticalAlign: "middle" }} />Receipt / Attachment
-                    </label>
-                    <AttachmentZone
-                      onFiles={files => {
-                        const newAtts = files.map(f => ({
-                          id: newId(), name: f.name, mimeType: f.type,
-                          size: f.size > 1024 * 1024 ? (f.size / (1024 * 1024)).toFixed(1) + " MB" : Math.round(f.size / 1024) + " KB",
-                          url: URL.createObjectURL(f), ocrData: null, createdAt: new Date().toISOString(), userId: "usr_001",
-                        }));
-                        setTxReceipts(prev => [...prev, ...newAtts]);
-                      }}
-                      compact label="Attach receipt or document" />
-                    {txReceipts.length > 0 && (
-                      <div style={{ marginTop: 6 }}>
-                        <AttachmentList items={txReceipts} onRemove={id => setTxReceipts(prev => prev.filter(r => r.id !== id))} compact />
-                        {!isIncome && txReceipts.filter(r => !r.ocrData).map(att => (
-                          <OcrPrompt key={att.id} attachment={att}
-                            onResult={(ocrData, a) => {
-                              setTxForm(f => ({
-                                ...f,
-                                payee: f.payee || ocrData.vendor || "",
-                                amount: f.amount || String(ocrData.amount || ""),
-                                date: f.date || ocrData.date || "",
-                                description: f.description || `Receipt — ${ocrData.vendor || "scanned"}`,
-                              }));
-                              setTxReceipts(prev => prev.map(r => r.id === a.id ? { ...r, ocrData } : r));
-                            }} />
-                        ))}
-                      </div>
-                    )}
-                    {txReceipts.some(r => r.ocrData) && (
-                      <p style={{ fontSize: 11, color: "#1a7a4a", marginTop: 4, fontStyle: "italic" }}>
-                        <CheckCircle size={11} style={{ verticalAlign: "middle", marginRight: 3 }} />
-                        Fields auto-filled from receipt — please verify
-                      </p>
-                    )}
-                  </div>
                 </div>
 
                 <div style={{ display: "flex", gap: 10, marginTop: 24, justifyContent: "flex-end" }}>

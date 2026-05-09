@@ -27,7 +27,6 @@ import {
   RENTAL_NOTES, GENERAL_NOTES, MOCK_USER,
   PROPERTY_DOCUMENTS, DEAL_DOCUMENTS, TENANT_DOCUMENTS,
   MAINTENANCE_REQUESTS,
-  TRANSACTION_RECEIPTS, DEAL_EXPENSE_RECEIPTS,
   clearDemoData, restoreDemoData, DEMO_EMAIL,
 } from "../api.js";
 import { AuthScreen, useAuth } from "../auth.jsx";
@@ -226,10 +225,27 @@ export function AppShell() {
         // Re-nest rehab items into each deal so views that read
         // `deal.rehabItems[]` keep working unchanged. The DB stores them
         // as a separate table, but the in-memory shape stays the same.
+        // Each rehab item's contractors[] is derived from contractor_bids
+        // (a bid linking the contractor to the item's category counts as
+        // an assignment; bid.amount populates the per-contractor bid).
+        const bidsByDealItem = new Map();
+        for (const b of bids) {
+          const key = `${b.dealId}::${b.rehabItem || ""}`;
+          if (!bidsByDealItem.has(key)) bidsByDealItem.set(key, []);
+          bidsByDealItem.get(key).push(b);
+        }
         const itemsByDeal = new Map();
         for (const r of rehab) {
           if (!itemsByDeal.has(r.dealId)) itemsByDeal.set(r.dealId, []);
-          itemsByDeal.get(r.dealId).push(r);
+          const itemBids = bidsByDealItem.get(`${r.dealId}::${r.category}`) || [];
+          const seen = new Set();
+          const contractors = [];
+          for (const b of itemBids) {
+            if (seen.has(b.contractorId)) continue;
+            seen.add(b.contractorId);
+            contractors.push({ id: b.contractorId, bid: b.amount || 0 });
+          }
+          itemsByDeal.get(r.dealId).push({ ...r, contractors });
         }
         DEALS.length = 0;
         DEALS.push(...dls.map(d => ({ ...d, rehabItems: itemsByDeal.get(d.id) || [] })));

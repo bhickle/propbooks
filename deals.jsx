@@ -19,9 +19,7 @@ import {
 } from "lucide-react";
 import {
   fmt, fmtK, newId, STAGE_ORDER, STAGE_COLORS, DEFAULT_MILESTONES,
-  DEAL_EXPENSE_RECEIPTS, addDealExpenseReceipt, deleteDealExpenseReceipt,
   DEAL_DOCUMENTS,
-  mockOcrScan,
   REHAB_CATEGORIES, REHAB_CATEGORY_GROUPS, getCanonicalBySlug, getCanonicalByLabel,
 } from "./api.js";
 
@@ -85,42 +83,6 @@ function DealAttachmentList({ items, onRemove, compact = false }) {
           </div>
         );
       })}
-    </div>
-  );
-}
-
-function DealOcrPrompt({ attachment, onResult, onDismiss }) {
-  const [scanning, setScanning] = useState(false);
-  const [dismissed, setDismissed] = useState(false);
-  if (dismissed || attachment.ocrData) return null;
-  const isImage = attachment.mimeType?.startsWith("image/");
-  const isPdf = attachment.mimeType?.includes("pdf");
-  if (!isImage && !isPdf) return null;
-  const runOcr = async () => {
-    setScanning(true);
-    try { const ocrData = await mockOcrScan({ name: attachment.name, type: attachment.mimeType }); if (onResult) onResult(ocrData, attachment); } catch (err) { console.error("OCR failed:", err); } finally { setScanning(false); }
-  };
-  if (scanning) {
-    return (
-      <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", background: "#fff7ed", borderRadius: 10, border: "1px solid #fdba74", marginTop: 6 }}>
-        <Loader size={14} color="#e95e00" style={{ animation: "spin 1s linear infinite" }} />
-        <span style={{ fontSize: 12, color: "#9a3412", fontWeight: 600 }}>Reading receipt...</span>
-        <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
-      </div>
-    );
-  }
-  return (
-    <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", background: "var(--info-tint-alt)", borderRadius: 10, border: "1px solid var(--info-border-alt)", marginTop: 6 }}>
-      <ScanLine size={15} color="var(--c-blue)" />
-      <span style={{ fontSize: 12, color: "var(--text-primary)", flex: 1 }}>Auto-fill from this receipt?</span>
-      <button onClick={runOcr}
-        style={{ display: "flex", alignItems: "center", gap: 5, padding: "5px 12px", borderRadius: 8, border: "none", background: "#1e3a5f", color: "#fff", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>
-        <Star size={12} /> Auto-fill
-      </button>
-      <button onClick={() => { setDismissed(true); if (onDismiss) onDismiss(); }}
-        style={{ background: "none", border: "none", cursor: "pointer", padding: 2, color: "var(--text-muted)", display: "flex" }}>
-        <X size={14} />
-      </button>
     </div>
   );
 }
