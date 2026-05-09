@@ -9,7 +9,7 @@
 // =============================================================================
 import { useState, useEffect, useMemo } from "react";
 import {
-  Plus, X, Pencil, Trash2, ChevronLeft, ChevronRight, CheckCircle, Circle, Wrench, Truck,
+  Plus, X, Pencil, Trash2, ChevronLeft, ChevronRight, Check, CheckCircle, Circle, Wrench, Truck,
   Clock, DollarSign, Receipt, FileText, MessageSquare, Search, Calendar, Flag,
   Target, User, Users, Home, MapPin, LayoutDashboard, Phone, Filter,
   AlertTriangle, ArrowRight, ArrowLeft, Camera, CheckSquare, Copy, UserCheck,
@@ -1022,41 +1022,15 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
             );
           })()}
 
-          {/* Filter chips + Add buttons */}
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, flexWrap: "wrap", gap: 10 }}>
-            <div style={{ display: "flex", gap: 4, background: "var(--surface-alt)", borderRadius: 10, padding: 3, border: "1px solid var(--border)" }}>
-              {[
-                { id: "all", label: `All (${planFeed.length})` },
-                { id: "construction", label: `Construction (${planFeed.filter(i => i.type === "construction").length})` },
-                { id: "milestone", label: `Milestones (${planFeed.filter(i => i.type === "milestone").length})` },
-              ].map(f => {
-                const active = planFilter === f.id;
-                return (
-                  <button key={f.id} onClick={() => setPlanFilterState(f.id)} style={{ padding: "5px 12px", borderRadius: 7, border: "none", background: active ? "#e95e00" : "transparent", color: active ? "#fff" : "var(--text-secondary)", fontWeight: active ? 700 : 500, fontSize: 12, cursor: "pointer", whiteSpace: "nowrap", transition: "all 0.15s" }}>
-                    {f.label}
-                  </button>
-                );
-              })}
-            </div>
-            <div style={{ display: "flex", gap: 6 }}>
-              <button onClick={() => { setEditingMilestoneId(null); setMilestoneForm(emptyMilestone); setShowMilestoneModal(true); }} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 8, padding: "7px 12px", fontWeight: 600, fontSize: 12, cursor: "pointer", color: "var(--text-label)", display: "flex", alignItems: "center", gap: 5 }}>
-                <Flag size={13} /> Add Milestone
-              </button>
-              <button onClick={() => { setEditingRehabIdx(null); setRehabForm(emptyRehab); setShowAddRehab(true); }} style={{ background: "#e95e00", color: "#fff", border: "none", borderRadius: 8, padding: "7px 12px", fontWeight: 600, fontSize: 12, cursor: "pointer", display: "flex", alignItems: "center", gap: 5 }}>
-                <Wrench size={13} /> Add Construction
-              </button>
-            </div>
-          </div>
-
-          {/* Empty state with templates if no rehab items yet */}
-          {rehabItems.length === 0 && milestones.filter(m => m.id).length === 0 && (
+          {/* Empty state with templates if both columns are empty */}
+          {rehabItems.length === 0 && milestones.filter(m => m.id).length === 0 ? (
             <div style={{ background: "var(--surface)", borderRadius: 16, padding: 32, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)", marginBottom: 16 }}>
               <div style={{ textAlign: "center", marginBottom: 24 }}>
                 <div style={{ width: 56, height: 56, borderRadius: 14, background: "var(--warning-bg)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 12px" }}>
                   <Wrench size={24} color="#e95e00" />
                 </div>
                 <h3 style={{ fontSize: 17, fontWeight: 700, color: "var(--text-primary)", marginBottom: 6 }}>Start your rehab scope</h3>
-                <p style={{ fontSize: 13, color: "var(--text-secondary)", maxWidth: 460, margin: "0 auto" }}>Pick a template to pre-populate standard scopes with suggested budgets, or add items one at a time using the buttons above.</p>
+                <p style={{ fontSize: 13, color: "var(--text-secondary)", maxWidth: 460, margin: "0 auto" }}>Pick a template to pre-populate standard scopes with suggested budgets, or add items one at a time from the column headers below.</p>
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(230px, 1fr))", gap: 12 }}>
                 {REHAB_TEMPLATES.map(tpl => {
@@ -1093,66 +1067,49 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
                 })}
               </div>
             </div>
-          )}
-
-          {/* Plan feed */}
-          {planFeedFiltered.length > 0 && (
-            <div style={{ background: "var(--surface)", borderRadius: 12, border: "1px solid var(--border-subtle)", overflow: "hidden" }}>
-              {planFeedFiltered.map((it, listIdx) => {
-                const prev = listIdx > 0 ? planFeedFiltered[listIdx - 1] : null;
-                const showHeader = !prev || prev.bucket !== it.bucket;
-                const headerLabel = it.bucket === 0 ? "Needs Attention" : it.bucket === 1 ? "In Progress" : it.bucket === 2 ? "Upcoming" : it.bucket === 3 ? "Pending" : "Done";
-                const headerColor = it.bucket === 0 ? "var(--c-red)" : it.bucket === 1 ? "#e95e00" : it.bucket === 2 ? "var(--c-blue)" : it.bucket === 3 ? "var(--text-muted)" : "var(--c-green)";
-                const dateStr = it.type === "milestone" && it.done && it.completedDate
-                  ? `Completed ${new Date(it.completedDate).toLocaleDateString("en-US", { month: "short", day: "numeric" })}`
-                  : it.type === "milestone" && !it.done && it.targetDate
-                  ? `${it.overdue ? "Overdue " : ""}${new Date(it.targetDate).toLocaleDateString("en-US", { month: "short", day: "numeric" })}`
-                  : it.type === "milestone" && !it.done
-                  ? "No target"
-                  : it.type === "construction" && it.contractors.length > 0
-                  ? `${it.contractors.length} contractor${it.contractors.length > 1 ? "s" : ""}`
-                  : "";
-                return (
-                  <div key={it.key}>
-                    {showHeader && (
-                      <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "5px 12px", background: "var(--surface-alt)", borderTop: listIdx > 0 ? "1px solid var(--border-subtle)" : "none" }}>
-                        <div style={{ width: 3, height: 12, background: headerColor, borderRadius: 2 }} />
-                        <p style={{ fontSize: 10, fontWeight: 700, color: headerColor, textTransform: "uppercase", letterSpacing: "0.05em" }}>{headerLabel}</p>
+          ) : (
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, alignItems: "start" }}>
+              {/* Left column — Milestones */}
+              <div style={{ background: "var(--surface)", borderRadius: 16, border: "1px solid var(--border-subtle)", overflow: "hidden" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "12px 14px", borderBottom: "1px solid var(--border-subtle)" }}>
+                  <Flag size={14} color="var(--c-blue)" />
+                  <h3 style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)", flex: 1, margin: 0 }}>Milestones</h3>
+                  <span style={{ background: "var(--surface-muted)", color: "var(--text-label)", borderRadius: 12, padding: "2px 8px", fontSize: 11, fontWeight: 700 }}>{doneCount}/{milestones.length} done</span>
+                  <button onClick={() => { setEditingMilestoneId(null); setMilestoneForm(emptyMilestone); setShowMilestoneModal(true); }} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 8, padding: "5px 10px", fontWeight: 600, fontSize: 12, cursor: "pointer", color: "var(--text-label)", display: "flex", alignItems: "center", gap: 4 }}>
+                    <Plus size={12} /> Add
+                  </button>
+                </div>
+                {(() => {
+                  const visibleMs = milestones.map((m, idx) => ({ m, idx })).filter(({ m }) => showCompletedMilestones || !m.done);
+                  if (visibleMs.length === 0) {
+                    return (
+                      <div style={{ padding: 24, textAlign: "center", color: "var(--text-muted)", fontSize: 12 }}>
+                        {milestones.length === 0 ? "No milestones yet — add one to start tracking" : "All milestones complete"}
                       </div>
-                    )}
-                    <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 12px", borderTop: !showHeader && listIdx > 0 ? "1px solid var(--border-subtle)" : "none", cursor: it.type === "construction" && onNavigateToRehabItem ? "pointer" : "default" }}
-                      onClick={() => { if (it.type === "construction" && onNavigateToRehabItem) onNavigateToRehabItem(it.idx); }}>
-                      {/* Type icon */}
-                      <div style={{ width: 22, height: 22, borderRadius: 5, background: it.type === "construction" ? "var(--warning-bg)" : "var(--info-tint)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}
-                        title={it.type === "construction" ? "Construction" : "Milestone"}>
-                        {it.type === "construction" ? <Wrench size={11} color="#9a3412" /> : <Flag size={11} color="var(--c-blue)" />}
-                      </div>
-                      {/* Title */}
-                      <p style={{ flex: 1, minWidth: 0, fontSize: 13, fontWeight: 600, color: it.done ? "var(--text-secondary)" : "var(--text-primary)", textDecoration: it.done ? "line-through" : "none", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{it.title}</p>
-                      {/* Inline meta — date or contractor count */}
-                      {dateStr && (
-                        <span style={{ fontSize: 11, color: it.overdue ? "var(--c-red)" : "var(--text-muted)", flexShrink: 0, fontWeight: it.overdue ? 600 : 400 }}>{dateStr}</span>
-                      )}
-                      {/* Construction $ */}
-                      {it.type === "construction" && (
-                        <span style={{ fontSize: 12, fontWeight: 600, color: it.overBudget ? "var(--c-red)" : "var(--text-primary)", flexShrink: 0, minWidth: 110, textAlign: "right" }}>{fmt(it.spent)} <span style={{ color: "var(--text-muted)", fontWeight: 400 }}>/ {fmt(it.budget)}</span></span>
-                      )}
-                      {/* Status pill */}
-                      {it.type === "construction" ? (
-                        <button onClick={(e) => { e.stopPropagation(); cycleRehabStatus(it.idx); }} title="Click to cycle status" style={{ background: statusBg[it.status], color: statusColors[it.status], borderRadius: 12, padding: "2px 8px", fontSize: 10, fontWeight: 700, border: "none", cursor: "pointer", flexShrink: 0, textTransform: "uppercase", letterSpacing: "0.04em", minWidth: 78, textAlign: "center" }}>
-                          {it.status}
-                        </button>
-                      ) : (
-                        <button onClick={async (e) => {
-                          e.stopPropagation();
-                          const target = milestones[it.idx];
-                          if (!it.done) {
+                    );
+                  }
+                  return visibleMs.map(({ m, idx }, vi) => {
+                    const overdue = !m.done && m.targetDate && m.targetDate < today;
+                    const fmtDate = (d) => new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+                    const dateLine = m.done && m.date
+                      ? `Completed ${fmtDate(m.date)}`
+                      : overdue
+                      ? `Overdue — target ${fmtDate(m.targetDate)}`
+                      : m.targetDate
+                      ? `Target ${fmtDate(m.targetDate)}`
+                      : "No target date";
+                    return (
+                      <div key={m.id || `ms-${idx}`} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", borderTop: vi > 0 ? "1px solid var(--border-subtle)" : "none" }}
+                        onMouseEnter={e => { const a = e.currentTarget.querySelector(".row-actions"); if (a) a.style.opacity = 1; }}
+                        onMouseLeave={e => { const a = e.currentTarget.querySelector(".row-actions"); if (a) a.style.opacity = 0; }}>
+                        <button onClick={async () => {
+                          const target = milestones[idx];
+                          if (!m.done) {
                             const date = new Date().toISOString().split("T")[0];
                             try {
                               if (target?.id) await dbUpdateMilestone(target.id, { done: true, date });
-                              const updated = milestones.map((m, idx) => idx === it.idx ? { ...m, done: true, date } : m);
-                              setMilestones(updated);
-                              const gi = DEAL_MILESTONES.findIndex(m => m.id === target?.id);
+                              setMilestones(prev => prev.map((mm, i) => i === idx ? { ...mm, done: true, date } : mm));
+                              const gi = DEAL_MILESTONES.findIndex(mm => mm.id === target?.id);
                               if (gi !== -1) DEAL_MILESTONES[gi] = { ...DEAL_MILESTONES[gi], done: true, date };
                             } catch (err) {
                               console.error("[PropBooks] Complete milestone failed:", err);
@@ -1161,33 +1118,85 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
                           } else {
                             try {
                               if (target?.id) await dbUpdateMilestone(target.id, { done: false, date: null });
-                              const updated = milestones.map((m, idx) => idx === it.idx ? { ...m, done: false, date: null } : m);
-                              setMilestones(updated);
-                              const gi = DEAL_MILESTONES.findIndex(m => m.id === target?.id);
+                              setMilestones(prev => prev.map((mm, i) => i === idx ? { ...mm, done: false, date: null } : mm));
+                              const gi = DEAL_MILESTONES.findIndex(mm => mm.id === target?.id);
                               if (gi !== -1) DEAL_MILESTONES[gi] = { ...DEAL_MILESTONES[gi], done: false, date: null };
                             } catch (err) {
                               console.error("[PropBooks] Uncomplete milestone failed:", err);
                               showToast("Couldn't update milestone — " + (err.message || "unknown error"));
                             }
                           }
-                        }} style={{ background: it.done ? "var(--success-badge)" : it.overdue ? "var(--danger-badge)" : "var(--surface-muted)", color: it.done ? "#1a7a4a" : it.overdue ? "var(--c-red)" : "var(--text-label)", borderRadius: 12, padding: "2px 8px", fontSize: 10, fontWeight: 700, border: "none", cursor: "pointer", flexShrink: 0, textTransform: "uppercase", letterSpacing: "0.04em", minWidth: 78, textAlign: "center" }}>
-                          {it.done ? "Done" : it.overdue ? "Overdue" : "Open"}
+                        }} title={m.done ? "Mark incomplete" : "Mark complete"}
+                          style={{ width: 20, height: 20, borderRadius: "50%", border: m.done ? "none" : "1.5px solid var(--border-strong)", background: m.done ? "#1a7a4a" : "transparent", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, padding: 0 }}>
+                          {m.done && <Check size={12} color="#fff" strokeWidth={3} />}
                         </button>
-                      )}
-                      {/* Edit / delete */}
-                      <div style={{ display: "flex", gap: 3, flexShrink: 0 }}>
-                        <button onClick={(e) => { e.stopPropagation(); if (it.type === "construction") openEditRehab(it._data, it.idx); else openEditMilestone(it._data, it.idx); }} style={{ background: "var(--surface-muted)", border: "none", borderRadius: 6, padding: "4px 6px", cursor: "pointer", color: "var(--text-label)", display: "flex", alignItems: "center" }} title="Edit"><Pencil size={12} /></button>
-                        <button onClick={(e) => { e.stopPropagation(); setDeleteConfirm({ type: it.type === "construction" ? "rehab" : "milestone", item: it._data, index: it.idx }); }} style={{ background: "var(--danger-badge)", border: "none", borderRadius: 6, padding: "4px 6px", cursor: "pointer", color: "var(--c-red)", display: "flex", alignItems: "center" }} title="Delete"><Trash2 size={12} /></button>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <p style={{ fontSize: 13, fontWeight: 600, color: m.done ? "var(--text-muted)" : "var(--text-primary)", textDecoration: m.done ? "line-through" : "none", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", margin: 0 }}>{m.label}</p>
+                          <p style={{ fontSize: 11, color: overdue ? "var(--c-red)" : "var(--text-muted)", marginTop: 2, fontWeight: overdue ? 600 : 400, margin: "2px 0 0" }}>{dateLine}</p>
+                        </div>
+                        <div className="row-actions" style={{ display: "flex", gap: 3, flexShrink: 0, opacity: 0, transition: "opacity 0.15s" }}>
+                          <button onClick={(e) => { e.stopPropagation(); openEditMilestone(m, idx); }} style={{ background: "var(--surface-muted)", border: "none", borderRadius: 6, padding: "4px 6px", cursor: "pointer", color: "var(--text-label)", display: "flex", alignItems: "center" }} title="Edit"><Pencil size={12} /></button>
+                          <button onClick={(e) => { e.stopPropagation(); setDeleteConfirm({ type: "milestone", item: m, index: idx }); }} style={{ background: "var(--danger-badge)", border: "none", borderRadius: 6, padding: "4px 6px", cursor: "pointer", color: "var(--c-red)", display: "flex", alignItems: "center" }} title="Delete"><Trash2 size={12} /></button>
+                        </div>
+                      </div>
+                    );
+                  });
+                })()}
+                {doneCount > 0 && (
+                  <div style={{ borderTop: "1px solid var(--border-subtle)", padding: "8px 14px" }}>
+                    <button onClick={() => setShowCompletedMilestones(v => !v)} style={{ background: "none", border: "none", color: "var(--text-muted)", fontSize: 12, cursor: "pointer", padding: 0, fontWeight: 600 }}>
+                      {showCompletedMilestones ? "Hide" : "Show"} completed ({doneCount})
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Right column — Scope items */}
+              <div style={{ background: "var(--surface)", borderRadius: 16, border: "1px solid var(--border-subtle)", overflow: "hidden" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "12px 14px", borderBottom: "1px solid var(--border-subtle)" }}>
+                  <Wrench size={14} color="#9a3412" />
+                  <h3 style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)", flex: 1, margin: 0 }}>Scope items</h3>
+                  <span style={{ background: "var(--surface-muted)", color: "var(--text-label)", borderRadius: 12, padding: "2px 8px", fontSize: 11, fontWeight: 700 }}>{rehabComplete}/{rehabItems.length} done</span>
+                  <button onClick={() => { setEditingRehabIdx(null); setRehabForm(emptyRehab); setShowAddRehab(true); }} style={{ background: "#e95e00", color: "#fff", border: "none", borderRadius: 8, padding: "5px 10px", fontWeight: 600, fontSize: 12, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
+                    <Plus size={12} /> Add
+                  </button>
+                </div>
+                {rehabItems.length === 0 ? (
+                  <div style={{ padding: 24, textAlign: "center", color: "var(--text-muted)", fontSize: 12 }}>No scope items yet — add one to start tracking budget</div>
+                ) : rehabItems.map((r, idx) => {
+                  const budget = r.budgeted || 0;
+                  const spent = r.spent || 0;
+                  const pct = budget > 0 ? Math.min(100, (spent / budget) * 100) : 0;
+                  const overBudget = spent > budget && r.status !== "complete";
+                  const overage = spent - budget;
+                  const statusLabel = overBudget ? "Over Budget" : (r.status || "pending");
+                  const statusFg = overBudget ? "var(--c-red)" : statusColors[r.status] || statusColors.pending;
+                  const statusBgC = overBudget ? "var(--danger-badge)" : statusBg[r.status] || statusBg.pending;
+                  const barColor = overBudget ? "var(--c-red)" : r.status === "complete" ? "#1a7a4a" : "#e95e00";
+                  return (
+                    <div key={r.id || `re-${idx}`} style={{ display: "flex", flexDirection: "column", gap: 6, padding: "12px 14px", borderTop: idx > 0 ? "1px solid var(--border-subtle)" : "none", borderLeft: overBudget ? "3px solid var(--c-red)" : "3px solid transparent", cursor: onNavigateToRehabItem ? "pointer" : "default", transition: "background 0.15s" }}
+                      onClick={() => { if (onNavigateToRehabItem) onNavigateToRehabItem(idx); }}
+                      onMouseEnter={e => { const a = e.currentTarget.querySelector(".row-actions"); if (a) a.style.opacity = 1; e.currentTarget.style.background = "var(--surface-alt)"; }}
+                      onMouseLeave={e => { const a = e.currentTarget.querySelector(".row-actions"); if (a) a.style.opacity = 0; e.currentTarget.style.background = "transparent"; }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <p style={{ flex: 1, minWidth: 0, fontSize: 13, fontWeight: 600, color: overBudget ? "var(--c-red)" : "var(--text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", margin: 0 }}>{r.category}</p>
+                        <button onClick={(e) => { e.stopPropagation(); cycleRehabStatus(idx); }} title="Click to cycle status" style={{ background: statusBgC, color: statusFg, borderRadius: 12, padding: "2px 8px", fontSize: 10, fontWeight: 700, border: "none", cursor: "pointer", flexShrink: 0, textTransform: "uppercase", letterSpacing: "0.04em", whiteSpace: "nowrap" }}>{statusLabel}</button>
+                        <div className="row-actions" style={{ display: "flex", gap: 3, flexShrink: 0, opacity: 0, transition: "opacity 0.15s" }}>
+                          <button onClick={(e) => { e.stopPropagation(); openEditRehab(r, idx); }} style={{ background: "var(--surface-muted)", border: "none", borderRadius: 6, padding: "4px 6px", cursor: "pointer", color: "var(--text-label)", display: "flex", alignItems: "center" }} title="Edit"><Pencil size={12} /></button>
+                          <button onClick={(e) => { e.stopPropagation(); setDeleteConfirm({ type: "rehab", item: r, index: idx }); }} style={{ background: "var(--danger-badge)", border: "none", borderRadius: 6, padding: "4px 6px", cursor: "pointer", color: "var(--c-red)", display: "flex", alignItems: "center" }} title="Delete"><Trash2 size={12} /></button>
+                        </div>
+                      </div>
+                      <div style={{ height: 4, background: "var(--surface-muted)", borderRadius: 2, overflow: "hidden" }}>
+                        <div style={{ width: `${pct}%`, height: "100%", background: barColor, transition: "width 0.2s" }} />
+                      </div>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 11 }}>
+                        <span style={{ color: overBudget ? "var(--c-red)" : "var(--text-secondary)", fontWeight: 600 }}>{fmt(spent)} <span style={{ color: "var(--text-muted)", fontWeight: 400 }}>/ {fmt(budget)}</span></span>
+                        {overBudget && <span style={{ color: "var(--c-red)", fontWeight: 600 }}>+{fmt(overage)} over</span>}
                       </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-          {planFeedFiltered.length === 0 && (rehabItems.length > 0 || milestones.filter(m => m.id).length > 0) && (
-            <div style={{ background: "var(--surface)", borderRadius: 16, padding: 40, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)", textAlign: "center", color: "var(--text-muted)" }}>
-              <p style={{ fontSize: 13 }}>No items match this filter.</p>
+                  );
+                })}
+              </div>
             </div>
           )}
         </div>
