@@ -690,8 +690,8 @@ export function ContractorDetail({ contractor, onBack, initialTab }) {
   return (
     <div>
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 24 }}>
-        <button onClick={onBack} style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: "none", cursor: "pointer", color: "var(--text-secondary)", fontSize: 13, fontWeight: 500 }}>
-          <ChevronLeft size={16} /> Back to Contractors
+        <button onClick={onBack} style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: "none", cursor: "pointer", color: "var(--c-blue)", fontSize: 14, fontWeight: 600 }}>
+          <ChevronLeft size={15} /> Back to Contractors
         </button>
       </div>
 

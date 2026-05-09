@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import {
-  ChevronRight, Home, DollarSign, FileText, Wrench, MessageSquare, LogOut, Pencil,
+  ChevronLeft, ChevronRight, Home, DollarSign, FileText, Wrench, MessageSquare, LogOut, Pencil,
   Phone, Mail, Shield, CheckCircle, Plus, Trash2, AlertTriangle, UploadCloud,
 } from "lucide-react";
 import {
@@ -198,7 +198,7 @@ export function TenantDetail({ tenant, onBack, backLabel, onTenantUpdated, onSel
     <div>
       {onBack && (
         <button onClick={onBack} style={{ display: "flex", alignItems: "center", gap: 6, color: "var(--c-blue)", fontWeight: 600, fontSize: 14, background: "none", border: "none", cursor: "pointer", marginBottom: 14 }}>
-          <ChevronRight size={14} style={{ transform: "rotate(180deg)" }} /> {backLabel || "Back to Tenants"}
+          <ChevronLeft size={15} /> {backLabel || "Back to Tenants"}
         </button>
       )}
 

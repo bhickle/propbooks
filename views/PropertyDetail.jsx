@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import {
-  FileText, Home, Plus, Search, ChevronRight, CheckCircle, AlertCircle, X,
+  FileText, Home, Plus, Search, ChevronLeft, ChevronRight, CheckCircle, AlertCircle, X,
   ChevronDown, User, MapPin, Clock, Users, Receipt, Trash2, Pencil, MessageSquare,
   ArrowLeft, DollarSign, RefreshCw, Archive,
 } from "lucide-react";
@@ -199,7 +199,7 @@ export function PropertyDetail({ property, onBack, backLabel, onEditProperty, on
   return (
     <div>
       <button onClick={onBack} style={{ display: "flex", alignItems: "center", gap: 6, color: "var(--c-blue)", fontWeight: 600, fontSize: 14, background: "none", border: "none", cursor: "pointer", marginBottom: 20 }}>
-        <ArrowLeft size={15} /> {backLabel || "Back to Properties"}
+        <ChevronLeft size={15} /> {backLabel || "Back to Properties"}
       </button>
 
       {/* Property header card */}

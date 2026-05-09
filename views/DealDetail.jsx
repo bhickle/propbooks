@@ -9,7 +9,7 @@
 // =============================================================================
 import { useState, useEffect, useMemo } from "react";
 import {
-  Plus, X, Pencil, Trash2, ChevronRight, CheckCircle, Circle, Wrench, Truck,
+  Plus, X, Pencil, Trash2, ChevronLeft, ChevronRight, CheckCircle, Circle, Wrench, Truck,
   Clock, DollarSign, Receipt, FileText, MessageSquare, Search, Calendar, Flag,
   Target, User, Users, Home, MapPin, LayoutDashboard, Phone, Filter,
   AlertTriangle, ArrowRight, ArrowLeft, Camera, CheckSquare, Copy, UserCheck,
@@ -676,8 +676,8 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
 
   return (
     <div>
-      <button onClick={onBack} style={{ display: "flex", alignItems: "center", gap: 6, color: "#e95e00", fontWeight: 600, fontSize: 14, background: "none", border: "none", cursor: "pointer", marginBottom: 20 }}>
-        {backLabel || "Back to Rehabs"}
+      <button onClick={onBack} style={{ display: "flex", alignItems: "center", gap: 6, color: "var(--c-blue)", fontWeight: 600, fontSize: 14, background: "none", border: "none", cursor: "pointer", marginBottom: 20 }}>
+        <ChevronLeft size={15} /> {backLabel || "Back to Rehabs"}
       </button>
       <div style={{ background: "var(--hero-bg)", borderRadius: 20, padding: 28, marginBottom: 20, border: "1px solid var(--hero-border)" }}>
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>

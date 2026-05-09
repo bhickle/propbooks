@@ -40,7 +40,7 @@ export function RehabItemDetail({ deal, itemIdx, onBack, backLabel, onNavigateTo
   if (!item) {
     return (
       <div>
-        <button onClick={onBack} style={{ background: "none", border: "none", color: "var(--text-secondary)", cursor: "pointer", fontSize: 13, display: "flex", alignItems: "center", gap: 6, marginBottom: 20 }}><ChevronLeft size={16} /> {backLabel || "Back"}</button>
+        <button onClick={onBack} style={{ background: "none", border: "none", color: "var(--c-blue)", cursor: "pointer", fontSize: 14, fontWeight: 600, display: "flex", alignItems: "center", gap: 6, marginBottom: 20 }}><ChevronLeft size={15} /> {backLabel || "Back"}</button>
         <div style={{ background: "var(--surface)", borderRadius: 16, padding: 40, textAlign: "center", color: "var(--text-muted)" }}>Rehab item not found.</div>
       </div>
     );
@@ -178,7 +178,7 @@ export function RehabItemDetail({ deal, itemIdx, onBack, backLabel, onNavigateTo
 
   return (
     <div>
-      <button onClick={onBack} style={{ background: "none", border: "none", color: "var(--text-secondary)", cursor: "pointer", fontSize: 13, display: "flex", alignItems: "center", gap: 6, marginBottom: 16 }}><ChevronLeft size={16} /> {backLabel || "Back"}</button>
+      <button onClick={onBack} style={{ background: "none", border: "none", color: "var(--c-blue)", cursor: "pointer", fontSize: 14, fontWeight: 600, display: "flex", alignItems: "center", gap: 6, marginBottom: 16 }}><ChevronLeft size={15} /> {backLabel || "Back"}</button>
 
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24 }}>
         <div>
