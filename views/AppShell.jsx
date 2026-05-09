@@ -263,6 +263,41 @@ export function AppShell() {
     return () => window.removeEventListener("popstate", onPop);
   }, []);
 
+  // Unified back handler used by every detail screen's onBack callback.
+  // Routes through window.history.back() so the in-app back button and
+  // the browser back arrow share the same history stack — popstate
+  // restores activeView / selected entity / tab from the previous entry.
+  // Falls back to setActiveView for the rare case there's no history yet
+  // (e.g. user landed directly on a deep view).
+  const goBack = (fallbackView = "portfolio") => {
+    // Short-lived UI flags aren't part of nav state — clear them so a
+    // stale highlight doesn't carry across.
+    setHighlightLedgerKey(null);
+    setHighlightTenantId(null);
+    setHighlightNoteId(null);
+    setHighlightDealNoteId(null);
+    setHighlightMilestoneKey(null);
+    setPropDetailTenantHighlight(null);
+    setNotesAutoAdd(false);
+    if (window.history.length > 1) {
+      window.history.back();
+      return;
+    }
+    setActiveView(fallbackView);
+    setSelectedProperty(null);
+    setSelectedDeal(null);
+    setSelectedTenant(null);
+    setSelectedContractor(null);
+    setSelectedRehabItem(null);
+    setPropDetailTab(null);
+    setDealInitialTab(null);
+    setContractorInitialTab(null);
+    setNavSource(null);
+    setDealNavSource(null);
+    setPrevNavSource(null);
+    setPrevDealNavSource(null);
+  };
+
   // Load Supabase-backed entities whenever the auth user changes. Supabase
   // is the source of truth; the in-memory mock arrays are synchronous mirrors
   // so existing component code (which reads them directly) keeps working
@@ -740,37 +775,30 @@ export function AppShell() {
           {/* Properties view is gone — AssetList replaced the list. The
               edit/add modal lives in <Properties> below, rendered outside
               the activeView switch so it pops up wherever the user is. */}
-          {activeView === "propertyDetail" && selectedProperty && <PropertyDetail key={selectedProperty.id + "-" + (propDetailTab || "overview") + "-" + (propDetailTenantHighlight || "")} property={selectedProperty} onBack={() => { setActiveView(navSource === "dashboard" ? "dashboard" : navSource === "portfolio" ? "portfolio" : "assets"); setPropDetailTab(null); setPropDetailTenantHighlight(null); setPrevNavSource(null); setNavSource(null); }} backLabel={navSource === "dashboard" ? "Back to Dashboard" : navSource === "portfolio" ? "Back to Portfolio" : "Back to Assets"} onEditProperty={(p) => { setEditPropertyId(p.id); }} onGoToTransactions={() => { setHighlightLedgerKey(null); setLedgerInitialAssetFilter("rental:" + selectedProperty.id); setActiveView("ledger"); }} onNavigateToTransaction={(txId) => { if (txId) setHighlightLedgerKey("tx-" + txId); setLedgerInitialAssetFilter("rental:" + selectedProperty.id); setActiveView("ledger"); }} onNavigateToTenant={(tenantId) => { const t = TENANTS.find(x => x.id === tenantId); if (t) { handleTenantSelect(t, "propertyDetail"); } }} onPropertyUpdated={() => { const fresh = PROPERTIES.find(p => p.id === selectedProperty.id); if (fresh) setSelectedProperty({ ...fresh }); }} initialTab={propDetailTab} highlightTenantId={propDetailTenantHighlight} onClearHighlightTenant={() => setPropDetailTenantHighlight(null)} />}
+          {activeView === "propertyDetail" && selectedProperty && <PropertyDetail key={selectedProperty.id + "-" + (propDetailTab || "overview") + "-" + (propDetailTenantHighlight || "")} property={selectedProperty} onBack={() => goBack(navSource === "dashboard" ? "dashboard" : navSource === "portfolio" ? "portfolio" : "assets")} backLabel={navSource === "dashboard" ? "Back to Dashboard" : navSource === "portfolio" ? "Back to Portfolio" : "Back to Assets"} onEditProperty={(p) => { setEditPropertyId(p.id); }} onGoToTransactions={() => { setHighlightLedgerKey(null); setLedgerInitialAssetFilter("rental:" + selectedProperty.id); setActiveView("ledger"); }} onNavigateToTransaction={(txId) => { if (txId) setHighlightLedgerKey("tx-" + txId); setLedgerInitialAssetFilter("rental:" + selectedProperty.id); setActiveView("ledger"); }} onNavigateToTenant={(tenantId) => { const t = TENANTS.find(x => x.id === tenantId); if (t) { handleTenantSelect(t, "propertyDetail"); } }} onPropertyUpdated={() => { const fresh = PROPERTIES.find(p => p.id === selectedProperty.id); if (fresh) setSelectedProperty({ ...fresh }); }} initialTab={propDetailTab} highlightTenantId={propDetailTenantHighlight} onClearHighlightTenant={() => setPropDetailTenantHighlight(null)} />}
           {activeView === "analytics" && <UnifiedAnalytics />}
-          {activeView === "notes" && <UnifiedNotes highlightNoteId={highlightNoteId} highlightDealNoteId={highlightDealNoteId} autoOpenAdd={notesAutoAdd} onBack={navSource === "dashboard" ? () => { setActiveView("dashboard"); setHighlightNoteId(null); setNavSource(null); setNotesAutoAdd(false); } : navSource === "dealdashboard" ? () => { setActiveView("dealdashboard"); setHighlightDealNoteId(null); setNavSource(null); setNotesAutoAdd(false); } : null} onClearHighlight={() => { setHighlightNoteId(null); setHighlightDealNoteId(null); setNotesAutoAdd(false); }} />}
+          {activeView === "notes" && <UnifiedNotes highlightNoteId={highlightNoteId} highlightDealNoteId={highlightDealNoteId} autoOpenAdd={notesAutoAdd} onBack={(navSource === "dashboard" || navSource === "dealdashboard") ? () => goBack(navSource) : null} onClearHighlight={() => { setHighlightNoteId(null); setHighlightDealNoteId(null); setNotesAutoAdd(false); }} />}
           {activeView === "reports" && <UnifiedReports />}
           {/* Old "dealdashboard" route folded into UnifiedDashboard above */}
           {/* "deals" route retired — Assets covers the rehab list. */}
-          {activeView === "dealDetail"      && selectedDeal && <ErrorBoundary key={"eb-" + selectedDeal.id}><DealDetail key={selectedDeal.id + "-" + (dealInitialTab || "overview")} deal={selectedDeal} onBack={() => { setActiveView(dealNavSource || "assets"); setDealNavSource(null); setPrevDealNavSource(null); setDealInitialTab(null); }} backLabel={dealNavSource === "dealdashboard" ? "Back to Dashboard" : dealNavSource === "portfolio" ? "Back to Portfolio" : "Back to Assets"} onNavigateToExpense={navigateToDealExpense} onNavigateToContractor={(con, tab) => { setSelectedContractor(con); setContractorInitialTab(tab || null); setPrevDealNavSource(dealNavSource); setNavSource("dealDetail"); setActiveView("contractorDetail"); }} onNavigateToRehabItem={(idx) => { setSelectedRehabItem({ dealId: selectedDeal.id, itemIdx: idx }); setNavSource("dealDetail"); setPrevDealNavSource(dealNavSource); setActiveView("rehabItemDetail"); }} initialTab={dealInitialTab} onConvertToRental={(flipData) => { setConvertDealData(flipData); }} onDealUpdated={onDealUpdated} onNavigateToDeal={(f) => handleDealSelect(f, null, dealNavSource || "assets")} /></ErrorBoundary>}
+          {activeView === "dealDetail"      && selectedDeal && <ErrorBoundary key={"eb-" + selectedDeal.id}><DealDetail key={selectedDeal.id + "-" + (dealInitialTab || "overview")} deal={selectedDeal} onBack={() => goBack(dealNavSource || "assets")} backLabel={dealNavSource === "dealdashboard" ? "Back to Dashboard" : dealNavSource === "portfolio" ? "Back to Portfolio" : "Back to Assets"} onNavigateToExpense={navigateToDealExpense} onNavigateToContractor={(con, tab) => { setSelectedContractor(con); setContractorInitialTab(tab || null); setPrevDealNavSource(dealNavSource); setNavSource("dealDetail"); setActiveView("contractorDetail"); }} onNavigateToRehabItem={(idx) => { setSelectedRehabItem({ dealId: selectedDeal.id, itemIdx: idx }); setNavSource("dealDetail"); setPrevDealNavSource(dealNavSource); setActiveView("rehabItemDetail"); }} initialTab={dealInitialTab} onConvertToRental={(flipData) => { setConvertDealData(flipData); }} onDealUpdated={onDealUpdated} onNavigateToDeal={(f) => handleDealSelect(f, null, dealNavSource || "assets")} /></ErrorBoundary>}
           {activeView === "rehabItemDetail" && selectedRehabItem && (() => {
             const rDeal = DEALS.find(f => f.id === selectedRehabItem.dealId);
             if (!rDeal) return null;
             return <RehabItemDetail
               deal={rDeal}
               itemIdx={selectedRehabItem.itemIdx}
-              onBack={() => {
-                setSelectedRehabItem(null);
-                setActiveView("dealDetail");
-                setDealInitialTab("rehab");
-                setNavSource(null);
-                setDealNavSource(prevDealNavSource);
-                setPrevDealNavSource(null);
-              }}
+              onBack={() => goBack("dealDetail")}
               backLabel={`Back to ${rDeal.name}`}
               onNavigateToContractor={(con, tab) => { setSelectedContractor(con); setContractorInitialTab(tab || null); setNavSource("rehabItemDetail"); setActiveView("contractorDetail"); }}
               onNavigateToExpense={(expId) => { setHighlightLedgerKey("dx-" + expId); setLedgerInitialAssetFilter(null); setActiveView("ledger"); }}
             />;
           })()}
           {activeView === "dealcontractors" && <DealContractors onSelectContractor={handleSelectContractor} />}
-          {activeView === "contractorDetail" && selectedContractor && <ContractorDetail contractor={selectedContractor} initialTab={contractorInitialTab} onBack={() => { setSelectedContractor(null); setContractorInitialTab(null); if (navSource === "dealDetail" && selectedDeal) { setActiveView("dealDetail"); setDealInitialTab("contractors"); setNavSource(null); setDealNavSource(prevDealNavSource); setPrevDealNavSource(null); } else if (navSource === "rehabItemDetail" && selectedRehabItem) { setActiveView("rehabItemDetail"); setNavSource("dealDetail"); } else if (navSource === "portfolio") { setActiveView("portfolio"); setNavSource(null); } else { setActiveView("dealcontractors"); } }} />}
-          {activeView === "dealmilestones"  && <DealMilestones highlightMilestoneKey={highlightMilestoneKey} onBack={navSource === "dealdashboard" ? () => { setActiveView("dealdashboard"); setHighlightMilestoneKey(null); setNavSource(null); } : null} onClearHighlight={() => setHighlightMilestoneKey(null)} />}
-          {activeView === "tenants" && <TenantManagement onBack={navSource === "propertyDetail" ? () => { setActiveView("propertyDetail"); setHighlightTenantId(null); setNavSource(prevNavSource); setPrevNavSource(null); } : null} highlightTenantId={highlightTenantId} onClearHighlight={() => setHighlightTenantId(null)} prefillTenant={prefillTenant} onClearPrefill={() => setPrefillTenant(null)} onSelectTenant={(t) => handleTenantSelect(t, "tenants")} />}
-          {activeView === "tenantDetail" && selectedTenant && <TenantDetail tenant={selectedTenant} onBack={() => { setSelectedTenant(null); setActiveView(navSource || "tenants"); setNavSource(null); }} backLabel={navSource === "propertyDetail" ? "Back to Property" : "Back to Tenants"} onTenantUpdated={handleTenantUpdated} />}
+          {activeView === "contractorDetail" && selectedContractor && <ContractorDetail contractor={selectedContractor} initialTab={contractorInitialTab} onBack={() => goBack(navSource === "portfolio" ? "portfolio" : "dealcontractors")} />}
+          {activeView === "dealmilestones"  && <DealMilestones highlightMilestoneKey={highlightMilestoneKey} onBack={navSource === "dealdashboard" ? () => goBack("dealdashboard") : null} onClearHighlight={() => setHighlightMilestoneKey(null)} />}
+          {activeView === "tenants" && <TenantManagement onBack={navSource === "propertyDetail" ? () => goBack("propertyDetail") : null} highlightTenantId={highlightTenantId} onClearHighlight={() => setHighlightTenantId(null)} prefillTenant={prefillTenant} onClearPrefill={() => setPrefillTenant(null)} onSelectTenant={(t) => handleTenantSelect(t, "tenants")} />}
+          {activeView === "tenantDetail" && selectedTenant && <TenantDetail tenant={selectedTenant} onBack={() => goBack(navSource || "tenants")} backLabel={navSource === "propertyDetail" ? "Back to Property" : "Back to Tenants"} onTenantUpdated={handleTenantUpdated} />}
           {activeView === "mileage" && <MileageTracker />}
           {activeView === "dealanalyzer" && <DealAnalyzer />}
           {activeView === "rentalWizard" && <RentalWizard onComplete={() => setActiveView("assets")} onExit={() => setActiveView("assets")} />}
