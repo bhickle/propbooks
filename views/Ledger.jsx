@@ -12,7 +12,7 @@ import { useState, useMemo, useEffect, useRef } from "react";
 import {
   Search, X, ArrowUpRight, ArrowDownRight, Wallet,
   TrendingUp, TrendingDown, Hash, Plus, Home, Hammer,
-  Pencil, Trash2, CheckCircle,
+  Pencil, Trash2, CheckCircle, User, UserCheck, Users,
 } from "lucide-react";
 import {
   newId, fmt, fmtK, DEALS, DEAL_EXPENSES, CONTRACTORS,
@@ -211,6 +211,7 @@ function LedgerAddModal({ initialKind, editRow, onClose, onSaved }) {
   const selectedAsset = assetOptions.find(a => String(a.id) === String(form.assetId));
 
   // Tenants on the selected rental (for income with optional tenant attribution).
+  const [counterpartyFocus, setCounterpartyFocus] = useState(false);
   const tenantsForAsset = kind === "rental-income" && selectedAsset
     ? TENANTS.filter(t => t.propertyId === selectedAsset.id && t.status !== "past" && t.status !== "vacant")
     : [];
@@ -226,8 +227,44 @@ function LedgerAddModal({ initialKind, editRow, onClose, onSaved }) {
 
   const counterpartyLabel = kind === "rental-income" ? "Received From" : "Paid To";
   const counterpartyPlaceholder = kind === "rental-income"
-    ? "Tenant name (auto-fills if you pick one above)"
-    : kind === "flip-expense" ? "Vendor or contractor name" : "Vendor / payee";
+    ? "Tenant or other payer"
+    : kind === "flip-expense" ? "Vendor or contractor" : "Vendor or payee";
+
+  // Suggestion lists for the counterparty typeahead.
+  // For flip-expense: contractors on this rehab + previous flip vendors.
+  // For rental-income: tenants on this property + previous payers.
+  // For rental-expense: previous rental payees.
+  const contractorsForAsset = kind === "flip-expense" && selectedAsset
+    ? CONTRACTORS.filter(c => (c.dealIds || []).includes(selectedAsset.id))
+    : [];
+  const previousFlipVendors = useMemo(() => {
+    if (kind !== "flip-expense") return [];
+    return [...new Set(DEAL_EXPENSES.map(e => e.vendor).filter(Boolean))].sort();
+  }, [kind]);
+  const previousRentalPayers = useMemo(() => {
+    if (kind === "rental-income") {
+      return [...new Set(TRANSACTIONS.filter(t => t.type === "income").map(t => t.payee).filter(Boolean))].sort();
+    }
+    if (kind === "rental-expense") {
+      return [...new Set(TRANSACTIONS.filter(t => t.type === "expense").map(t => t.payee).filter(Boolean))].sort();
+    }
+    return [];
+  }, [kind]);
+
+  // Auto-link contractor when counterparty matches one exactly.
+  const handleCounterpartyChange = (e) => {
+    const val = e.target.value;
+    const matchedCon = contractorsForAsset.find(c => c.name.toLowerCase() === val.toLowerCase());
+    setForm(f => ({ ...f, counterparty: val, contractorId: matchedCon ? matchedCon.id : "" }));
+  };
+  // Auto-link tenant when counterparty matches one exactly (income only).
+  const handleCounterpartyChangeIncome = (e) => {
+    const val = e.target.value;
+    const matchedTenant = tenantsForAsset.find(t => t.name.toLowerCase() === val.toLowerCase());
+    setForm(f => ({ ...f, counterparty: val, tenantId: matchedTenant ? matchedTenant.id : f.tenantId }));
+  };
+
+  const linkedContractor = form.contractorId ? CONTRACTORS.find(c => String(c.id) === String(form.contractorId)) : null;
 
   const canSave = form.assetId && form.amount && Number(form.amount) > 0 && form.category;
 
@@ -392,18 +429,6 @@ function LedgerAddModal({ initialKind, editRow, onClose, onSaved }) {
           </div>
         )}
 
-        {kind === "flip-expense" && CONTRACTORS.length > 0 && (
-          <div style={{ gridColumn: "1 / -1" }}>
-            <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>
-              Contractor <span style={{ color: "var(--text-muted)", fontWeight: 400 }}>(optional)</span>
-            </label>
-            <select value={form.contractorId} onChange={sf("contractorId")} style={iS}>
-              <option value="">No contractor (vendor / supplier)</option>
-              {CONTRACTORS.map(c => <option key={c.id} value={c.id}>{c.name}{c.trade ? ` — ${c.trade}` : ""}</option>)}
-            </select>
-          </div>
-        )}
-
         {kind === "flip-expense" && rehabItemsForDeal.length > 0 && (
           <div style={{ gridColumn: "1 / -1" }}>
             <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>
@@ -484,9 +509,94 @@ function LedgerAddModal({ initialKind, editRow, onClose, onSaved }) {
           );
         })()}
 
-        <div style={{ gridColumn: "1 / -1" }}>
+        <div style={{ gridColumn: "1 / -1", position: "relative" }}>
           <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>{counterpartyLabel}</label>
-          <input type="text" placeholder={counterpartyPlaceholder} value={form.counterparty} onChange={sf("counterparty")} style={iS} />
+          <input
+            type="text"
+            placeholder={counterpartyPlaceholder}
+            value={form.counterparty}
+            onChange={kind === "rental-income" ? handleCounterpartyChangeIncome : handleCounterpartyChange}
+            onFocus={() => setCounterpartyFocus(true)}
+            onBlur={() => setTimeout(() => setCounterpartyFocus(false), 150)}
+            style={iS}
+            autoComplete="off"
+          />
+          {counterpartyFocus && (() => {
+            const q = (form.counterparty || "").toLowerCase().trim();
+            // Build suggestion lists per kind
+            const conMatches = kind === "flip-expense"
+              ? (q ? contractorsForAsset.filter(c => c.name.toLowerCase().includes(q)) : contractorsForAsset.slice(0, 6))
+              : [];
+            const conNames = new Set(conMatches.map(c => c.name.toLowerCase()));
+            const tenantMatches = kind === "rental-income"
+              ? (q ? tenantsForAsset.filter(t => t.name.toLowerCase().includes(q)) : tenantsForAsset.slice(0, 6))
+              : [];
+            const tenantNames = new Set(tenantMatches.map(t => t.name.toLowerCase()));
+            const previousList = kind === "flip-expense" ? previousFlipVendors : previousRentalPayers;
+            const previousMatches = q
+              ? previousList.filter(v => v.toLowerCase().includes(q) && !conNames.has(v.toLowerCase()) && !tenantNames.has(v.toLowerCase()))
+              : previousList.filter(v => !conNames.has(v.toLowerCase()) && !tenantNames.has(v.toLowerCase())).slice(0, 6);
+            const exactExists = previousList.some(v => v.toLowerCase() === q)
+              || conMatches.some(c => c.name.toLowerCase() === q)
+              || tenantMatches.some(t => t.name.toLowerCase() === q);
+            const showNew = q && !exactExists;
+            if (conMatches.length === 0 && tenantMatches.length === 0 && previousMatches.length === 0 && !showNew) return null;
+            return (
+              <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, boxShadow: "0 8px 24px rgba(0,0,0,0.10)", zIndex: 200, overflow: "hidden", maxHeight: 280, overflowY: "auto" }}>
+                {tenantMatches.length > 0 && (
+                  <>
+                    <div style={{ padding: "6px 14px", background: "var(--surface-alt)", fontSize: 10, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em" }}>Tenants</div>
+                    {tenantMatches.slice(0, 5).map(t => (
+                      <button key={`tn-${t.id}`} onMouseDown={() => { setForm(f => ({ ...f, counterparty: t.name, tenantId: t.id })); setCounterpartyFocus(false); }}
+                        style={{ width: "100%", padding: "10px 14px", background: "none", border: "none", borderBottom: "1px solid var(--border-subtle)", textAlign: "left", cursor: "pointer", fontSize: 13, color: "var(--text-primary)", display: "flex", alignItems: "center", gap: 8 }}>
+                        <Users size={13} style={{ color: "var(--c-green)", flexShrink: 0 }} />
+                        <span style={{ flex: 1 }}>{t.name}</span>
+                        {t.unit && <span style={{ fontSize: 11, color: "var(--text-muted)" }}>{t.unit}</span>}
+                      </button>
+                    ))}
+                  </>
+                )}
+                {conMatches.length > 0 && (
+                  <>
+                    <div style={{ padding: "6px 14px", background: "var(--surface-alt)", fontSize: 10, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em" }}>Rehab Contractors</div>
+                    {conMatches.slice(0, 5).map(c => (
+                      <button key={`con-${c.id}`} onMouseDown={() => { setForm(f => ({ ...f, counterparty: c.name, contractorId: c.id })); setCounterpartyFocus(false); }}
+                        style={{ width: "100%", padding: "10px 14px", background: "none", border: "none", borderBottom: "1px solid var(--border-subtle)", textAlign: "left", cursor: "pointer", fontSize: 13, color: "var(--text-primary)", display: "flex", alignItems: "center", gap: 8 }}>
+                        <UserCheck size={13} style={{ color: "var(--c-blue)", flexShrink: 0 }} />
+                        <span style={{ flex: 1 }}>{c.name}</span>
+                        {c.trade && <span style={{ fontSize: 11, color: "var(--text-muted)" }}>{c.trade}</span>}
+                      </button>
+                    ))}
+                  </>
+                )}
+                {previousMatches.length > 0 && (
+                  <>
+                    <div style={{ padding: "6px 14px", background: "var(--surface-alt)", fontSize: 10, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em" }}>Previous {kind === "rental-income" ? "Payers" : "Payees"}</div>
+                    {previousMatches.slice(0, 5).map(v => (
+                      <button key={v} onMouseDown={() => { setForm(f => ({ ...f, counterparty: v, contractorId: "" })); setCounterpartyFocus(false); }}
+                        style={{ width: "100%", padding: "10px 14px", background: "none", border: "none", borderBottom: "1px solid var(--border-subtle)", textAlign: "left", cursor: "pointer", fontSize: 13, color: "var(--text-primary)", display: "flex", alignItems: "center", gap: 8 }}>
+                        <User size={13} style={{ color: "var(--text-muted)", flexShrink: 0 }} /> {v}
+                      </button>
+                    ))}
+                  </>
+                )}
+                {showNew && (
+                  <button onMouseDown={() => setCounterpartyFocus(false)}
+                    style={{ width: "100%", padding: "10px 14px", display: "flex", alignItems: "center", gap: 8, background: "var(--warning-bg)", border: "none", borderTop: "1px solid var(--border)", cursor: "pointer", textAlign: "left" }}>
+                    <Plus size={13} style={{ color: "#e95e00", flexShrink: 0 }} />
+                    <span style={{ fontSize: 13, color: "#e95e00", fontWeight: 600 }}>Add &ldquo;{form.counterparty}&rdquo; as new</span>
+                  </button>
+                )}
+              </div>
+            );
+          })()}
+          {linkedContractor && (
+            <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 6 }}>
+              <UserCheck size={12} color="var(--c-blue)" />
+              <span style={{ fontSize: 12, color: "var(--c-blue)", fontWeight: 600 }}>Linked to {linkedContractor.name}{linkedContractor.trade ? ` (${linkedContractor.trade})` : ""}</span>
+              <button onClick={() => setForm(f => ({ ...f, contractorId: "" }))} style={{ background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", fontSize: 11, textDecoration: "underline" }}>unlink</button>
+            </div>
+          )}
         </div>
 
       </div>
