@@ -12,7 +12,7 @@ import {
   Building2, AlertCircle, CheckCircle, Download, Target, ArrowUp,
   ArrowDown, Calendar,
 } from "lucide-react";
-import { fmt, fmtK, STAGE_ORDER, STAGE_COLORS, CONTRACTOR_BIDS as _BIDS, CONTRACTOR_PAYMENTS as _PAYS } from "./api.js";
+import { fmt, fmtK, STAGE_ORDER, STAGE_COLORS, CONTRACTOR_BIDS as _BIDS } from "./api.js";
 import { DEALS as _DEALS, DEAL_EXPENSES as _FE, CONTRACTORS as _CON } from "./api.js";
 import { InfoTip, downloadFile } from "./shared.jsx";
 
@@ -60,10 +60,10 @@ function buildProjectReportCSV(activeReport, allMetrics, dealFilter) {
     const filterDealId = dealFilter !== "all" ? dealFilter : null;
     _CON.forEach(c => {
       const bids = _BIDS.filter(b => b.contractorId === c.id && b.status === "accepted" && (!filterDealId || b.dealId === filterDealId));
-      const pays = _PAYS.filter(p => p.contractorId === c.id && (!filterDealId || p.dealId === filterDealId));
+      const pays = _FE.filter(e => e.contractorId === c.id && (e.status || "paid") === "paid" && (!filterDealId || e.dealId === filterDealId));
       if (bids.length === 0 && pays.length === 0) return;
       const accepted = bids.reduce((s, b) => s + b.amount, 0);
-      const paid = pays.reduce((s, p) => s + p.amount, 0);
+      const paid = pays.reduce((s, e) => s + (e.amount || 0), 0);
       const projectName = filterDealId ? (_DEALS.find(f => f.id === filterDealId)?.name || "") : "(across all)";
       csv += csvRow([c.name, c.trade || "", projectName, accepted, paid, accepted - paid]);
     });
@@ -481,21 +481,19 @@ function HoldingCostsReport({ deals }) {
 function ContractorPaymentsReport({ dealFilter }) {
   const filterDealId = dealFilter !== "all" ? dealFilter : null;
 
-  // Filter contractors to those relevant to the selected deal (or all)
-  const contractors = _CON.filter(c => {
-    if (!filterDealId) return (c.bids || []).length > 0 || (c.payments || []).length > 0;
-    return (c.dealIds || []).includes(filterDealId);
-  });
+  // Helpers — bids come from CONTRACTOR_BIDS, payments derive from
+  // DEAL_EXPENSES rows linked via contractorId (paid status only).
+  const getBids = (c) => _BIDS.filter(b =>
+    b.contractorId === c.id && (!filterDealId || b.dealId === filterDealId));
+  const getPayments = (c) => _FE.filter(e =>
+    e.contractorId === c.id && (e.status || "paid") === "paid"
+    && (!filterDealId || e.dealId === filterDealId));
 
-  // Helper: filter bids/payments by deal when a specific deal is selected
-  const getBids = (c) => {
-    const bids = c.bids || [];
-    return filterDealId ? bids.filter(b => b.dealId === filterDealId) : bids;
-  };
-  const getPayments = (c) => {
-    const pays = c.payments || [];
-    return filterDealId ? pays.filter(p => p.dealId === filterDealId) : pays;
-  };
+  // Only include contractors with activity in the current scope
+  const contractors = _CON.filter(c => {
+    if (filterDealId) return (c.dealIds || []).includes(filterDealId);
+    return getBids(c).length > 0 || getPayments(c).length > 0;
+  });
 
   const sorted = [...contractors].sort((a, b) => {
     const aPaid = getPayments(b).reduce((s, p) => s + p.amount, 0);

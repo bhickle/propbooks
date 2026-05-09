@@ -25,13 +25,12 @@ import {
 
 // Shared mock data refs (passed as props or imported directly)
 // Using module-level state so all modules stay in sync within a session
-import { DEALS as _DEALS, DEAL_EXPENSES as _FE, CONTRACTORS as _CON, DEAL_MILESTONES, DEAL_NOTES, CONTRACTOR_BIDS as _BIDS, CONTRACTOR_PAYMENTS as _PAYMENTS, CONTRACTOR_DOCUMENTS as _DOCS } from "./api.js";
+import { DEALS as _DEALS, DEAL_EXPENSES as _FE, CONTRACTORS as _CON, DEAL_MILESTONES, DEAL_NOTES, CONTRACTOR_BIDS as _BIDS, CONTRACTOR_DOCUMENTS as _DOCS } from "./api.js";
 import { InfoTip, Modal, StatCard, colorWithAlpha, sectionS as sharedSectionS, cardS as sharedCardS, iS } from "./shared.jsx";
 import { updateMilestone as dbUpdateMilestone, createMilestone as dbCreateMilestone, deleteMilestone as dbDeleteMilestone } from "./db/dealMilestones.js";
 import { updateRehabItem as dbUpdateRehabItem, createRehabItem as dbCreateRehabItem, deleteRehabItem as dbDeleteRehabItem } from "./db/dealRehabItems.js";
 import { createContractor as dbCreateContractor, updateContractor as dbUpdateContractor, deleteContractor as dbDeleteContractor, linkContractorToDeal as dbLinkContractorToDeal, unlinkContractorFromDeal as dbUnlinkContractorFromDeal } from "./db/contractors.js";
 import { createContractorBid as dbCreateContractorBid, updateContractorBid as dbUpdateContractorBid, deleteContractorBid as dbDeleteContractorBid } from "./db/contractorBids.js";
-import { createContractorPayment as dbCreateContractorPayment, deleteContractorPayment as dbDeleteContractorPayment } from "./db/contractorPayments.js";
 import { createDealExpense as dbCreateDealExpense, updateDealExpense as dbUpdateDealExpense, deleteDealExpense as dbDeleteDealExpense } from "./db/dealExpenses.js";
 import { createDealNote as dbCreateDealNote, updateNote as dbUpdateNote, deleteNote as dbDeleteNote } from "./db/notes.js";
 import { createDocument as dbCreateDocument, updateDocument as dbUpdateDocument, deleteDocument as dbDeleteDocument } from "./db/documents.js";
@@ -331,7 +330,7 @@ export function DealContractors({ onSelectContractor }) {
   });
 
   const totalBids = filtered.reduce((s, c) => s + _BIDS.filter(b => b.contractorId === c.id && b.status === "accepted").reduce((bs, b) => bs + b.amount, 0), 0);
-  const totalPaid = filtered.reduce((s, c) => s + _PAYMENTS.filter(p => p.contractorId === c.id).reduce((ps, p) => ps + p.amount, 0), 0);
+  const totalPaid = filtered.reduce((s, c) => s + _FE.filter(e => e.contractorId === c.id && (e.status || "paid") === "paid").reduce((ps, e) => ps + (e.amount || 0), 0), 0);
   const outstanding = totalBids - totalPaid;
 
   const handleAdd = async () => {
@@ -393,7 +392,7 @@ export function DealContractors({ onSelectContractor }) {
         {filtered.map(c => {
           const deals = (c.dealIds || []).map(id => _DEALS.find(f => f.id === id)).filter(Boolean);
           const totalConBids = _BIDS.filter(b => b.contractorId === c.id && b.status === "accepted").reduce((s, b) => s + b.amount, 0);
-          const totalConPaid = _PAYMENTS.filter(p => p.contractorId === c.id).reduce((s, p) => s + p.amount, 0);
+          const totalConPaid = _FE.filter(e => e.contractorId === c.id && (e.status || "paid") === "paid").reduce((s, e) => s + (e.amount || 0), 0);
           const pct = totalConBids > 0 ? Math.min((totalConPaid / totalConBids) * 100, 100) : 0;
           const conBids = _BIDS.filter(b => b.contractorId === c.id);
           const conDocs = _DOCS.filter(d => d.contractorId === c.id);
@@ -542,7 +541,11 @@ export function ContractorDetail({ contractor, onBack, initialTab }) {
   const con = _CON.find(c => c.id === contractor.id) || contractor;
   const deals = (con.dealIds || []).map(id => _DEALS.find(f => f.id === id)).filter(Boolean);
   const bids = _BIDS.filter(b => b.contractorId === con.id);
-  const payments = _PAYMENTS.filter(p => p.contractorId === con.id);
+  // Payments are now derived from expenses linked to this contractor.
+  // Expense fields: description (was note on payments), date, amount, dealId, bidId.
+  const payments = _FE
+    .filter(e => e.contractorId === con.id && (e.status || "paid") === "paid")
+    .map(e => ({ id: e.id, dealId: e.dealId, amount: e.amount || 0, date: e.date, note: e.description, bidId: e.bidId || null }));
   const documents = _DOCS.filter(d => d.contractorId === con.id);
 
   const totalAccepted = bids.filter(b => b.status === "accepted").reduce((s, b) => s + b.amount, 0);

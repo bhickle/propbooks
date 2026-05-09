@@ -310,20 +310,23 @@ export const DEALS = [
 
 export const DEAL_EXPENSES = [
   { id:1,  dealId:1, date:"2026-03-18", vendor:"Home Depot",        contractorId:null, category:"Materials & Supplies",     description:"Hardwood flooring - 680 sqft",        amount:2890, createdAt:"2026-03-18T11:00:00Z", updatedAt:"2026-03-18T11:00:00Z", userId:"usr_001" },
-  { id:2,  dealId:1, date:"2026-03-15", vendor:"ABC Plumbing",      contractorId:1,    category:"Subcontractor",            description:"Master bath rough-in",                amount:3200, createdAt:"2026-03-15T09:30:00Z", updatedAt:"2026-03-15T09:30:00Z", userId:"usr_001" },
+  { id:2,  dealId:1, date:"2026-03-15", vendor:"ABC Plumbing",      contractorId:1,    bidId:101, category:"Subcontractor",            description:"Master bath rough-in",                amount:3200, createdAt:"2026-03-15T09:30:00Z", updatedAt:"2026-03-15T09:30:00Z", userId:"usr_001" },
   { id:3,  dealId:1, date:"2026-03-10", vendor:"Lowe's",            contractorId:null, category:"Fixtures & Hardware",      description:"Kitchen cabinet hardware + fixtures", amount:640,  createdAt:"2026-03-10T10:00:00Z", updatedAt:"2026-03-10T10:00:00Z", userId:"usr_001" },
   { id:4,  dealId:1, date:"2026-03-04", vendor:"City of Nashville", contractorId:null, category:"Permits",                  description:"Renovation permit",                   amount:380,  createdAt:"2026-03-04T14:00:00Z", updatedAt:"2026-03-04T14:00:00Z", userId:"usr_001" },
-  { id:5,  dealId:1, date:"2026-02-28", vendor:"Elite Electric",    contractorId:2,    category:"Subcontractor",            description:"Panel upgrade + recessed lighting",   amount:4100, createdAt:"2026-02-28T09:00:00Z", updatedAt:"2026-02-28T09:00:00Z", userId:"usr_001" },
+  { id:5,  dealId:1, date:"2026-02-28", vendor:"Elite Electric",    contractorId:2,    bidId:103, category:"Subcontractor",            description:"Panel upgrade + recessed lighting",   amount:4100, createdAt:"2026-02-28T09:00:00Z", updatedAt:"2026-02-28T09:00:00Z", userId:"usr_001" },
   { id:6,  dealId:1, date:"2026-02-20", vendor:"Lowe's",            contractorId:null, category:"Materials & Supplies",     description:"Kitchen cabinets - shaker style",     amount:5800, createdAt:"2026-02-20T10:30:00Z", updatedAt:"2026-02-20T10:30:00Z", userId:"usr_001" },
   { id:7,  dealId:1, date:"2026-02-14", vendor:"Budget Dumpster",   contractorId:null, category:"Dumpster / Debris Removal",description:"Demo debris removal",                 amount:420,  createdAt:"2026-02-14T08:30:00Z", updatedAt:"2026-02-14T08:30:00Z", userId:"usr_001" },
   { id:8,  dealId:2, date:"2026-01-12", vendor:"Sherwin-Williams",  contractorId:null, category:"Materials & Supplies",     description:"Interior/exterior paint + supplies",  amount:1150, createdAt:"2026-01-12T11:00:00Z", updatedAt:"2026-01-12T11:00:00Z", userId:"usr_001" },
-  { id:9,  dealId:2, date:"2026-01-08", vendor:"Pro Flooring Co.",  contractorId:4,    category:"Subcontractor",            description:"LVP install - 1,100 sqft",            amount:3900, createdAt:"2026-01-08T09:00:00Z", updatedAt:"2026-01-08T09:00:00Z", userId:"usr_001" },
+  { id:9,  dealId:2, date:"2026-01-08", vendor:"Pro Flooring Co.",  contractorId:4,    bidId:105, category:"Subcontractor",            description:"LVP install - 1,100 sqft",            amount:3900, createdAt:"2026-01-08T09:00:00Z", updatedAt:"2026-01-08T09:00:00Z", userId:"usr_001" },
   { id:10, dealId:2, date:"2025-12-20", vendor:"Home Depot",        contractorId:null, category:"Appliances",               description:"Stainless appliance package",         amount:2400, createdAt:"2025-12-20T10:30:00Z", updatedAt:"2025-12-20T10:30:00Z", userId:"usr_001" },
-  { id:11, dealId:2, date:"2025-12-10", vendor:"Jim's Windows",     contractorId:5,    category:"Subcontractor",            description:"Replace 8 windows",                   amount:5400, createdAt:"2025-12-10T09:00:00Z", updatedAt:"2025-12-10T09:00:00Z", userId:"usr_001" },
+  { id:11, dealId:2, date:"2025-12-10", vendor:"Jim's Windows",     contractorId:5,    bidId:107, category:"Subcontractor",            description:"Replace 8 windows",                   amount:5400, createdAt:"2025-12-10T09:00:00Z", updatedAt:"2025-12-10T09:00:00Z", userId:"usr_001" },
   { id:12, dealId:2, date:"2025-11-18", vendor:"City of Memphis",   contractorId:null, category:"Permits",                  description:"Electrical & structural permits",      amount:295,  createdAt:"2025-11-18T15:00:00Z", updatedAt:"2025-11-18T15:00:00Z", userId:"usr_001" },
-  { id:13, dealId:4, date:"2025-07-02", vendor:"Summit HVAC",       contractorId:6,    category:"Subcontractor",            description:"Full HVAC replacement",               amount:7200, createdAt:"2025-07-02T09:00:00Z", updatedAt:"2025-07-02T09:00:00Z", userId:"usr_001" },
+  { id:13, dealId:4, date:"2025-07-02", vendor:"Summit HVAC",       contractorId:6,    bidId:108, category:"Subcontractor",            description:"Full HVAC replacement",               amount:7200, createdAt:"2025-07-02T09:00:00Z", updatedAt:"2025-07-02T09:00:00Z", userId:"usr_001" },
   { id:14, dealId:4, date:"2025-06-15", vendor:"Habitat Flooring",  contractorId:null, category:"Materials & Supplies",     description:"Engineered hardwood - whole house",   amount:4300, createdAt:"2025-06-15T10:00:00Z", updatedAt:"2025-06-15T10:00:00Z", userId:"usr_001" },
   { id:15, dealId:4, date:"2025-06-01", vendor:"Raleigh Tile Co.",  contractorId:null, category:"Subcontractor",            description:"Master bath tile work",               amount:3100, createdAt:"2025-06-01T10:00:00Z", updatedAt:"2025-06-01T10:00:00Z", userId:"usr_001" },
+  // Partial payment on the $8500 plumbing bid; together with row 2 ($3200 on
+  // 2026-03-15) totals $6400 / $8500 = 75% paid against bid 101.
+  { id:16, dealId:1, date:"2026-02-15", vendor:"ABC Plumbing",     contractorId:1, bidId:101, category:"Subcontractor", description:"Progress payment — rough-in complete", amount:3200, status:"paid", createdAt:"2026-02-15T09:00:00Z", updatedAt:"2026-02-15T09:00:00Z", userId:"usr_001" },
 ];
 
 export const CONTRACTORS = [
@@ -344,14 +347,6 @@ export const CONTRACTOR_BIDS = [
   { id:106, contractorId:4, dealId:1, rehabItem:"Flooring",  amount:4200, status:"pending",  date:"2026-03-01", createdAt:"2026-03-01T10:00:00Z", updatedAt:"2026-03-01T10:00:00Z", userId:"usr_001" },
   { id:107, contractorId:5, dealId:2, rehabItem:"Windows & Doors", amount:5400, status:"accepted", date:"2025-11-15", createdAt:"2025-11-15T09:00:00Z", updatedAt:"2025-11-15T09:00:00Z", userId:"usr_001" },
   { id:108, contractorId:6, dealId:4, rehabItem:"HVAC Replacement", amount:7200, status:"accepted", date:"2025-06-10", createdAt:"2025-06-10T09:00:00Z", updatedAt:"2025-06-10T09:00:00Z", userId:"usr_001" },
-];
-
-export const CONTRACTOR_PAYMENTS = [
-  { id:201, contractorId:1, dealId:1, amount:3200, date:"2026-02-15", note:"Progress payment — rough-in complete", createdAt:"2026-02-15T09:00:00Z", updatedAt:"2026-02-15T09:00:00Z", userId:"usr_001" },
-  { id:202, contractorId:2, dealId:1, amount:4100, date:"2026-02-28", note:"Final payment — work complete", createdAt:"2026-02-28T09:00:00Z", updatedAt:"2026-02-28T09:00:00Z", userId:"usr_001" },
-  { id:203, contractorId:4, dealId:2, amount:3900, date:"2026-01-20", note:"Final — flooring complete", createdAt:"2026-01-20T09:00:00Z", updatedAt:"2026-01-20T09:00:00Z", userId:"usr_001" },
-  { id:204, contractorId:5, dealId:2, amount:5400, date:"2026-01-10", note:"Paid in full", createdAt:"2026-01-10T09:00:00Z", updatedAt:"2026-01-10T09:00:00Z", userId:"usr_001" },
-  { id:205, contractorId:6, dealId:4, amount:7200, date:"2025-08-20", note:"Final — system installed", createdAt:"2025-08-20T09:00:00Z", updatedAt:"2025-08-20T09:00:00Z", userId:"usr_001" },
 ];
 
 export const CONTRACTOR_DOCUMENTS = [
@@ -473,7 +468,6 @@ export function clearDemoData() {
   DEAL_EXPENSES.length      = 0;
   CONTRACTORS.length        = 0;
   CONTRACTOR_BIDS.length    = 0;
-  CONTRACTOR_PAYMENTS.length= 0;
   CONTRACTOR_DOCUMENTS.length=0;
   DEAL_MILESTONES.length    = 0;
   PROPERTY_DOCUMENTS.length = 0;
@@ -536,7 +530,6 @@ const _snap = {
   dealExpenses:         JSON.parse(JSON.stringify(DEAL_EXPENSES)),
   contractors:          JSON.parse(JSON.stringify(CONTRACTORS)),
   contractorBids:       JSON.parse(JSON.stringify(CONTRACTOR_BIDS)),
-  contractorPayments:   JSON.parse(JSON.stringify(CONTRACTOR_PAYMENTS)),
   contractorDocuments:  JSON.parse(JSON.stringify(CONTRACTOR_DOCUMENTS)),
   dealMilestones:       JSON.parse(JSON.stringify(DEAL_MILESTONES)),
   propertyDocuments:    JSON.parse(JSON.stringify(PROPERTY_DOCUMENTS)),
@@ -555,7 +548,6 @@ export function restoreDemoData() {
   refill(DEAL_EXPENSES,        _snap.dealExpenses);
   refill(CONTRACTORS,          _snap.contractors);
   refill(CONTRACTOR_BIDS,      _snap.contractorBids);
-  refill(CONTRACTOR_PAYMENTS,  _snap.contractorPayments);
   refill(CONTRACTOR_DOCUMENTS, _snap.contractorDocuments);
   refill(DEAL_MILESTONES,      _snap.dealMilestones);
   refill(PROPERTY_DOCUMENTS,   _snap.propertyDocuments);

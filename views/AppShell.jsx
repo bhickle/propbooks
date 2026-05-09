@@ -22,7 +22,7 @@ import {
   newId, fmt, fmtK,
   STAGE_ORDER, DEFAULT_MILESTONES,
   DEALS, DEAL_EXPENSES, DEAL_MILESTONES, DEAL_NOTES,
-  CONTRACTORS, CONTRACTOR_BIDS, CONTRACTOR_PAYMENTS, CONTRACTOR_DOCUMENTS,
+  CONTRACTORS, CONTRACTOR_BIDS, CONTRACTOR_DOCUMENTS,
   REHAB_CATEGORIES, REHAB_CATEGORY_GROUPS,
   RENTAL_NOTES, GENERAL_NOTES, MOCK_USER,
   PROPERTY_DOCUMENTS, DEAL_DOCUMENTS, TENANT_DOCUMENTS,
@@ -81,7 +81,6 @@ import {
   linkContractorToDeal as dbLinkContractorToDeal,
 } from "../db/contractors.js";
 import { listContractorBids } from "../db/contractorBids.js";
-import { listContractorPayments } from "../db/contractorPayments.js";
 import { listDealExpenses } from "../db/dealExpenses.js";
 import {
   listNotes, createDealNote as dbCreateDealNote,
@@ -201,10 +200,10 @@ export function AppShell() {
     setHydrating(true);
     (async () => {
       try {
-        const [props, txs, tns, dls, rehab, mls, cons, bids, pays, dexps, notes, trips, maint, docs] = await Promise.all([
+        const [props, txs, tns, dls, rehab, mls, cons, bids, dexps, notes, trips, maint, docs] = await Promise.all([
           listProperties(), listTransactions(), listTenants(),
           listDeals(), listRehabItems(), listMilestones(),
-          listContractors(), listContractorBids(), listContractorPayments(),
+          listContractors(), listContractorBids(),
           listDealExpenses(), listNotes(), listMileageTrips(),
           listMaintenanceRequests(), listDocuments(),
         ]);
@@ -251,8 +250,6 @@ export function AppShell() {
         CONTRACTORS.push(...cons);
         CONTRACTOR_BIDS.length = 0;
         CONTRACTOR_BIDS.push(...bids);
-        CONTRACTOR_PAYMENTS.length = 0;
-        CONTRACTOR_PAYMENTS.push(...pays);
         DEAL_EXPENSES.length = 0;
         DEAL_EXPENSES.push(...dexps);
         RENTAL_NOTES.length = 0;

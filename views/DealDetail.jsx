@@ -18,7 +18,7 @@ import {
 import {
   newId, fmt, STAGE_ORDER, DEFAULT_MILESTONES,
   DEALS, DEAL_EXPENSES, DEAL_NOTES, DEAL_DOCUMENTS, DEAL_MILESTONES,
-  CONTRACTORS, CONTRACTOR_BIDS, CONTRACTOR_PAYMENTS,
+  CONTRACTORS, CONTRACTOR_BIDS,
   REHAB_CATEGORIES, REHAB_CATEGORY_GROUPS, REHAB_TEMPLATES,
   getCanonicalBySlug, getCanonicalByLabel,
   MOCK_USER,
@@ -63,7 +63,6 @@ import {
   updateRehabItem as dbUpdateRehabItem,
   deleteRehabItem as dbDeleteRehabItem,
 } from "../db/dealRehabItems.js";
-import { createContractorPayment as dbCreateContractorPayment } from "../db/contractorPayments.js";
 import {
   createContractorBid as dbCreateContractorBid,
   deleteContractorBid as dbDeleteContractorBid,
@@ -311,7 +310,7 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
   };
 
   // Expense edit state
-  const emptyExp = { date: "", vendor: "", category: "Materials & Supplies", description: "", amount: "", status: "paid", contractorId: "", rehabItemIdx: "", createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), userId: MOCK_USER.id };
+  const emptyExp = { date: "", vendor: "", category: "Materials & Supplies", description: "", amount: "", status: "paid", contractorId: "", rehabItemIdx: "", bidId: "", createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), userId: MOCK_USER.id };
   const [expForm, setExpForm] = useState(emptyExp);
   const sfE = k => e => setExpForm(f => ({ ...f, [k]: e.target.value }));
   const [editingExpId, setEditingExpId] = useState(null);
@@ -319,7 +318,7 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
   const allVendors = [...new Set(expData.map(e => e.vendor).filter(Boolean))].sort();
   const openEditExp = (e) => {
     setEditingExpId(e.id);
-    setExpForm({ date: e.date, vendor: e.vendor, category: e.category, description: e.description, amount: String(e.amount), status: e.status || "paid", contractorId: e.contractorId || "", rehabItemIdx: e.rehabItemIdx != null ? String(e.rehabItemIdx) : "", createdAt: e.createdAt || new Date().toISOString(), updatedAt: new Date().toISOString(), userId: e.userId || MOCK_USER.id });
+    setExpForm({ date: e.date, vendor: e.vendor, category: e.category, description: e.description, amount: String(e.amount), status: e.status || "paid", contractorId: e.contractorId || "", rehabItemIdx: e.rehabItemIdx != null ? String(e.rehabItemIdx) : "", bidId: e.bidId || "", createdAt: e.createdAt || new Date().toISOString(), updatedAt: new Date().toISOString(), userId: e.userId || MOCK_USER.id });
     setShowExpenseModal(true);
   };
 
@@ -335,32 +334,46 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
     setShowContractorModal(true);
   };
 
-  // Helper: derive bid/payment totals for this rehab
+  // Helper: derive bid/payment totals for this rehab. Payments are computed
+  // from DEAL_EXPENSES — there's only one money-out ledger now, and any
+  // expense linked to this contractor on this deal counts as paid against
+  // the contractor's running total.
   const conTotals = (c) => {
     const flipBids = CONTRACTOR_BIDS.filter(b => b.contractorId === c.id && b.dealId === deal.id);
-    const flipPayments = CONTRACTOR_PAYMENTS.filter(p => p.contractorId === c.id && p.dealId === deal.id);
+    const flipPayExps = expData.filter(e => e.contractorId === c.id && (e.status || "paid") === "paid");
     const totalBid = flipBids.reduce((s, b) => s + (b.amount || 0), 0);
-    const totalPaid = flipPayments.reduce((s, p) => s + (p.amount || 0), 0);
+    const totalPaid = flipPayExps.reduce((s, e) => s + (e.amount || 0), 0);
     const acceptedBids = flipBids.filter(b => b.status === "accepted").length;
     const pendingBids = flipBids.filter(b => b.status === "pending").length;
     return { totalBid, totalPaid, owed: totalBid - totalPaid, acceptedBids, pendingBids, bidCount: flipBids.length };
   };
 
-  // Contractor payment state
+  // Helper: paid against a specific bid — sum of paid expenses linked via bidId.
+  const bidPaid = (bidId) => expData
+    .filter(e => e.bidId === bidId && (e.status || "paid") === "paid")
+    .reduce((s, e) => s + (e.amount || 0), 0);
+
+  // Contractor payment state. The Record Payment modal is now just a shortcut
+  // into expense creation — it writes a single DEAL_EXPENSES row (optionally
+  // linked to a specific bid) instead of dual-writing payments + expenses.
   const [showPaymentModal, setShowPaymentModal] = useState(null); // contractor id
   const [paymentAmount, setPaymentAmount] = useState("");
   const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split("T")[0]);
   const [paymentNote, setPaymentNote] = useState("");
+  const [paymentBidId, setPaymentBidId] = useState(""); // optional bid to pay against
   const handleRecordPayment = async () => {
     if (!paymentAmount || !showPaymentModal) return;
     const amt = parseFloat(paymentAmount) || 0;
     const con = conData.find(c => c.id === showPaymentModal);
     if (!con) return;
     try {
-      const savedPayment = await dbCreateContractorPayment({ contractorId: con.id, dealId: deal.id, amount: amt, date: paymentDate, note: paymentNote || `Payment to ${con.name}` });
-      CONTRACTOR_PAYMENTS.push(savedPayment);
-      setConData(prev => [...prev]); // trigger re-render
-      const expensePayload = { dealId: deal.id, date: paymentDate, vendor: con.name, category: con.trade === "General Contractor" ? "General Contractor" : "Subcontractor", description: paymentNote || `Payment to ${con.name}`, amount: amt, contractorId: con.id };
+      const expensePayload = {
+        dealId: deal.id, date: paymentDate, vendor: con.name,
+        category: con.trade === "General Contractor" ? "General Contractor" : "Subcontractor",
+        description: paymentNote || `Payment to ${con.name}`,
+        amount: amt, contractorId: con.id, status: "paid",
+        bidId: paymentBidId || null,
+      };
       const savedExpense = await dbCreateDealExpense(expensePayload);
       setExpData(prev => [savedExpense, ...prev]);
       DEAL_EXPENSES.push(savedExpense);
@@ -368,6 +381,7 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
       setShowPaymentModal(null);
       setPaymentAmount("");
       setPaymentNote("");
+      setPaymentBidId("");
       setPaymentDate(new Date().toISOString().split("T")[0]);
     } catch (e) {
       console.error("[PropBooks] Record payment failed:", e);
@@ -422,7 +436,7 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
     if (!expForm.amount || !expForm.vendor || !expForm.description) return;
     const riIdx = expForm.rehabItemIdx !== "" ? parseInt(expForm.rehabItemIdx) : null;
     const amt = parseFloat(expForm.amount) || 0;
-    const parsed = { date: expForm.date || new Date().toISOString().split("T")[0], vendor: expForm.vendor || "Unknown", category: expForm.category, description: expForm.description, amount: amt, status: expForm.status || "paid", contractorId: expForm.contractorId || null, rehabItemIdx: riIdx };
+    const parsed = { date: expForm.date || new Date().toISOString().split("T")[0], vendor: expForm.vendor || "Unknown", category: expForm.category, description: expForm.description, amount: amt, status: expForm.status || "paid", contractorId: expForm.contractorId || null, rehabItemIdx: riIdx, bidId: expForm.bidId || null };
     try {
       let savedRow;
       let oldExpSnapshot = null;
@@ -456,6 +470,9 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
       } else {
         setExpData(prev => [savedRow, ...prev]);
         DEAL_EXPENSES.push(savedRow);
+        // Trigger conData re-render so contractor cards refresh their
+        // paid-to-date totals (which now derive from expData).
+        if (parsed.contractorId) setConData(prev => [...prev]);
       }
       // Bump spent on the newly-linked rehab item
       if (riIdx != null && rehabItems[riIdx]) {
@@ -1523,13 +1540,21 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
                 </div>
               );
             };
-            // Auto-detect contractor link when vendor name changes
+            // Auto-detect contractor link when vendor name changes. Reset
+            // bidId whenever the contractor changes — the old bid no longer
+            // belongs to the new payee.
             const handleVendorChange = (e) => {
               const val = e.target.value;
               const matchedCon = conData.find(c => c.name.toLowerCase() === val.toLowerCase());
-              setExpForm(f => ({ ...f, vendor: val, contractorId: matchedCon ? String(matchedCon.id) : "" }));
+              const newConId = matchedCon ? String(matchedCon.id) : "";
+              setExpForm(f => ({ ...f, vendor: val, contractorId: newConId, bidId: newConId === f.contractorId ? f.bidId : "" }));
             };
             const linkedCon = expForm.contractorId ? conData.find(c => String(c.id) === String(expForm.contractorId)) : null;
+            // Bids this contractor has on this rehab — drives the optional
+            // "Pay against bid" picker below the contractor link.
+            const linkedConBids = linkedCon
+              ? CONTRACTOR_BIDS.filter(b => String(b.contractorId) === String(linkedCon.id) && b.dealId === deal.id)
+              : [];
             return (
             <Modal title={editingExpId ? "Edit Expense" : "Add Expense"} onClose={() => { setShowExpenseModal(false); setEditingExpId(null); setExpForm(emptyExp); }}>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
@@ -1550,7 +1575,7 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
                     <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 6 }}>
                       <UserCheck size={12} color="var(--c-blue)" />
                       <span style={{ fontSize: 12, color: "var(--c-blue)", fontWeight: 600 }}>Linked to {linkedCon.name} ({linkedCon.trade})</span>
-                      <button onClick={() => setExpForm(f => ({ ...f, contractorId: "" }))} style={{ background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", fontSize: 11, textDecoration: "underline" }}>unlink</button>
+                      <button onClick={() => setExpForm(f => ({ ...f, contractorId: "", bidId: "" }))} style={{ background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", fontSize: 11, textDecoration: "underline" }}>unlink</button>
                     </div>
                   )}
                 </div>
@@ -1580,6 +1605,37 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
                     <p style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4, fontStyle: "italic" }}>No rehab items on this rehab yet — add them in the Rehab tab to link expenses</p>
                   )}
                 </div>
+                {linkedConBids.length > 0 && (
+                  <div style={{ gridColumn: "1 / -1" }}>
+                    <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>
+                      Pay against bid <span style={{ color: "var(--text-muted)", fontWeight: 400 }}>(optional)</span>
+                    </label>
+                    <select value={expForm.bidId || ""} onChange={sfE("bidId")} style={iS}>
+                      <option value="">None — general payment to contractor</option>
+                      {linkedConBids.map(b => {
+                        const paid = bidPaid(b.id);
+                        const remaining = (b.amount || 0) - paid;
+                        const pct = b.amount > 0 ? Math.round((paid / b.amount) * 100) : 0;
+                        return (
+                          <option key={b.id} value={b.id}>
+                            {b.rehabItem || "Bid"} — {fmt(b.amount || 0)} ({b.status}) · paid {fmt(paid)} / {pct}% · {remaining > 0 ? `${fmt(remaining)} left` : "paid in full"}
+                          </option>
+                        );
+                      })}
+                    </select>
+                    {expForm.bidId && (() => {
+                      const b = linkedConBids.find(x => String(x.id) === String(expForm.bidId));
+                      if (!b) return null;
+                      const remaining = (b.amount || 0) - bidPaid(b.id);
+                      if (remaining <= 0) return <p style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4 }}>Bid already paid in full — extra payments are fine but won't affect bid status.</p>;
+                      return (
+                        <button type="button" onClick={() => setExpForm(f => ({ ...f, amount: String(remaining) }))} style={{ marginTop: 6, background: "none", border: "none", color: "#e95e00", fontSize: 12, fontWeight: 600, cursor: "pointer", padding: 0, textDecoration: "underline" }}>
+                          Fill remaining balance ({fmt(remaining)})
+                        </button>
+                      );
+                    })()}
+                  </div>
+                )}
                 <div style={{ gridColumn: "1 / -1" }}>
                   <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Status</label>
                   <select value={expForm.status} onChange={sfE("status")} style={iS}>
@@ -1805,8 +1861,13 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
         const con = conData.find(c => c.id === showPaymentModal);
         if (!con) return null;
         const t = conTotals(con);
+        const conBids = CONTRACTOR_BIDS.filter(b => b.contractorId === con.id && b.dealId === deal.id);
+        const selectedBid = paymentBidId ? conBids.find(b => String(b.id) === String(paymentBidId)) : null;
+        const bidRemaining = selectedBid ? Math.max(0, (selectedBid.amount || 0) - bidPaid(selectedBid.id)) : 0;
+        const fillTarget = selectedBid ? bidRemaining : t.owed;
+        const closePayment = () => { setShowPaymentModal(null); setPaymentAmount(""); setPaymentNote(""); setPaymentBidId(""); };
         return (
-          <Modal title={`Record Payment — ${con.name}`} onClose={() => { setShowPaymentModal(null); setPaymentAmount(""); setPaymentNote(""); }}>
+          <Modal title={`Record Payment — ${con.name}`} onClose={closePayment}>
             <div style={{ background: "var(--surface-alt)", borderRadius: 12, padding: 14, marginBottom: 18 }}>
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
                 <span style={{ fontSize: 13, color: "var(--text-secondary)" }}>Trade</span>
@@ -1825,12 +1886,33 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
                 <span style={{ fontSize: 13, fontWeight: 700, color: t.owed > 0 ? "#c0392b" : "#1a7a4a" }}>{t.owed > 0 ? fmt(t.owed) : "Paid in full"}</span>
               </div>
             </div>
+            {conBids.length > 0 && (
+              <div style={{ marginBottom: 14 }}>
+                <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>
+                  Pay against bid <span style={{ color: "var(--text-muted)", fontWeight: 400 }}>(optional)</span>
+                </label>
+                <select value={paymentBidId} onChange={e => setPaymentBidId(e.target.value)} style={iS}>
+                  <option value="">None — general payment to contractor</option>
+                  {conBids.map(b => {
+                    const paid = bidPaid(b.id);
+                    const rem = (b.amount || 0) - paid;
+                    return (
+                      <option key={b.id} value={b.id}>
+                        {b.rehabItem || "Bid"} — {fmt(b.amount || 0)} ({b.status}) · {rem > 0 ? `${fmt(rem)} left` : "paid in full"}
+                      </option>
+                    );
+                  })}
+                </select>
+              </div>
+            )}
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
               <div>
                 <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Payment Amount ($) *</label>
-                <input type="number" placeholder={t.owed > 0 ? String(t.owed) : "0.00"} value={paymentAmount} onChange={e => setPaymentAmount(e.target.value)} style={iS} />
-                {t.owed > 0 && (
-                  <button onClick={() => setPaymentAmount(String(t.owed))} style={{ background: "none", border: "none", color: "var(--c-blue)", fontSize: 11, fontWeight: 600, cursor: "pointer", marginTop: 4, padding: 0 }}>Fill remaining balance ({fmt(t.owed)})</button>
+                <input type="number" placeholder={fillTarget > 0 ? String(fillTarget) : "0.00"} value={paymentAmount} onChange={e => setPaymentAmount(e.target.value)} style={iS} />
+                {fillTarget > 0 && (
+                  <button onClick={() => setPaymentAmount(String(fillTarget))} style={{ background: "none", border: "none", color: "var(--c-blue)", fontSize: 11, fontWeight: 600, cursor: "pointer", marginTop: 4, padding: 0 }}>
+                    Fill remaining {selectedBid ? "on this bid" : "balance"} ({fmt(fillTarget)})
+                  </button>
                 )}
               </div>
               <div>
@@ -1842,9 +1924,9 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
               <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Note (optional)</label>
               <input type="text" placeholder="e.g. Draw #2, final payment, materials advance" value={paymentNote} onChange={e => setPaymentNote(e.target.value)} style={iS} />
             </div>
-            <p style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 10 }}>This will also create a linked expense record automatically.</p>
+            <p style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 10 }}>Saves as an expense linked to this contractor{paymentBidId ? " and bid" : ""}.</p>
             <div style={{ display: "flex", gap: 10, marginTop: 18 }}>
-              <button onClick={() => { setShowPaymentModal(null); setPaymentAmount(""); setPaymentNote(""); }} style={{ flex: 1, padding: "12px", border: "1px solid var(--border)", borderRadius: 10, background: "var(--surface)", color: "var(--text-label)", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
+              <button onClick={closePayment} style={{ flex: 1, padding: "12px", border: "1px solid var(--border)", borderRadius: 10, background: "var(--surface)", color: "var(--text-label)", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
               <button onClick={handleRecordPayment} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "var(--c-green)", color: "#fff", fontWeight: 700, cursor: "pointer", opacity: paymentAmount ? 1 : 0.5 }}>Record Payment</button>
             </div>
           </Modal>
@@ -2287,7 +2369,6 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
               filterInPlace(DEAL_NOTES,       n => n.dealId === deal.id);
               filterInPlace(DEAL_DOCUMENTS,   d => d.dealId === deal.id);
               filterInPlace(CONTRACTOR_BIDS,  b => b.dealId === deal.id);
-              filterInPlace(CONTRACTOR_PAYMENTS, p => p.dealId === deal.id);
               // Drop this deal from each contractor's dealIds locally
               CONTRACTORS.forEach((c, i) => {
                 if (c.dealIds && c.dealIds.includes(deal.id)) {
@@ -2345,7 +2426,6 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
                   if (gi !== -1) CONTRACTORS.splice(gi, 1);
                   // Cascade child rows in memory (DB FKs cascade server-side)
                   for (let i = CONTRACTOR_BIDS.length - 1; i >= 0; i--) if (CONTRACTOR_BIDS[i].contractorId === conId) CONTRACTOR_BIDS.splice(i, 1);
-                  for (let i = CONTRACTOR_PAYMENTS.length - 1; i >= 0; i--) if (CONTRACTOR_PAYMENTS[i].contractorId === conId) CONTRACTOR_PAYMENTS.splice(i, 1);
                   // Drop from each rehab item's derived contractors[]
                   rehabItems.forEach((it, idx) => {
                     if ((it.contractors || []).some(c => c.id === conId)) {
