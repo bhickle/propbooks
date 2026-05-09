@@ -3,14 +3,14 @@
 // was retired when AssetList took over; this component now renders nothing
 // unless an edit or convert-from-rehab trigger is active.
 // =============================================================================
-import { useState, useEffect } from "react";
-import { X, UploadCloud } from "lucide-react";
-import { PROP_COLORS } from "../api.js";
+import { useState, useEffect, useRef } from "react";
+import { X, UploadCloud, Trash2 } from "lucide-react";
+import { fmt, PROP_COLORS } from "../api.js";
 import { PROPERTIES } from "../mockData.js";
 import { calcLoanBalance } from "../finance.js";
 import { useToast } from "../toast.jsx";
 import { Modal, iS } from "../shared.jsx";
-import { createProperty, updateProperty as dbUpdateProperty } from "../db/properties.js";
+import { createProperty, updateProperty as dbUpdateProperty, deleteProperty as dbDeleteProperty } from "../db/properties.js";
 
 export function Properties({ onSelect, editPropertyId, onClearEditId, convertDealData, onClearConvertFlip, onGuidedSetup, onComplete }) {
   // Modal-only mode: when an edit or convert trigger is set, hide the list
