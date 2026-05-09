@@ -190,114 +190,6 @@ export function AppShell() {
   const [showNotifications, setShowNotifications] = useState(false);
   const notifRef = useRef(null);
 
-  // ── Browser back/forward sync ──────────────────────────────────────────
-  // Keep window.history in lockstep with the navigation state so the browser
-  // back/forward arrows feel native. We push a new entry on every meaningful
-  // navigation change and restore the matching state on popstate.
-  // URL stays at "/" — this is just session history, not bookmarkable URLs.
-  const isInitialNav = useRef(true);
-  const isPopping = useRef(false);
-  useEffect(() => {
-    const navState = {
-      activeView,
-      selectedPropertyId: selectedProperty?.id || null,
-      selectedDealId: selectedDeal?.id || null,
-      selectedTenantId: selectedTenant?.id || null,
-      selectedContractorId: selectedContractor?.id || null,
-      selectedRehabItem,
-      propDetailTab,
-      dealInitialTab,
-      contractorInitialTab,
-      navSource,
-      dealNavSource,
-    };
-    if (isInitialNav.current) {
-      isInitialNav.current = false;
-      window.history.replaceState(navState, "");
-      return;
-    }
-    if (isPopping.current) {
-      isPopping.current = false;
-      return;
-    }
-    window.history.pushState(navState, "");
-  }, [
-    activeView,
-    selectedProperty?.id, selectedDeal?.id, selectedTenant?.id,
-    selectedContractor?.id, selectedRehabItem,
-    propDetailTab, dealInitialTab, contractorInitialTab,
-    navSource, dealNavSource,
-  ]);
-
-  useEffect(() => {
-    const onPop = (e) => {
-      isPopping.current = true;
-      const s = e.state;
-      if (!s) {
-        setActiveView("portfolio");
-        setSelectedProperty(null);
-        setSelectedDeal(null);
-        setSelectedTenant(null);
-        setSelectedContractor(null);
-        setSelectedRehabItem(null);
-        setPropDetailTab(null);
-        setDealInitialTab(null);
-        setContractorInitialTab(null);
-        setNavSource(null);
-        setDealNavSource(null);
-        return;
-      }
-      setActiveView(s.activeView || "portfolio");
-      setSelectedProperty(s.selectedPropertyId ? PROPERTIES.find(p => p.id === s.selectedPropertyId) || null : null);
-      setSelectedDeal(s.selectedDealId ? (() => { const d = DEALS.find(x => x.id === s.selectedDealId); return d ? { ...d } : null; })() : null);
-      setSelectedTenant(s.selectedTenantId ? TENANTS.find(t => t.id === s.selectedTenantId) || null : null);
-      setSelectedContractor(s.selectedContractorId ? CONTRACTORS.find(c => c.id === s.selectedContractorId) || null : null);
-      setSelectedRehabItem(s.selectedRehabItem || null);
-      setPropDetailTab(s.propDetailTab || null);
-      setDealInitialTab(s.dealInitialTab || null);
-      setContractorInitialTab(s.contractorInitialTab || null);
-      setNavSource(s.navSource || null);
-      setDealNavSource(s.dealNavSource || null);
-    };
-    window.addEventListener("popstate", onPop);
-    return () => window.removeEventListener("popstate", onPop);
-  }, []);
-
-  // Unified back handler used by every detail screen's onBack callback.
-  // Routes through window.history.back() so the in-app back button and
-  // the browser back arrow share the same history stack — popstate
-  // restores activeView / selected entity / tab from the previous entry.
-  // Falls back to setActiveView for the rare case there's no history yet
-  // (e.g. user landed directly on a deep view).
-  const goBack = (fallbackView = "portfolio") => {
-    // Short-lived UI flags aren't part of nav state — clear them so a
-    // stale highlight doesn't carry across.
-    setHighlightLedgerKey(null);
-    setHighlightTenantId(null);
-    setHighlightNoteId(null);
-    setHighlightDealNoteId(null);
-    setHighlightMilestoneKey(null);
-    setPropDetailTenantHighlight(null);
-    setNotesAutoAdd(false);
-    if (window.history.length > 1) {
-      window.history.back();
-      return;
-    }
-    setActiveView(fallbackView);
-    setSelectedProperty(null);
-    setSelectedDeal(null);
-    setSelectedTenant(null);
-    setSelectedContractor(null);
-    setSelectedRehabItem(null);
-    setPropDetailTab(null);
-    setDealInitialTab(null);
-    setContractorInitialTab(null);
-    setNavSource(null);
-    setDealNavSource(null);
-    setPrevNavSource(null);
-    setPrevDealNavSource(null);
-  };
-
   // Load Supabase-backed entities whenever the auth user changes. Supabase
   // is the source of truth; the in-memory mock arrays are synchronous mirrors
   // so existing component code (which reads them directly) keeps working
@@ -469,6 +361,115 @@ export function AppShell() {
   const [dealInitialTab, setDealInitialTab] = useState(null);
   const [dealNavSource, setDealNavSource] = useState(null); // "dealdashboard" | "deals" | "portfolio" | null
   const [prevDealNavSource, setPrevDealNavSource] = useState(null); // preserves dealNavSource during sub-navigation
+
+  // ── Browser back/forward sync ──────────────────────────────────────────
+  // Keep window.history in lockstep with the navigation state so the browser
+  // back/forward arrows feel native. We push a new entry on every meaningful
+  // navigation change and restore the matching state on popstate.
+  // URL stays at "/" — this is just session history, not bookmarkable URLs.
+  const isInitialNav = useRef(true);
+  const isPopping = useRef(false);
+  useEffect(() => {
+    const navState = {
+      activeView,
+      selectedPropertyId: selectedProperty?.id || null,
+      selectedDealId: selectedDeal?.id || null,
+      selectedTenantId: selectedTenant?.id || null,
+      selectedContractorId: selectedContractor?.id || null,
+      selectedRehabItem,
+      propDetailTab,
+      dealInitialTab,
+      contractorInitialTab,
+      navSource,
+      dealNavSource,
+    };
+    if (isInitialNav.current) {
+      isInitialNav.current = false;
+      window.history.replaceState(navState, "");
+      return;
+    }
+    if (isPopping.current) {
+      isPopping.current = false;
+      return;
+    }
+    window.history.pushState(navState, "");
+  }, [
+    activeView,
+    selectedProperty?.id, selectedDeal?.id, selectedTenant?.id,
+    selectedContractor?.id, selectedRehabItem,
+    propDetailTab, dealInitialTab, contractorInitialTab,
+    navSource, dealNavSource,
+  ]);
+
+  useEffect(() => {
+    const onPop = (e) => {
+      isPopping.current = true;
+      const s = e.state;
+      if (!s) {
+        setActiveView("portfolio");
+        setSelectedProperty(null);
+        setSelectedDeal(null);
+        setSelectedTenant(null);
+        setSelectedContractor(null);
+        setSelectedRehabItem(null);
+        setPropDetailTab(null);
+        setDealInitialTab(null);
+        setContractorInitialTab(null);
+        setNavSource(null);
+        setDealNavSource(null);
+        return;
+      }
+      setActiveView(s.activeView || "portfolio");
+      setSelectedProperty(s.selectedPropertyId ? PROPERTIES.find(p => p.id === s.selectedPropertyId) || null : null);
+      setSelectedDeal(s.selectedDealId ? (() => { const d = DEALS.find(x => x.id === s.selectedDealId); return d ? { ...d } : null; })() : null);
+      setSelectedTenant(s.selectedTenantId ? TENANTS.find(t => t.id === s.selectedTenantId) || null : null);
+      setSelectedContractor(s.selectedContractorId ? CONTRACTORS.find(c => c.id === s.selectedContractorId) || null : null);
+      setSelectedRehabItem(s.selectedRehabItem || null);
+      setPropDetailTab(s.propDetailTab || null);
+      setDealInitialTab(s.dealInitialTab || null);
+      setContractorInitialTab(s.contractorInitialTab || null);
+      setNavSource(s.navSource || null);
+      setDealNavSource(s.dealNavSource || null);
+    };
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, []);
+
+  // Unified back handler used by every detail screen's onBack callback.
+  // Routes through window.history.back() so the in-app back button and
+  // the browser back arrow share the same history stack — popstate
+  // restores activeView / selected entity / tab from the previous entry.
+  // Falls back to setActiveView for the rare case there's no history yet
+  // (e.g. user landed directly on a deep view).
+  const goBack = (fallbackView = "portfolio") => {
+    // Short-lived UI flags aren't part of nav state — clear them so a
+    // stale highlight doesn't carry across.
+    setHighlightLedgerKey(null);
+    setHighlightTenantId(null);
+    setHighlightNoteId(null);
+    setHighlightDealNoteId(null);
+    setHighlightMilestoneKey(null);
+    setPropDetailTenantHighlight(null);
+    setNotesAutoAdd(false);
+    if (window.history.length > 1) {
+      window.history.back();
+      return;
+    }
+    setActiveView(fallbackView);
+    setSelectedProperty(null);
+    setSelectedDeal(null);
+    setSelectedTenant(null);
+    setSelectedContractor(null);
+    setSelectedRehabItem(null);
+    setPropDetailTab(null);
+    setDealInitialTab(null);
+    setContractorInitialTab(null);
+    setNavSource(null);
+    setDealNavSource(null);
+    setPrevNavSource(null);
+    setPrevDealNavSource(null);
+  };
+
   const handleDealSelect = (f, tab, source) => {
     setSelectedDeal(f);
     setDealInitialTab(tab || null);
