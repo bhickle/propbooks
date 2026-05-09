@@ -1,16 +1,16 @@
 // =============================================================================
-// Properties — grid/list view of the rental portfolio with add/edit/delete
-// modal. Mutates PROPERTIES in place.
+// Properties — modal-host overlay for Add / Edit Property. The grid/list view
+// was retired when AssetList took over; this component now renders nothing
+// unless an edit or convert-from-rehab trigger is active.
 // =============================================================================
-import { useState, useEffect, useRef } from "react";
-import { Plus, Search, Filter, Pencil, Trash2, MapPin, Home, X, UploadCloud } from "lucide-react";
-import { fmt, fmtK, PROP_COLORS } from "../api.js";
-import { PROPERTIES, TRANSACTIONS } from "../mockData.js";
-import { calcLoanBalance, getEffectiveMonthly, calcCapRate } from "../finance.js";
-import { daysAgo, getPropertyHealth, healthBadge } from "../health.js";
+import { useState, useEffect } from "react";
+import { X, UploadCloud } from "lucide-react";
+import { PROP_COLORS } from "../api.js";
+import { PROPERTIES } from "../mockData.js";
+import { calcLoanBalance } from "../finance.js";
 import { useToast } from "../toast.jsx";
-import { Modal, Badge, EmptyState, iS } from "../shared.jsx";
-import { createProperty, updateProperty as dbUpdateProperty, deleteProperty as dbDeleteProperty } from "../db/properties.js";
+import { Modal, iS } from "../shared.jsx";
+import { createProperty, updateProperty as dbUpdateProperty } from "../db/properties.js";
 
 export function Properties({ onSelect, editPropertyId, onClearEditId, convertDealData, onClearConvertFlip, onGuidedSetup, onComplete }) {
   // Modal-only mode: when an edit or convert trigger is set, hide the list
@@ -181,189 +181,6 @@ export function Properties({ onSelect, editPropertyId, onClearEditId, convertDea
 
   return (
     <div>
-      {false && (<>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
-        <div>
-          <h1 style={{ color: "var(--text-primary)", fontSize: 26, fontWeight: 700, marginBottom: 4 }}>Properties</h1>
-          <p style={{ color: "var(--text-secondary)", fontSize: 15 }}>{PROPERTIES.length} properties in your portfolio</p>
-        </div>
-        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          <button onClick={onGuidedSetup} style={{ background: "#e95e00", color: "#fff", border: "none", borderRadius: 10, padding: "10px 18px", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
-            <Plus size={16} /> Add Property
-          </button>
-        </div>
-      </div>
-      <div style={{ display: "flex", gap: 12, marginBottom: 24 }}>
-        <div style={{ position: "relative", flex: 1 }}>
-          <Search size={16} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "var(--text-muted)" }} />
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search properties..." style={{ width: "100%", paddingLeft: 38, paddingRight: 16, paddingTop: 10, paddingBottom: 10, border: "1px solid var(--border)", borderRadius: 10, fontSize: 14, color: "var(--text-primary)", background: "var(--surface)", outline: "none", boxSizing: "border-box" }} />
-        </div>
-        <button style={{ border: "1px solid var(--border)", borderRadius: 10, padding: "10px 16px", background: "var(--surface)", color: "var(--text-label)", fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
-          <Filter size={15} /> Filter
-        </button>
-        <div style={{ display: "flex", background: "var(--surface-muted)", borderRadius: 10, padding: 3 }}>
-          {["grid", "list"].map(v => (
-            <button key={v} onClick={() => setView(v)} style={{ padding: "7px 14px", borderRadius: 8, border: "none", background: view === v ? "var(--surface)" : "transparent", color: view === v ? "var(--text-primary)" : "var(--text-secondary)", fontWeight: 600, fontSize: 13, cursor: "pointer", boxShadow: view === v ? "0 1px 3px rgba(0,0,0,0.1)" : "none" }}>
-              {v === "grid" ? "#" : "="}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {view === "grid" ? (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 20 }}>
-          {filtered.map(p => {
-            const calcBal = calcLoanBalance(p.loanAmount, p.loanRate, p.loanTermYears, p.loanStartDate);
-            const effectiveMortgage = calcBal !== null ? calcBal : (p.mortgage || 0);
-            const equity = p.currentValue - effectiveMortgage;
-            const eff = getEffectiveMonthly(p, TRANSACTIONS);
-            const monthlyNet = eff.monthlyIncome - eff.monthlyExpenses;
-            const pHealth = getPropertyHealth(p, TRANSACTIONS);
-            const pBadge = healthBadge(pHealth);
-            return (
-              <div key={p.id} onClick={() => onSelect(p)} style={{ background: "var(--surface)", borderRadius: 16, overflow: "hidden", boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)", cursor: "pointer", transition: "transform 0.15s, box-shadow 0.15s" }}
-                onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-3px)"; e.currentTarget.style.boxShadow = "0 8px 24px rgba(0,0,0,0.1)"; }}
-                onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "0 1px 3px rgba(0,0,0,0.06)"; }}>
-                <div style={{ height: 130, background: p.photo ? "transparent" : "linear-gradient(135deg, #1e3a5f, #0a2240)", display: "flex", alignItems: "center", justifyContent: "center", position: "relative", overflow: "hidden" }}>
-                  {p.photo
-                    ? <img src={p.photo} alt={p.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                    : <div style={{ width: 56, height: 56, borderRadius: 16, background: "rgba(255,255,255,0.12)", border: "1.5px solid rgba(255,255,255,0.18)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 18, fontWeight: 800 }}>{p.image}</div>
-                  }
-                  <div style={{ position: "absolute", top: 10, left: 10 }}>
-                    <span style={{ fontSize: 10, fontWeight: 700, borderRadius: 20, padding: "3px 9px", background: pBadge.bg, color: pBadge.color, backdropFilter: "blur(4px)" }}>{pBadge.label}</span>
-                  </div>
-                  <div style={{ position: "absolute", top: 10, right: 10, display: "flex", alignItems: "center", gap: 6 }}>
-                    <Badge status={p.status} />
-                    <button onClick={e => openEdit(e, p)} title="Edit property"
-                      style={{ background: "rgba(255,255,255,0.85)", border: "none", borderRadius: 7, padding: "4px 7px", cursor: "pointer", display: "flex", alignItems: "center", backdropFilter: "blur(4px)" }}>
-                      <Pencil size={12} color="#475569" />
-                    </button>
-                    <button onClick={e => { e.stopPropagation(); setDeleteConfirm(p); }} title="Delete property"
-                      style={{ background: "rgba(255,255,255,0.85)", border: "none", borderRadius: 7, padding: "4px 7px", cursor: "pointer", display: "flex", alignItems: "center", backdropFilter: "blur(4px)" }}>
-                      <Trash2 size={12} color="var(--c-red)" />
-                    </button>
-                  </div>
-                </div>
-                <div style={{ padding: 18 }}>
-                  <h3 style={{ color: "var(--text-primary)", fontSize: 15, fontWeight: 700, marginBottom: 3 }}>{p.name}</h3>
-                  <p style={{ color: "var(--text-muted)", fontSize: 12, marginBottom: 14, display: "flex", alignItems: "center", gap: 4 }}>
-                    <MapPin size={11} /> {p.address.split(",")[1]?.trim()} . {p.type}
-                  </p>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-                    <div style={{ background: "var(--surface-alt)", borderRadius: 10, padding: "10px 12px" }}>
-                      <p style={{ color: "var(--text-muted)", fontSize: 11, fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.04em" }}>Value</p>
-                      <p style={{ color: "var(--text-primary)", fontSize: 15, fontWeight: 700 }}>{fmtK(p.currentValue)}</p>
-                      {p.valueUpdatedAt && (() => {
-                        const staleD = Math.round((new Date() - new Date(p.valueUpdatedAt)) / 86400000);
-                        const staleV = staleD > 90;
-                        return <p style={{ color: staleV ? "#c2410c" : "#cbd5e1", fontSize: 10, marginTop: 1 }}>{staleV ? "⚠ Value may be outdated" : `Value as of ${daysAgo(p.valueUpdatedAt)}`}</p>;
-                      })()}
-                    </div>
-                    <div style={{ background: "var(--surface-alt)", borderRadius: 10, padding: "10px 12px" }}>
-                      <p style={{ color: "var(--text-muted)", fontSize: 11, fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.04em" }}>Equity</p>
-                      <p style={{ color: "var(--c-green)", fontSize: 15, fontWeight: 700 }}>{fmtK(equity)}</p>
-                      {calcBal !== null && <p style={{ color: "#cbd5e1", fontSize: 10, marginTop: 1 }}>Balance {fmtK(effectiveMortgage)}</p>}
-                    </div>
-                    <div style={{ background: "var(--surface-alt)", borderRadius: 10, padding: "10px 12px" }}>
-                      <p style={{ color: "var(--text-muted)", fontSize: 11, fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.04em" }}>Monthly CF</p>
-                      <p style={{ color: monthlyNet >= 0 ? "var(--c-green)" : "var(--c-red)", fontSize: 15, fontWeight: 700 }}>{fmt(monthlyNet)}</p>
-                    </div>
-                    <div style={{ background: "var(--surface-alt)", borderRadius: 10, padding: "10px 12px" }}>
-                      <p style={{ color: "var(--text-muted)", fontSize: 11, fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.04em" }}>Cap Rate</p>
-                      <p style={{ color: "var(--text-primary)", fontSize: 15, fontWeight: 700 }}>{calcCapRate(p)}%</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-          {filtered.length === 0 && (
-            <div style={{ gridColumn: "1 / -1" }}>
-              {PROPERTIES.length === 0
-                ? <EmptyState icon={Home} title="No properties yet" subtitle="Add your first rental property to start tracking your portfolio." actionLabel="Add Property" onAction={onGuidedSetup} />
-                : <EmptyState icon={Search} title="No properties found" subtitle="Try adjusting your search or filters." />
-              }
-            </div>
-          )}
-        </div>
-      ) : (
-        /* List View */
-        <div style={{ background: "var(--surface)", borderRadius: 16, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)", overflow: "hidden" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
-            <thead>
-              <tr style={{ background: "var(--surface-alt)" }}>
-                {["Property", "Type", "Value", "Equity", "Monthly Income", "Net Cash Flow", "Cap Rate", "Status", ""].map(h => (
-                  <th key={h} style={{ padding: "14px 20px", textAlign: "left", color: "var(--text-muted)", fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((p, i) => {
-                const lBal = calcLoanBalance(p.loanAmount, p.loanRate, p.loanTermYears, p.loanStartDate);
-                const effMort = lBal !== null ? lBal : (p.mortgage || 0);
-                const tHealth = getPropertyHealth(p, TRANSACTIONS);
-                const tBadge = healthBadge(tHealth);
-                return (
-                <tr key={p.id} onClick={() => onSelect(p)} style={{ borderTop: "1px solid var(--border-subtle)", cursor: "pointer", background: i % 2 === 0 ? "var(--surface)" : "var(--surface-alt)" }}
-                  onMouseEnter={e => e.currentTarget.style.background = "var(--info-tint-alt)"}
-                  onMouseLeave={e => e.currentTarget.style.background = i % 2 === 0 ? "var(--surface)" : "var(--surface-alt)"}>
-                  <td style={{ padding: "16px 20px" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                      <div style={{ width: 36, height: 36, borderRadius: 10, background: "#1e3a5f", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 12, fontWeight: 700, position: "relative" }}>
-                        {p.image}
-                        {tHealth.length > 0 && <span style={{ position: "absolute", top: -3, right: -3, width: 10, height: 10, borderRadius: "50%", background: tBadge.color, border: "2px solid var(--surface)" }} />}
-                      </div>
-                      <div>
-                        <p style={{ fontSize: 14, fontWeight: 600, color: "var(--text-primary)" }}>{p.name}</p>
-                        <p style={{ fontSize: 12, color: "var(--text-muted)" }}>{p.units} unit{p.units > 1 ? "s" : ""}</p>
-                      </div>
-                    </div>
-                  </td>
-                  <td style={{ padding: "16px 20px", fontSize: 13, color: "var(--text-label)" }}>{p.type}</td>
-                  <td style={{ padding: "16px 20px" }}>
-                    <p style={{ fontSize: 14, fontWeight: 600, color: "var(--text-primary)" }}>{fmtK(p.currentValue)}</p>
-                    {p.valueUpdatedAt && (() => {
-                      const staleD = Math.round((new Date() - new Date(p.valueUpdatedAt)) / 86400000);
-                      const staleV = staleD > 90;
-                      return <p style={{ fontSize: 11, color: staleV ? "#c2410c" : "#cbd5e1" }}>{staleV ? "⚠ Value may be outdated" : `Value as of ${daysAgo(p.valueUpdatedAt)}`}</p>;
-                    })()}
-                  </td>
-                  <td style={{ padding: "16px 20px" }}>
-                    <p style={{ fontSize: 14, fontWeight: 600, color: "var(--c-green)" }}>{fmtK(p.currentValue - effMort)}</p>
-                    {lBal !== null && <p style={{ fontSize: 11, color: "#cbd5e1" }}>Balance {fmtK(effMort)}</p>}
-                  </td>
-                  <td style={{ padding: "16px 20px", fontSize: 14, fontWeight: 600, color: "var(--text-primary)" }}>{fmt(getEffectiveMonthly(p, TRANSACTIONS).monthlyIncome)}</td>
-                  <td style={{ padding: "16px 20px", fontSize: 14, fontWeight: 700, color: "var(--text-primary)" }}>{fmt(getEffectiveMonthly(p, TRANSACTIONS).monthlyIncome - getEffectiveMonthly(p, TRANSACTIONS).monthlyExpenses)}</td>
-                  <td style={{ padding: "16px 20px" }}>
-                    <span style={{ background: "var(--purple-tint)", color: "#6d28d9", borderRadius: 20, padding: "3px 10px", fontSize: 12, fontWeight: 700 }}>{calcCapRate(p, TRANSACTIONS)}%</span>
-                  </td>
-                  <td style={{ padding: "16px 20px" }}><Badge status={p.status} /></td>
-                  <td style={{ padding: "16px 20px" }}>
-                    <div style={{ display: "flex", gap: 4 }}>
-                      <button onClick={e => openEdit(e, p)} style={{ background: "var(--surface-muted)", border: "none", borderRadius: 8, padding: "5px 8px", cursor: "pointer", display: "flex", alignItems: "center", gap: 5, color: "var(--text-label)", fontSize: 12, fontWeight: 600 }}>
-                        <Pencil size={12} /> Edit
-                      </button>
-                      <button onClick={e => { e.stopPropagation(); setDeleteConfirm(p); }} style={{ background: "var(--danger-badge)", border: "none", borderRadius: 8, padding: "5px 8px", cursor: "pointer", display: "flex", alignItems: "center", color: "var(--c-red)" }} title="Delete">
-                        <Trash2 size={12} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-                );
-              })}
-              {filtered.length === 0 && (
-                <tr><td colSpan={9}>
-                  {PROPERTIES.length === 0
-                    ? <EmptyState icon={Home} title="No properties yet" subtitle="Add your first rental property to start tracking your portfolio." actionLabel="Add Property" onAction={onGuidedSetup} />
-                    : <EmptyState icon={Search} title="No properties found" subtitle="Try adjusting your search or filters." />
-                  }
-                </td></tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      )}
-      </>)}
       {showModal && (
         <Modal title={editId ? "Edit Property" : "Add Property"} onClose={() => setShowModal(false)} width={580}>
           {/* Photo Upload */}

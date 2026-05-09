@@ -233,60 +233,8 @@ export const DEFAULT_MILESTONES = [
 // -----------------------------------------------------------------------------
 // Mock Data
 // -----------------------------------------------------------------------------
-const _properties = [
-  { id:1, name:"Maple Ridge Duplex",     address:"2847 Maple Ridge Dr, Austin, TX 78701",         type:"Multi-Family",  units:2, purchasePrice:385000,  currentValue:462000,  mortgage:298000, monthlyRent:3800, monthlyExpenses:1640, purchaseDate:"2021-03-15", status:"Occupied",         image:"MR", capRate:7.2, cashOnCash:9.1,  color:"#3b82f6", landValue:77000,   createdAt:"2021-03-15T09:00:00Z", updatedAt:"2021-03-15T09:00:00Z", userId:"usr_001" },
-  { id:2, name:"Lakeview SFR",           address:"518 Lakeview Terrace, Denver, CO 80203",         type:"Single Family", units:1, purchasePrice:520000,  currentValue:598000,  mortgage:410000, monthlyRent:2950, monthlyExpenses:1120, purchaseDate:"2020-07-22", status:"Occupied",         image:"LV", capRate:5.6, cashOnCash:7.4,  color:"#10b981", landValue:130000,  createdAt:"2020-07-22T09:00:00Z", updatedAt:"2020-07-22T09:00:00Z", userId:"usr_001" },
-  { id:3, name:"Midtown Condo #4B",      address:"1200 Peachtree St NE #4B, Atlanta, GA 30309",    type:"Condo",         units:1, purchasePrice:280000,  currentValue:315000,  mortgage:194000, monthlyRent:2100, monthlyExpenses:860,  purchaseDate:"2022-01-10", status:"Occupied",         image:"MC", capRate:6.9, cashOnCash:8.3,  color:"#8b5cf6", landValue:56000,   createdAt:"2022-01-10T09:00:00Z", updatedAt:"2022-01-10T09:00:00Z", userId:"usr_001" },
-  { id:4, name:"Riverside Triplex",      address:"744 Riverside Blvd, Portland, OR 97201",         type:"Multi-Family",  units:3, purchasePrice:670000,  currentValue:745000,  mortgage:520000, monthlyRent:5700, monthlyExpenses:2380, purchaseDate:"2019-11-05", status:"Partial Vacancy",  image:"RT", capRate:8.1, cashOnCash:10.2, color:"#f59e0b", landValue:null,    createdAt:"2019-11-05T09:00:00Z", updatedAt:"2019-11-05T09:00:00Z", userId:"usr_001" },
-  { id:5, name:"Sunset Strip Commercial",address:"9220 Sunset Blvd, West Hollywood, CA 90069",     type:"Commercial",    units:1, purchasePrice:1200000, currentValue:1380000, mortgage:920000, monthlyRent:8500, monthlyExpenses:3200, purchaseDate:"2018-06-30", status:"Occupied",         image:"SS", capRate:7.0, cashOnCash:6.8,  color:"#ef4444", landValue:480000,  createdAt:"2018-06-30T09:00:00Z", updatedAt:"2018-06-30T09:00:00Z", userId:"usr_001" },
-];
 
-const _transactions = [
-  { id:1,  date:"2026-03-20", propertyId:1, tenantId:1, category:"Rent Income",  description:"March rent - Unit A",           amount:1900,  type:"income",   createdAt:"2026-03-20T10:00:00Z", updatedAt:"2026-03-20T10:00:00Z", userId:"usr_001" },
-  { id:2,  date:"2026-03-20", propertyId:1, tenantId:2, category:"Rent Income",  description:"March rent - Unit B",           amount:1900,  type:"income",   createdAt:"2026-03-20T10:00:00Z", updatedAt:"2026-03-20T10:00:00Z", userId:"usr_001" },
-  { id:3,  date:"2026-03-18", propertyId:4, category:"Maintenance",  description:"HVAC repair - Unit 2",          amount:-420,  type:"expense",  createdAt:"2026-03-18T09:30:00Z", updatedAt:"2026-03-18T09:30:00Z", userId:"usr_001" },
-  { id:4,  date:"2026-03-15", propertyId:2, tenantId:3, category:"Rent Income",  description:"March rent",                    amount:2950,  type:"income",   createdAt:"2026-03-15T10:00:00Z", updatedAt:"2026-03-15T10:00:00Z", userId:"usr_001" },
-  { id:5,  date:"2026-03-12", propertyId:3, category:"HOA Fees",     description:"Monthly HOA",                   amount:-285,  type:"expense",  createdAt:"2026-03-12T09:00:00Z", updatedAt:"2026-03-12T09:00:00Z", userId:"usr_001" },
-  { id:6,  date:"2026-03-10", propertyId:5, tenantId:8, category:"Rent Income",  description:"March commercial rent",         amount:8500,  type:"income",   createdAt:"2026-03-10T10:00:00Z", updatedAt:"2026-03-10T10:00:00Z", userId:"usr_001" },
-  { id:7,  date:"2026-03-08", propertyId:4, tenantId:5, category:"Rent Income",  description:"March rent - Unit 1",           amount:1950,  type:"income",   createdAt:"2026-03-08T10:00:00Z", updatedAt:"2026-03-08T10:00:00Z", userId:"usr_001" },
-  { id:16, date:"2026-03-08", propertyId:4, tenantId:7, category:"Rent Income",  description:"March rent - Unit 3",           amount:1875,  type:"income",   createdAt:"2026-03-08T10:00:00Z", updatedAt:"2026-03-08T10:00:00Z", userId:"usr_001" },
-  { id:8,  date:"2026-03-05", propertyId:1, category:"Insurance",    description:"Q1 property insurance",         amount:-1200, type:"expense",  createdAt:"2026-03-05T11:00:00Z", updatedAt:"2026-03-05T11:00:00Z", userId:"usr_001" },
-  { id:9,  date:"2026-03-03", propertyId:2, category:"Property Tax", description:"Semi-annual tax payment",       amount:-2100, type:"expense",  createdAt:"2026-03-03T14:00:00Z", updatedAt:"2026-03-03T14:00:00Z", userId:"usr_001" },
-  { id:10, date:"2026-03-01", propertyId:3, tenantId:4, category:"Rent Income",  description:"March rent",                    amount:2100,  type:"income",   createdAt:"2026-03-01T10:00:00Z", updatedAt:"2026-03-01T10:00:00Z", userId:"usr_001" },
-  { id:11, date:"2026-02-28", propertyId:5, category:"Maintenance",  description:"Parking lot reseal",            amount:-3500, type:"expense",  createdAt:"2026-02-28T08:30:00Z", updatedAt:"2026-02-28T08:30:00Z", userId:"usr_001" },
-  { id:12, date:"2026-02-20", propertyId:4, category:"Mortgage",     description:"February mortgage",             amount:-2840, type:"expense",  createdAt:"2026-02-20T09:00:00Z", updatedAt:"2026-02-20T09:00:00Z", userId:"usr_001" },
-  { id:13, date:"2026-02-15", propertyId:1, category:"Mortgage",     description:"February mortgage",             amount:-1620, type:"expense",  createdAt:"2026-02-15T09:00:00Z", updatedAt:"2026-02-15T09:00:00Z", userId:"usr_001" },
-  { id:14, date:"2026-02-10", propertyId:2, category:"Landscaping",  description:"Monthly lawn service",          amount:-180,  type:"expense",  createdAt:"2026-02-10T10:30:00Z", updatedAt:"2026-02-10T10:30:00Z", userId:"usr_001" },
-  { id:15, date:"2026-02-05", propertyId:3, category:"Utilities",    description:"Common area utilities",         amount:-95,   type:"expense",  createdAt:"2026-02-05T15:00:00Z", updatedAt:"2026-02-05T15:00:00Z", userId:"usr_001" },
-];
 
-const _monthlyCashFlow = [
-  { month:"Oct", income:18500, expenses:8200,  net:10300 },
-  { month:"Nov", income:19200, expenses:9100,  net:10100 },
-  { month:"Dec", income:19800, expenses:11400, net:8400  },
-  { month:"Jan", income:20100, expenses:8600,  net:11500 },
-  { month:"Feb", income:21200, expenses:10200, net:11000 },
-  { month:"Mar", income:23050, expenses:9775,  net:13275 },
-];
-
-const _equityGrowth = [
-  { year:"2020", equity:248000 },
-  { year:"2021", equity:412000 },
-  { year:"2022", equity:580000 },
-  { year:"2023", equity:698000 },
-  { year:"2024", equity:815000 },
-  { year:"2025", equity:892000 },
-  { year:"2026", equity:960000 },
-];
-
-const _expenseCategories = [
-  { name:"Mortgage",     value:42, color:"#3b82f6" },
-  { name:"Maintenance",  value:22, color:"#10b981" },
-  { name:"Property Tax", value:16, color:"#8b5cf6" },
-  { name:"Insurance",    value:10, color:"#f59e0b" },
-  { name:"HOA",          value:6,  color:"#ef4444" },
-  { name:"Other",        value:4,  color:"#6b7280" },
-];
 
 export const DEALS = [
   {
@@ -498,33 +446,7 @@ export const DEAL_MILESTONES = [
   { id: 3043, dealId: 4, label: "Sold / Closed", done: true, date: "2025-08-29", createdAt:"2025-04-12T09:00:00Z", updatedAt:"2025-04-12T09:00:00Z", userId:"usr_001" },
 ];
 
-const _tenants = [
-  // ── Active tenants ──
-  { id:1,  propertyId:1, unit:"Unit A",    name:"Marcus & Priya Williams",     rent:1900, leaseStart:"2024-02-01", leaseEnd:"2025-01-31", status:"active-lease",   lastPayment:"2026-03-01", phone:"512-555-0143", email:"mwilliams@email.com",    moveOutDate:null, moveOutReason:null, securityDeposit:1900, createdAt:"2024-02-01T09:00:00Z", updatedAt:"2024-02-01T09:00:00Z", userId:"usr_001"  },
-  { id:2,  propertyId:1, unit:"Unit B",    name:"Jordan Lee",                  rent:1900, leaseStart:"2023-08-01", leaseEnd:"2024-07-31", status:"month-to-month", lastPayment:"2026-03-01", phone:"512-555-0287", email:"jlee@email.com",         moveOutDate:null, moveOutReason:null, securityDeposit:1900, createdAt:"2023-08-01T09:00:00Z", updatedAt:"2023-08-01T09:00:00Z", userId:"usr_001"  },
-  { id:3,  propertyId:2, unit:"Main",      name:"Stephanie & Dan Kowalski",    rent:2950, leaseStart:"2024-06-01", leaseEnd:"2025-05-31", status:"active-lease",   lastPayment:"2026-03-15", phone:"303-555-0194", email:"kowalski@email.com",     moveOutDate:null, moveOutReason:null, securityDeposit:2950, createdAt:"2024-06-01T09:00:00Z", updatedAt:"2024-06-01T09:00:00Z", userId:"usr_001"  },
-  { id:4,  propertyId:3, unit:"#4B",       name:"Alexis Fontaine",             rent:2100, leaseStart:"2025-01-01", leaseEnd:"2025-12-31", status:"active-lease",   lastPayment:"2026-03-01", phone:"404-555-0362", email:"afontaine@email.com",    moveOutDate:null, moveOutReason:null, securityDeposit:2100, createdAt:"2025-01-01T09:00:00Z", updatedAt:"2025-01-01T09:00:00Z", userId:"usr_001"  },
-  { id:5,  propertyId:4, unit:"Unit 1",    name:"Ryan & Keisha Thompson",      rent:1950, leaseStart:"2024-09-01", leaseEnd:"2025-08-31", status:"active-lease",   lastPayment:"2026-03-08", phone:"503-555-0218", email:"kthompson@email.com",    moveOutDate:null, moveOutReason:null, securityDeposit:1950, createdAt:"2024-09-01T09:00:00Z", updatedAt:"2024-09-01T09:00:00Z", userId:"usr_001"  },
-  { id:6,  propertyId:4, unit:"Unit 2",    name:"Vacant",                      rent:1875, leaseStart:null,         leaseEnd:null,         status:"vacant",         lastPayment:null,         phone:null,           email:null,                     moveOutDate:null, moveOutReason:null, securityDeposit:null, createdAt:"2025-03-15T09:00:00Z", updatedAt:"2025-03-15T09:00:00Z", userId:"usr_001"  },
-  { id:7,  propertyId:4, unit:"Unit 3",    name:"Carlos Mendez",               rent:1875, leaseStart:"2025-03-01", leaseEnd:"2026-02-28", status:"month-to-month", lastPayment:"2026-03-08", phone:"503-555-0445", email:"cmendez@email.com",      moveOutDate:null, moveOutReason:null, securityDeposit:1875, createdAt:"2025-03-01T09:00:00Z", updatedAt:"2025-03-01T09:00:00Z", userId:"usr_001"  },
-  { id:8,  propertyId:5, unit:"Commercial",name:"Pacific Rim Restaurant Group", rent:8500, leaseStart:"2023-01-01", leaseEnd:"2027-12-31", status:"active-lease",   lastPayment:"2026-03-10", phone:"310-555-0501", email:"leasing@pacificrimrg.com",moveOutDate:null, moveOutReason:null, securityDeposit:12000, createdAt:"2023-01-01T09:00:00Z", updatedAt:"2023-01-01T09:00:00Z", userId:"usr_001" },
-  // ── Past tenants (lease closed) ──
-  { id:101, propertyId:1, unit:"Unit A",   name:"David Chen",                  rent:1650, leaseStart:"2022-01-15", leaseEnd:"2024-01-14", status:"past",           lastPayment:"2024-01-01", phone:"512-555-0099", email:"dchen@email.com",        moveOutDate:"2024-01-31", moveOutReason:"Relocated for work",       securityDeposit:1650, createdAt:"2022-01-15T09:00:00Z", updatedAt:"2022-01-15T09:00:00Z", userId:"usr_001"  },
-  { id:102, propertyId:2, unit:"Main",     name:"Angela & Tim Briggs",         rent:2650, leaseStart:"2021-06-01", leaseEnd:"2024-05-31", status:"past",           lastPayment:"2024-05-01", phone:"303-555-0077", email:"abriggs@email.com",      moveOutDate:"2024-05-31", moveOutReason:"Purchased own home",       securityDeposit:2650, createdAt:"2021-06-01T09:00:00Z", updatedAt:"2021-06-01T09:00:00Z", userId:"usr_001"  },
-  { id:103, propertyId:4, unit:"Unit 2",   name:"Mei-Lin Patel",              rent:1750, leaseStart:"2023-04-01", leaseEnd:"2025-03-31", status:"past",           lastPayment:"2025-02-01", phone:"503-555-0333", email:"mpatel@email.com",       moveOutDate:"2025-03-15", moveOutReason:"Lease not renewed",        securityDeposit:1750, createdAt:"2023-04-01T09:00:00Z", updatedAt:"2023-04-01T09:00:00Z", userId:"usr_001"  },
-  { id:104, propertyId:3, unit:"#4B",      name:"Jason & Marie Torres",        rent:1850, leaseStart:"2022-06-01", leaseEnd:"2024-12-31", status:"past",           lastPayment:"2024-12-01", phone:"404-555-0211", email:"jtorres@email.com",      moveOutDate:"2024-12-31", moveOutReason:"Lease ended, rent increase",securityDeposit:1850, createdAt:"2022-06-01T09:00:00Z", updatedAt:"2022-06-01T09:00:00Z", userId:"usr_001" },
-];
 
-const _mileageTrips = [
-  { id:1, date:"2026-03-22", description:"Inspect Oakdale Craftsman - contractor walkthrough", from:"Home", to:"1422 Oakdale Ave, Nashville",     miles:14.2, purpose:"Deal",     businessPct:100, createdAt:"2026-03-22T10:00:00Z", updatedAt:"2026-03-22T10:00:00Z", userId:"usr_001" },
-  { id:2, date:"2026-03-20", description:"Collect rent - Maple Ridge Duplex",                  from:"Home", to:"2847 Maple Ridge Dr, Austin",     miles:8.5,  purpose:"Rental",   businessPct:100, createdAt:"2026-03-20T10:00:00Z", updatedAt:"2026-03-20T10:00:00Z", userId:"usr_001" },
-  { id:3, date:"2026-03-18", description:"Meet plumber - Oakdale Craftsman",                   from:"Home", to:"1422 Oakdale Ave, Nashville",     miles:14.2, purpose:"Deal",     businessPct:100, createdAt:"2026-03-18T09:30:00Z", updatedAt:"2026-03-18T09:30:00Z", userId:"usr_001" },
-  { id:4, date:"2026-03-15", description:"Annual inspection - Lakeview SFR",                   from:"Home", to:"518 Lakeview Terrace, Denver",    miles:22.7, purpose:"Rental",   businessPct:100, createdAt:"2026-03-15T08:00:00Z", updatedAt:"2026-03-15T08:00:00Z", userId:"usr_001" },
-  { id:5, date:"2026-03-12", description:"Pine Street Ranch showing",                          from:"Home", to:"874 Pine Street, Memphis",        miles:18.9, purpose:"Deal",     businessPct:100, createdAt:"2026-03-12T10:00:00Z", updatedAt:"2026-03-12T10:00:00Z", userId:"usr_001" },
-  { id:6, date:"2026-03-10", description:"Commercial property check-in",                       from:"Home", to:"9220 Sunset Blvd, W Hollywood",   miles:31.4, purpose:"Rental",   businessPct:100, createdAt:"2026-03-10T14:00:00Z", updatedAt:"2026-03-10T14:00:00Z", userId:"usr_001" },
-  { id:7, date:"2026-03-05", description:"Riverside Triplex - maintenance call",               from:"Home", to:"744 Riverside Blvd, Portland",    miles:12.1, purpose:"Rental",   businessPct:100, createdAt:"2026-03-05T09:00:00Z", updatedAt:"2026-03-05T09:00:00Z", userId:"usr_001" },
-  { id:8, date:"2026-02-28", description:"Accountant meeting - tax prep",                      from:"Home", to:"Downtown Office",                 miles:9.3,  purpose:"Business", businessPct:100, createdAt:"2026-02-28T10:00:00Z", updatedAt:"2026-02-28T10:00:00Z", userId:"usr_001" },
-];
 
 // -----------------------------------------------------------------------------
 // Mock User (replace with real auth session later)
@@ -540,18 +462,13 @@ export const MOCK_USER = {
   memberSince: "2024-01-15",
 };
 
-// -----------------------------------------------------------------------------
-// Call clearDemoData() for any non-demo user so they start with a blank slate.
-// When Supabase data persistence is wired up, this layer gets replaced with
-// real DB queries and this function can be removed.
+// Demo account email — used by AppShell to gate demo-only data restoration.
 export const DEMO_EMAIL = "demo@propbooks.com";
 
+// Empty every in-memory data array in-place so all components see [] immediately.
+// Called for non-demo users so they start with a blank slate before Supabase
+// hydration replaces the contents.
 export function clearDemoData() {
-  // Empty every in-memory data array in-place so all components see [] immediately
-  _properties.length        = 0;
-  _transactions.length      = 0;
-  _tenants.length           = 0;
-  _mileageTrips.length      = 0;
   DEALS.length              = 0;
   DEAL_EXPENSES.length      = 0;
   CONTRACTORS.length        = 0;
@@ -566,76 +483,6 @@ export function clearDemoData() {
   RENTAL_NOTES.length       = 0;
   DEAL_NOTES.length         = 0;
   GENERAL_NOTES.length      = 0;
-  // Chart series — replace with empty months so charts render (not crash)
-  _monthlyCashFlow.length   = 0;
-  _equityGrowth.length      = 0;
-  _expenseCategories.length = 0;
-}
-
-// Properties
-// -----------------------------------------------------------------------------
-export function getProperties()             { return Promise.resolve([..._properties]); }
-export function addProperty(prop)           { _properties.push(prop); return Promise.resolve(prop); }
-export function updateProperty(id, updates) {
-  const i = _properties.findIndex(p => p.id === id);
-  if (i !== -1) Object.assign(_properties[i], updates);
-  return Promise.resolve(_properties[i]);
-}
-export function deleteProperty(id) {
-  const i = _properties.findIndex(p => p.id === id);
-  if (i !== -1) _properties.splice(i, 1);
-  return Promise.resolve();
-}
-
-// -----------------------------------------------------------------------------
-// Transactions
-// -----------------------------------------------------------------------------
-export function getTransactions()          { return Promise.resolve([..._transactions]); }
-export function addTransaction(txn)        { _transactions.unshift(txn); return Promise.resolve(txn); }
-export function deleteTransaction(id) {
-  const i = _transactions.findIndex(t => t.id === id);
-  if (i !== -1) _transactions.splice(i, 1);
-  return Promise.resolve();
-}
-
-// -----------------------------------------------------------------------------
-// Charts / Analytics
-// -----------------------------------------------------------------------------
-export function getMonthlyCashFlow()    { return Promise.resolve([..._monthlyCashFlow]); }
-export function getEquityGrowth()       { return Promise.resolve([..._equityGrowth]);    }
-export function getExpenseCategories()  { return Promise.resolve([..._expenseCategories]); }
-
-// -----------------------------------------------------------------------------
-// Deals
-// -----------------------------------------------------------------------------
-export function getDeals()              { return Promise.resolve([...DEALS]);         }
-export function addDeal(deal)           { DEALS.push(deal); return Promise.resolve(deal); }
-export function updateDeal(id, updates) {
-  const i = DEALS.findIndex(f => f.id === id);
-  if (i !== -1) Object.assign(DEALS[i], updates);
-  return Promise.resolve(DEALS[i]);
-}
-export function getDealExpenses(dealId) {
-  return Promise.resolve(DEAL_EXPENSES.filter(e => e.dealId === dealId));
-}
-export function addDealExpense(exp)     { DEAL_EXPENSES.push(exp); return Promise.resolve(exp); }
-export function getContractors(dealId)  {
-  if (dealId) return Promise.resolve(CONTRACTORS.filter(c => c.dealIds.includes(dealId)));
-  return Promise.resolve([...CONTRACTORS]);
-}
-export function addContractor(c)        { CONTRACTORS.push(c); return Promise.resolve(c); }
-export function getDealMilestones(dealId) {
-  return Promise.resolve(DEAL_MILESTONES.filter(m => m.dealId === dealId));
-}
-export function updateDealMilestones(dealId, milestones) {
-  // Remove old milestones for this deal
-  const oldIndices = DEAL_MILESTONES.map((m, i) => m.dealId === dealId ? i : -1).filter(i => i !== -1);
-  for (let i = oldIndices.length - 1; i >= 0; i--) {
-    DEAL_MILESTONES.splice(oldIndices[i], 1);
-  }
-  // Add updated milestones
-  DEAL_MILESTONES.push(...milestones);
-  return Promise.resolve(milestones);
 }
 
 // Rental notes — flat array with propertyId reference
@@ -685,10 +532,6 @@ export const DEAL_NOTES = [
 // user always sees full data regardless of which account logged in before them.
 // =============================================================================
 const _snap = {
-  properties:           JSON.parse(JSON.stringify(_properties)),
-  transactions:         JSON.parse(JSON.stringify(_transactions)),
-  tenants:              JSON.parse(JSON.stringify(_tenants)),
-  mileageTrips:         JSON.parse(JSON.stringify(_mileageTrips)),
   deals:                JSON.parse(JSON.stringify(DEALS)),
   dealExpenses:         JSON.parse(JSON.stringify(DEAL_EXPENSES)),
   contractors:          JSON.parse(JSON.stringify(CONTRACTORS)),
@@ -703,18 +546,11 @@ const _snap = {
   rentalNotes:          JSON.parse(JSON.stringify(RENTAL_NOTES)),
   dealNotes:            JSON.parse(JSON.stringify(DEAL_NOTES)),
   generalNotes:         JSON.parse(JSON.stringify(GENERAL_NOTES)),
-  monthlyCashFlow:      JSON.parse(JSON.stringify(_monthlyCashFlow)),
-  equityGrowth:         JSON.parse(JSON.stringify(_equityGrowth)),
-  expenseCategories:    JSON.parse(JSON.stringify(_expenseCategories)),
 };
 
 function refill(target, source) { target.length = 0; source.forEach(item => target.push(item)); }
 
 export function restoreDemoData() {
-  refill(_properties,          _snap.properties);
-  refill(_transactions,        _snap.transactions);
-  refill(_tenants,             _snap.tenants);
-  refill(_mileageTrips,        _snap.mileageTrips);
   refill(DEALS,                _snap.deals);
   refill(DEAL_EXPENSES,        _snap.dealExpenses);
   refill(CONTRACTORS,          _snap.contractors);
@@ -729,73 +565,8 @@ export function restoreDemoData() {
   refill(RENTAL_NOTES,         _snap.rentalNotes);
   refill(DEAL_NOTES,           _snap.dealNotes);
   refill(GENERAL_NOTES,        _snap.generalNotes);
-  refill(_monthlyCashFlow,     _snap.monthlyCashFlow);
-  refill(_equityGrowth,        _snap.equityGrowth);
-  refill(_expenseCategories,   _snap.expenseCategories);
 }
 
-// -----------------------------------------------------------------------------
-// Tenants
-// -----------------------------------------------------------------------------
-export function getTenants()            { return Promise.resolve([..._tenants]);       }
-export function addTenant(t)            { _tenants.push(t); return Promise.resolve(t); }
-export function updateTenant(id, updates) {
-  const i = _tenants.findIndex(t => t.id === id);
-  if (i !== -1) Object.assign(_tenants[i], updates);
-  return Promise.resolve(_tenants[i]);
-}
 
-// -----------------------------------------------------------------------------
-// Mileage
-// -----------------------------------------------------------------------------
-export function getMileageTrips()       { return Promise.resolve([..._mileageTrips]);  }
-export function addMileageTrip(trip)    { _mileageTrips.unshift(trip); return Promise.resolve(trip); }
-export function deleteMileageTrip(id) {
-  const i = _mileageTrips.findIndex(t => t.id === id);
-  if (i !== -1) _mileageTrips.splice(i, 1);
-  return Promise.resolve();
-}
 
-// -----------------------------------------------------------------------------
-// Property Lookup (Rentcast / Zillow stub)
-// When you have an API key, replace this with a real fetch call.
-// -----------------------------------------------------------------------------
-export async function lookupPropertyByAddress(address) {
-  // TODO: replace with →
-  // const res = await fetch(`https://api.rentcast.io/v1/properties?address=${encodeURIComponent(address)}`, {
-  //   headers: { 'X-Api-Key': import.meta.env.VITE_RENTCAST_KEY }
-  // });
-  // return res.json();
-
-  // Mock response for now
-  await new Promise(r => setTimeout(r, 800)); // simulate network delay
-  return {
-    address,
-    estimatedValue: Math.floor(Math.random() * 400000) + 200000,
-    estimatedRent:  Math.floor(Math.random() * 2000)   + 1000,
-    bedrooms: 3,
-    bathrooms: 2,
-    sqft: 1450,
-    yearBuilt: 2001,
-    lastSalePrice: Math.floor(Math.random() * 350000) + 150000,
-    lastSaleDate: "2022-06-14",
-  };
-}
-
-// ── Document & Receipt CRUD helpers ──────────────────────────────────────────
-export function getPropertyDocuments(propertyId) { return PROPERTY_DOCUMENTS.filter(d => d.propertyId === propertyId); }
-export function addPropertyDocument(doc) { PROPERTY_DOCUMENTS.push(doc); return doc; }
-export function deletePropertyDocument(id) { const i = PROPERTY_DOCUMENTS.findIndex(d => d.id === id); if (i !== -1) PROPERTY_DOCUMENTS.splice(i, 1); }
-
-export function getDealDocuments(dealId) { return DEAL_DOCUMENTS.filter(d => d.dealId === dealId); }
-export function addDealDocument(doc) { DEAL_DOCUMENTS.push(doc); return doc; }
-export function deleteDealDocument(id) { const i = DEAL_DOCUMENTS.findIndex(d => d.id === id); if (i !== -1) DEAL_DOCUMENTS.splice(i, 1); }
-
-export function getTenantDocuments(tenantId) { return TENANT_DOCUMENTS.filter(d => d.tenantId === tenantId); }
-export function addTenantDocument(doc) { TENANT_DOCUMENTS.push(doc); return doc; }
-export function deleteTenantDocument(id) { const i = TENANT_DOCUMENTS.findIndex(d => d.id === id); if (i !== -1) TENANT_DOCUMENTS.splice(i, 1); }
-
-export function getMaintenanceRequests(tenantId) { return MAINTENANCE_REQUESTS.filter(r => r.tenantId === tenantId); }
-export function addMaintenanceRequest(r) { MAINTENANCE_REQUESTS.push(r); return r; }
-export function updateMaintenanceRequest(id, updates) { const i = MAINTENANCE_REQUESTS.findIndex(r => r.id === id); if (i !== -1) Object.assign(MAINTENANCE_REQUESTS[i], updates); return MAINTENANCE_REQUESTS[i]; }
 

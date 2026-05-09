@@ -45,10 +45,9 @@ import { useToast } from "../toast.jsx";
 import { useTheme } from "../theme.jsx";
 import { Settings, OnboardingWizard } from "../settings.jsx";
 import {
-  DealDashboard, RehabTracker, DealContractors,
-  ContractorDetail, DealAnalytics, DealMilestones, DealNotes,
+  DealDashboard, DealContractors,
+  ContractorDetail, DealMilestones,
 } from "../deals.jsx";
-import { DealReports } from "../dealReports.jsx";
 import { WelcomeScreen } from "./WelcomeScreen.jsx";
 import { GlobalSearch } from "./GlobalSearch.jsx";
 import { MileageTracker } from "./MileageTracker.jsx";
@@ -56,19 +55,13 @@ import { DealAnalyzer } from "./DealAnalyzer.jsx";
 import { RentalWizard } from "./RentalWizard.jsx";
 import { FlipWizard } from "./FlipWizard.jsx";
 import { UnifiedNotes } from "./UnifiedNotes.jsx";
-import { TxDetailPanel, ExpDetailPanel } from "./detailPanels.jsx";
 import { Properties } from "./Properties.jsx";
-import { PortfolioDashboard } from "./PortfolioDashboard.jsx";
-import { Dashboard } from "./Dashboard.jsx";
 import { PropertyDetail } from "./PropertyDetail.jsx";
 import { TenantManagement } from "./TenantManagement.jsx";
 import { TenantDetail } from "./TenantDetail.jsx";
-import { Reports } from "./Reports.jsx";
-import { Analytics } from "./Analytics.jsx";
 import { UnifiedReports } from "./UnifiedReports.jsx";
 import { UnifiedAnalytics } from "./UnifiedAnalytics.jsx";
 import { UnifiedDashboard } from "./UnifiedDashboard.jsx";
-import { DealPipeline, StageBadge, RehabProgress } from "./DealPipeline.jsx";
 import { AssetList } from "./AssetList.jsx";
 import { Ledger } from "./Ledger.jsx";
 import { RehabItemDetail } from "./RehabItemDetail.jsx";
@@ -677,29 +670,21 @@ export function AppShell() {
           {/* Old "dealdashboard" route folded into UnifiedDashboard above */}
           {/* "deals" route retired — Assets covers the rehab list. */}
           {activeView === "dealDetail"      && selectedDeal && <ErrorBoundary key={"eb-" + selectedDeal.id}><DealDetail key={selectedDeal.id + "-" + (dealInitialTab || "overview")} deal={selectedDeal} onBack={() => { setActiveView(dealNavSource || "assets"); setDealNavSource(null); setPrevDealNavSource(null); setDealInitialTab(null); }} backLabel={dealNavSource === "dealdashboard" ? "Back to Dashboard" : dealNavSource === "portfolio" ? "Back to Portfolio" : "Back to Assets"} onNavigateToExpense={navigateToDealExpense} onNavigateToContractor={(con, tab) => { setSelectedContractor(con); setContractorInitialTab(tab || null); setPrevDealNavSource(dealNavSource); setNavSource("dealDetail"); setActiveView("contractorDetail"); }} onNavigateToRehabItem={(idx) => { setSelectedRehabItem({ dealId: selectedDeal.id, itemIdx: idx }); setNavSource("dealDetail"); setPrevDealNavSource(dealNavSource); setActiveView("rehabItemDetail"); }} initialTab={dealInitialTab} onConvertToRental={(flipData) => { setConvertDealData(flipData); }} onDealUpdated={onDealUpdated} onNavigateToDeal={(f) => handleDealSelect(f, null, dealNavSource || "assets")} /></ErrorBoundary>}
-          {activeView === "dealrehab"        && <RehabTracker onSelectRehabItem={(dealId, idx) => { setSelectedRehabItem({ dealId, itemIdx: idx }); setNavSource("dealrehab"); setActiveView("rehabItemDetail"); }} />}
           {activeView === "rehabItemDetail" && selectedRehabItem && (() => {
             const rDeal = DEALS.find(f => f.id === selectedRehabItem.dealId);
             if (!rDeal) return null;
-            const backToDeal = navSource === "dealDetail";
             return <RehabItemDetail
               deal={rDeal}
               itemIdx={selectedRehabItem.itemIdx}
               onBack={() => {
-                if (backToDeal) {
-                  setSelectedRehabItem(null);
-                  setActiveView("dealDetail");
-                  setDealInitialTab("rehab");
-                  setNavSource(null);
-                  setDealNavSource(prevDealNavSource);
-                  setPrevDealNavSource(null);
-                } else {
-                  setSelectedRehabItem(null);
-                  setActiveView("dealrehab");
-                  setNavSource(null);
-                }
+                setSelectedRehabItem(null);
+                setActiveView("dealDetail");
+                setDealInitialTab("rehab");
+                setNavSource(null);
+                setDealNavSource(prevDealNavSource);
+                setPrevDealNavSource(null);
               }}
-              backLabel={backToDeal ? `Back to ${rDeal.name}` : "Back to Rehab Tracker"}
+              backLabel={`Back to ${rDeal.name}`}
               onNavigateToContractor={(con, tab) => { setSelectedContractor(con); setContractorInitialTab(tab || null); setNavSource("rehabItemDetail"); setActiveView("contractorDetail"); }}
               onNavigateToExpense={(expId) => { setHighlightLedgerKey("dx-" + expId); setLedgerInitialAssetFilter(null); setActiveView("ledger"); }}
             />;
@@ -707,9 +692,6 @@ export function AppShell() {
           {activeView === "dealcontractors" && <DealContractors onSelectContractor={handleSelectContractor} />}
           {activeView === "contractorDetail" && selectedContractor && <ContractorDetail contractor={selectedContractor} initialTab={contractorInitialTab} onBack={() => { setSelectedContractor(null); setContractorInitialTab(null); if (navSource === "dealDetail" && selectedDeal) { setActiveView("dealDetail"); setDealInitialTab("contractors"); setNavSource(null); setDealNavSource(prevDealNavSource); setPrevDealNavSource(null); } else if (navSource === "rehabItemDetail" && selectedRehabItem) { setActiveView("rehabItemDetail"); setNavSource("dealDetail"); } else if (navSource === "portfolio") { setActiveView("portfolio"); setNavSource(null); } else { setActiveView("dealcontractors"); } }} />}
           {activeView === "dealmilestones"  && <DealMilestones highlightMilestoneKey={highlightMilestoneKey} onBack={navSource === "dealdashboard" ? () => { setActiveView("dealdashboard"); setHighlightMilestoneKey(null); setNavSource(null); } : null} onClearHighlight={() => setHighlightMilestoneKey(null)} />}
-          {activeView === "dealnotes"       && <UnifiedNotes highlightDealNoteId={highlightDealNoteId} onBack={navSource === "dealdashboard" ? () => { setActiveView("dealdashboard"); setHighlightDealNoteId(null); setNavSource(null); } : null} onClearHighlight={() => setHighlightDealNoteId(null)} />}
-          {activeView === "dealanalytics"   && <DealAnalytics />}
-          {activeView === "dealreports"    && <DealReports />}
           {activeView === "tenants" && <TenantManagement onBack={navSource === "propertyDetail" ? () => { setActiveView("propertyDetail"); setHighlightTenantId(null); setNavSource(prevNavSource); setPrevNavSource(null); } : null} highlightTenantId={highlightTenantId} onClearHighlight={() => setHighlightTenantId(null)} prefillTenant={prefillTenant} onClearPrefill={() => setPrefillTenant(null)} onSelectTenant={(t) => handleTenantSelect(t, "tenants")} />}
           {activeView === "tenantDetail" && selectedTenant && <TenantDetail tenant={selectedTenant} onBack={() => { setSelectedTenant(null); setActiveView(navSource || "tenants"); setNavSource(null); }} backLabel={navSource === "propertyDetail" ? "Back to Property" : "Back to Tenants"} onTenantUpdated={handleTenantUpdated} />}
           {activeView === "mileage" && <MileageTracker />}
