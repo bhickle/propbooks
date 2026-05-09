@@ -88,52 +88,12 @@ export function AttachmentList({ items, onRemove, compact = false }) {
 }
 
 // ── OcrPrompt — shown after a receipt is attached, offers to auto-fill form ──
+// Disabled until real OCR is wired (Google Vision / AWS Textract). The prior
+// mockOcrScan() returned random fake fields — disabled to prevent fabricating
+// data into real users' records.
+// eslint-disable-next-line no-unused-vars
 export function OcrPrompt({ attachment, onResult, onDismiss }) {
-  const [scanning, setScanning] = useState(false);
-  const [dismissed, setDismissed] = useState(false);
-
-  if (dismissed || attachment.ocrData) return null;
-
-  const isImage = attachment.mimeType?.startsWith("image/");
-  const isPdf = attachment.mimeType?.includes("pdf");
-  if (!isImage && !isPdf) return null; // only offer OCR for images/PDFs
-
-  const runOcr = async () => {
-    setScanning(true);
-    try {
-      const ocrData = await mockOcrScan({ name: attachment.name, type: attachment.mimeType });
-      if (onResult) onResult(ocrData, attachment);
-    } catch (err) {
-      console.error("OCR failed:", err);
-    } finally {
-      setScanning(false);
-    }
-  };
-
-  if (scanning) {
-    return (
-      <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", background: "var(--warning-bg)", borderRadius: 10, border: "1px solid var(--warning-border)", marginTop: 6 }}>
-        <Loader size={14} color="#e95e00" style={{ animation: "spin 1s linear infinite" }} />
-        <span style={{ fontSize: 12, color: "var(--warning-text)", fontWeight: 600 }}>Reading receipt...</span>
-        <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
-      </div>
-    );
-  }
-
-  return (
-    <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", background: "var(--info-tint-alt)", borderRadius: 10, border: "1px solid var(--info-border-alt)", marginTop: 6 }}>
-      <ScanLine size={15} color="var(--c-blue)" />
-      <span style={{ fontSize: 12, color: "var(--text-primary)", flex: 1 }}>Auto-fill from this receipt?</span>
-      <button onClick={runOcr}
-        style={{ display: "flex", alignItems: "center", gap: 5, padding: "5px 12px", borderRadius: 8, border: "none", background: "#1e3a5f", color: "#fff", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>
-        <Star size={12} /> Auto-fill
-      </button>
-      <button onClick={() => { setDismissed(true); if (onDismiss) onDismiss(); }}
-        style={{ background: "none", border: "none", cursor: "pointer", padding: 2, color: "var(--text-muted)", display: "flex" }}>
-        <X size={14} />
-      </button>
-    </div>
-  );
+  return null;
 }
 
 // ── DocumentsPanel — reusable documents tab content for any entity ──

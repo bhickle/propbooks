@@ -13,6 +13,7 @@ import {
 import { InfoTip, sectionS as sharedSectionS, cardS as sharedCardS } from "../shared.jsx";
 import { useToast } from "../toast.jsx";
 import { createDealNote as dbCreateDealNote, deleteNote as dbDeleteNote } from "../db/notes.js";
+import { updateRehabItem as dbUpdateRehabItem } from "../db/dealRehabItems.js";
 
 export function RehabItemDetail({ deal, itemIdx, onBack, backLabel, onNavigateToContractor, onNavigateToExpense }) {
   const { showToast } = useToast();
@@ -79,20 +80,26 @@ export function RehabItemDetail({ deal, itemIdx, onBack, backLabel, onNavigateTo
     });
     setShowEdit(true);
   };
-  const saveEdit = () => {
+  const saveEdit = async () => {
     if (!editForm.category) return;
     const canon = editForm.canonicalCategory || getCanonicalByLabel(editForm.category)?.slug || null;
-    deal.rehabItems[itemIdx] = {
-      ...item,
+    const fields = {
       category: editForm.category,
-      canonicalCategory: canon,
+      slug: canon,
       budgeted: parseFloat(editForm.budgeted) || 0,
       spent: parseFloat(editForm.spent) || 0,
       status: editForm.status,
     };
-    setShowEdit(false);
-    bump();
-    showToast("Rehab item updated");
+    try {
+      if (item.id) await dbUpdateRehabItem(item.id, fields);
+      deal.rehabItems[itemIdx] = { ...item, ...fields, canonicalCategory: canon };
+      setShowEdit(false);
+      bump();
+      showToast("Rehab item updated");
+    } catch (e) {
+      console.error("[PropBooks] Save rehab item failed:", e);
+      showToast("Couldn't save — " + (e.message || "unknown error"));
+    }
   };
 
   const addContractor = (conId) => {
@@ -140,21 +147,8 @@ export function RehabItemDetail({ deal, itemIdx, onBack, backLabel, onNavigateTo
     }
   };
 
-  const addPhoto = (e) => {
-    const file = e.target.files && e.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      deal.rehabItems[itemIdx] = { ...item, photos: [...(item.photos || []), ev.target.result] };
-      bump();
-      showToast("Photo added");
-    };
-    reader.readAsDataURL(file);
-  };
-  const removePhoto = (pIdx) => {
-    deal.rehabItems[itemIdx] = { ...item, photos: (item.photos || []).filter((_, i) => i !== pIdx) };
-    bump();
-  };
+  // Photo upload is temporarily disabled — needs Supabase Storage wiring
+  // (data-URL photos in memory don't survive reload). Tracked as a follow-up.
 
   const sectionS = { ...sharedSectionS, marginBottom: 16 };
   const cardS = sharedCardS;
@@ -264,30 +258,6 @@ export function RehabItemDetail({ deal, itemIdx, onBack, backLabel, onNavigateTo
                 </div>
               );
             })}
-          </div>
-        )}
-      </div>
-
-      {/* Photos section */}
-      <div style={sectionS}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-          <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--text-primary)" }}>Photos</h3>
-          <label style={{ background: "var(--surface-muted)", color: "var(--text-label)", border: "none", borderRadius: 10, padding: "8px 14px", fontWeight: 600, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
-            <Plus size={14} /> Add Photo
-            <input type="file" accept="image/*" onChange={addPhoto} style={{ display: "none" }} />
-          </label>
-        </div>
-        <p style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 20 }}>Before, during, and after shots for this scope</p>
-        {(item.photos || []).length === 0 ? (
-          <div style={{ padding: 32, textAlign: "center", color: "var(--text-muted)", fontSize: 13, background: "var(--surface-alt)", borderRadius: 12 }}>No photos yet.</div>
-        ) : (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: 12 }}>
-            {(item.photos || []).map((p, pi) => (
-              <div key={pi} style={{ position: "relative", aspectRatio: "1", borderRadius: 12, overflow: "hidden", border: "1px solid var(--border)" }}>
-                <img src={p} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                <button onClick={() => removePhoto(pi)} style={{ position: "absolute", top: 6, right: 6, background: "rgba(0,0,0,0.6)", border: "none", borderRadius: "50%", width: 24, height: 24, color: "#fff", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><X size={12} /></button>
-              </div>
-            ))}
           </div>
         )}
       </div>

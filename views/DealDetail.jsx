@@ -35,6 +35,7 @@ import {
 import {
   createContractor as dbCreateContractor,
   updateContractor as dbUpdateContractor,
+  deleteContractor as dbDeleteContractor,
   linkContractorToDeal as dbLinkContractorToDeal,
 } from "../db/contractors.js";
 import {
@@ -45,6 +46,22 @@ import {
   createDocument as dbCreateDocument,
   deleteDocument as dbDeleteDocument,
 } from "../db/documents.js";
+import {
+  createDealExpense as dbCreateDealExpense,
+  updateDealExpense as dbUpdateDealExpense,
+  deleteDealExpense as dbDeleteDealExpense,
+} from "../db/dealExpenses.js";
+import {
+  createMilestone as dbCreateMilestone,
+  updateMilestone as dbUpdateMilestone,
+  deleteMilestone as dbDeleteMilestone,
+} from "../db/dealMilestones.js";
+import {
+  createRehabItem as dbCreateRehabItem,
+  updateRehabItem as dbUpdateRehabItem,
+  deleteRehabItem as dbDeleteRehabItem,
+} from "../db/dealRehabItems.js";
+import { createContractorPayment as dbCreateContractorPayment } from "../db/contractorPayments.js";
 
 // Fire-and-forget DB sync for legacy sync handlers that mutate DEALS in place.
 // The optimistic in-memory mutation has already happened; this just persists.
@@ -320,24 +337,28 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
   const [paymentAmount, setPaymentAmount] = useState("");
   const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split("T")[0]);
   const [paymentNote, setPaymentNote] = useState("");
-  const handleRecordPayment = () => {
+  const handleRecordPayment = async () => {
     if (!paymentAmount || !showPaymentModal) return;
     const amt = parseFloat(paymentAmount) || 0;
-    // Push payment into CONTRACTOR_PAYMENTS array
     const con = conData.find(c => c.id === showPaymentModal);
-    if (con) {
-      const newPayment = { id: newId(), contractorId: con.id, dealId: deal.id, amount: amt, date: paymentDate, note: paymentNote || `Payment to ${con.name}` };
-      CONTRACTOR_PAYMENTS.push(newPayment);
+    if (!con) return;
+    try {
+      const savedPayment = await dbCreateContractorPayment({ contractorId: con.id, dealId: deal.id, amount: amt, date: paymentDate, note: paymentNote || `Payment to ${con.name}` });
+      CONTRACTOR_PAYMENTS.push(savedPayment);
       setConData(prev => [...prev]); // trigger re-render
-      // Also log as an expense automatically (linked to contractor)
-      setExpData(prev => [{ id: newId(), dealId: deal.id, date: paymentDate, vendor: con.name, category: con.trade === "General Contractor" ? "General Contractor" : "Subcontractor", description: paymentNote || `Payment to ${con.name}`, amount: amt, status: "paid", contractorId: showPaymentModal }, ...prev]);
-      // Add to activity log
+      const expensePayload = { dealId: deal.id, date: paymentDate, vendor: con.name, category: con.trade === "General Contractor" ? "General Contractor" : "Subcontractor", description: paymentNote || `Payment to ${con.name}`, amount: amt, contractorId: con.id };
+      const savedExpense = await dbCreateDealExpense(expensePayload);
+      setExpData(prev => [savedExpense, ...prev]);
+      DEAL_EXPENSES.push(savedExpense);
       pushDealNote(`Recorded ${fmt(amt)} payment to ${con.name}`);
+      setShowPaymentModal(null);
+      setPaymentAmount("");
+      setPaymentNote("");
+      setPaymentDate(new Date().toISOString().split("T")[0]);
+    } catch (e) {
+      console.error("[PropBooks] Record payment failed:", e);
+      showToast("Couldn't record payment — " + (e.message || "unknown error"));
     }
-    setShowPaymentModal(null);
-    setPaymentAmount("");
-    setPaymentNote("");
-    setPaymentDate(new Date().toISOString().split("T")[0]);
   };
 
   // Rehab edit state
@@ -353,46 +374,88 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
     setMilestoneForm({ label: m.label, targetDate: m.targetDate || "", date: m.date || "" });
     setShowMilestoneModal(true);
   };
-  const handleSaveMilestone = () => {
+  const handleSaveMilestone = async () => {
     if (!milestoneForm.label.trim()) return;
-    if (editingMilestoneId !== null) {
-      setMilestones(prev => prev.map((item, idx) => idx === editingMilestoneId ? { ...item, label: milestoneForm.label.trim(), targetDate: milestoneForm.targetDate || null, date: milestoneForm.date || item.date, done: milestoneForm.date ? true : item.done } : item));
-      setEditingMilestoneId(null);
-    } else {
-      setMilestones(prev => [...prev, { label: milestoneForm.label.trim(), done: false, date: null, targetDate: milestoneForm.targetDate || null }]);
+    try {
+      if (editingMilestoneId !== null) {
+        const existing = milestones[editingMilestoneId];
+        const updates = {
+          label: milestoneForm.label.trim(),
+          targetDate: milestoneForm.targetDate || null,
+          date: milestoneForm.date || existing.date,
+          done: milestoneForm.date ? true : existing.done,
+        };
+        if (existing?.id) await dbUpdateMilestone(existing.id, updates);
+        const idx = DEAL_MILESTONES.findIndex(m => m.id === existing.id);
+        if (idx !== -1) DEAL_MILESTONES[idx] = { ...DEAL_MILESTONES[idx], ...updates };
+        setMilestones(prev => prev.map((item, i) => i === editingMilestoneId ? { ...item, ...updates } : item));
+        setEditingMilestoneId(null);
+      } else {
+        const payload = { dealId: deal.id, label: milestoneForm.label.trim(), done: false, date: null, targetDate: milestoneForm.targetDate || null };
+        const saved = await dbCreateMilestone(payload);
+        DEAL_MILESTONES.push(saved);
+        setMilestones(prev => [...prev, saved]);
+      }
+      setMilestoneForm(emptyMilestone);
+      setShowMilestoneModal(false);
+    } catch (e) {
+      console.error("[PropBooks] Save milestone failed:", e);
+      showToast("Couldn't save milestone — " + (e.message || "unknown error"));
     }
-    setMilestoneForm(emptyMilestone);
-    setShowMilestoneModal(false);
   };
 
-  const handleSaveExp = () => {
+  const handleSaveExp = async () => {
     if (!expForm.amount || !expForm.vendor || !expForm.description) return;
     const riIdx = expForm.rehabItemIdx !== "" ? parseInt(expForm.rehabItemIdx) : null;
     const amt = parseFloat(expForm.amount) || 0;
     const parsed = { date: expForm.date || new Date().toISOString().split("T")[0], vendor: expForm.vendor || "Unknown", category: expForm.category, description: expForm.description, amount: amt, status: expForm.status || "paid", contractorId: expForm.contractorId || null, rehabItemIdx: riIdx };
-    if (editingExpId) {
-      // If the rehab item link or amount changed, adjust spent totals accordingly
-      const oldExp = expData.find(e => e.id === editingExpId);
-      if (oldExp) {
-        const oldIdx = oldExp.rehabItemIdx != null ? oldExp.rehabItemIdx : null;
-        const oldAmt = oldExp.amount || 0;
+    try {
+      let savedRow;
+      let oldExpSnapshot = null;
+      if (editingExpId) {
+        oldExpSnapshot = expData.find(e => e.id === editingExpId) || null;
+        savedRow = await dbUpdateDealExpense(editingExpId, { dealId: deal.id, ...parsed });
+      } else {
+        savedRow = await dbCreateDealExpense({ dealId: deal.id, ...parsed });
+      }
+      // Persist rehab-item spent recalculations
+      const persistRehabSpent = async (idx, newSpent) => {
+        const ri = rehabItems[idx];
+        if (!ri) return;
+        if (ri.id) await dbUpdateRehabItem(ri.id, { spent: newSpent });
+      };
+      if (oldExpSnapshot) {
+        const oldIdx = oldExpSnapshot.rehabItemIdx != null ? oldExpSnapshot.rehabItemIdx : null;
+        const oldAmt = oldExpSnapshot.amount || 0;
         if (oldIdx != null && rehabItems[oldIdx]) {
-          setRehabItems(prev => prev.map((it, i) => i === oldIdx ? { ...it, spent: Math.max(0, (it.spent || 0) - oldAmt) } : it));
-          if (deal.rehabItems && deal.rehabItems[oldIdx]) deal.rehabItems[oldIdx] = { ...deal.rehabItems[oldIdx], spent: Math.max(0, (deal.rehabItems[oldIdx].spent || 0) - oldAmt) };
+          const newSpent = Math.max(0, (rehabItems[oldIdx].spent || 0) - oldAmt);
+          await persistRehabSpent(oldIdx, newSpent);
+          setRehabItems(prev => prev.map((it, i) => i === oldIdx ? { ...it, spent: newSpent } : it));
+          if (deal.rehabItems && deal.rehabItems[oldIdx]) deal.rehabItems[oldIdx] = { ...deal.rehabItems[oldIdx], spent: newSpent };
         }
       }
-      setExpData(prev => prev.map(e => e.id === editingExpId ? { ...e, ...parsed } : e));
-      setEditingExpId(null);
-    } else {
-      setExpData(prev => [{ id: newId(), dealId: deal.id, ...parsed }, ...prev]);
+      if (editingExpId) {
+        setExpData(prev => prev.map(e => e.id === editingExpId ? { ...e, ...savedRow } : e));
+        const gi = DEAL_EXPENSES.findIndex(e => e.id === editingExpId);
+        if (gi !== -1) DEAL_EXPENSES[gi] = { ...DEAL_EXPENSES[gi], ...savedRow };
+        setEditingExpId(null);
+      } else {
+        setExpData(prev => [savedRow, ...prev]);
+        DEAL_EXPENSES.push(savedRow);
+      }
+      // Bump spent on the newly-linked rehab item
+      if (riIdx != null && rehabItems[riIdx]) {
+        const newSpent = (rehabItems[riIdx].spent || 0) + amt;
+        await persistRehabSpent(riIdx, newSpent);
+        setRehabItems(prev => prev.map((it, i) => i === riIdx ? { ...it, spent: newSpent } : it));
+        if (deal.rehabItems && deal.rehabItems[riIdx]) deal.rehabItems[riIdx] = { ...deal.rehabItems[riIdx], spent: newSpent };
+      }
+      setExpForm(emptyExp);
+      setShowExpenseModal(false);
+    } catch (e) {
+      console.error("[PropBooks] Save expense failed:", e);
+      showToast("Couldn't save expense — " + (e.message || "unknown error"));
     }
-    // Bump spent on the newly-linked rehab item
-    if (riIdx != null && rehabItems[riIdx]) {
-      setRehabItems(prev => prev.map((it, i) => i === riIdx ? { ...it, spent: (it.spent || 0) + amt } : it));
-      if (deal.rehabItems && deal.rehabItems[riIdx]) deal.rehabItems[riIdx] = { ...deal.rehabItems[riIdx], spent: (deal.rehabItems[riIdx].spent || 0) + amt };
-    }
-    setExpForm(emptyExp);
-    setShowExpenseModal(false);
   };
 
   // Push a bid into the shared CONTRACTOR_BIDS store. Returns the new bid.
@@ -524,10 +587,19 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
     if (setAllFlips) setAllFlips(prev => prev.map(f => f.id === deal.id ? { ...f, stage: newStage } : f));
   };
 
-  const cycleRehabStatus = (idx) => {
+  const cycleRehabStatus = async (idx) => {
     const order = ["pending", "in-progress", "complete"];
-    const updated = rehabItems.map((item, i) => i !== idx ? item : { ...item, status: order[(order.indexOf(item.status) + 1) % order.length] });
-    setRehabItems(updated);
+    const current = rehabItems[idx];
+    if (!current) return;
+    const nextStatus = order[(order.indexOf(current.status) + 1) % order.length];
+    try {
+      if (current.id) await dbUpdateRehabItem(current.id, { status: nextStatus });
+      setRehabItems(prev => prev.map((item, i) => i === idx ? { ...item, status: nextStatus } : item));
+      if (deal.rehabItems && deal.rehabItems[idx]) deal.rehabItems[idx] = { ...deal.rehabItems[idx], status: nextStatus };
+    } catch (e) {
+      console.error("[PropBooks] Update rehab status failed:", e);
+      showToast("Couldn't update status — " + (e.message || "unknown error"));
+    }
   };
 
   const currentFlip = { ...deal, stage };
@@ -1122,50 +1194,43 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
                     <option value="complete">Complete</option>
                   </select>
                 </div>
-                <div>
-                  <label style={{ display: "block", color: "var(--text-dim)", fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Photos</label>
-                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-                    {(rehabForm.photos || []).map((p, pi) => (
-                      <div key={pi} style={{ position: "relative", width: 60, height: 60, borderRadius: 8, overflow: "hidden", border: "1px solid var(--border)" }}>
-                        <img src={p} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                        <button onClick={() => setRehabForm(f => ({ ...f, photos: f.photos.filter((_, ii) => ii !== pi) }))} style={{ position: "absolute", top: 2, right: 2, background: "rgba(0,0,0,0.6)", border: "none", borderRadius: "50%", width: 18, height: 18, color: "#fff", fontSize: 10, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><X size={10} /></button>
-                      </div>
-                    ))}
-                    <label style={{ width: 60, height: 60, borderRadius: 8, border: "2px dashed var(--border)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "var(--text-muted)", fontSize: 10, gap: 2 }}>
-                      <Camera size={16} />
-                      <span>Add</span>
-                      <input type="file" accept="image/*" multiple style={{ display: "none" }} onChange={e => {
-                        Array.from(e.target.files).forEach(file => {
-                          const reader = new FileReader();
-                          reader.onload = ev => setRehabForm(f => ({ ...f, photos: [...(f.photos || []), ev.target.result] }));
-                          reader.readAsDataURL(file);
-                        });
-                      }} />
-                    </label>
-                  </div>
-                  <p style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4 }}>Before/after photos for this scope of work</p>
-                </div>
               </div>
               <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 22 }}>
                 <button onClick={() => { setShowAddRehab(false); setRehabForm(emptyRehab); setEditingRehabIdx(null); }} style={{ padding: "10px 20px", borderRadius: 10, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text-secondary)", fontWeight: 600, fontSize: 14, cursor: "pointer" }}>Cancel</button>
-                <button onClick={() => {
+                <button onClick={async () => {
                   if (!rehabForm.category || !rehabForm.budgeted) return;
                   const photos = rehabForm.photos || [];
                   // Infer canonical slug if user typed a label that matches one exactly
                   const canon = rehabForm.canonicalCategory || getCanonicalByLabel(rehabForm.category)?.slug || null;
-                  if (editingRehabIdx !== null) {
-                    setRehabItems(prev => prev.map((item, idx) => idx === editingRehabIdx ? { ...item, category: rehabForm.category, canonicalCategory: canon, budgeted: parseFloat(rehabForm.budgeted) || 0, spent: parseFloat(rehabForm.spent) || 0, status: rehabForm.status, photos } : item));
-                    if (deal.rehabItems && deal.rehabItems[editingRehabIdx]) {
-                      deal.rehabItems[editingRehabIdx] = { ...deal.rehabItems[editingRehabIdx], category: rehabForm.category, canonicalCategory: canon, budgeted: parseFloat(rehabForm.budgeted) || 0, spent: parseFloat(rehabForm.spent) || 0, status: rehabForm.status, photos };
+                  const fields = {
+                    category: rehabForm.category,
+                    slug: canon,
+                    budgeted: parseFloat(rehabForm.budgeted) || 0,
+                    spent: parseFloat(rehabForm.spent) || 0,
+                    status: rehabForm.status,
+                  };
+                  try {
+                    if (editingRehabIdx !== null) {
+                      const existing = rehabItems[editingRehabIdx];
+                      let saved = existing;
+                      if (existing?.id) saved = await dbUpdateRehabItem(existing.id, fields);
+                      const merged = { ...existing, ...saved, canonicalCategory: canon, photos, contractors: existing?.contractors || [] };
+                      setRehabItems(prev => prev.map((item, idx) => idx === editingRehabIdx ? merged : item));
+                      if (deal.rehabItems && deal.rehabItems[editingRehabIdx]) deal.rehabItems[editingRehabIdx] = merged;
+                      setEditingRehabIdx(null);
+                    } else {
+                      const sortOrder = rehabItems.length;
+                      const saved = await dbCreateRehabItem({ dealId: deal.id, ...fields, sortOrder });
+                      const newItem = { ...saved, canonicalCategory: canon, contractors: [], photos };
+                      setRehabItems(prev => [...prev, newItem]);
+                      if (deal.rehabItems) deal.rehabItems.push(newItem); else deal.rehabItems = [newItem];
                     }
-                    setEditingRehabIdx(null);
-                  } else {
-                    const newItem = { category: rehabForm.category, canonicalCategory: canon, budgeted: parseFloat(rehabForm.budgeted) || 0, spent: parseFloat(rehabForm.spent) || 0, status: rehabForm.status, contractors: [], photos };
-                    setRehabItems(prev => [...prev, newItem]);
-                    if (deal.rehabItems) deal.rehabItems.push(newItem); else deal.rehabItems = [newItem];
+                    setRehabForm(emptyRehab);
+                    setShowAddRehab(false);
+                  } catch (e) {
+                    console.error("[PropBooks] Save rehab item failed:", e);
+                    showToast("Couldn't save rehab item — " + (e.message || "unknown error"));
                   }
-                  setRehabForm(emptyRehab);
-                  setShowAddRehab(false);
                 }} style={{ padding: "10px 24px", borderRadius: 10, border: "none", background: "#e95e00", color: "#fff", fontWeight: 600, fontSize: 14, cursor: "pointer", opacity: (!rehabForm.category || !rehabForm.budgeted) ? 0.5 : 1 }}>{editingRehabIdx !== null ? "Save Changes" : "Add Item"}</button>
               </div>
             </div>
@@ -1694,7 +1759,7 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
             </div>
             <div style={{ display: "flex", gap: 8 }}>
               {milestones.some(m => !m.targetDate && !m.done) && (
-                <button onClick={() => {
+                <button onClick={async () => {
                   // Auto-fill target dates: spread remaining milestones evenly from today to projected close or +90 days
                   const endDate = deal.projectedCloseDate || deal.closeDate;
                   const end = endDate ? new Date(endDate) : new Date(Date.now() + 90 * 86400000);
@@ -1703,11 +1768,24 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
                   const start = new Date();
                   const interval = (end - start) / (pending.length + 1);
                   const updated = [...milestones];
+                  const writes = [];
                   pending.forEach(({ i }, idx) => {
                     const d = new Date(start.getTime() + interval * (idx + 1));
-                    updated[i] = { ...updated[i], targetDate: d.toISOString().split("T")[0] };
+                    const targetDate = d.toISOString().split("T")[0];
+                    updated[i] = { ...updated[i], targetDate };
+                    if (updated[i].id) writes.push(dbUpdateMilestone(updated[i].id, { targetDate }));
                   });
-                  setMilestones(updated);
+                  try {
+                    await Promise.all(writes);
+                    setMilestones(updated);
+                    updated.forEach(m => {
+                      const gi = DEAL_MILESTONES.findIndex(x => x.id === m.id);
+                      if (gi !== -1) DEAL_MILESTONES[gi] = { ...DEAL_MILESTONES[gi], targetDate: m.targetDate };
+                    });
+                  } catch (e) {
+                    console.error("[PropBooks] Auto-fill dates failed:", e);
+                    showToast("Couldn't auto-fill dates — " + (e.message || "unknown error"));
+                  }
                 }} style={{ background: "var(--info-tint)", color: "var(--c-blue)", border: "1px solid var(--info-border)", borderRadius: 10, padding: "10px 16px", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
                   <Calendar size={15} /> Auto-Fill Dates
                 </button>
@@ -1742,12 +1820,41 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
                       <span style={{ fontSize: 13, fontWeight: 500, color: "var(--text-primary)", flex: 1 }}>{m.label}</span>
                       <span style={{ fontSize: 11, color: "var(--text-secondary)" }}>Completed:</span>
                       <input type="date" value={msCompletionDate} onChange={e => setMsCompletionDate(e.target.value)} style={{ ...iS, width: 140, padding: "5px 10px", fontSize: 12 }} />
-                      <button onClick={() => { const updated = milestones.map((item, idx) => idx === i ? { ...item, done: true, date: msCompletionDate } : item); setMilestones(updated); setCompletingMsIdx(null); }} style={{ background: "var(--c-green)", color: "#fff", border: "none", borderRadius: 6, padding: "5px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>Confirm</button>
+                      <button onClick={async () => {
+                        const target = milestones[i];
+                        try {
+                          if (target?.id) await dbUpdateMilestone(target.id, { done: true, date: msCompletionDate });
+                          const updated = milestones.map((item, idx) => idx === i ? { ...item, done: true, date: msCompletionDate } : item);
+                          setMilestones(updated);
+                          const gi = DEAL_MILESTONES.findIndex(m => m.id === target?.id);
+                          if (gi !== -1) DEAL_MILESTONES[gi] = { ...DEAL_MILESTONES[gi], done: true, date: msCompletionDate };
+                          setCompletingMsIdx(null);
+                        } catch (e) {
+                          console.error("[PropBooks] Complete milestone failed:", e);
+                          showToast("Couldn't update milestone — " + (e.message || "unknown error"));
+                        }
+                      }} style={{ background: "var(--c-green)", color: "#fff", border: "none", borderRadius: 6, padding: "5px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>Confirm</button>
                       <button onClick={() => setCompletingMsIdx(null)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)", padding: 0 }}><X size={14} /></button>
                     </div>
                   ) : (
                     <div key={i} onMouseEnter={e => { e.currentTarget.style.background = m.done ? "var(--success-tint)" : overdue ? "var(--danger-tint)" : "var(--surface-muted)"; }} onMouseLeave={e => { e.currentTarget.style.background = m.done ? "var(--success-tint)" : overdue ? "var(--danger-tint)" : "var(--surface-alt)"; }} style={{ display: "flex", alignItems: "center", gap: 12, padding: "8px 10px", borderRadius: 8, background: m.done ? "var(--success-tint)" : overdue ? "var(--danger-tint)" : "var(--surface-alt)", border: `1px solid ${m.done ? "var(--success-border)" : overdue ? "var(--danger-border)" : "var(--border-subtle)"}`, transition: "all 0.15s ease" }}>
-                      <button onClick={() => m.done ? (() => { const updated = milestones.map((item, idx) => idx === i ? { ...item, done: false, date: null } : item); setMilestones(updated); })() : (() => { setCompletingMsIdx(i); setMsCompletionDate(today); })()} style={{ background: "none", border: "none", cursor: "pointer", padding: 0, display: "flex", flexShrink: 0 }}>
+                      <button onClick={async () => {
+                        if (!m.done) {
+                          setCompletingMsIdx(i);
+                          setMsCompletionDate(today);
+                          return;
+                        }
+                        try {
+                          if (m.id) await dbUpdateMilestone(m.id, { done: false, date: null });
+                          const updated = milestones.map((item, idx) => idx === i ? { ...item, done: false, date: null } : item);
+                          setMilestones(updated);
+                          const gi = DEAL_MILESTONES.findIndex(x => x.id === m.id);
+                          if (gi !== -1) DEAL_MILESTONES[gi] = { ...DEAL_MILESTONES[gi], done: false, date: null };
+                        } catch (e) {
+                          console.error("[PropBooks] Uncomplete milestone failed:", e);
+                          showToast("Couldn't update milestone — " + (e.message || "unknown error"));
+                        }
+                      }} style={{ background: "none", border: "none", cursor: "pointer", padding: 0, display: "flex", flexShrink: 0 }}>
                         {m.done ? <CheckCircle size={18} color="var(--c-green)" /> : <Circle size={18} color={overdue ? "var(--c-red)" : "#cbd5e1"} />}
                       </button>
                       <span style={{ flex: 1, fontSize: 13, fontWeight: 500, color: m.done ? "var(--text-secondary)" : "var(--text-primary)", textDecoration: m.done ? "line-through" : "none" }}>{m.label}</span>
@@ -2241,12 +2348,38 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
           <p style={{ color: "var(--text-muted)", fontSize: 12, marginBottom: 18 }}>This action cannot be undone.</p>
           <div style={{ display: "flex", gap: 10 }}>
             <button onClick={() => setDeleteConfirm(null)} style={{ flex: 1, padding: "12px", border: "1px solid var(--border)", borderRadius: 10, background: "var(--surface)", color: "var(--text-label)", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
-            <button onClick={() => {
-              if (deleteConfirm.type === "expense") setExpData(prev => prev.filter(x => x.id !== deleteConfirm.item.id));
-              if (deleteConfirm.type === "contractor") setConData(prev => prev.filter(x => x.id !== deleteConfirm.item.id));
-              if (deleteConfirm.type === "rehab") setRehabItems(prev => prev.filter((_, idx) => idx !== deleteConfirm.index));
-              if (deleteConfirm.type === "milestone") setMilestones(prev => prev.filter((_, idx) => idx !== deleteConfirm.index));
-              setDeleteConfirm(null);
+            <button onClick={async () => {
+              try {
+                if (deleteConfirm.type === "expense") {
+                  await dbDeleteDealExpense(deleteConfirm.item.id);
+                  setExpData(prev => prev.filter(x => x.id !== deleteConfirm.item.id));
+                  const gi = DEAL_EXPENSES.findIndex(e => e.id === deleteConfirm.item.id);
+                  if (gi !== -1) DEAL_EXPENSES.splice(gi, 1);
+                }
+                if (deleteConfirm.type === "contractor") {
+                  await dbDeleteContractor(deleteConfirm.item.id);
+                  setConData(prev => prev.filter(x => x.id !== deleteConfirm.item.id));
+                  const gi = CONTRACTORS.findIndex(c => c.id === deleteConfirm.item.id);
+                  if (gi !== -1) CONTRACTORS.splice(gi, 1);
+                }
+                if (deleteConfirm.type === "rehab") {
+                  const target = rehabItems[deleteConfirm.index];
+                  if (target?.id) await dbDeleteRehabItem(target.id);
+                  setRehabItems(prev => prev.filter((_, idx) => idx !== deleteConfirm.index));
+                  if (deal.rehabItems) deal.rehabItems = deal.rehabItems.filter((_, idx) => idx !== deleteConfirm.index);
+                }
+                if (deleteConfirm.type === "milestone") {
+                  const target = milestones[deleteConfirm.index];
+                  if (target?.id) await dbDeleteMilestone(target.id);
+                  setMilestones(prev => prev.filter((_, idx) => idx !== deleteConfirm.index));
+                  const gi = DEAL_MILESTONES.findIndex(m => m.id === target?.id);
+                  if (gi !== -1) DEAL_MILESTONES.splice(gi, 1);
+                }
+                setDeleteConfirm(null);
+              } catch (e) {
+                console.error("[PropBooks] Delete failed:", e);
+                showToast("Couldn't delete — " + (e.message || "unknown error"));
+              }
             }} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "var(--c-red)", color: "#fff", fontWeight: 700, cursor: "pointer" }}>Delete</button>
           </div>
         </Modal>

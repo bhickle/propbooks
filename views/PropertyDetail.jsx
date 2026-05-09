@@ -170,7 +170,7 @@ export function PropertyDetail({ property, onBack, backLabel, onEditProperty, on
       txForceRender(n => n + 1);
     } catch (e) {
       console.error("[PropBooks] Save transaction failed:", e);
-      alert("Couldn't save transaction — " + (e.message || "unknown error"));
+      showToast("Couldn't save transaction — " + (e.message || "unknown error"));
     }
   };
 
@@ -183,7 +183,7 @@ export function PropertyDetail({ property, onBack, backLabel, onEditProperty, on
       txForceRender(n => n + 1);
     } catch (e) {
       console.error("[PropBooks] Delete transaction failed:", e);
-      alert("Couldn't delete — " + (e.message || "unknown error"));
+      showToast("Couldn't delete — " + (e.message || "unknown error"));
     }
   };
 

@@ -159,6 +159,9 @@ export function AppShell() {
   const [selectedDeal, setSelectedDeal] = useState(null);
   const [showSettings, setShowSettings] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(user?.plan === "trial");
+  const [hydrating, setHydrating] = useState(true);
+  const [showSignOutConfirm, setShowSignOutConfirm] = useState(false);
+  const { showToast } = useToast();
   // Ledger highlight key: "tx-<id>" or "dx-<id>" — used when routing in from
   // Dashboard / PortfolioDashboard / global search now that the legacy
   // Transactions and DealExpenses screens are gone.
@@ -203,6 +206,7 @@ export function AppShell() {
   useEffect(() => {
     if (!user?.id) return;
     let cancelled = false;
+    setHydrating(true);
     (async () => {
       try {
         const [props, txs, tns, dls, rehab, mls, cons, bids, pays, dexps, notes, trips, maint, docs] = await Promise.all([
@@ -258,12 +262,17 @@ export function AppShell() {
         CONTRACTOR_DOCUMENTS.length = 0;
         CONTRACTOR_DOCUMENTS.push(...docs.contractorDocs);
         setPropsVersion(v => v + 1);
+        setHydrating(false);
       } catch (e) {
         console.error("[PropBooks] Failed to load Supabase data:", e);
+        if (!cancelled) {
+          setHydrating(false);
+          showToast("Couldn't load your data — " + (e.message || "check your connection and refresh"));
+        }
       }
     })();
     return () => { cancelled = true; };
-  }, [user?.id]);
+  }, [user?.id]); // eslint-disable-line react-hooks/exhaustive-deps -- showToast is stable from provider
 
   // Auto-show welcome screen when app is empty
   useEffect(() => {
@@ -461,7 +470,7 @@ export function AppShell() {
               <p style={{ color: "var(--text-secondary)", fontSize: 11, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user?.email || ""}</p>
             </div>
             <SettingsIcon size={16} color="#475569" style={{ cursor: "pointer", flexShrink: 0 }} onClick={() => setShowSettings(true)} />
-            <LogOut size={15} color="#475569" style={{ cursor: "pointer", flexShrink: 0 }} title="Sign out" onClick={() => { if (window.confirm("Sign out of PROPBOOKS?")) signOut(); }} />
+            <LogOut size={15} color="#475569" style={{ cursor: "pointer", flexShrink: 0 }} title="Sign out" onClick={() => setShowSignOutConfirm(true)} />
           </div>
         </div>
       </div>
@@ -512,7 +521,7 @@ export function AppShell() {
                 const today = new Date();
                 const notifications = [];
                 // Expiring leases (within 60 days)
-                TENANTS.filter(t => t.status === "active" && t.leaseEnd).forEach(t => {
+                TENANTS.filter(t => (t.status === "active-lease" || t.status === "month-to-month") && t.leaseEnd).forEach(t => {
                   const daysLeft = Math.round((new Date(t.leaseEnd) - today) / 86400000);
                   if (daysLeft <= 60 && daysLeft >= 0) {
                     const prop = PROPERTIES.find(p => p.id === t.propertyId);
@@ -527,18 +536,17 @@ export function AppShell() {
                   }
                 });
                 // Overdue milestones
-                DEALS.forEach(deal => {
-                  if (!deal.milestones) return;
-                  deal.milestones.forEach(ms => {
-                    if (!ms.completed && ms.dueDate) {
-                      const overdueDays = Math.round((today - new Date(ms.dueDate)) / 86400000);
-                      if (overdueDays > 0) notifications.push({ id: "ms-" + deal.id + "-" + ms.id, type: "danger", icon: "flag", title: "Overdue milestone", body: `${ms.title} — ${deal.name} (${overdueDays}d overdue)`, action: () => { handleDealSelect(deal, "milestones", "notifications"); setShowNotifications(false); } });
-                    }
-                  });
+                DEAL_MILESTONES.forEach(ms => {
+                  if (ms.done || !ms.targetDate) return;
+                  const overdueDays = Math.round((today - new Date(ms.targetDate)) / 86400000);
+                  if (overdueDays <= 0) return;
+                  const deal = DEALS.find(d => d.id === ms.dealId);
+                  if (!deal) return;
+                  notifications.push({ id: "ms-" + deal.id + "-" + ms.id, type: "danger", icon: "flag", title: "Overdue milestone", body: `${ms.label} — ${deal.name} (${overdueDays}d overdue)`, action: () => { handleDealSelect(deal, "milestones", "notifications"); setShowNotifications(false); } });
                 });
                 // Vacant units
                 PROPERTIES.forEach(p => {
-                  const occupied = TENANTS.filter(t => t.propertyId === p.id && t.status === "active").length;
+                  const occupied = TENANTS.filter(t => t.propertyId === p.id && (t.status === "active-lease" || t.status === "month-to-month")).length;
                   const vacant = p.units - occupied;
                   if (vacant > 0) notifications.push({ id: "vacant-" + p.id, type: "info", icon: "home", title: "Vacant unit", body: `${p.name} — ${vacant} unit${vacant > 1 ? "s" : ""} vacant`, action: () => { handlePropertySelect(p); setShowNotifications(false); } });
                 });
@@ -597,7 +605,14 @@ export function AppShell() {
             <div onClick={() => setShowSettings(true)} style={{ width: 34, height: 34, borderRadius: 10, background: "linear-gradient(135deg, #e95e00, #041830)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>{user?.initials || "?"}</div>
           </div>
         </div>
-        <div style={{ flex: 1, padding: 32, maxWidth: 1400, width: "100%" }}>
+        <div style={{ flex: 1, padding: 32, maxWidth: 1400, width: "100%", position: "relative" }}>
+          {hydrating && (
+            <div style={{ position: "absolute", inset: 0, background: "var(--app-bg, rgba(255,255,255,0.85))", backdropFilter: "blur(2px)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", zIndex: 50, gap: 12 }}>
+              <div style={{ width: 32, height: 32, border: "3px solid var(--border)", borderTopColor: "#e95e00", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
+              <p style={{ fontSize: 13, color: "var(--text-secondary)", fontWeight: 500 }}>Loading your portfolio…</p>
+              <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+            </div>
+          )}
           {(activeView === "dashboard" || activeView === "portfolio" || activeView === "dealdashboard") && (
             <UnifiedDashboard
               portfolioProps={{
@@ -724,6 +739,17 @@ export function AppShell() {
 
       {/* Onboarding Wizard (new users only) */}
       {showOnboarding && <OnboardingWizard onComplete={() => setShowOnboarding(false)} />}
+
+      {/* Sign-out confirmation */}
+      {showSignOutConfirm && (
+        <Modal title="Sign out?" onClose={() => setShowSignOutConfirm(false)} width={400}>
+          <p style={{ fontSize: 14, color: "var(--text-secondary)", marginBottom: 20 }}>You'll need to sign in again to get back to your portfolio.</p>
+          <div style={{ display: "flex", gap: 10 }}>
+            <button onClick={() => setShowSignOutConfirm(false)} style={{ flex: 1, padding: "12px", border: "1px solid var(--border)", borderRadius: 10, background: "var(--surface)", color: "var(--text-label)", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
+            <button onClick={() => { setShowSignOutConfirm(false); signOut(); }} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "#e95e00", color: "#fff", fontWeight: 700, cursor: "pointer" }}>Sign out</button>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }

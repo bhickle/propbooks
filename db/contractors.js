@@ -76,7 +76,11 @@ export async function updateContractor(id, updates) {
     .select()
     .single();
   if (error) throw error;
-  return fromRow(data);
+  const { data: links } = await supabase
+    .from("contractor_deals")
+    .select("deal_id")
+    .eq("contractor_id", id);
+  return fromRow(data, (links || []).map(l => l.deal_id));
 }
 
 export async function deleteContractor(id) {
