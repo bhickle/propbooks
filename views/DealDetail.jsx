@@ -28,6 +28,7 @@ import { InfoTip, Modal, StatCard, iS } from "../shared.jsx";
 import { useToast } from "../toast.jsx";
 import { daysAgo } from "../health.js";
 import { DocumentsPanel } from "./Attachments.jsx";
+import { ExpDetailPanel } from "./detailPanels.jsx";
 import { StageBadge, RehabProgress } from "./DealPipeline.jsx";
 import {
   createDeal as dbCreateDeal,
