@@ -7,21 +7,27 @@ Must look and feel like a polished, professional product — not a side project.
 
 ## Project Overview
 
-**Product:** PropBooks — an all-in-one portfolio management tool for real estate investors.
-**Stack:** React (Vite), Supabase (auth), Vercel (hosting), all in a single-page app.
+**Product:** PropBooks — an all-in-one portfolio management tool for real estate investors. The app unifies two asset types — long-term **Rentals** and short-term **Rehabs** (fix-and-flip projects) — under a single asset list, ledger, and dashboard.
+**Stack:** React (Vite), Supabase (auth + Postgres + Storage), Vercel (hosting), all in a single-page app.
 **Live URL:** https://real-vault.vercel.app (custom domain pending)
 **Supabase project ID:** `iiwmkazfocszxdbtxlct`
 
 ### Key files
 | File | Purpose |
 |------|---------|
-| `App.jsx` | Main app shell, all rental module views, layout, navigation |
-| `api.js` | In-memory data layer (mock data + CRUD functions). Replace with Supabase queries later. |
+| `App.jsx` | ~60-line root: ThemeProvider / ToastProvider / AuthProvider stack + AuthGate + ConfigErrorScreen. The actual shell is in `views/AppShell.jsx`. |
+| `views/AppShell.jsx` | Sidebar + topbar + activeView routing. Hydrates the in-memory mirror arrays from Supabase on user-id change. Owns notifications, settings host, sign-out modal. |
+| `views/*.jsx` | Per-screen components: AssetList, Ledger, PortfolioDashboard, Dashboard (rentals), DealDashboard, PropertyDetail, DealDetail, RehabItemDetail, TenantManagement, TenantDetail, MileageTracker, DealAnalyzer, GlobalSearch, UnifiedDashboard / UnifiedAnalytics / UnifiedReports / UnifiedNotes, RentalWizard, FlipWizard, WelcomeScreen, Attachments (DocumentsPanel), MentionTextarea, detailPanels. |
+| `db/*.js` | Supabase wrapper per table — `properties`, `transactions`, `tenants`, `deals`, `dealMilestones`, `dealRehabItems`, `dealExpenses`, `contractors`, `contractorBids`, `contractorPayments`, `notes`, `mileageTrips`, `maintenanceRequests`, `documents`. Each does snake↔camel mapping and is RLS-scoped. |
+| `api.js` | In-memory mirror constants (`DEALS`, `CONTRACTORS`, `RENTAL_NOTES`, etc.) + demo-data snapshot/restore + small helpers (`fmt`, `newId`, REHAB_CATEGORIES, STAGE_ORDER, DEFAULT_MILESTONES). |
+| `mockData.js` | Demo seed data for `PROPERTIES`, `TRANSACTIONS`, `TENANTS`, `MILEAGE_TRIPS` (the rental-side mirrors). |
 | `auth.jsx` | Auth UI (login, signup, reset) + AuthProvider context |
-| `deals.jsx` | Entire flip/deal module: DealDashboard, RehabTracker, DealExpenses, Contractors, etc. |
-| `dealReports.jsx` | Deal-level PDF-style reports |
-| `settings.jsx` | Settings page + OnboardingWizard |
-| `supabase.js` | Supabase client init (reads VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY from .env) |
+| `deals.jsx` | Remaining flip-side screens not yet moved into `views/`: DealDashboard, DealContractors, ContractorDetail, DealAnalytics, DealMilestones. |
+| `dealReports.jsx` | Rehab-side report tabs (consumed by `views/UnifiedReports.jsx`). |
+| `settings.jsx` | Settings page + OnboardingWizard. |
+| `supabase.js` | Supabase client init (reads `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` from `.env`) |
+| `alerts.jsx` | Cross-portfolio alerts engine + QuickPayInline rent-mark-paid form. |
+| `shared.jsx` | Atoms used everywhere: `Modal`, `StatCard`, `EmptyState`, `InfoTip`, `Badge`, `iS`, `sectionS`, `cardS`, `downloadFile`. |
 
 ### Env vars needed (create a `.env` file in the project root)
 ```
@@ -34,93 +40,96 @@ VITE_SUPABASE_ANON_KEY=<your anon key from Supabase dashboard>
 ## Current State (as of May 2026)
 
 ### What's fully built
-- **Portfolio dashboard** — stat cards, cash flow chart, equity growth, expense breakdown
-- **Properties** — add/edit/delete, detail view with financials, documents, stale-value warnings
-- **Transactions** — income/expense ledger, receipts, OCR stub, categorization
-- **Tenants** — lease tracking, status badges, documents, maintenance requests
-- **Deals (Flips)** — deal dashboard, rehab tracker, deal expenses, deal analytics, milestones, notes
-- **Contractors** — contractor list, detail view, bids, payments, documents, ratings
-- **Mileage tracker** — trip log with IRS rate calculation
-- **Tax tools** — depreciation calculator, tax estimator
-- **Notes** — rental notes, deal notes, general notes
-- **Reports** — deal-level reports (dealReports.jsx)
-- **Auth** — Supabase login/signup/reset with real logo, Space Grotesk headings, Inter body
-- **Dark mode** — full theme toggle
-- **Global search** — across properties, tenants, deals, contractors, transactions, notes
+- **Unified Asset list** — single sortable/filterable list with Rental and Rehab type chips. Replaces the old separate Properties + Deal Pipeline pages.
+- **Unified Ledger** — single income/expense table with kind chips (Rental Income / Rental Expense / Rehab Expense). Paid To / Received From has a typeahead that pulls contractors, tenants, and previous payees. Replaces the old per-screen Transactions and DealExpenses pages.
+- **Unified Dashboard / Analytics / Reports** — top-level entries that tab between Rentals and Rehabs. The Portfolio Dashboard is a separate cross-asset overview.
+- **Properties** — detail view with financials, documents, notes, transactions, tenants, sale flow, delete-with-cascade.
+- **Tenants** — lease tracking, status badges (`active-lease` / `month-to-month` / `vacant` / `past`), documents, maintenance requests.
+- **Rehabs (formerly Deals/Flips, internally still `deal_*`)** — DealDetail screen with tabs for Overview, Milestones, Rehab line items (with contractor assignment), Contractors, Expenses, Documents, Notes. RehabItemDetail drill-down. Close-rehab flow (sold + convert-to-rental). Clone Rehab.
+- **Contractors** — list, detail view, bids, payments, documents, ratings. Quick Bid + auto-link from Paid To typeahead.
+- **Mileage tracker** — trip log with IRS rate calculation, linked Property/Rehab dropdown.
+- **Tax tools** — depreciation calculator, tax estimator.
+- **Notes** — one UnifiedNotes hub with rental / rehab / general categories + @mentions.
+- **Auth** — Supabase login/signup/reset with logo, Space Grotesk headings, Inter body.
+- **Dark mode** — full theme toggle.
+- **Global search** — across properties, tenants, rehabs, contractors, transactions, notes.
 
 ### Demo account
 - Email: `demo@propbooks.com` / Password: `PropBooks2024!`
-- Shows full mock portfolio (5 properties, 4 deals, 6 contractors, tenants, transactions, etc.)
-- New accounts start completely empty
+- Shows full mock portfolio (5 properties, 4 rehabs, 6 contractors, tenants, transactions, etc.)
+- New accounts start completely empty (`clearDemoData()` runs for non-demo users; Supabase hydration replaces the contents).
 
 ### Data layer status
-**All data is currently in-memory mock data** (see `api.js` and local arrays in `App.jsx`).
-Nothing persists to Supabase yet — Supabase is auth-only.
-The `api.js` functions are designed as a swap layer: each returns a Promise so replacing
-with `supabase.from('table').select()` calls requires zero component changes.
+**Everything persists to Supabase.** `db/*.js` wrappers are the single source of truth; the in-memory `DEALS`, `CONTRACTORS`, `RENTAL_NOTES` etc. arrays are synchronous mirrors that AppShell hydrates on user-id change. Mutations in components write through both — DB call first, then update the local mirror with the saved row's id.
+
+**Storage**: the `documents` bucket holds property/tenant/rehab/contractor uploads. Bucket is private; reads use 1-hour signed URLs (`db/documents.js#getDocumentUrl`). Size limit 25 MB; allowed MIME types are `image/*` and `application/pdf`.
+
+**RLS**: every table has RLS enabled with an `auth.uid() = user_id` policy and `WITH CHECK`. Inserts in `db/*.js` set `user_id` from `supabase.auth.getUser()` (server-side JWT, not client input).
 
 ---
 
 ## What Still Needs to Be Built
 
 ### Priority 1 — Pre-launch blockers
-- [ ] **Supabase persistence** — wire all CRUD functions in `api.js` to real DB tables.
-  Tables needed: `properties`, `transactions`, `tenants`, `deals`, `deal_expenses`,
-  `contractors`, `contractor_bids`, `contractor_payments`, `deal_milestones`,
-  `rental_notes`, `deal_notes`, `general_notes`, `mileage_trips`, `maintenance_requests`,
-  `property_documents`, `deal_documents`, `tenant_documents`
-- [ ] **Email confirmation + custom SMTP** — currently Supabase sends a broken confirmation
-  email. Fix: set Site URL + Redirect URLs in Supabase Auth settings to the Vercel domain,
-  enable "Confirm email", set up custom SMTP via Resend or SendGrid
-- [ ] **Stripe billing** — $25–$50/mo subscription. Gate features behind plan check.
-  Wire into the `user.plan` field already threaded through the app.
+- [ ] **Email confirmation + custom SMTP** — Supabase's default confirmation email is unbranded and rate-limited. Set Site URL + Redirect URLs to the Vercel domain, enable "Confirm email" in Supabase Auth, and wire custom SMTP via Resend or SendGrid. The `/reset-password` route also needs a handler in `App.jsx` (currently lands users in the shell with no UI to set a new password).
+- [ ] **Stripe billing** — $25–$50/mo subscription. Add a `plan` column to `profiles`, populate via Stripe webhook, gate features by reading `plan` server-side. The current `auth.jsx` hardcodes every user as `plan: "pro"` — must be removed before launch.
+- [ ] **Onboarding auto-trigger** — `OnboardingWizard` exists in `settings.jsx` but is gated on `user.plan === "trial"`, which never matches because every user is hardcoded to `"pro"`. Switch to a `has_onboarded` flag in user metadata and trigger on first signup.
 
 ### Priority 2 — Feature gaps
-- [ ] **File storage** — documents (leases, contracts, receipts) are stub records with `url: null`.
-  Wire to Supabase Storage so users can actually upload files.
-- [ ] **Custom domain** — real-vault.vercel.app needs a proper domain (propbooks.com or similar).
-  Check domain availability, purchase, point to Vercel.
-- [ ] **Mobile responsiveness** — app is desktop-only right now. Needs responsive breakpoints
-  for at least tablet use.
-- [ ] **Onboarding flow** — OnboardingWizard exists in settings.jsx but isn't auto-triggered
-  for new users in a useful way.
+- [ ] **Receipts + AI OCR** — receipt attachment UI on tx/expense forms is currently disabled. The plan is to bring it back as a single coherent feature: Storage upload + AI OCR auto-fill. The `mockOcrScan()` stub was removed in Phase 1.
+- [ ] **Custom domain** — `real-vault.vercel.app` needs a real domain (propbooks.com or similar). Check availability, purchase, point to Vercel.
+- [ ] **Mobile responsiveness** — desktop-only today. Fixed `repeat(N, 1fr)` grids will collapse below ~900px.
+- [ ] **Property value lookup** — Rentcast or Zillow integration for live ARV / estimated value.
 
 ### Priority 3 — Polish
-- [ ] **Real OCR** — `mockOcrScan()` in api.js is a stub. Integrate a real OCR service
-  (Google Vision, AWS Textract, or similar) for receipt scanning.
-- [ ] **Property value lookup** — `lookupPropertyByAddress()` in api.js is a stub.
-  Wire to Rentcast or Zillow API for live value estimates.
-- [ ] **Export to CSV/PDF** — users need to export transaction history and reports.
+- [ ] **Lazy-load Reports / Analytics / DealAnalyzer** — `React.lazy()` + `Suspense`. Should drop initial bundle by ~25-30%.
+- [ ] **`manualChunks`** for `recharts` and `lucide-react` in `vite.config.js` — better caching, parallel downloads.
+- [ ] **Hardcoded color tokens** — `#cbd5e1` and `#1e3a5f` appear in ~12 files and break dark mode. Replace with `var(--text-muted)` / `var(--avatar-bg)` etc.
+- [ ] **Empty state standardization** — use `<EmptyState>` from shared.jsx everywhere; some detail screens still hand-roll the icon-title-subtitle block.
+- [ ] **Compress active logo** — `logos/PropBooks Horizontal Logo_transparent_white.png` is 1.1 MB and dominates first paint. Compress to <50 KB or convert to SVG.
+- [ ] **Component extraction** — typeahead duplicated in DealDetail / Ledger / PropertyDetail; ConfirmDeleteModal duplicated everywhere; pill-tab bar duplicated; FilterBar duplicated. Consolidating into `shared.jsx` would simplify support.
+
+### Known shape gotchas
+- Rehab item `contractors[]` is **not** a real DB column. AppShell hydration derives it from `contractor_bids` rows whose `rehab_item` matches `r.category`. Adding/removing a contractor on a rehab item creates/deletes a bid row.
+- Rehab item `canonicalCategory` is the same field as `slug` in the DB. AppShell hydration mirrors `r.slug` back as `canonicalCategory` so linked-expense matching keeps working.
+- Internal identifiers stay `dealId` / `DEALS` / `db/deals.js` everywhere — only **user-facing** strings say "Rehab" (the rename pass kept internal code stable).
+- The `purpose` field on mileage trips uses `"Deal"` as the stored enum value but the UI displays `"Rehab"`. Filtering still uses the raw value.
 
 ---
 
 ## Core Development Principles
 
 ### 1. Consistency Is Non-Negotiable
-- Rental and Flip modules use identical UI patterns: same card styles, filter placement,
-  dropdown behavior, header hierarchy, spacing, and terminology
-- Before building anything new, check how the other module handles it and match exactly
-- When updating a pattern on one screen, audit ALL screens for the same pattern
+- Rental and Rehab modules use identical UI patterns: same card styles, filter placement,
+  dropdown behavior, header hierarchy, spacing, and terminology.
+- Before building anything new, check how the other module handles it and match exactly.
+- When updating a pattern on one screen, audit ALL screens for the same pattern.
 
 ### 2. Every Field Must Be Editable
-- If data is displayed, the user needs to edit it
-- Properties, tenants, deals, contractors, transactions, expenses — all editable
+- If data is displayed, the user needs to edit it.
+- Properties, tenants, rehabs, contractors, transactions, expenses — all editable.
 
 ### 3. InfoTips on Every KPI / Metric
 - Every stat card, scorecard metric, and calculated value needs a hover tooltip
-  explaining the formula in plain language
-- Use the `InfoTip` component consistently (defined in App.jsx, also used in deals.jsx)
+  explaining the formula in plain language.
+- Use the `InfoTip` component from `shared.jsx` consistently.
 
 ### 4. Smart Defaults, Never Wrong Defaults
-- Pre-populate fields with sensible values (e.g., today's date)
-- Provide grouped typeaheads showing previous values (contractors, vendors, categories)
-- Show stale data warnings when values haven't been updated in 90+ days
+- Pre-populate fields with sensible values (e.g., today's date).
+- Provide grouped typeaheads showing previous values (contractors, vendors, categories).
+- Show stale data warnings when values haven't been updated in 90+ days.
 
 ### 5. Forms Must Behave Professionally
-- Close after successful save
-- Destructive actions (delete) always require a confirmation dialog
-- Field ordering: most important fields first, related fields grouped
-- Income forms don't show "Payee"; expense forms don't show "Received From"
+- Close after successful save.
+- Destructive actions (delete) always require a confirmation dialog.
+- Field ordering: most important fields first, related fields grouped.
+- Income forms don't show "Payee"; expense forms don't show "Received From".
+- Async saves disable the submit button until they resolve.
+
+### 6. Persistence Is Non-Negotiable
+- Every CRUD action goes through `db/*.js`. The local mirror gets the saved row, never a fake `newId()`-generated one.
+- Failures surface a toast — never swallowed `console.error`.
+- After delete, cascade child rows in memory (DB FKs cascade server-side, but the UI shouldn't show stale references until next reload).
 
 ---
 
@@ -128,31 +137,28 @@ with `supabase.from('table').select()` calls requires zero component changes.
 
 Before submitting any screen change, verify:
 
-- [ ] Header: `<h1>` (fontSize 26, fontWeight 700) + `<p>` subtitle (fontSize 15, color #64748b)
-- [ ] Section cards: `sectionS` style (borderRadius 16, padding 24, boxShadow, border #f1f5f9)
-- [ ] Chart headers: `<h3>` (fontSize 16, fontWeight 700) + `<p>` subtitle (fontSize 13, color #94a3b8, marginBottom 20)
-- [ ] KPI/stat cards: `cardS` style with InfoTip on every label, uppercase label, large colored value
+- [ ] Header: `<h1>` (fontSize 26, fontWeight 700) + `<p>` subtitle (fontSize 15, color var(--text-secondary))
+- [ ] Section cards: `sectionS` style from shared.jsx
+- [ ] Chart headers: `<h3>` (fontSize 16, fontWeight 700) + `<p>` subtitle (fontSize 13, color var(--text-muted), marginBottom 20)
+- [ ] KPI/stat cards: `<StatCard>` from shared.jsx with `tip` prop on every metric
 - [ ] Filter placement: Header → Dropdown/Filter bar → Stat cards → Content
-- [ ] Analytics: property/deal dropdown (not pills) → conditional portfolio vs single-item view
-- [ ] Bar radius: 6 on top corners for vertical bars, 6 on right corners for horizontal
-- [ ] Tooltip styling: borderRadius 10, border #e2e8f0, fontSize 12
-- [ ] Pill buttons: gray container (#f8fafc, border #e2e8f0, borderRadius 10), amber active (#f59e0b)
-- [ ] "Clear filter" button: background none, color #94a3b8, fontSize 12, X icon
-- [ ] Fonts: Space Grotesk for h1/h2 display headings, Inter for everything else
+- [ ] Modals use the `<Modal>` wrapper from shared.jsx, not inline rgba overlay divs
+- [ ] Pill buttons: gray container (var(--surface-alt), border var(--border), borderRadius 10), amber active (#f59e0b)
+- [ ] Fonts: Space Grotesk for h1/h2, Inter for everything else
 - [ ] All user-facing "PropBooks" text must be all-caps: **PROPBOOKS**
 
 ## Naming Conventions
 - "Paid To" (not "Vendor" or "Payee" for expenses)
-- "All Properties" / "All Deals" (not "Entire Portfolio")
+- "All Properties" / "All Rehabs" (not "Entire Portfolio")
 - Tenant status: "Active Lease" (not "Current")
 - Button labels match action: "Add Income" / "Add Expense" (not "Log Transaction")
 
 ## How to Work
-- Be methodical: plan before building, complete one feature fully before moving to next
-- Proactively suggest improvements — don't just build what's asked
-- When asked to review, audit ALL screens, not just the one mentioned
-- Present improvement ideas as a list first so user can prioritize
-- Incremental changes: fix 1–2 things at a time so they can be reviewed
-- After any change, verify bracket balance on modified files
-- No hardcoded calculations — derive from actual data; explain formulas in InfoTips
-- Run `npm run build` after significant changes to catch errors before pushing
+- Be methodical: plan before building, complete one feature fully before moving to next.
+- Proactively suggest improvements — don't just build what's asked.
+- When asked to review, audit ALL screens, not just the one mentioned.
+- Present improvement ideas as a list first so user can prioritize.
+- Incremental changes: fix 1–2 things at a time so they can be reviewed.
+- After any change, verify bracket balance on modified files.
+- No hardcoded calculations — derive from actual data; explain formulas in InfoTips.
+- Run `npm run build` after significant changes to catch errors before pushing.

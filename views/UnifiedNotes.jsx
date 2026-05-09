@@ -14,9 +14,11 @@ import {
   updateNote as dbUpdateNote, deleteNote as dbDeleteNote,
 } from "../db/notes.js";
 import { iS } from "../shared.jsx";
+import { useToast } from "../toast.jsx";
 import { MentionTextarea, NoteTextWithMentions } from "./MentionTextarea.jsx";
 
 export function UnifiedNotes({ highlightNoteId, highlightDealNoteId, onBack, onClearHighlight, autoOpenAdd }) {
+  const { showToast } = useToast();
   const [activeTab, setActiveTab] = useState("all");
   const [propFilter, setPropFilter] = useState("all");
   const [flipFilter, setFlipFilter] = useState("all");
@@ -107,7 +109,7 @@ export function UnifiedNotes({ highlightNoteId, highlightDealNoteId, onBack, onC
   // Type badge color
   const typeBadge = (type) => {
     if (type === "property") return { bg: "var(--info-tint)", color: "#2563eb", label: "Property" };
-    if (type === "deal") return { bg: "var(--warning-btn-bg)", color: "#c2410c", label: "Deal" };
+    if (type === "deal") return { bg: "var(--warning-btn-bg)", color: "#c2410c", label: "Rehab" };
     return { bg: "var(--purple-tint)", color: "#7c3aed", label: "General" };
   };
 
@@ -145,6 +147,7 @@ export function UnifiedNotes({ highlightNoteId, highlightDealNoteId, onBack, onC
       rerender(n => n + 1);
     } catch (e) {
       console.error("[PropBooks] Save note failed:", e);
+      showToast("Couldn't save note — " + (e.message || "unknown error"));
     }
   };
 
@@ -162,6 +165,7 @@ export function UnifiedNotes({ highlightNoteId, highlightDealNoteId, onBack, onC
       rerender(n => n + 1);
     } catch (e) {
       console.error("[PropBooks] Delete note failed:", e);
+      showToast("Couldn't delete note — " + (e.message || "unknown error"));
     }
   };
 
@@ -330,7 +334,7 @@ export function UnifiedNotes({ highlightNoteId, highlightDealNoteId, onBack, onC
                 <div>
                   <p style={{ fontSize: 12, fontWeight: 600, color: "var(--text-dim)", marginBottom: 5 }}>Category *</p>
                   <div style={{ display: "flex", gap: 6 }}>
-                    {[{ id: "general", label: "General", color: "var(--c-purple)" }, { id: "property", label: "Property", color: "var(--c-blue)" }, { id: "deal", label: "Deal", color: "#e95e00" }].map(c => (
+                    {[{ id: "general", label: "General", color: "var(--c-purple)" }, { id: "property", label: "Property", color: "var(--c-blue)" }, { id: "deal", label: "Rehab", color: "#e95e00" }].map(c => (
                       <button key={c.id} onClick={() => setNoteForm(f => ({ ...f, category: c.id, entityId: c.id === "property" ? (PROPERTIES[0] ? String(PROPERTIES[0].id) : "") : c.id === "deal" ? (DEALS[0] ? String(DEALS[0].id) : "") : "" }))}
                         style={{ flex: 1, padding: "8px 12px", borderRadius: 8, border: noteForm.category === c.id ? "2px solid " + c.color : "1.5px solid var(--border)", background: noteForm.category === c.id ? c.color + "10" : "#fff", color: noteForm.category === c.id ? c.color : "#64748b", fontWeight: 600, fontSize: 13, cursor: "pointer", transition: "all 0.15s" }}>
                         {c.label}

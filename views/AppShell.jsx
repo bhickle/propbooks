@@ -238,7 +238,10 @@ export function AppShell() {
             seen.add(b.contractorId);
             contractors.push({ id: b.contractorId, bid: b.amount || 0 });
           }
-          itemsByDeal.get(r.dealId).push({ ...r, contractors });
+          // The DB stores the canonical slug as `slug`; the UI reads
+          // `canonicalCategory`. Mirror it back so linked-expense matching
+          // and category lookups keep working after hydration.
+          itemsByDeal.get(r.dealId).push({ ...r, canonicalCategory: r.slug, contractors });
         }
         DEALS.length = 0;
         DEALS.push(...dls.map(d => ({ ...d, rehabItems: itemsByDeal.get(d.id) || [] })));
@@ -319,6 +322,7 @@ export function AppShell() {
       }
     } catch (e) {
       console.error("[PropBooks] Update tenant failed:", e);
+      showToast("Couldn't update tenant — " + (e.message || "unknown error"));
     }
   };
 

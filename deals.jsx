@@ -1410,7 +1410,7 @@ export function DealAnalytics() {
       {/* KPI cards with InfoTips — matches rental Analytics pattern */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 24 }}>
         {[
-          { label: "Avg ROI", value: `${avgROI}%`, color: "var(--c-green)", sub: "All deals", tip: "Average Return on Investment across all rehabs. ROI = (Sale/ARV \u2212 Total Cost) \u00f7 Total Cost \u00d7 100. Active rehabs use projected ARV and estimated costs." },
+          { label: "Avg ROI", value: `${avgROI}%`, color: "var(--c-green)", sub: "All rehabs", tip: "Average Return on Investment across all rehabs. ROI = (Sale/ARV \u2212 Total Cost) \u00f7 Total Cost \u00d7 100. Active rehabs use projected ARV and estimated costs." },
           { label: "Avg Hold Time", value: `${avgDays} days`, color: "var(--c-blue)", sub: "Active rehabs", tip: "Average number of days properties have been owned. Shorter hold times mean less carrying cost and faster capital recycling." },
           { label: "Total Realized", value: fmt(totalProfit), color: "var(--c-purple)", sub: "Closed rehabs", tip: "Sum of net profit from all sold rehabs. Net Profit = Sale Price \u2212 Purchase Price \u2212 Rehab Spent \u2212 Holding Costs \u2212 Selling Costs." },
           { label: "Rehabs Analyzed", value: deals.length, color: "#e95e00", sub: `${sold.length} closed`, tip: "Total number of rehabs in your pipeline. Includes active, listed, under contract, and sold properties." },

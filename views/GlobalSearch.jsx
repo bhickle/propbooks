@@ -81,7 +81,7 @@ export function GlobalSearch({ onNavigate }) {
     DEAL_NOTES.forEach(n => {
       if (n.text.toLowerCase().includes(q)) {
         const deal = DEALS.find(f => f.id === n.dealId);
-        r.push({ type: "deal-note", id: n.id, title: n.text.length > 60 ? n.text.slice(0, 60) + "…" : n.text, sub: `${deal?.name || "Deal"} · ${n.date}`, icon: MessageSquare, color: "#1e3a5f", data: { ...n, dealId: n.dealId } });
+        r.push({ type: "deal-note", id: n.id, title: n.text.length > 60 ? n.text.slice(0, 60) + "…" : n.text, sub: `${deal?.name || "Rehab"} · ${n.date}`, icon: MessageSquare, color: "#1e3a5f", data: { ...n, dealId: n.dealId } });
       }
     });
 
@@ -89,7 +89,7 @@ export function GlobalSearch({ onNavigate }) {
     DEAL_EXPENSES.filter(e => e.description.toLowerCase().includes(q) || (e.vendor && e.vendor.toLowerCase().includes(q)))
       .slice(0, MAX_PER).forEach(e => {
         const deal = DEALS.find(f => f.id === e.dealId);
-        r.push({ type: "deal-expense", id: e.id, title: e.description, sub: `${deal?.name || "Deal"} · ${e.vendor} · ${fmt(e.amount)}`, icon: Receipt, color: "var(--c-red)", data: e });
+        r.push({ type: "deal-expense", id: e.id, title: e.description, sub: `${deal?.name || "Rehab"} · ${e.vendor} · ${fmt(e.amount)}`, icon: Receipt, color: "var(--c-red)", data: e });
       });
 
     return r.slice(0, 12); // Cap total results

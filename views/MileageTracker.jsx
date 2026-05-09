@@ -11,8 +11,10 @@ import { MILEAGE_TRIPS, PROPERTIES } from "../mockData.js";
 import { TAX_CONFIG } from "../finance.js";
 import { createMileageTrip, updateMileageTrip, deleteMileageTrip } from "../db/mileageTrips.js";
 import { StatCard, Modal, iS, downloadFile } from "../shared.jsx";
+import { useToast } from "../toast.jsx";
 
 export function MileageTracker() {
+  const { showToast } = useToast();
   const [, setRenderKey] = useState(0);
   const bump = () => setRenderKey(k => k + 1);
   const tripData = MILEAGE_TRIPS;
@@ -52,6 +54,7 @@ export function MileageTracker() {
       bump();
     } catch (e) {
       console.error("[PropBooks] Save trip failed:", e);
+      showToast("Couldn't save trip — " + (e.message || "unknown error"));
     }
   };
 
@@ -64,11 +67,13 @@ export function MileageTracker() {
       bump();
     } catch (e) {
       console.error("[PropBooks] Delete trip failed:", e);
+      showToast("Couldn't delete trip — " + (e.message || "unknown error"));
     }
   };
 
   const IRS_RATE = TAX_CONFIG.mileageRate;
   const purposeColors = { Deal: "#e95e00", Rental: "var(--c-blue)", Business: "var(--c-purple)" };
+  const purposeLabel = (p) => p === "Deal" ? "Rehab" : p;
 
   const mNow = new Date();
   const mThisYear = mNow.getFullYear();
@@ -118,7 +123,7 @@ export function MileageTracker() {
       {/* Mileage filters */}
       <div style={{ display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap", alignItems: "center" }}>
         <div style={{ display: "flex", gap: 4, background: "var(--surface-alt)", borderRadius: 10, padding: 4, border: "1px solid var(--border)" }}>
-          {[["all", "All Purposes"], ["Rental", "Rental"], ["Deal", "Deal"], ["Business", "Business"]].map(([val, label]) => {
+          {[["all", "All Purposes"], ["Rental", "Rental"], ["Deal", "Rehab"], ["Business", "Business"]].map(([val, label]) => {
             const active = purposeFilter === val;
             return (
               <button key={val} onClick={() => setPurposeFilter(val)} style={{ padding: "7px 14px", borderRadius: 8, border: "none", background: active ? "#e95e00" : "transparent", color: active ? "#fff" : "var(--text-secondary)", fontWeight: active ? 700 : 500, fontSize: 12, cursor: "pointer", whiteSpace: "nowrap", transition: "all 0.15s" }}>
@@ -184,7 +189,7 @@ export function MileageTracker() {
                 <td style={{ padding: "13px 18px", fontSize: 12, color: t.linkedTo ? "var(--text-label)" : "var(--text-muted)" }}>{t.linkedTo || "—"}</td>
                 <td style={{ padding: "13px 18px", fontSize: 14, fontWeight: 700, color: "var(--text-primary)" }}>{t.miles} mi</td>
                 <td style={{ padding: "13px 18px" }}>
-                  <span style={{ background: (purposeColors[t.purpose] || "#94a3b8") + "20", color: purposeColors[t.purpose] || "var(--text-label)", borderRadius: 20, padding: "3px 10px", fontSize: 12, fontWeight: 700 }}>{t.purpose}</span>
+                  <span style={{ background: (purposeColors[t.purpose] || "#94a3b8") + "20", color: purposeColors[t.purpose] || "var(--text-label)", borderRadius: 20, padding: "3px 10px", fontSize: 12, fontWeight: 700 }}>{purposeLabel(t.purpose)}</span>
                 </td>
                 <td style={{ padding: "13px 18px", fontSize: 13, fontWeight: 700, color: "#1a7a4a" }}>{fmt(t.miles * IRS_RATE * t.businessPct / 100)}</td>
                 <td style={{ padding: "13px 18px" }}>
@@ -224,7 +229,7 @@ export function MileageTracker() {
           <div style={{ marginBottom: 12 }}>
             <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Purpose</label>
             <select value={form.purpose} onChange={sf("purpose")} style={iS}>
-              {["Deal","Rental","Business"].map(o => <option key={o}>{o}</option>)}
+              {[["Deal","Rehab"],["Rental","Rental"],["Business","Business"]].map(([val, label]) => <option key={val} value={val}>{label}</option>)}
             </select>
           </div>
           <div style={{ marginBottom: 16 }}>
@@ -234,7 +239,7 @@ export function MileageTracker() {
               <optgroup label="Properties">
                 {PROPERTIES.map(p => <option key={`p-${p.id}`} value={p.name}>{p.name}</option>)}
               </optgroup>
-              <optgroup label="Deals">
+              <optgroup label="Rehabs">
                 {DEALS.map(f => <option key={`f-${f.id}`} value={f.name}>{f.name}</option>)}
               </optgroup>
             </select>

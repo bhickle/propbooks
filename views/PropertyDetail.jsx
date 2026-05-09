@@ -716,6 +716,7 @@ export function PropertyDetail({ property, onBack, backLabel, onEditProperty, on
               txForceRender(n => n + 1);
             } catch (e) {
               console.error("[PropBooks] Add property document failed:", e);
+              showToast("Couldn't upload document — " + (e.message || "unknown error"));
             }
           }}
           onDelete={async (id) => {
@@ -728,6 +729,7 @@ export function PropertyDetail({ property, onBack, backLabel, onEditProperty, on
               txForceRender(n => n + 1);
             } catch (e) {
               console.error("[PropBooks] Delete property document failed:", e);
+              showToast("Couldn't delete document — " + (e.message || "unknown error"));
             }
           }}
           entityLabel="property"
@@ -771,6 +773,7 @@ export function PropertyDetail({ property, onBack, backLabel, onEditProperty, on
                   reRenderNotes(n => n + 1);
                 } catch (e) {
                   console.error("[PropBooks] Save note failed:", e);
+                  showToast("Couldn't save note — " + (e.message || "unknown error"));
                 }
               }} style={{ padding: "8px 18px", borderRadius: 8, border: "none", background: "var(--c-blue)", color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
                 {noteEditId ? "Save Changes" : "Add Note"}
@@ -824,6 +827,7 @@ export function PropertyDetail({ property, onBack, backLabel, onEditProperty, on
                       reRenderNotes(n => n + 1);
                     } catch (e) {
                       console.error("[PropBooks] Delete note failed:", e);
+                      showToast("Couldn't delete note — " + (e.message || "unknown error"));
                     }
                   }} style={{ padding: "8px 16px", borderRadius: 8, border: "none", background: "var(--c-red)", color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>Delete</button>
                 </div>

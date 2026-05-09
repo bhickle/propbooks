@@ -69,12 +69,14 @@ import {
   deleteContractorBid as dbDeleteContractorBid,
 } from "../db/contractorBids.js";
 
-// Fire-and-forget DB sync for legacy sync handlers that mutate DEALS in place.
-// The optimistic in-memory mutation has already happened; this just persists.
-function persistDealAsync(id, updates) {
-  dbUpdateDeal(id, updates).catch(e =>
-    console.error("[PropBooks] persistDealAsync failed for", id, e)
-  );
+// Fire-and-forget DB sync for handlers that already mutated DEALS in place
+// optimistically. Surfaces a toast on failure so silent persistence drops
+// don't go unnoticed by the user.
+function persistDealAsync(id, updates, showToast) {
+  dbUpdateDeal(id, updates).catch(e => {
+    console.error("[PropBooks] persistDealAsync failed for", id, e);
+    if (showToast) showToast("Couldn't save change — " + (e.message || "check your connection"));
+  });
 }
 
 export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onNavigateToExpense, onNavigateToContractor, onNavigateToRehabItem, initialTab, onConvertToRental, onDealUpdated, onNavigateToDeal }) {
@@ -98,18 +100,9 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
       ? flipMsFromApi.map(m => ({ ...m }))
       : DEFAULT_MILESTONES.map(label => ({ label, done: false, date: null, targetDate: null }))
   );
-  // Sync local milestone state back to global DEAL_MILESTONES array
-  useEffect(() => {
-    // Remove old entries for this rehab
-    const idx = DEAL_MILESTONES.findIndex(m => m.dealId === deal.id);
-    while (idx >= 0 && DEAL_MILESTONES.findIndex(m => m.dealId === deal.id) >= 0) {
-      DEAL_MILESTONES.splice(DEAL_MILESTONES.findIndex(m => m.dealId === deal.id), 1);
-    }
-    // Push current state back
-    milestones.forEach((m, i) => {
-      DEAL_MILESTONES.push({ id: m.id || newId(), dealId: deal.id, label: m.label, done: !!m.done, date: m.date || null, targetDate: m.targetDate || null, createdAt: m.createdAt || new Date().toISOString(), updatedAt: new Date().toISOString(), userId: m.userId || MOCK_USER.id });
-    });
-  }, [milestones, deal.id]);
+  // (Milestone changes are persisted directly via dbCreateMilestone /
+  // dbUpdateMilestone / dbDeleteMilestone and the local DEAL_MILESTONES
+  // mirror is updated in lockstep — no effect-driven resync needed.)
 
   const [showMilestoneModal, setShowMilestoneModal] = useState(false);
   const [showCompletedMilestones, setShowCompletedMilestones] = useState(false);
@@ -311,7 +304,7 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
     const idx = DEALS.findIndex(f => f.id === deal.id);
     if (idx !== -1) Object.assign(DEALS[idx], updated);
     if (setAllFlips) setAllFlips(prev => prev.map(f => f.id === deal.id ? { ...f, ...updated } : f));
-    persistDealAsync(deal.id, updated);
+    persistDealAsync(deal.id, updated, showToast);
     if (onDealUpdated) onDealUpdated();
     showToast("Rehab updated");
     setShowEditDeal(false);
@@ -596,7 +589,7 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
     setStage(newStage);
     const idx = DEALS.findIndex(f => f.id === deal.id);
     if (idx !== -1) DEALS[idx].stage = newStage;
-    persistDealAsync(deal.id, { stage: newStage });
+    persistDealAsync(deal.id, { stage: newStage }, showToast);
     if (setAllFlips) setAllFlips(prev => prev.map(f => f.id === deal.id ? { ...f, stage: newStage } : f));
   };
 
@@ -769,7 +762,7 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
                       setStage(nextStage);
                       const idx = DEALS.findIndex(f => f.id === deal.id);
                       if (idx !== -1) DEALS[idx].stage = nextStage;
-                      persistDealAsync(deal.id, { stage: nextStage });
+                      persistDealAsync(deal.id, { stage: nextStage }, showToast);
                       if (setAllFlips) setAllFlips(prev => prev.map(f => f.id === deal.id ? { ...f, stage: nextStage } : f));
                       if (onDealUpdated) onDealUpdated();
                       pushDealNote(`Stage advanced to "${nextStage}".`);
@@ -1988,7 +1981,8 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
               DEAL_DOCUMENTS.unshift(saved);
               dealDocRerender(n => n + 1);
             } catch (e) {
-              console.error("[PropBooks] Add deal document failed:", e);
+              console.error("[PropBooks] Add rehab document failed:", e);
+              showToast("Couldn't upload document — " + (e.message || "unknown error"));
             }
           }}
           onDelete={async (id) => {
@@ -2000,7 +1994,8 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
               if (idx !== -1) DEAL_DOCUMENTS.splice(idx, 1);
               dealDocRerender(n => n + 1);
             } catch (e) {
-              console.error("[PropBooks] Delete deal document failed:", e);
+              console.error("[PropBooks] Delete rehab document failed:", e);
+              showToast("Couldn't delete document — " + (e.message || "unknown error"));
             }
           }}
           entityLabel="rehab"
@@ -2152,7 +2147,7 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
               setStage("Listed");
               const idx = DEALS.findIndex(f => f.id === deal.id);
               if (idx !== -1) DEALS[idx].stage = "Listed";
-              persistDealAsync(deal.id, { stage: "Listed" });
+              persistDealAsync(deal.id, { stage: "Listed" }, showToast);
               if (onDealUpdated) onDealUpdated();
               setShowReopenConfirm(false);
               showToast("Rehab reopened — stage set to Listed");
@@ -2265,7 +2260,7 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
                 const idx = DEALS.findIndex(f => f.id === deal.id);
                 if (idx !== -1) Object.assign(DEALS[idx], soldData);
                 if (setAllFlips) setAllFlips(prev => prev.map(f => f.id === deal.id ? { ...f, ...soldData } : f));
-                persistDealAsync(deal.id, soldData);
+                persistDealAsync(deal.id, soldData, showToast);
                 setStage("Sold");
                 if (closeForm.closingNotes.trim()) {
                   pushDealNote(closeForm.closingNotes);
@@ -2327,7 +2322,7 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
                 setStage("Converted to Rental");
                 const idx = DEALS.findIndex(f => f.id === deal.id);
                 if (idx !== -1) DEALS[idx].stage = "Converted to Rental";
-                persistDealAsync(deal.id, { stage: "Converted to Rental" });
+                persistDealAsync(deal.id, { stage: "Converted to Rental" }, showToast);
                 pushDealNote("Deal converted to rental property.");
                 if (onDealUpdated) onDealUpdated();
                 showToast("Converting to rental — review the property details");
@@ -2348,14 +2343,30 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
             <button onClick={() => {
               const idx = DEALS.findIndex(f => f.id === deal.id);
               if (idx !== -1) DEALS.splice(idx, 1);
-              // Clean up related in-memory data (DB cascades the FKs)
-              const expIdxs = [];
-              DEAL_EXPENSES.forEach((e, i) => { if (e.dealId === deal.id) expIdxs.unshift(i); });
-              expIdxs.forEach(i => DEAL_EXPENSES.splice(i, 1));
-              const msIdxs = [];
-              DEAL_MILESTONES.forEach((m, i) => { if (m.dealId === deal.id) msIdxs.unshift(i); });
-              msIdxs.forEach(i => DEAL_MILESTONES.splice(i, 1));
-              dbDeleteDeal(deal.id).catch(e => console.error("[PropBooks] Delete deal failed:", e));
+              // Clean up related in-memory data (DB cascades the FKs).
+              // Same pattern for every child collection so views off-screen
+              // don't render stale references until next reload.
+              const filterInPlace = (arr, predicate) => {
+                const idxs = [];
+                arr.forEach((item, i) => { if (predicate(item)) idxs.unshift(i); });
+                idxs.forEach(i => arr.splice(i, 1));
+              };
+              filterInPlace(DEAL_EXPENSES,    e => e.dealId === deal.id);
+              filterInPlace(DEAL_MILESTONES,  m => m.dealId === deal.id);
+              filterInPlace(DEAL_NOTES,       n => n.dealId === deal.id);
+              filterInPlace(DEAL_DOCUMENTS,   d => d.dealId === deal.id);
+              filterInPlace(CONTRACTOR_BIDS,  b => b.dealId === deal.id);
+              filterInPlace(CONTRACTOR_PAYMENTS, p => p.dealId === deal.id);
+              // Drop this deal from each contractor's dealIds locally
+              CONTRACTORS.forEach((c, i) => {
+                if (c.dealIds && c.dealIds.includes(deal.id)) {
+                  CONTRACTORS[i] = { ...c, dealIds: c.dealIds.filter(id => id !== deal.id) };
+                }
+              });
+              dbDeleteDeal(deal.id).catch(e => {
+                console.error("[PropBooks] Delete rehab failed:", e);
+                showToast("Couldn't delete rehab — " + (e.message || "check your connection"));
+              });
               if (onDealUpdated) onDealUpdated();
               showToast(`"${deal.name}" deleted`);
               setShowDeleteDeal(false);
@@ -2396,10 +2407,22 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
                   if (gi !== -1) DEAL_EXPENSES.splice(gi, 1);
                 }
                 if (deleteConfirm.type === "contractor") {
-                  await dbDeleteContractor(deleteConfirm.item.id);
-                  setConData(prev => prev.filter(x => x.id !== deleteConfirm.item.id));
-                  const gi = CONTRACTORS.findIndex(c => c.id === deleteConfirm.item.id);
+                  const conId = deleteConfirm.item.id;
+                  await dbDeleteContractor(conId);
+                  setConData(prev => prev.filter(x => x.id !== conId));
+                  const gi = CONTRACTORS.findIndex(c => c.id === conId);
                   if (gi !== -1) CONTRACTORS.splice(gi, 1);
+                  // Cascade child rows in memory (DB FKs cascade server-side)
+                  for (let i = CONTRACTOR_BIDS.length - 1; i >= 0; i--) if (CONTRACTOR_BIDS[i].contractorId === conId) CONTRACTOR_BIDS.splice(i, 1);
+                  for (let i = CONTRACTOR_PAYMENTS.length - 1; i >= 0; i--) if (CONTRACTOR_PAYMENTS[i].contractorId === conId) CONTRACTOR_PAYMENTS.splice(i, 1);
+                  // Drop from each rehab item's derived contractors[]
+                  rehabItems.forEach((it, idx) => {
+                    if ((it.contractors || []).some(c => c.id === conId)) {
+                      const next = { ...it, contractors: it.contractors.filter(c => c.id !== conId) };
+                      setRehabItems(prev => prev.map((p, i) => i === idx ? next : p));
+                      if (deal.rehabItems && deal.rehabItems[idx]) deal.rehabItems[idx] = next;
+                    }
+                  });
                 }
                 if (deleteConfirm.type === "rehab") {
                   const target = rehabItems[deleteConfirm.index];

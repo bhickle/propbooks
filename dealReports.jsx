@@ -639,8 +639,8 @@ function CapitalGainsReport({ deals }) {
         {[
           { label: "Total Capital Gains", value: fmt(totalGains), color: totalGains >= 0 ? "#1a7a4a" : "#c0392b", tip: "Sum of profit across all rehabs" },
           { label: "Estimated Tax",       value: fmt(totalTax),   color: "#c0392b", tip: "22% short-term, 15% long-term estimate" },
-          { label: "Short-Term Deals",    value: String(shortCount), color: "#f59e0b", tip: "Held less than 1 year — taxed as ordinary income" },
-          { label: "Long-Term Deals",     value: String(longCount),  color: "#1a7a4a", tip: "Held 1+ years — lower capital gains rate" },
+          { label: "Short-Term Rehabs",   value: String(shortCount), color: "#f59e0b", tip: "Held less than 1 year — taxed as ordinary income" },
+          { label: "Long-Term Rehabs",    value: String(longCount),  color: "#1a7a4a", tip: "Held 1+ years — lower capital gains rate" },
         ].map((m, i) => (
           <div key={i} style={{ background: "var(--surface)", borderRadius: 16, padding: "18px 20px", border: "1px solid var(--border-subtle)" }}>
             <p style={{ color: "var(--text-muted)", fontSize: 10, fontWeight: 600, textTransform: "uppercase", marginBottom: 4 }}>{m.label}<InfoTip text={m.tip} /></p>

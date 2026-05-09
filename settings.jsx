@@ -288,7 +288,7 @@ function NotificationsTab() {
     { key: "rentDue",      label: "Rent Due Reminders",     desc: "Alerts when rent payments are upcoming or overdue" },
     { key: "leaseExpiry",  label: "Lease Expiry Alerts",    desc: "Notify 60, 30, and 7 days before lease expiration" },
     { key: "maintenance",  label: "Maintenance Requests",   desc: "New maintenance requests from tenants" },
-    { key: "dealUpdates",  label: "Deal Milestone Updates", desc: "Contractor check-ins and milestone completions" },
+    { key: "dealUpdates",  label: "Rehab Milestone Updates", desc: "Contractor check-ins and milestone completions" },
     { key: "weeklyReport", label: "Weekly Portfolio Report",desc: "Sunday summary of cash flow and key metrics" },
     { key: "marketing",    label: "Product Updates & Tips", desc: "New features and real estate investing tips" },
   ];
@@ -497,8 +497,8 @@ export function OnboardingWizard({ onComplete }) {
           <div style={{ display: "flex", flexDirection: "column", gap: 14, marginBottom: 28 }}>
             {[
               { icon: Building2, color: "#3b82f6", title: "Track your rentals",    sub: "Properties, tenants, cash flow"  },
-              { icon: Star,      color: "#e95e00", title: "Manage your deals",     sub: "Pipeline, rehab budget, P&L"     },
-              { icon: CheckCircle, color: "#10b981", title: "Analyze new deals",   sub: "Cap rate, CoC, GRM calculator"  },
+              { icon: Star,      color: "#e95e00", title: "Manage your rehabs",    sub: "Pipeline, rehab budget, P&L"    },
+              { icon: CheckCircle, color: "#10b981", title: "Analyze new rehabs",  sub: "Cap rate, CoC, GRM calculator"  },
             ].map(item => (
               <div key={item.title} style={{ display: "flex", alignItems: "center", gap: 14, padding: 14, borderRadius: 12, background: "#f8fafc", border: "1px solid #f1f5f9" }}>
                 <div style={{ width: 40, height: 40, borderRadius: 10, background: item.color + "18", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>

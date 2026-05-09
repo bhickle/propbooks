@@ -410,7 +410,7 @@ export function PortfolioDashboard({ onNavigate, onSelectProperty, onSelectFlip,
                     <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.title}</p>
                     <p style={{ fontSize: 12, color: "var(--text-muted)", margin: "2px 0 0 0" }}>
                       <span style={{ display: "inline-block", padding: "1px 5px", borderRadius: 3, fontSize: 10, fontWeight: 600, letterSpacing: "0.03em", marginRight: 5, background: item.source === "rental" ? "var(--info-tint)" : "var(--warning-btn-bg)", color: item.source === "rental" ? "var(--c-blue)" : "#d97706" }}>
-                        {item.source === "rental" ? "RENTAL" : "DEAL"}
+                        {item.source === "rental" ? "RENTAL" : "REHAB"}
                       </span>
                       {item.sourceName} · {item.date}
                     </p>

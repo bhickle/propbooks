@@ -17,8 +17,9 @@ import { useState } from "react";
 import {
   DollarSign, Calendar, AlertCircle, Home, TrendingUp, Hammer, Shield,
 } from "lucide-react";
-import { fmt, newId, MOCK_USER } from "./api.js";
+import { fmt } from "./api.js";
 import { TRANSACTIONS } from "./mockData.js";
+import { createTransaction } from "./db/transactions.js";
 
 // ─── Dismiss / snooze state ──────────────────────────────────────────────────
 // Shape per entry: { id, state: "dismissed" | "snoozed", snoozeUntil: "YYYY-MM-DD" | null, updatedAt }
@@ -224,7 +225,7 @@ export function generateAlerts({ properties, tenants, transactions, deals, contr
       id, type: "noRehabBudget", severity: "medium",
       icon: Hammer, color: "#e95e00", bg: "var(--warning-btn-bg)",
       title: `No rehab budget — ${d.name}`,
-      detail: "Active deal has no line-item budget entered",
+      detail: "Active rehab has no line-item budget entered",
       action: "Add rehab scope", target: { type: "deal", id: d.id },
     });
   });
@@ -250,21 +251,22 @@ export function generateAlerts({ properties, tenants, transactions, deals, contr
 }
 
 // ─── Rent payment write ──────────────────────────────────────────────────────
-// The only place TRANSACTIONS is mutated for a rent payment so Rental
+// The only place a quick "Mark Paid" rent payment is logged. Persists via
+// Supabase and pushes the saved row into the in-memory mirror so the Rental
 // Dashboard's Rent Collection card and the Needs Attention card on Portfolio
-// Dashboard produce identical records.
-export function logRentPayment(tenant, { amount, date, mode }) {
+// Dashboard see it immediately.
+export async function logRentPayment(tenant, { amount, date, mode }) {
   if (!tenant || !(amount > 0)) return null;
   const desc = mode === "full"
     ? `${new Date(date).toLocaleString("en-US", { month: "long" })} rent — ${tenant.unit}`
     : `Partial rent payment — ${tenant.unit}`;
-  const tx = {
-    id: newId(), date, propertyId: tenant.propertyId, category: "Rent Income",
-    description: desc, amount: Math.abs(amount), type: "income", payee: tenant.name,
-    createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), userId: MOCK_USER.id,
-  };
-  TRANSACTIONS.unshift(tx);
-  return tx;
+  const saved = await createTransaction({
+    date, propertyId: tenant.propertyId, tenantId: tenant.id || null,
+    type: "income", category: "Rent Income", description: desc,
+    amount: Math.abs(amount), payee: tenant.name,
+  });
+  TRANSACTIONS.unshift(saved);
+  return saved;
 }
 
 // ─── QuickPayInline ──────────────────────────────────────────────────────────
@@ -276,11 +278,21 @@ export function QuickPayInline({ tenant, defaultDate, onConfirm }) {
   const [amt, setAmt] = useState(String(tenant?.rent || ""));
   const [date, setDate] = useState(defaultDate);
   const qInput = { padding: "8px 12px", borderRadius: 8, border: "1.5px solid var(--border)", fontSize: 13, color: "var(--text-primary)", background: "var(--surface)", outline: "none", width: "100%" };
-  const confirm = () => {
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState(null);
+  const confirm = async () => {
     const amount = mode === "full" ? (tenant?.rent || 0) : (parseFloat(amt) || 0);
     if (amount <= 0) return;
-    logRentPayment(tenant, { amount, date, mode });
-    onConfirm && onConfirm();
+    setSaving(true); setError(null);
+    try {
+      await logRentPayment(tenant, { amount, date, mode });
+      onConfirm && onConfirm();
+    } catch (e) {
+      console.error("[PropBooks] Log rent payment failed:", e);
+      setError(e.message || "Couldn't save");
+    } finally {
+      setSaving(false);
+    }
   };
   return (
     <div style={{ padding: "8px 10px 12px", borderTop: "1px solid var(--border)" }}>
@@ -301,11 +313,12 @@ export function QuickPayInline({ tenant, defaultDate, onConfirm }) {
         )}
         <input type="date" value={date} onChange={e => setDate(e.target.value)}
           style={{ ...qInput, width: mode === "partial" ? 130 : "auto", flex: mode === "full" ? 1 : undefined }} />
-        <button onClick={confirm}
-          style={{ padding: "8px 16px", borderRadius: 8, border: "none", background: "var(--c-green)", color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" }}>
-          Confirm
+        <button onClick={confirm} disabled={saving}
+          style={{ padding: "8px 16px", borderRadius: 8, border: "none", background: "var(--c-green)", color: "#fff", fontSize: 13, fontWeight: 700, cursor: saving ? "not-allowed" : "pointer", whiteSpace: "nowrap", opacity: saving ? 0.6 : 1 }}>
+          {saving ? "Saving…" : "Confirm"}
         </button>
       </div>
+      {error && <p style={{ marginTop: 8, fontSize: 12, color: "var(--c-red)" }}>{error}</p>}
     </div>
   );
 }

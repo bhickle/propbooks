@@ -6,7 +6,7 @@
 import { useState, useMemo } from "react";
 import { DollarSign, TrendingUp, Hammer, Wrench, Plus, X } from "lucide-react";
 import {
-  fmt, DEALS, STAGE_ORDER, DEFAULT_MILESTONES,
+  fmt, DEALS, DEAL_MILESTONES, STAGE_ORDER, DEFAULT_MILESTONES,
   REHAB_CATEGORIES, REHAB_CATEGORY_GROUPS, REHAB_TEMPLATES,
   getCanonicalBySlug, getCanonicalByLabel,
 } from "../api.js";
@@ -82,12 +82,13 @@ export function FlipWizard({ onComplete, onExit }) {
       const savedItems = await Promise.all(
         wantedItems.map(it => createRehabItem({ ...it, dealId: savedDeal.id }))
       );
-      await Promise.all(
+      const savedMilestones = await Promise.all(
         DEFAULT_MILESTONES.map((label, idx) =>
           createMilestone({ dealId: savedDeal.id, label, done: false, date: null, sortOrder: idx })
         )
       );
-      DEALS.push({ ...savedDeal, color, rehabItems: savedItems });
+      DEALS.push({ ...savedDeal, color, rehabItems: savedItems.map(it => ({ ...it, contractors: [] })) });
+      DEAL_MILESTONES.push(...savedMilestones);
       showToast(`"${basics.name}" added to pipeline with ${savedItems.length} rehab line items`);
       onComplete && onComplete();
     } catch (e) {
