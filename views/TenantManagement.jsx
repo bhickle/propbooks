@@ -335,8 +335,14 @@ export function TenantManagement({ onBack, highlightTenantId, onClearHighlight, 
                 );
               }
 
+              const rowClickable = t.status !== "vacant" && !!onSelectTenant;
+              const baseBg = isFlash ? "var(--warning-btn-bg)" : i % 2 === 0 ? "var(--surface)" : "var(--surface-alt)";
               return (
-                <tr key={t.id} ref={isFlash ? highlightRef : null} style={{ borderTop: "1px solid var(--border-subtle)", background: isFlash ? "var(--warning-btn-bg)" : i % 2 === 0 ? "var(--surface)" : "var(--surface-alt)", transition: "background 2.5s ease" }}>
+                <tr key={t.id} ref={isFlash ? highlightRef : null}
+                  onClick={rowClickable ? () => onSelectTenant(t) : undefined}
+                  onMouseEnter={rowClickable ? e => { e.currentTarget.style.background = "var(--info-tint-alt)"; } : undefined}
+                  onMouseLeave={rowClickable ? e => { e.currentTarget.style.background = baseBg; } : undefined}
+                  style={{ borderTop: "1px solid var(--border-subtle)", background: baseBg, transition: isFlash ? "background 2.5s ease" : "background 0.15s ease", cursor: rowClickable ? "pointer" : "default" }}>
                   <td style={{ padding: "14px 16px" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                       <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#94a3b8", flexShrink: 0 }} />
@@ -350,7 +356,7 @@ export function TenantManagement({ onBack, highlightTenantId, onClearHighlight, 
                     {t.status === "vacant" ? (
                       <span style={{ color: "var(--c-red)", fontSize: 13, fontWeight: 600, fontStyle: "italic" }}>Vacant</span>
                     ) : (
-                      <div onClick={() => onSelectTenant && onSelectTenant(t)} style={{ cursor: onSelectTenant ? "pointer" : "default" }}>
+                      <div>
                         <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>{t.name}</p>
                         <p style={{ fontSize: 11, color: "var(--text-muted)" }}>{t.email}</p>
                       </div>
@@ -373,14 +379,14 @@ export function TenantManagement({ onBack, highlightTenantId, onClearHighlight, 
                   <td style={{ padding: "14px 16px" }}>
                     <div style={{ display: "flex", gap: 4 }}>
                       {isActiveTenant && (
-                        <button onClick={() => { setClosingTenant(t); setCloseForm({ moveOutDate: new Date().toISOString().split("T")[0], moveOutReason: "Lease ended" }); }} style={{ background: "var(--warning-btn-bg)", border: "none", borderRadius: 8, padding: "5px 8px", cursor: "pointer", display: "flex", alignItems: "center", gap: 5, color: "#9a3412", fontSize: 12, fontWeight: 600, whiteSpace: "nowrap" }} title="Close this lease and move tenant to past records">
+                        <button onClick={(e) => { e.stopPropagation(); setClosingTenant(t); setCloseForm({ moveOutDate: new Date().toISOString().split("T")[0], moveOutReason: "Lease ended" }); }} style={{ background: "var(--warning-btn-bg)", border: "none", borderRadius: 8, padding: "5px 8px", cursor: "pointer", display: "flex", alignItems: "center", gap: 5, color: "#9a3412", fontSize: 12, fontWeight: 600, whiteSpace: "nowrap" }} title="Close this lease and move tenant to past records">
                           <LogOut size={12} /> Close
                         </button>
                       )}
-                      <button onClick={() => openEdit(t)} style={{ background: "var(--surface-muted)", border: "none", borderRadius: 8, padding: "5px 8px", cursor: "pointer", display: "flex", alignItems: "center", gap: 5, color: "var(--text-label)", fontSize: 12, fontWeight: 600, whiteSpace: "nowrap" }}>
+                      <button onClick={(e) => { e.stopPropagation(); openEdit(t); }} style={{ background: "var(--surface-muted)", border: "none", borderRadius: 8, padding: "5px 8px", cursor: "pointer", display: "flex", alignItems: "center", gap: 5, color: "var(--text-label)", fontSize: 12, fontWeight: 600, whiteSpace: "nowrap" }}>
                         <Pencil size={12} /> Edit
                       </button>
-                      <button onClick={() => setDeleteConfirm(t)} style={{ background: "var(--danger-badge)", border: "none", borderRadius: 8, padding: "5px 8px", cursor: "pointer", display: "flex", alignItems: "center", color: "var(--c-red)" }} title="Delete">
+                      <button onClick={(e) => { e.stopPropagation(); setDeleteConfirm(t); }} style={{ background: "var(--danger-badge)", border: "none", borderRadius: 8, padding: "5px 8px", cursor: "pointer", display: "flex", alignItems: "center", color: "var(--c-red)" }} title="Delete">
                         <Trash2 size={12} />
                       </button>
                     </div>
