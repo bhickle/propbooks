@@ -1225,7 +1225,7 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
           <div style={{ background: "var(--surface)", borderRadius: 20, width: 480, padding: 28 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-              <h2 style={{ color: "var(--text-primary)", fontSize: 18, fontWeight: 700 }}>{editingRehabIdx !== null ? "Edit Construction Item" : "Add Construction Item"}</h2>
+              <h2 style={{ color: "var(--text-primary)", fontSize: 18, fontWeight: 700 }}>{editingRehabIdx !== null ? "Edit Scope Item" : "Add Scope Item"}</h2>
               <button onClick={() => { setShowAddRehab(false); setRehabForm(emptyRehab); setEditingRehabIdx(null); }} style={{ background: "var(--surface-muted)", border: "none", borderRadius: 8, width: 32, height: 32, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><X size={16} color="var(--text-secondary)" /></button>
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
@@ -1337,7 +1337,7 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
                   setShowAddRehab(false);
                 } catch (e) {
                   console.error("[PropBooks] Save rehab item failed:", e);
-                  showToast("Couldn't save rehab item — " + (e.message || "unknown error"));
+                  showToast("Couldn't save scope item — " + (e.message || "unknown error"));
                 }
               }} style={{ padding: "10px 24px", borderRadius: 10, border: "none", background: "#e95e00", color: "#fff", fontWeight: 600, fontSize: 14, cursor: "pointer", opacity: (!rehabForm.category || !rehabForm.budgeted) ? 0.5 : 1 }}>{editingRehabIdx !== null ? "Save Changes" : "Add Item"}</button>
             </div>
@@ -1595,7 +1595,7 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
                   </select>
                 </div>
                 <div style={{ gridColumn: "1 / -1" }}>
-                  <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Rehab Item <span style={{ color: "var(--text-muted)", fontWeight: 400 }}>(optional)</span></label>
+                  <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Scope item <span style={{ color: "var(--text-muted)", fontWeight: 400 }}>(optional)</span></label>
                   <select value={expForm.rehabItemIdx} onChange={sfE("rehabItemIdx")} style={iS}>
                     <option value="">None — general expense</option>
                     {rehabItems.map((item, idx) => (
@@ -1603,7 +1603,7 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
                     ))}
                   </select>
                   {rehabItems.length === 0 && (
-                    <p style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4, fontStyle: "italic" }}>No rehab items on this rehab yet — add them in the Rehab tab to link expenses</p>
+                    <p style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4, fontStyle: "italic" }}>No scope items on this rehab yet — add them in the Roadmap tab to link expenses</p>
                   )}
                 </div>
                 {linkedConBids.length > 0 && (
@@ -1784,7 +1784,7 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
           <Modal title={`Add Bid — ${con.name}`} onClose={() => { setQuickBid(null); setQuickBidRehabFocus(false); }}>
             <p style={{ fontSize: 12, color: "var(--text-secondary)", marginTop: -6, marginBottom: 14 }}>For <strong style={{ color: "var(--text-primary)" }}>{deal.address}</strong></p>
             <div style={{ position: "relative", marginBottom: 14 }}>
-              <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Rehab Item *</label>
+              <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Scope item *</label>
               <input value={quickBid.rehabItem} placeholder="Start typing or pick from the list..." style={iS}
                 onChange={e => setQuickBid(q => ({ ...q, rehabItem: e.target.value, canonicalCategory: null }))}
                 onFocus={() => setQuickBidRehabFocus(true)} onBlur={() => setTimeout(() => setQuickBidRehabFocus(false), 150)} />
@@ -2351,7 +2351,7 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
       {showDeleteDeal && (
         <Modal title="Delete Rehab" onClose={() => setShowDeleteDeal(false)}>
           <p style={{ color: "var(--text-label)", fontSize: 14, marginBottom: 8 }}>Are you sure you want to permanently delete <strong>{deal.name}</strong>?</p>
-          <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 18 }}>This will remove the rehab, its expenses, rehab items, milestones, and notes. This action cannot be undone.</p>
+          <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 18 }}>This will remove the rehab, its expenses, scope items, milestones, and notes. This action cannot be undone.</p>
           <div style={{ display: "flex", gap: 10 }}>
             <button onClick={() => setShowDeleteDeal(false)} style={{ flex: 1, padding: "12px", border: "1px solid var(--border)", borderRadius: 10, background: "var(--surface)", color: "var(--text-label)", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
             <button onClick={() => {
@@ -2391,8 +2391,8 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
         </Modal>
       )}
       {deleteConfirm && (
-        <Modal title={`Delete ${deleteConfirm.type === "expense" ? "Expense" : deleteConfirm.type === "contractor" ? "Contractor" : deleteConfirm.type === "rehab" ? "Rehab Item" : "Milestone"}`} onClose={() => setDeleteConfirm(null)}>
-          <p style={{ color: "var(--text-label)", fontSize: 14, marginBottom: 8 }}>Are you sure you want to delete this {deleteConfirm.type === "rehab" ? "rehab item" : deleteConfirm.type}?</p>
+        <Modal title={`Delete ${deleteConfirm.type === "expense" ? "Expense" : deleteConfirm.type === "contractor" ? "Contractor" : deleteConfirm.type === "rehab" ? "Scope Item" : "Milestone"}`} onClose={() => setDeleteConfirm(null)}>
+          <p style={{ color: "var(--text-label)", fontSize: 14, marginBottom: 8 }}>Are you sure you want to delete this {deleteConfirm.type === "rehab" ? "scope item" : deleteConfirm.type}?</p>
           <div style={{ background: "var(--surface-alt)", borderRadius: 10, padding: 14, marginBottom: 18 }}>
             {deleteConfirm.type === "expense" && <>
               <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>{deleteConfirm.item.description}</p>

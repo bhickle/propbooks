@@ -614,7 +614,7 @@ export function AppShell() {
                activeView === "deals" ? "Rehabs" :
                activeView === "dealrehab" ? "Rehab Tracker" :
                activeView === "dealmilestones" ? "Milestones" :
-               activeView === "rehabItemDetail" ? "Rehab Item" :
+               activeView === "rehabItemDetail" ? "Scope Item" :
                toolNavItems.find(n => n.id === activeView)?.label || ""}
             </span>
           </div>

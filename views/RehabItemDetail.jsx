@@ -41,7 +41,7 @@ export function RehabItemDetail({ deal, itemIdx, onBack, backLabel, onNavigateTo
     return (
       <div>
         <button onClick={onBack} style={{ background: "none", border: "none", color: "var(--c-blue)", cursor: "pointer", fontSize: 14, fontWeight: 600, display: "flex", alignItems: "center", gap: 6, marginBottom: 20 }}><ChevronLeft size={15} /> {backLabel || "Back"}</button>
-        <div style={{ background: "var(--surface)", borderRadius: 16, padding: 40, textAlign: "center", color: "var(--text-muted)" }}>Rehab item not found.</div>
+        <div style={{ background: "var(--surface)", borderRadius: 16, padding: 40, textAlign: "center", color: "var(--text-muted)" }}>Scope item not found.</div>
       </div>
     );
   }
@@ -99,7 +99,7 @@ export function RehabItemDetail({ deal, itemIdx, onBack, backLabel, onNavigateTo
       deal.rehabItems[itemIdx] = { ...item, ...fields, canonicalCategory: canon };
       setShowEdit(false);
       bump();
-      showToast("Rehab item updated");
+      showToast("Scope item updated");
     } catch (e) {
       console.error("[PropBooks] Save rehab item failed:", e);
       showToast("Couldn't save — " + (e.message || "unknown error"));
@@ -352,7 +352,7 @@ export function RehabItemDetail({ deal, itemIdx, onBack, backLabel, onNavigateTo
         <div style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 500 }}>
           <div style={{ background: "var(--surface)", borderRadius: 20, padding: 28, width: 480, boxShadow: "0 25px 60px rgba(0,0,0,0.2)" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-              <h2 style={{ color: "var(--text-primary)", fontSize: 20, fontWeight: 700 }}>Edit Rehab Item</h2>
+              <h2 style={{ color: "var(--text-primary)", fontSize: 20, fontWeight: 700 }}>Edit Scope Item</h2>
               <button onClick={() => setShowEdit(false)} style={{ background: "var(--surface-muted)", border: "none", borderRadius: 8, width: 32, height: 32, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><X size={16} color="var(--text-secondary)" /></button>
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>

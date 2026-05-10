@@ -964,7 +964,7 @@ export function ContractorDetail({ contractor, onBack, initialTab }) {
                 );
               })()}
               <div style={{ position: "relative" }}>
-                <p style={{ fontSize: 12, fontWeight: 600, color: "var(--text-dim)", marginBottom: 5 }}>Rehab Item *</p>
+                <p style={{ fontSize: 12, fontWeight: 600, color: "var(--text-dim)", marginBottom: 5 }}>Scope item *</p>
                 <input style={iS} placeholder={bidForm.dealId ? "Start typing or pick from the list..." : "Select a rehab first"} disabled={!bidForm.dealId}
                   value={bidForm.rehabItem} onChange={e => { setBidForm(f => ({ ...f, rehabItem: e.target.value })); setRehabFocus(true); }}
                   onFocus={() => setRehabFocus(true)} onBlur={() => setTimeout(() => setRehabFocus(false), 150)} />
@@ -1310,7 +1310,7 @@ export function DealAnalytics() {
         <div style={{ ...sectionS, marginBottom: 20 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 }}>
             <div>
-              <h3 style={{ color: "var(--text-primary)", fontSize: 16, fontWeight: 700, marginBottom: 4 }}>Rehab Item Progress</h3>
+              <h3 style={{ color: "var(--text-primary)", fontSize: 16, fontWeight: 700, marginBottom: 4 }}>Scope Item Progress</h3>
               <p style={{ color: "var(--text-muted)", fontSize: 13 }}>Budget consumed per line item</p>
             </div>
             {rehabProgress.length > 0 && (() => {
@@ -1373,7 +1373,7 @@ export function DealAnalytics() {
               })}
             </div>
           ) : (
-            <div style={{ padding: 20, textAlign: "center", color: "var(--text-muted)", fontSize: 13 }}>No rehab items configured</div>
+            <div style={{ padding: 20, textAlign: "center", color: "var(--text-muted)", fontSize: 13 }}>No scope items configured</div>
           )}
         </div>
 

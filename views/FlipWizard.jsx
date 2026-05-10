@@ -307,7 +307,7 @@ export function FlipWizard({ onComplete, onExit }) {
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 12 }}>
                 <button onClick={addRehabItem} style={{ display: "flex", alignItems: "center", gap: 6, padding: "10px 16px", borderRadius: 10, border: "none", background: "#e95e00", color: "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
-                  <Plus size={14} /> Add Rehab Item
+                  <Plus size={14} /> Add Scope Item
                 </button>
                 <button onClick={() => setRehabItems([])} style={{ background: "none", border: "none", color: "var(--text-muted)", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
                   <X size={12} style={{ marginRight: 4 }} />Clear all &amp; pick new template
