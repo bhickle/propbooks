@@ -106,7 +106,7 @@ export function FlipWizard({ onComplete, onExit }) {
   };
 
   return (
-    <WizardShell steps={steps} currentStep={step} onStepClick={setStep} title="Add Fix & Flip Rehab" subtitle="We'll walk you through the basics, financials, and rehab scope." onExit={handleExit}>
+    <WizardShell steps={steps} currentStep={step} onStepClick={setStep} title="Add Rehab" subtitle="We'll walk you through the basics, financials, and rehab scope." onExit={handleExit}>
       {showExitConfirm && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999 }}>
           <div style={{ background: "var(--surface)", borderRadius: 16, padding: 28, maxWidth: 400, width: "90%", boxShadow: "0 20px 60px rgba(0,0,0,0.15)" }}>
@@ -126,7 +126,7 @@ export function FlipWizard({ onComplete, onExit }) {
         <div style={{ background: "var(--surface)", borderRadius: 16, padding: 28, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)" }}>
           <h2 style={{ fontSize: 18, fontWeight: 700, color: "var(--text-primary)", marginBottom: 4 }}>Rehab Information</h2>
           <p style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 24 }}>Basic info about the rehab — name it something memorable.</p>
-          <WizardField label="Rehab Name" required hint="e.g. '42 Oak Ave Flip' or 'The Blue House'">
+          <WizardField label="Rehab Name" required hint="e.g. '42 Oak Ave Rehab' or 'The Blue House'">
             <input value={basics.name} onChange={sb("name")} style={wizardInput} placeholder="Enter rehab name" autoFocus />
           </WizardField>
           <WizardField label="Address">

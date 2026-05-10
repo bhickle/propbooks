@@ -34,7 +34,7 @@ export function WelcomeScreen({ onStartRental, onStartFlip }) {
           <div style={{ width: 48, height: 48, borderRadius: 12, background: "var(--warning-bg)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
             <Hammer size={24} color="#e95e00" />
           </div>
-          <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--text-primary)", margin: "0 0 6px" }}>Add Fix & Flip Rehab</h3>
+          <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--text-primary)", margin: "0 0 6px" }}>Add Rehab</h3>
           <p style={{ fontSize: 13, color: "var(--text-secondary)", margin: 0, lineHeight: 1.5 }}>Track rehab budget, contractors, milestones, and profit.</p>
         </button>
       </div>
