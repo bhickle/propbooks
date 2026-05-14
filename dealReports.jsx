@@ -10,7 +10,7 @@ import {
 import {
   DollarSign, TrendingUp, Clock, Users, FileText, Home, BarChart3,
   Building2, AlertCircle, CheckCircle, Download, Target, ArrowUp,
-  ArrowDown, Calendar,
+  ArrowDown, Calendar, Search, List,
 } from "lucide-react";
 import { fmt, fmtK, STAGE_ORDER, STAGE_COLORS, CONTRACTOR_BIDS as _BIDS } from "./api.js";
 import { DEALS as _DEALS, DEAL_EXPENSES as _FE, CONTRACTORS as _CON } from "./api.js";
@@ -95,6 +95,20 @@ function buildProjectReportCSV(activeReport, allMetrics, dealFilter) {
   return { csv, scopeName };
 }
 
+// Transaction Detail uses different inputs (date range + per-row tx filters)
+// than the project-level reports, so it gets its own CSV builder.
+function buildTxDetailCSV(rows, dealFilter) {
+  const scopeName = dealFilter === "all" ? "All Rehabs" : _DEALS.find(f => f.id === dealFilter)?.name || "Rehab";
+  let csv = csvRow(["Date", "Rehab", "Category", "Vendor", "Description", "Amount"]);
+  rows.forEach(r => {
+    const dealName = _DEALS.find(f => f.id === r.dealId)?.name || "—";
+    csv += csvRow([r.date, dealName, r.category || "", r.vendor || "", r.description || "", r.amount]);
+  });
+  const total = rows.reduce((s, r) => s + (r.amount || 0), 0);
+  csv += csvRow(["", "", "", "", `Totals (${rows.length} expenses)`, total]);
+  return { csv, scopeName };
+}
+
 // ─── Shared styles ───────────────────────────────────────────────────────────
 const iS = { width: "100%", padding: "10px 14px", borderRadius: 10, border: "1.5px solid var(--border)", fontSize: 14, color: "var(--text-primary)", background: "var(--surface)", outline: "none" };
 const thS = { padding: "11px 16px", textAlign: "left", color: "var(--text-muted)", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", background: "var(--surface-alt)" };
@@ -125,6 +139,27 @@ function calcDealMetrics(f) {
 export function DealReports() {
   const [activeReport, setActiveReport] = useState("profitability");
   const [dealFilter, setDealFilter] = useState("all");
+  const [taxYear, setTaxYear] = useState(String(new Date().getFullYear()));
+
+  // Transaction Detail state — date range, search, sort, category filter
+  const [txSearch, setTxSearch] = useState("");
+  const [txCatFilter, setTxCatFilter] = useState("all");
+  const [txSort, setTxSort] = useState("date-desc");
+  const [txDateFrom, setTxDateFrom] = useState(`${new Date().getFullYear()}-01-01`);
+  const [txDateTo, setTxDateTo] = useState(new Date().toISOString().slice(0, 10));
+  const [txDatePreset, setTxDatePreset] = useState("ytd");
+
+  // Available years for the year dropdown — union of acquisition / close / expense dates
+  const yearOptions = useMemo(() => {
+    const ys = new Set([new Date().getFullYear()]);
+    _DEALS.forEach(d => {
+      if (d.acquisitionDate) ys.add(new Date(d.acquisitionDate).getFullYear());
+      if (d.contractDate)    ys.add(new Date(d.contractDate).getFullYear());
+      if (d.closeDate)       ys.add(new Date(d.closeDate).getFullYear());
+    });
+    _FE.forEach(e => { if (e.date) ys.add(new Date(e.date).getFullYear()); });
+    return [...ys].sort((a, b) => b - a).map(String);
+  }, []);
 
   const deals = dealFilter === "all" ? _DEALS : _DEALS.filter(f => f.id === dealFilter);
   const allMetrics = deals.map(f => ({ ...f, m: calcDealMetrics(f) }));
@@ -145,8 +180,13 @@ export function DealReports() {
     { id: "contractors",    label: "Contractor Payments",   icon: Users       },
     { id: "capitalGains",   label: "Capital Gains",         icon: TrendingUp  },
     { id: "cashflow",       label: "Cash Flow",             icon: DollarSign  },
+    { id: "txdetail",       label: "Transaction Detail",    icon: List        },
     { id: "pipeline",       label: "Pipeline Value",        icon: Target      },
   ];
+
+  // Reports that respect the top-level taxYear dropdown
+  const yearScopedReports = new Set(["contractors", "capitalGains", "cashflow"]);
+  const yearApplies = yearScopedReports.has(activeReport);
 
   return (
     <div>
@@ -157,15 +197,28 @@ export function DealReports() {
           <p style={{ color: "var(--text-secondary)", fontSize: 15 }}>Profitability, rehab analysis, contractor payments, and projections</p>
         </div>
         <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+          {yearApplies && (
+            <select value={taxYear} onChange={e => setTaxYear(e.target.value)} style={{ ...iS, width: 110 }} title="Filter to expenses, sales, and payments that fall within this year">
+              {yearOptions.map(y => <option key={y} value={y}>{y}</option>)}
+            </select>
+          )}
           <select value={dealFilter} onChange={e => setDealFilter(e.target.value)} style={{ ...iS, width: 220 }}>
             <option value="all">All Rehabs</option>
             {_DEALS.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
           </select>
           <button onClick={() => {
+            const ts = new Date().toISOString().slice(0, 10);
+            if (activeReport === "txdetail") {
+              const rows = filterTxDetail({ txDateFrom, txDateTo, txCatFilter, txSearch, txSort, dealFilter });
+              const { csv, scopeName } = buildTxDetailCSV(rows, dealFilter);
+              const safeScope = scopeName.replace(/[^a-zA-Z0-9_-]/g, "_");
+              downloadFile(csv, `PropBooks_txdetail_${safeScope}_${txDateFrom}_to_${txDateTo}.csv`, "text/csv");
+              return;
+            }
             const { csv, scopeName } = buildProjectReportCSV(activeReport, allMetrics, dealFilter);
             const safeScope = scopeName.replace(/[^a-zA-Z0-9_-]/g, "_");
-            const ts = new Date().toISOString().slice(0, 10);
-            downloadFile(csv, `PropBooks_${activeReport}_${safeScope}_${ts}.csv`, "text/csv");
+            const yearSuffix = yearApplies ? `_${taxYear}` : "";
+            downloadFile(csv, `PropBooks_${activeReport}_${safeScope}${yearSuffix}_${ts}.csv`, "text/csv");
           }} style={{ background: "var(--surface)", color: "var(--text-label)", border: "1px solid var(--border)", borderRadius: 10, padding: "10px 16px", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
             <Download size={15} /> Export CSV
           </button>
@@ -208,6 +261,12 @@ export function DealReports() {
             <p style={{ fontSize: 11, color: "var(--text-muted)", fontWeight: 600, textTransform: "uppercase", padding: "0 14px", marginBottom: 6 }}>Scope</p>
             <p style={{ fontSize: 12, color: "var(--text-label)", padding: "0 14px", fontWeight: 600 }}>{dealFilter === "all" ? `All ${_DEALS.length} rehabs` : _DEALS.find(f => f.id === dealFilter)?.name}</p>
             <p style={{ fontSize: 12, color: "var(--text-muted)", padding: "0 14px" }}>{deals.filter(d => d.stage === "Sold").length} sold · {deals.filter(d => d.stage !== "Sold").length} active</p>
+            {yearApplies && (
+              <p style={{ fontSize: 12, color: "var(--text-muted)", padding: "4px 14px 0" }}>Year {taxYear}</p>
+            )}
+            {activeReport === "txdetail" && (
+              <p style={{ fontSize: 12, color: "var(--text-muted)", padding: "4px 14px 0" }}>{txDateFrom} – {txDateTo}</p>
+            )}
           </div>
         </div>
 
@@ -216,9 +275,20 @@ export function DealReports() {
           {activeReport === "profitability" && <ProfitabilityReport deals={allMetrics} />}
           {activeReport === "rehabBudget"   && <RehabBudgetReport deals={allMetrics} />}
           {activeReport === "holdingCosts"  && <HoldingCostsReport deals={allMetrics} />}
-          {activeReport === "contractors"   && <ContractorPaymentsReport dealFilter={dealFilter} />}
-          {activeReport === "capitalGains"  && <CapitalGainsReport deals={allMetrics} />}
-          {activeReport === "cashflow"      && <CashFlowReport deals={allMetrics} />}
+          {activeReport === "contractors"   && <ContractorPaymentsReport dealFilter={dealFilter} taxYear={taxYear} />}
+          {activeReport === "capitalGains"  && <CapitalGainsReport deals={allMetrics} taxYear={taxYear} />}
+          {activeReport === "cashflow"      && <CashFlowReport deals={allMetrics} taxYear={taxYear} />}
+          {activeReport === "txdetail"      && (
+            <TransactionDetailReport
+              dealFilter={dealFilter}
+              txDateFrom={txDateFrom} setTxDateFrom={setTxDateFrom}
+              txDateTo={txDateTo}     setTxDateTo={setTxDateTo}
+              txDatePreset={txDatePreset} setTxDatePreset={setTxDatePreset}
+              txSearch={txSearch}     setTxSearch={setTxSearch}
+              txCatFilter={txCatFilter} setTxCatFilter={setTxCatFilter}
+              txSort={txSort}         setTxSort={setTxSort}
+            />
+          )}
           {activeReport === "pipeline"      && <PipelineReport deals={allMetrics} />}
         </div>
       </div>
@@ -478,16 +548,21 @@ function HoldingCostsReport({ deals }) {
 // ═══════════════════════════════════════════════════════════════════════════════
 // 4. CONTRACTOR PAYMENTS
 // ═══════════════════════════════════════════════════════════════════════════════
-function ContractorPaymentsReport({ dealFilter }) {
+function ContractorPaymentsReport({ dealFilter, taxYear }) {
   const filterDealId = dealFilter !== "all" ? dealFilter : null;
+  const yr = Number(taxYear);
 
   // Helpers — bids come from CONTRACTOR_BIDS, payments derive from
-  // DEAL_EXPENSES rows linked via contractorId (paid status only).
+  // DEAL_EXPENSES rows linked via contractorId (paid status only). Both are
+  // restricted to the active tax year so figures match 1099 / tax reporting.
   const getBids = (c) => _BIDS.filter(b =>
-    b.contractorId === c.id && (!filterDealId || b.dealId === filterDealId));
+    b.contractorId === c.id
+    && (!filterDealId || b.dealId === filterDealId)
+    && (!b.date || new Date(b.date).getFullYear() === yr));
   const getPayments = (c) => _FE.filter(e =>
     e.contractorId === c.id && (e.status || "paid") === "paid"
-    && (!filterDealId || e.dealId === filterDealId));
+    && (!filterDealId || e.dealId === filterDealId)
+    && (!e.date || new Date(e.date).getFullYear() === yr));
 
   // Only include contractors with activity in the current scope
   const contractors = _CON.filter(c => {
@@ -609,10 +684,18 @@ function ContractorPaymentsReport({ dealFilter }) {
 // ═══════════════════════════════════════════════════════════════════════════════
 // 5. CAPITAL GAINS
 // ═══════════════════════════════════════════════════════════════════════════════
-function CapitalGainsReport({ deals }) {
+function CapitalGainsReport({ deals, taxYear }) {
   const today = new Date().toISOString().slice(0, 10);
+  const yr = Number(taxYear);
 
-  const rows = deals.map(d => {
+  // Limit to rehabs sold in the active tax year. Unsold rehabs stay visible
+  // (projected) so investors can plan ahead, but only for the current year.
+  const scoped = deals.filter(d => {
+    if (d.closeDate) return new Date(d.closeDate).getFullYear() === yr;
+    return yr === new Date().getFullYear();
+  });
+
+  const rows = scoped.map(d => {
     const acqDate = d.acquisitionDate || d.contractDate || "";
     const saleDate = d.closeDate || "";
     const holdDays = d.m.daysOwned || 0;
@@ -699,28 +782,42 @@ function CapitalGainsReport({ deals }) {
 // ═══════════════════════════════════════════════════════════════════════════════
 // 6. CASH FLOW
 // ═══════════════════════════════════════════════════════════════════════════════
-function CashFlowReport({ deals }) {
+function CashFlowReport({ deals, taxYear }) {
   const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  const yr = Number(taxYear);
 
-  // Group expenses by month
+  // Group expenses by month, scoped to the active tax year so the monthly
+  // buckets reflect actual cash movement that year (not just same-month rows
+  // from any year).
   const monthlyData = MONTHS.map((month, i) => {
     const monthExpenses = _FE.filter(e => {
       const d = new Date(e.date);
-      return d.getMonth() === i && deals.some(dl => dl.id === e.dealId);
+      return d.getFullYear() === yr && d.getMonth() === i && deals.some(dl => dl.id === e.dealId);
     });
     const purchases = deals.filter(f => {
       const acqDate = f.acquisitionDate || f.contractDate;
-      return acqDate && new Date(acqDate).getMonth() === i;
+      if (!acqDate) return false;
+      const d = new Date(acqDate);
+      return d.getFullYear() === yr && d.getMonth() === i;
     }).reduce((s, f) => s + f.purchasePrice, 0);
-    const sales = deals.filter(f => f.closeDate && new Date(f.closeDate).getMonth() === i).reduce((s, f) => s + (f.salePrice || 0), 0);
+    const sales = deals.filter(f => {
+      if (!f.closeDate) return false;
+      const d = new Date(f.closeDate);
+      return d.getFullYear() === yr && d.getMonth() === i;
+    }).reduce((s, f) => s + (f.salePrice || 0), 0);
     const rehabSpend = monthExpenses.reduce((s, e) => s + e.amount, 0);
+    // Holding costs apply for months the rehab was actively held within the year
+    const yearStart = new Date(`${yr}-01-01`);
+    const yearEnd = new Date(`${yr}-12-31`);
     const holdingCosts = deals.filter(f => {
       const start = f.acquisitionDate || f.contractDate;
-      const end = f.closeDate;
       if (!start) return false;
-      const sm = new Date(start).getMonth();
-      const em = end ? new Date(end).getMonth() : 11;
-      return i >= sm && i <= em;
+      const s = new Date(start);
+      const e = f.closeDate ? new Date(f.closeDate) : new Date();
+      const monthStart = new Date(yr, i, 1);
+      const monthEnd = new Date(yr, i + 1, 0);
+      // active during this month if s <= monthEnd and e >= monthStart, and intersects year
+      return s <= monthEnd && e >= monthStart && s <= yearEnd && e >= yearStart;
     }).reduce((s, f) => s + (f.holdingCostsPerMonth || 0), 0);
 
     const totalOut = purchases + rehabSpend + holdingCosts;
@@ -920,6 +1017,230 @@ function PipelineReport({ deals }) {
           </tbody>
         </table>
         </div>
+      </div>
+    </div>
+  );
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 8. TRANSACTION DETAIL
+// ═══════════════════════════════════════════════════════════════════════════════
+// Pure filter used by both the on-screen table and the CSV export so they
+// stay in lockstep. Sources from DEAL_EXPENSES — rehabs are expense-only.
+function filterTxDetail({ txDateFrom, txDateTo, txCatFilter, txSearch, txSort, dealFilter }) {
+  const fromDate = new Date(txDateFrom + "T00:00:00");
+  const toDate = new Date(txDateTo + "T23:59:59");
+  const scopeDealId = dealFilter !== "all" ? dealFilter : null;
+
+  let rows = _FE.filter(e => {
+    const d = new Date(e.date);
+    if (d < fromDate || d > toDate) return false;
+    if (scopeDealId && e.dealId !== scopeDealId) return false;
+    return true;
+  });
+
+  if (txCatFilter !== "all") rows = rows.filter(e => e.category === txCatFilter);
+  if (txSearch.trim()) {
+    const q = txSearch.toLowerCase();
+    rows = rows.filter(e => {
+      const dealName = _DEALS.find(f => f.id === e.dealId)?.name || "";
+      return (e.description || "").toLowerCase().includes(q)
+        || (e.category || "").toLowerCase().includes(q)
+        || (e.vendor || "").toLowerCase().includes(q)
+        || dealName.toLowerCase().includes(q);
+    });
+  }
+
+  rows = [...rows].sort((a, b) => {
+    if (txSort === "date-desc") return new Date(b.date) - new Date(a.date);
+    if (txSort === "date-asc")  return new Date(a.date) - new Date(b.date);
+    if (txSort === "amount-desc") return Math.abs(b.amount) - Math.abs(a.amount);
+    if (txSort === "amount-asc")  return Math.abs(a.amount) - Math.abs(b.amount);
+    if (txSort === "rehab") {
+      const aName = _DEALS.find(f => f.id === a.dealId)?.name || "";
+      const bName = _DEALS.find(f => f.id === b.dealId)?.name || "";
+      return aName.localeCompare(bName);
+    }
+    if (txSort === "category") return (a.category || "").localeCompare(b.category || "");
+    return 0;
+  });
+
+  return rows;
+}
+
+function TransactionDetailReport({
+  dealFilter,
+  txDateFrom, setTxDateFrom,
+  txDateTo, setTxDateTo,
+  txDatePreset, setTxDatePreset,
+  txSearch, setTxSearch,
+  txCatFilter, setTxCatFilter,
+  txSort, setTxSort,
+}) {
+  const applyPreset = (preset) => {
+    const today = new Date();
+    const todayStr = today.toISOString().slice(0, 10);
+    setTxDatePreset(preset);
+    if (preset === "thisMonth") {
+      setTxDateFrom(`${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,"0")}-01`);
+      setTxDateTo(todayStr);
+    } else if (preset === "lastMonth") {
+      const lm = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+      const lmEnd = new Date(today.getFullYear(), today.getMonth(), 0);
+      setTxDateFrom(lm.toISOString().slice(0, 10));
+      setTxDateTo(lmEnd.toISOString().slice(0, 10));
+    } else if (preset === "90days") {
+      const d90 = new Date(today); d90.setDate(d90.getDate() - 90);
+      setTxDateFrom(d90.toISOString().slice(0, 10));
+      setTxDateTo(todayStr);
+    } else if (preset === "ytd") {
+      setTxDateFrom(`${today.getFullYear()}-01-01`);
+      setTxDateTo(todayStr);
+    } else if (preset === "lastYear") {
+      setTxDateFrom(`${today.getFullYear() - 1}-01-01`);
+      setTxDateTo(`${today.getFullYear() - 1}-12-31`);
+    } else if (preset === "all") {
+      setTxDateFrom("2000-01-01");
+      setTxDateTo(todayStr);
+    }
+  };
+
+  // Date-scope rows BEFORE applying user filters, so the category dropdown
+  // surfaces only categories that actually exist in the date window.
+  const fromDate = new Date(txDateFrom + "T00:00:00");
+  const toDate = new Date(txDateTo + "T23:59:59");
+  const scopeDealId = dealFilter !== "all" ? dealFilter : null;
+  const dateScoped = _FE.filter(e => {
+    const d = new Date(e.date);
+    if (d < fromDate || d > toDate) return false;
+    if (scopeDealId && e.dealId !== scopeDealId) return false;
+    return true;
+  });
+  const categories = [...new Set(dateScoped.map(e => e.category).filter(Boolean))].sort();
+
+  const sorted = filterTxDetail({ txDateFrom, txDateTo, txCatFilter, txSearch, txSort, dealFilter });
+
+  const totalSpent = sorted.reduce((s, e) => s + (e.amount || 0), 0);
+  const dealsInView = new Set(sorted.map(e => e.dealId)).size;
+
+  // Top category by spend
+  const catTotals = {};
+  sorted.forEach(e => {
+    const c = e.category || "Uncategorized";
+    catTotals[c] = (catTotals[c] || 0) + (e.amount || 0);
+  });
+  const topCatEntry = Object.entries(catTotals).sort((a, b) => b[1] - a[1])[0];
+  const topCatName = topCatEntry ? topCatEntry[0] : "—";
+  const topCatTotal = topCatEntry ? topCatEntry[1] : 0;
+  const topCatCount = topCatEntry ? sorted.filter(e => (e.category || "Uncategorized") === topCatName).length : 0;
+
+  return (
+    <div>
+      <h2 style={{ color: "var(--text-primary)", fontSize: 18, fontWeight: 700, marginBottom: 4 }}>Transaction Detail</h2>
+      <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 16 }}>All rehab expenses for the selected date range · Filter by category, rehab, or search</p>
+
+      {/* Date range row */}
+      <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 16, flexWrap: "wrap" }}>
+        {[
+          { id: "thisMonth", label: "This Month" },
+          { id: "lastMonth", label: "Last Month" },
+          { id: "90days",    label: "Last 90 Days" },
+          { id: "ytd",       label: "Year to Date" },
+          { id: "lastYear",  label: "Last Year" },
+          { id: "all",       label: "All Time" },
+        ].map(p => (
+          <button key={p.id} onClick={() => applyPreset(p.id)} style={{ padding: "7px 14px", borderRadius: 8, border: txDatePreset === p.id ? "2px solid #3b82f6" : "1px solid var(--border)", background: txDatePreset === p.id ? "var(--info-tint)" : "var(--surface)", color: txDatePreset === p.id ? "var(--c-blue)" : "var(--text-label)", fontWeight: txDatePreset === p.id ? 700 : 500, fontSize: 12, cursor: "pointer" }}>
+            {p.label}
+          </button>
+        ))}
+        <div style={{ display: "flex", alignItems: "center", gap: 6, marginLeft: 8 }}>
+          <input type="date" value={txDateFrom} onChange={e => { setTxDateFrom(e.target.value); setTxDatePreset("custom"); }} style={{ padding: "7px 10px", borderRadius: 8, border: "1px solid var(--border)", fontSize: 12, color: "var(--text-primary)" }} />
+          <span style={{ color: "var(--text-muted)", fontSize: 12 }}>to</span>
+          <input type="date" value={txDateTo} onChange={e => { setTxDateTo(e.target.value); setTxDatePreset("custom"); }} style={{ padding: "7px 10px", borderRadius: 8, border: "1px solid var(--border)", fontSize: 12, color: "var(--text-primary)" }} />
+        </div>
+      </div>
+
+      {/* Summary cards */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, marginBottom: 20 }}>
+        {[
+          { label: "Total Spent",   value: fmt(totalSpent), color: "#c0392b", bg: "var(--danger-tint)", tip: "Sum of all rehab expenses in the date range and filters" },
+          { label: "Transactions",  value: String(sorted.length), color: "var(--c-blue)", bg: "var(--info-tint)", tip: "Count of expense rows matching the current filters" },
+          { label: "Rehabs",        value: String(dealsInView), color: "#8b5cf6", bg: "var(--info-tint-alt)", tip: "Distinct rehab projects with expenses in this view" },
+          { label: "Top Category",  value: topCatName, color: "#e95e00", bg: "var(--surface-alt)", tip: topCatEntry ? `${fmt(topCatTotal)} across ${topCatCount} expense${topCatCount === 1 ? "" : "s"}` : "No expenses in range" },
+        ].map((m, i) => (
+          <div key={i} style={{ background: m.bg, borderRadius: 14, padding: "14px 16px", border: "1px solid var(--border-subtle)" }}>
+            <p style={{ color: "var(--text-secondary)", fontSize: 10, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6, display: "flex", alignItems: "center" }}>{m.label}<InfoTip text={m.tip} /></p>
+            <p style={{ color: m.color, fontSize: 20, fontWeight: 800, fontFamily: "var(--font-display)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{m.value}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Filters row */}
+      <div style={{ display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap" }}>
+        <div style={{ position: "relative", flex: 1, minWidth: 180 }}>
+          <Search size={14} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "var(--text-muted)" }} />
+          <input value={txSearch} onChange={e => setTxSearch(e.target.value)} placeholder="Search description, vendor, rehab..." style={{ width: "100%", padding: "10px 12px 10px 34px", borderRadius: 10, border: "1px solid var(--border)", fontSize: 13, color: "var(--text-primary)", outline: "none", background: "var(--surface)" }} />
+        </div>
+        <select value={txCatFilter} onChange={e => setTxCatFilter(e.target.value)} style={{ ...iS, width: 220 }}>
+          <option value="all">All Categories</option>
+          {categories.map(c => <option key={c} value={c}>{c}</option>)}
+        </select>
+        <select value={txSort} onChange={e => setTxSort(e.target.value)} style={{ ...iS, width: 170 }}>
+          <option value="date-desc">Newest First</option>
+          <option value="date-asc">Oldest First</option>
+          <option value="amount-desc">Largest Amount</option>
+          <option value="amount-asc">Smallest Amount</option>
+          <option value="rehab">By Rehab</option>
+          <option value="category">By Category</option>
+        </select>
+      </div>
+
+      {/* Transaction table */}
+      <div style={sectionS}>
+        <div style={{ overflowX: "auto" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <thead>
+              <tr>
+                {["Date", "Rehab", "Category", "Vendor", "Description", "Amount"].map(h => (
+                  <th key={h} style={{ ...thS, textAlign: h === "Amount" ? "right" : "left" }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {sorted.length === 0 ? (
+                <tr><td colSpan={6} style={{ padding: 40, textAlign: "center", color: "var(--text-muted)", fontSize: 14 }}>No expenses match your filters</td></tr>
+              ) : sorted.slice(0, 200).map((e, i) => {
+                const dealName = _DEALS.find(f => f.id === e.dealId)?.name || "—";
+                return (
+                  <tr key={e.id || i} style={{ background: i % 2 === 0 ? "var(--surface)" : "var(--surface-alt)" }}>
+                    <td style={{ ...tdS, fontSize: 12, whiteSpace: "nowrap" }}>{new Date(e.date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</td>
+                    <td style={{ ...tdS, fontSize: 12, fontWeight: 600 }}>{dealName}</td>
+                    <td style={tdS}>
+                      <span style={{ fontSize: 11, fontWeight: 600, borderRadius: 6, padding: "3px 8px", background: "var(--danger-badge)", color: "#c0392b" }}>{e.category || "Uncategorized"}</span>
+                    </td>
+                    <td style={{ ...tdS, fontSize: 12, color: "var(--text-secondary)" }}>{e.vendor || "—"}</td>
+                    <td style={{ ...tdS, fontSize: 12, color: "var(--text-label)", maxWidth: 260, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{e.description || "—"}</td>
+                    <td style={{ ...tdS, textAlign: "right", fontSize: 13, fontWeight: 700, color: "#c0392b" }}>-{fmt(e.amount || 0)}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+            {sorted.length > 0 && (
+              <tfoot>
+                <tr style={{ background: "var(--surface-alt)" }}>
+                  <td style={{ ...tdS, fontWeight: 700 }} colSpan={5}>Totals ({sorted.length} expense{sorted.length === 1 ? "" : "s"})</td>
+                  <td style={{ ...tdS, textAlign: "right", fontWeight: 700, color: "#c0392b" }}>-{fmt(totalSpent)}</td>
+                </tr>
+              </tfoot>
+            )}
+          </table>
+        </div>
+        {sorted.length > 200 && (
+          <p style={{ marginTop: 12, fontSize: 12, color: "var(--text-muted)", fontStyle: "italic", textAlign: "center" }}>
+            Showing first 200 of {sorted.length} expenses. Export CSV for the full list, or narrow your filters.
+          </p>
+        )}
       </div>
     </div>
   );
