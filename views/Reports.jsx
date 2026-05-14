@@ -10,7 +10,7 @@ import { fmt } from "../api.js";
 import {
   TAX_CONFIG, getDeprBasis, calcLoanBalance, calcPaymentInterest, getEffectiveMonthly,
 } from "../finance.js";
-import { iS, downloadFile } from "../shared.jsx";
+import { iS, downloadFile, InfoTip } from "../shared.jsx";
 import { PROPERTIES, TRANSACTIONS } from "../mockData.js";
 
 function exportReportCSV(activeReport, reportProps, monthlyData, deprRows, lenderData, calcPropLines, taxYear, ownerMonth) {
@@ -469,14 +469,14 @@ export function Reports() {
           }, 0);
           const actualPct = Math.round((allCalc.filter(c => c.hasActual).length / Math.max(1, allCalc.length)) * 100);
           return [
-            { label: "Gross Rental Income", value: fmt(tRent), color: "var(--c-green)", bg: "var(--success-tint)" },
-            { label: "Total Expenses", value: fmt(tExp), color: "var(--c-red)", bg: "var(--danger-tint)" },
-            { label: isTaxReport ? "Net Taxable Income" : "Net Operating Income", value: fmt(tNet), color: tNet >= 0 ? "var(--c-green)" : "var(--c-red)", bg: "var(--info-tint-alt)" },
-            { label: isTaxReport ? "Annual Depreciation" : "Portfolio Properties", value: isTaxReport ? fmt(tDepr) : String(reportProps.length), color: isTaxReport ? "var(--c-purple)" : "var(--c-purple)", bg: "var(--purple-tint)" },
-            { label: "Actual Data Coverage", value: `${actualPct}%`, color: "var(--c-blue)", bg: "var(--info-tint)" },
+            { label: "Gross Rental Income", value: fmt(tRent), color: "var(--c-green)", bg: "var(--success-tint)", tip: `Sum of rent income across the ${reportProps.length === 1 ? "selected property" : `${reportProps.length} selected properties`} for ${taxYear}. Falls back to estimated monthly rent × 12 when no transactions exist.` },
+            { label: "Total Expenses", value: fmt(tExp), color: "var(--c-red)", bg: "var(--danger-tint)", tip: `Sum of all expense categories that map to Schedule E lines for ${taxYear}. Capital improvements and mortgage payments are excluded — they're handled via depreciation and interest separately.` },
+            { label: isTaxReport ? "Net Taxable Income" : "Net Operating Income", value: fmt(tNet), color: tNet >= 0 ? "var(--c-green)" : "var(--c-red)", bg: "var(--info-tint-alt)", tip: isTaxReport ? "Gross rental income minus all deductible expenses, mortgage interest, and depreciation. This is the figure that flows to Schedule E." : "Gross rental income minus operating expenses (before mortgage interest and depreciation)." },
+            { label: isTaxReport ? "Annual Depreciation" : "Portfolio Properties", value: isTaxReport ? fmt(tDepr) : String(reportProps.length), color: isTaxReport ? "var(--c-purple)" : "var(--c-purple)", bg: "var(--purple-tint)", tip: isTaxReport ? "Total straight-line depreciation across all properties: (purchase price − land value) ÷ 27.5 years for residential or 39 for commercial." : "Number of properties included in the current scope." },
+            { label: "Actual Data Coverage", value: `${actualPct}%`, color: "var(--c-blue)", bg: "var(--info-tint)", tip: "Share of properties with real transactions logged for the selected year. The remainder uses estimated monthly rent and expenses — log actual transactions for sharper reporting." },
           ].map((m, i) => (
             <div key={i} style={{ background: "var(--surface)", borderRadius: 14, padding: "14px 16px", border: "1px solid var(--border-subtle)" }}>
-              <p style={{ color: "var(--text-secondary)", fontSize: 10, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6 }}>{m.label}</p>
+              <p style={{ color: "var(--text-secondary)", fontSize: 10, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6, display: "flex", alignItems: "center" }}>{m.label}<InfoTip text={m.tip} /></p>
               <p style={{ color: "var(--text-primary)", fontSize: 20, fontWeight: 800, fontFamily: "var(--font-display)" }}>{m.value}</p>
             </div>
           ));

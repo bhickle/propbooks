@@ -241,7 +241,7 @@ export function DealReports() {
         ))}
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "180px 1fr", gap: 20 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "220px 1fr", gap: 20 }}>
         {/* Sidebar */}
         <div style={{ background: "var(--surface)", borderRadius: 16, padding: 10, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)", height: "fit-content" }}>
           <p style={{ fontSize: 10, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", padding: "8px 14px 4px" }}>Profitability</p>
