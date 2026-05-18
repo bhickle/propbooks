@@ -208,6 +208,19 @@ export function AppShell() {
           listMaintenanceRequests(), listDocuments(),
         ]);
         if (cancelled) return;
+        // Demo account fallback: if the demo user's Supabase rows are empty
+        // (e.g. just after Reset Demo Data), keep the in-memory mock seed
+        // populated by restoreDemoData()/restoreLocalDemoData() above instead
+        // of overwriting it with empty arrays. Without this, a hard refresh
+        // after a reset would show a blank app.
+        const supabaseEmpty = props.length === 0 && txs.length === 0 && tns.length === 0 && dls.length === 0;
+        if (isDemo && supabaseEmpty) {
+          restoreDemoData();
+          restoreLocalDemoData();
+          setPropsVersion(v => v + 1);
+          setHydrating(false);
+          return;
+        }
         PROPERTIES.length = 0;
         PROPERTIES.push(...props);
         TRANSACTIONS.length = 0;

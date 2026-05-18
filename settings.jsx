@@ -5,9 +5,12 @@
 import { useState } from "react";
 import { useAuth } from "./auth.jsx";
 import { supabase } from "./supabase.js";
+import { wipeUserData } from "./db/resetDemo.js";
+import { Modal } from "./shared.jsx";
 import {
   User, CreditCard, Bell, Shield, Building2, ChevronRight,
   CheckCircle, ArrowRight, Star, X, Pencil, Save, AlertCircle,
+  RotateCcw,
 } from "lucide-react";
 
 const DEMO_EMAIL = "demo@propbooks.com";
@@ -152,6 +155,8 @@ function ProfileTab() {
         )}
       </div>
 
+      {isDemo && <DemoResetCard />}
+
       <div style={card}>
         <p style={{ color: "#041830", fontWeight: 700, fontSize: 15, marginBottom: 4 }}>Sign Out</p>
         <p style={{ color: "#94a3b8", fontSize: 13, marginBottom: 16 }}>Sign out of your PROPBOOKS account on this device.</p>
@@ -161,6 +166,70 @@ function ProfileTab() {
         </button>
       </div>
     </div>
+  );
+}
+
+// -----------------------------------------------------------------------------
+// Demo Reset Card — only rendered for the demo account. Wipes every row in
+// the demo user's Supabase tables, clears the storage folder, then reloads
+// so the AppShell hydration fallback re-seeds the in-memory mock data.
+// -----------------------------------------------------------------------------
+function DemoResetCard() {
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [running, setRunning] = useState(false);
+  const [error, setError] = useState("");
+
+  async function runReset() {
+    setError("");
+    setRunning(true);
+    try {
+      await wipeUserData();
+      // Hard reload so AppShell's hydration re-runs from a clean Supabase
+      // state and the demo+empty fallback re-populates mock data.
+      window.location.reload();
+    } catch (err) {
+      setError(err.message || "Reset failed. Try again or refresh.");
+      setRunning(false);
+    }
+  }
+
+  return (
+    <>
+      <div style={card}>
+        <p style={{ color: "#041830", fontWeight: 700, fontSize: 15, marginBottom: 4 }}>Demo Account</p>
+        <p style={{ color: "#94a3b8", fontSize: 13, marginBottom: 16 }}>
+          Reset the demo back to its starting portfolio. Wipes every property, tenant, rehab, contractor, transaction, note, and uploaded document tied to this account, then restores the sample data.
+        </p>
+        <button onClick={() => setConfirmOpen(true)}
+          style={{ display: "flex", alignItems: "center", gap: 6, padding: "9px 18px", borderRadius: 9, border: "1.5px solid #fed7aa", background: "#fff7ed", color: "#9a3412", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
+          <RotateCcw size={14} /> Reset Demo Data
+        </button>
+      </div>
+
+      {confirmOpen && (
+        <Modal title="Reset demo data?" onClose={() => !running && setConfirmOpen(false)} width={460}>
+          <p style={{ color: "var(--text-secondary)", fontSize: 14, marginBottom: 16, lineHeight: 1.5 }}>
+            This permanently deletes every row in the demo account — properties, tenants, rehabs, contractors, transactions, notes, mileage, and documents — and then restores the original sample portfolio. The app will reload when done.
+          </p>
+          {error && (
+            <div style={{ display: "flex", alignItems: "center", gap: 8, background: "var(--danger-tint)", borderRadius: 8, padding: "10px 14px", marginBottom: 14 }}>
+              <AlertCircle size={15} color="#b91c1c" />
+              <span style={{ color: "#b91c1c", fontSize: 13, fontWeight: 600 }}>{error}</span>
+            </div>
+          )}
+          <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+            <button onClick={() => setConfirmOpen(false)} disabled={running}
+              style={{ padding: "9px 16px", borderRadius: 9, border: "1.5px solid var(--border)", background: "var(--surface)", color: "var(--text-label)", fontWeight: 600, fontSize: 13, cursor: running ? "not-allowed" : "pointer", opacity: running ? 0.6 : 1 }}>
+              Cancel
+            </button>
+            <button onClick={runReset} disabled={running}
+              style={{ padding: "9px 18px", borderRadius: 9, border: "none", background: "#c0392b", color: "#fff", fontWeight: 700, fontSize: 13, cursor: running ? "not-allowed" : "pointer", opacity: running ? 0.7 : 1 }}>
+              {running ? "Resetting…" : "Reset Demo Data"}
+            </button>
+          </div>
+        </Modal>
+      )}
+    </>
   );
 }
 
