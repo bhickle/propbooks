@@ -13,13 +13,15 @@ import { supabase } from "../supabase.js";
 const BUCKET = "documents";
 
 // Child tables first so we don't trip a FK constraint even if cascade isn't
-// configured on every relation.
+// configured on every relation. `contractor_deals` is a junction table with
+// no user_id column — it cascades from `contractors` and `deals` (matches
+// `db/contractors.js#deleteContractor`, which also relies on cascade), so it
+// stays off this list.
 const DELETE_ORDER = [
   "documents",
   "transactions",
   "deal_expenses",
   "contractor_bids",
-  "contractor_deals",
   "deal_rehab_items",
   "deal_milestones",
   "maintenance_requests",
