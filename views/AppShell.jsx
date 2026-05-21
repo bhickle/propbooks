@@ -30,6 +30,7 @@ import {
   clearDemoData, restoreDemoData, DEMO_EMAIL,
 } from "../api.js";
 import { AuthScreen, useAuth } from "../auth.jsx";
+import { supabase } from "../supabase.js";
 import { InfoTip, Modal, StatCard, iS, EmptyState, Badge } from "../shared.jsx";
 import {
   PROPERTIES, TRANSACTIONS, MONTHLY_CASH_FLOW, EQUITY_GROWTH, EXPENSE_CATEGORIES,
@@ -111,7 +112,7 @@ class ErrorBoundary extends React.Component {
 }
 
 export function AppShell() {
-  const { user, signOut } = useAuth();
+  const { user, signOut, refreshProfile } = useAuth();
   const { theme, toggleTheme } = useTheme();
 
   // Gate demo data: real users start with a blank account.
@@ -149,7 +150,15 @@ export function AppShell() {
   const [selectedProperty, setSelectedProperty] = useState(null);
   const [selectedDeal, setSelectedDeal] = useState(null);
   const [showSettings, setShowSettings] = useState(false);
-  const [showOnboarding, setShowOnboarding] = useState(user?.plan === "trial");
+  // Show onboarding when the profile.has_onboarded flag is false. Demo
+  // users never see it (their account is pre-populated; the migration
+  // marked all pre-launch profiles as onboarded).
+  const isDemoForOnboarding = user?.email === DEMO_EMAIL;
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  useEffect(() => {
+    if (isDemoForOnboarding) { setShowOnboarding(false); return; }
+    if (user && user.hasOnboarded === false) setShowOnboarding(true);
+  }, [user?.id, user?.hasOnboarded, isDemoForOnboarding]);
   const [hydrating, setHydrating] = useState(true);
   const [showSignOutConfirm, setShowSignOutConfirm] = useState(false);
   const { showToast } = useToast();
@@ -852,7 +861,21 @@ export function AppShell() {
       )}
 
       {/* Onboarding Wizard (new users only) */}
-      {showOnboarding && <OnboardingWizard onComplete={() => setShowOnboarding(false)} />}
+      {showOnboarding && (
+        <OnboardingWizard onComplete={async () => {
+          setShowOnboarding(false);
+          // Persist so the wizard doesn't reappear on next login. RLS scopes
+          // the update to this user's own row; the trigger ensures the row
+          // exists. Silent failure here just means the modal returns later —
+          // an inconvenience, not a data integrity issue.
+          if (user?.id) {
+            try {
+              await supabase.from("profiles").update({ has_onboarded: true }).eq("id", user.id);
+              refreshProfile?.();
+            } catch (e) { console.error("[PropBooks] Failed to mark onboarded:", e); }
+          }
+        }} />
+      )}
 
       {/* Sign-out confirmation */}
       {showSignOutConfirm && (

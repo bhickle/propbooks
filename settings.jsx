@@ -236,89 +236,105 @@ function DemoResetCard() {
 // -----------------------------------------------------------------------------
 // Subscription Tab
 // -----------------------------------------------------------------------------
-const PLAN_FEATURES = {
-  starter: ["Up to 3 properties", "Transactions & reports", "Deal Analyzer", "Email support"],
-  pro:     ["Unlimited properties", "Deal Pipeline", "Tenant Management", "Mileage tracker", "Priority support", "Advanced analytics"],
-  team:    ["Everything in Pro", "Up to 5 team members", "Shared portfolio access", "Admin controls", "Dedicated support"],
-};
+const PROPBOOKS_FEATURES = [
+  "Unlimited rental properties + rehabs",
+  "Tenant management & lease tracking",
+  "Mileage tracker (IRS rate)",
+  "Documents & receipts",
+  "Tax tools (depreciation, Schedule E export)",
+  "All future AI features included",
+];
+
+// Pretty status labels for the subscription_status values Stripe sends back.
+function statusBadge(status) {
+  switch (status) {
+    case "active":              return { label: "Active",                color: "#15803d", bg: "#dcfce7" };
+    case "trialing":            return { label: "Trial",                 color: "#1d4ed8", bg: "#dbeafe" };
+    case "past_due":            return { label: "Past due",              color: "#b91c1c", bg: "#fef2f2" };
+    case "canceled":            return { label: "Canceled",              color: "#92400e", bg: "#fef3c7" };
+    case "incomplete":
+    case "incomplete_expired":  return { label: "Payment incomplete",    color: "#b91c1c", bg: "#fef2f2" };
+    case "unpaid":              return { label: "Unpaid",                color: "#b91c1c", bg: "#fef2f2" };
+    default:                    return { label: "No active subscription", color: "#64748b", bg: "#f1f5f9" };
+  }
+}
 
 function SubscriptionTab() {
   const { user } = useAuth();
-  const current = user?.plan || "pro";
+  const isDemo = user?.email === DEMO_EMAIL;
+  const status = user?.subscriptionStatus;
+  const isPaying = status === "active" || status === "trialing";
+  const badge = statusBadge(status);
+  const renewsAt = user?.currentPeriodEnd
+    ? new Date(user.currentPeriodEnd).toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" })
+    : null;
 
   return (
     <div>
-      {section("Subscription", "Manage your plan and billing")}
+      {section("Subscription", "Manage your PropBooks plan and billing")}
 
-      {/* Current plan */}
-      <div style={{ ...card, border: "2px solid #e95e00", background: "#eff6ff" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
-          <Star size={16} color="#e95e00" fill="#e95e00" />
-          <span style={{ color: "#1d4ed8", fontWeight: 700, fontSize: 14 }}>
-            {current.toUpperCase()} PLAN — Active
-          </span>
-        </div>
-        <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
-          {(PLAN_FEATURES[current] || []).map(f => (
-            <div key={f} style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <CheckCircle size={13} color="#10b981" />
-              <span style={{ fontSize: 13, color: "#374151" }}>{f}</span>
-            </div>
-          ))}
+      {/* Status banner */}
+      <div style={{ ...card, border: `2px solid ${isPaying ? "#10b981" : "#e2e8f0"}`, background: isPaying ? "#f0fdf4" : "var(--surface-alt)" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
+          <div>
+            <p style={{ fontSize: 12, fontWeight: 700, color: "var(--text-dim)", letterSpacing: "0.04em", textTransform: "uppercase", marginBottom: 4 }}>
+              Current status
+            </p>
+            <span style={{ display: "inline-block", padding: "4px 10px", borderRadius: 12, background: badge.bg, color: badge.color, fontSize: 12, fontWeight: 700 }}>
+              {badge.label}
+            </span>
+          </div>
+          {renewsAt && isPaying && (
+            <p style={{ fontSize: 13, color: "var(--text-secondary)" }}>
+              {status === "trialing" ? "Trial ends" : "Renews"} <strong style={{ color: "var(--text-primary)" }}>{renewsAt}</strong>
+            </p>
+          )}
         </div>
       </div>
 
-      {/* Plan comparison */}
+      {/* The PropBooks plan */}
       <div style={card}>
-        <p style={{ color: "#041830", fontWeight: 700, fontSize: 15, marginBottom: 16 }}>All Plans</p>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
-          {[
-            { id: "starter", label: "Starter", price: "$25", period: "/mo" },
-            { id: "pro",     label: "Pro",     price: "$45", period: "/mo", popular: true },
-            { id: "team",    label: "Team",    price: "$99", period: "/mo" },
-          ].map(p => (
-            <div key={p.id} style={{
-              padding: 16, borderRadius: 12, border: current === p.id ? "2px solid #e95e00" : "2px solid #e2e8f0",
-              background: current === p.id ? "#eff6ff" : "#fafafa", position: "relative",
-            }}>
-              {p.popular && current !== p.id && (
-                <span style={{ position: "absolute", top: -9, left: "50%", transform: "translateX(-50%)", background: "#e95e00", color: "#fff", fontSize: 9, fontWeight: 700, padding: "2px 8px", borderRadius: 20, whiteSpace: "nowrap" }}>
-                  POPULAR
-                </span>
-              )}
-              <p style={{ fontWeight: 700, color: "#041830", fontSize: 15, marginBottom: 4 }}>{p.label}</p>
-              <p style={{ fontWeight: 800, color: "#041830", fontSize: 20 }}>
-                {p.price}<span style={{ fontSize: 13, fontWeight: 500, color: "#94a3b8" }}>{p.period}</span>
-              </p>
-              <div style={{ marginTop: 10 }}>
-                {(PLAN_FEATURES[p.id] || []).map(f => (
-                  <div key={f} style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 5 }}>
-                    <CheckCircle size={11} color="#10b981" />
-                    <span style={{ fontSize: 11, color: "#64748b" }}>{f}</span>
-                  </div>
-                ))}
-              </div>
-              {current !== p.id && (
-                <button style={{ width: "100%", marginTop: 12, padding: "7px", borderRadius: 8, border: "none", background: "#e95e00", color: "#fff", fontWeight: 700, fontSize: 12, cursor: "pointer" }}>
-                  {current === "starter" ? "Upgrade" : "Switch"}
-                </button>
-              )}
-              {current === p.id && (
-                <div style={{ marginTop: 12, padding: "7px", borderRadius: 8, background: "#dbeafe", textAlign: "center", fontSize: 12, fontWeight: 700, color: "#1d4ed8" }}>
-                  Current Plan
-                </div>
-              )}
+        <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginBottom: 6 }}>
+          <p style={{ color: "var(--text-primary)", fontWeight: 800, fontSize: 22 }}>PropBooks</p>
+          <p style={{ color: "var(--text-primary)", fontWeight: 800, fontSize: 22 }}>
+            $25<span style={{ fontSize: 14, fontWeight: 500, color: "var(--text-dim)" }}> / month</span>
+          </p>
+        </div>
+        <p style={{ color: "var(--text-secondary)", fontSize: 13, marginBottom: 16 }}>
+          Everything you need to manage your rental & rehab portfolio. Cancel anytime.
+        </p>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 20 }}>
+          {PROPBOOKS_FEATURES.map(f => (
+            <div key={f} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <CheckCircle size={14} color="#10b981" />
+              <span style={{ fontSize: 13, color: "var(--text-secondary)" }}>{f}</span>
             </div>
           ))}
         </div>
-      </div>
 
-      <div style={card}>
-        <p style={{ color: "#041830", fontWeight: 700, fontSize: 15, marginBottom: 4 }}>Billing</p>
-        <p style={{ color: "#94a3b8", fontSize: 13, marginBottom: 16 }}>Billing management will be available when payments are enabled.</p>
-        <div style={{ background: "#f8fafc", borderRadius: 10, padding: 14, border: "1px solid #e2e8f0" }}>
-          <p style={{ color: "#64748b", fontSize: 13 }}>Next billing date: <strong style={{ color: "#041830" }}>April 15, 2026</strong></p>
-        </div>
+        {isDemo ? (
+          <div style={{ padding: "10px 14px", borderRadius: 10, background: "var(--surface-alt)", border: "1px solid var(--border-subtle)", fontSize: 13, color: "var(--text-secondary)" }}>
+            Subscription actions are disabled on the demo account.
+          </div>
+        ) : isPaying ? (
+          <button
+            type="button"
+            disabled
+            title="Stripe Customer Portal — wiring up in the next release"
+            style={{ padding: "10px 18px", borderRadius: 10, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text-secondary)", fontWeight: 700, fontSize: 13, cursor: "not-allowed", opacity: 0.7 }}
+          >
+            Manage billing (coming soon)
+          </button>
+        ) : (
+          <button
+            type="button"
+            disabled
+            title="Stripe Checkout — wiring up in the next release"
+            style={{ padding: "10px 22px", borderRadius: 10, border: "none", background: "#e95e00", color: "#fff", fontWeight: 700, fontSize: 13, cursor: "not-allowed", opacity: 0.7 }}
+          >
+            Subscribe — $25/mo (coming soon)
+          </button>
+        )}
       </div>
     </div>
   );

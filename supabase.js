@@ -60,12 +60,15 @@ export async function getUser() {
   return user;
 }
 
-// Listen for auth state changes (login, logout, token refresh)
+// Listen for auth state changes (login, logout, token refresh, password recovery).
+// callback receives (user, event) — event lets callers distinguish a normal
+// SIGNED_IN from a PASSWORD_RECOVERY landing (Supabase fires the latter when
+// the user clicks the reset-password email link).
 export function onAuthChange(callback) {
   if (!supabase) {
     return { data: { subscription: { unsubscribe: () => {} } } };
   }
-  return supabase.auth.onAuthStateChange((_event, session) => {
-    callback(session?.user ?? null);
+  return supabase.auth.onAuthStateChange((event, session) => {
+    callback(session?.user ?? null, event);
   });
 }

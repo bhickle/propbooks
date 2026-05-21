@@ -10,23 +10,133 @@ import propbooksLogo from "./logos/PropBooks Horizontal Logo_transparent_white.p
 // ─── Auth Context ─────────────────────────────────────────────────────────────
 const AuthContext = createContext(null);
 
-function normalizeUser(raw) {
+const PLAN_DESCRIPTIONS = {
+  free:     "No paid plan yet",
+  pro:      "PropBooks Pro — $25/mo",
+  trialing: "Free trial — converts at end of period",
+};
+
+function deriveInitials(name, email) {
+  const source = name || email || "?";
+  const parts = source.split(/[\s@]+/).filter(Boolean);
+  return (parts.slice(0, 2).map(w => w[0]).join("") || "?").toUpperCase();
+}
+
+// Combine the raw Supabase auth.user with the public.profiles row into the
+// shape the rest of the app consumes. profile may be null while the row is
+// still loading; we fall back to safe defaults so the UI doesn't flicker.
+function shapeUser(raw, profile) {
   if (!raw) return raw;
   const meta = raw.user_metadata || {};
-  const name = meta.name || raw.email?.split("@")[0] || "User";
-  const initials = name.split(" ").map(w => w[0]).slice(0, 2).join("").toUpperCase() || "?";
-  return { ...raw, name, initials, email: raw.email, planLabel: "PRO PLAN", planDescription: "Unlimited properties", plan: "pro" };
+  const name = profile?.name || meta.name || raw.email?.split("@")[0] || "User";
+  const initials = profile?.initials || deriveInitials(name, raw.email);
+  const plan = profile?.plan || "free";
+  return {
+    ...raw,
+    name,
+    initials,
+    email: raw.email,
+    plan,
+    planLabel: profile?.plan_label || `${plan.toUpperCase()} PLAN`,
+    planDescription: PLAN_DESCRIPTIONS[plan] || "",
+    // hasOnboarded defaults to true while the profile loads so we never flash
+    // the onboarding modal at returning users. New signups will see the modal
+    // a beat later once the profile row arrives with has_onboarded=false.
+    hasOnboarded: profile?.has_onboarded ?? true,
+    subscriptionStatus: profile?.subscription_status || null,
+    currentPeriodEnd: profile?.current_period_end || null,
+    stripeCustomerId: profile?.stripe_customer_id || null,
+    stripeSubscriptionId: profile?.stripe_subscription_id || null,
+  };
 }
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(undefined);
+  const [authUser, setAuthUser] = useState(undefined); // raw Supabase user
+  const [profile, setProfile]   = useState(null);
+  // When Supabase fires PASSWORD_RECOVERY (user clicked the email reset link),
+  // we surface a dedicated "Set new password" screen via App.jsx instead of
+  // dropping them into the authenticated shell with no UI to set a password.
+  const [passwordRecoveryMode, setPasswordRecoveryMode] = useState(false);
+  const [profileVersion, setProfileVersion] = useState(0);
+
   useEffect(() => {
-    getSession().then(session => setUser(normalizeUser(session?.user ?? null)));
-    const { data: { subscription } } = onAuthChange(u => setUser(normalizeUser(u ?? null)));
+    getSession().then(session => setAuthUser(session?.user ?? null));
+    const { data: { subscription } } = onAuthChange((u, event) => {
+      if (event === "PASSWORD_RECOVERY") setPasswordRecoveryMode(true);
+      setAuthUser(u ?? null);
+    });
     return () => subscription?.unsubscribe();
   }, []);
-  async function signOutUser() { await supabaseSignOut(); setUser(null); }
-  return <AuthContext.Provider value={{ user, signOut: signOutUser }}>{children}</AuthContext.Provider>;
+
+  // Load the profile row whenever the auth user changes. The on_auth_user_created
+  // trigger on auth.users auto-inserts a profile for new signups; this effect
+  // also handles the legacy case where a pre-trigger user is missing one.
+  useEffect(() => {
+    if (!authUser?.id) { setProfile(null); return; }
+    let cancelled = false;
+    (async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", authUser.id)
+        .maybeSingle();
+      if (cancelled) return;
+      if (error) {
+        console.error("[PropBooks] Failed to load profile:", error);
+        setProfile({}); // empty stub so shapeUser falls back to defaults
+        return;
+      }
+      if (data) { setProfile(data); return; }
+      // No row — legacy account that pre-dates the trigger. Create one.
+      const meta = authUser.user_metadata || {};
+      const name = meta.name || authUser.email?.split("@")[0] || "User";
+      const { data: inserted, error: insErr } = await supabase
+        .from("profiles")
+        .insert({
+          id: authUser.id,
+          email: authUser.email,
+          name,
+          initials: deriveInitials(name, authUser.email),
+        })
+        .select()
+        .single();
+      if (cancelled) return;
+      if (insErr) { console.error("[PropBooks] Failed to create profile:", insErr); setProfile({}); return; }
+      setProfile(inserted);
+    })();
+    return () => { cancelled = true; };
+  }, [authUser?.id, profileVersion]);
+
+  async function signOutUser() {
+    await supabaseSignOut();
+    setAuthUser(null);
+    setProfile(null);
+    setPasswordRecoveryMode(false);
+  }
+
+  // Called by the SetPasswordScreen on successful password update. Clears the
+  // recovery URL fragment so a refresh doesn't re-trigger recovery mode.
+  function exitPasswordRecovery() {
+    setPasswordRecoveryMode(false);
+    if (window.location.hash.includes("access_token") || window.location.hash.includes("type=recovery")) {
+      window.history.replaceState(null, "", window.location.pathname);
+    }
+  }
+
+  // Lets settings/onboarding components nudge AuthProvider to re-fetch the
+  // profile after they mutate it (e.g., flipping has_onboarded to true).
+  function refreshProfile() { setProfileVersion(v => v + 1); }
+
+  // Shape the exposed user. undefined = still resolving session;
+  // null = signed out; object = signed in (profile may still be loading,
+  // shapeUser handles that gracefully).
+  const user = authUser === undefined ? undefined : shapeUser(authUser, profile);
+
+  return (
+    <AuthContext.Provider value={{ user, signOut: signOutUser, passwordRecoveryMode, exitPasswordRecovery, refreshProfile }}>
+      {children}
+    </AuthContext.Provider>
+  );
 }
 
 export function useAuth() {
@@ -257,6 +367,84 @@ function ResetForm({ onSwitch }) {
         <LinkBtn onClick={() => onSwitch("login")}>← Back to sign in</LinkBtn>
       </p>
     </>
+  );
+}
+
+// ─── SetPasswordScreen ───────────────────────────────────────────────────────
+// Rendered by App.jsx when the user lands from a password-reset email link
+// (Supabase fires the PASSWORD_RECOVERY event). The recovery link already
+// established a session, so we just need to capture the new password.
+function SetPasswordForm() {
+  const { exitPasswordRecovery, signOut } = useAuth();
+  const [password, setPassword] = useState("");
+  const [confirm, setConfirm]   = useState("");
+  const [loading, setLoading]   = useState(false);
+  const [alert, setAlert]       = useState(null);
+
+  async function handleSubmit(e) {
+    e.preventDefault(); setAlert(null);
+    if (!password || !confirm) return setAlert({ type: "error", message: "Please fill in both fields." });
+    if (password !== confirm)  return setAlert({ type: "error", message: "Passwords do not match." });
+    if (password.length < 8)   return setAlert({ type: "error", message: "Password must be at least 8 characters." });
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.updateUser({ password });
+      if (error) throw error;
+      setAlert({ type: "success", message: "Password updated. Redirecting…" });
+      // Brief pause so the user sees the success message, then drop into the app.
+      setTimeout(() => exitPasswordRecovery(), 900);
+    } catch (err) {
+      setAlert({ type: "error", message: err.message || "Could not update password." });
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <>
+      <h2 style={{ fontSize: 22, fontWeight: 700, color: NAVY, margin: "0 0 4px", textAlign: "center", fontFamily: FONT_DISPLAY }}>
+        Set a new password
+      </h2>
+      <p style={{ fontSize: 13, color: "#64748b", textAlign: "center", marginBottom: 22, fontFamily: FONT }}>
+        Choose a new password to finish resetting your account
+      </p>
+      <Alert {...(alert || {})} />
+      <form onSubmit={handleSubmit}>
+        <Field label="New password"     type="password" value={password} onChange={setPassword} placeholder="Min. 8 characters" autoComplete="new-password" />
+        <Field label="Confirm password" type="password" value={confirm}  onChange={setConfirm}  placeholder="Repeat password"   autoComplete="new-password" />
+        <SubmitBtn label="Update Password" loading={loading} />
+      </form>
+      <p style={{ textAlign: "center", fontSize: 13, color: "#64748b", marginTop: 22, fontFamily: FONT }}>
+        <LinkBtn onClick={async () => { await signOut(); exitPasswordRecovery(); }}>← Cancel and sign in instead</LinkBtn>
+      </p>
+    </>
+  );
+}
+
+export function SetPasswordScreen() {
+  return (
+    <div style={{
+      minHeight: "100vh", display: "flex", flexDirection: "column",
+      alignItems: "center", justifyContent: "center",
+      background: `radial-gradient(ellipse at top left, ${NAVY2} 0%, ${NAVY} 50%, #1a3a5c 100%)`,
+      padding: "24px 16px", position: "relative", overflow: "hidden",
+      fontFamily: FONT,
+    }}>
+      <div style={{ position: "absolute", inset: 0, pointerEvents: "none",
+        backgroundImage: `radial-gradient(circle, rgba(255,255,255,0.06) 1px, transparent 1px)`,
+        backgroundSize: "28px 28px" }} />
+      <img src={propbooksLogo} alt="PropBooks" style={{ height: 44, marginBottom: 28, position: "relative", objectFit: "contain" }} />
+      <div style={{
+        position: "relative", background: "#fff", borderRadius: 20,
+        padding: "36px 36px 32px", width: "100%", maxWidth: 420,
+        boxShadow: "0 24px 60px rgba(0,0,0,0.28), 0 4px 16px rgba(0,0,0,0.1)",
+      }}>
+        <SetPasswordForm />
+      </div>
+      <p style={{ marginTop: 24, fontSize: 12, color: "rgba(255,255,255,0.3)", fontFamily: FONT, position: "relative" }}>
+        PROPBOOKS · Built for serious real estate investors
+      </p>
+    </div>
   );
 }
 

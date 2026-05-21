@@ -3,7 +3,7 @@
 // and view routing live in views/AppShell.jsx. Everything here is just the
 // provider stack + the "are we configured / authenticated yet" gate.
 // =============================================================================
-import { AuthProvider, AuthScreen, useAuth } from "./auth.jsx";
+import { AuthProvider, AuthScreen, SetPasswordScreen, useAuth } from "./auth.jsx";
 import { SUPABASE_CONFIGURED, SUPABASE_CONFIG_ERROR } from "./supabase.js";
 import { ToastProvider } from "./toast.jsx";
 import { ThemeProvider } from "./theme.jsx";
@@ -22,7 +22,7 @@ export default function App() {
 }
 
 function AuthGate() {
-  const { user } = useAuth();
+  const { user, passwordRecoveryMode } = useAuth();
   if (!SUPABASE_CONFIGURED) {
     return <ConfigErrorScreen message={SUPABASE_CONFIG_ERROR} />;
   }
@@ -38,6 +38,10 @@ function AuthGate() {
       </div>
     );
   }
+  // Supabase fires PASSWORD_RECOVERY after the user clicks the email reset
+  // link. Show the "Set new password" screen before letting them into the
+  // shell — otherwise they'd land in the app with no UI to actually set one.
+  if (passwordRecoveryMode) return <SetPasswordScreen />;
   return user ? <AppShell /> : <AuthScreen />;
 }
 
