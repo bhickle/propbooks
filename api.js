@@ -477,6 +477,7 @@ export function clearDemoData() {
   RENTAL_NOTES.length       = 0;
   DEAL_NOTES.length         = 0;
   GENERAL_NOTES.length      = 0;
+  TEAM_MEMBERS.length       = 0;
 }
 
 // Rental notes — flat array with propertyId reference
@@ -497,7 +498,11 @@ export const RENTAL_NOTES = [
   { id: 2013, propertyId: 5, tenantId: 8, date: "2026-02-20", text: "Pacific Rim wants to discuss lease extension through 2030. Meeting scheduled for March.", createdAt: "2026-02-20T11:00:00Z", updatedAt: "2026-02-20T11:00:00Z", userId: "usr_001" },
 ];
 
-// Team members (for @mention support)
+// Team members (for @mention support). Real users hydrate this from
+// db/accounts.listAccountMembers() on login; the demo account uses the seed
+// values below. Like the other DEMO/portfolio arrays, this is a mutable
+// reference that gets refilled in place — never reassigned — so importers
+// (MentionTextarea etc.) keep their reference.
 export const TEAM_MEMBERS = [
   { id: "usr_001", name: "Brandon H.", email: "brandon@gmail.com", initials: "BH", color: "#3b82f6" },
   { id: "usr_002", name: "Jessica Torres", email: "jessica.t@propbooks.io", initials: "JT", color: "#8b5cf6" },
@@ -539,6 +544,7 @@ const _snap = {
   rentalNotes:          JSON.parse(JSON.stringify(RENTAL_NOTES)),
   dealNotes:            JSON.parse(JSON.stringify(DEAL_NOTES)),
   generalNotes:         JSON.parse(JSON.stringify(GENERAL_NOTES)),
+  teamMembers:          JSON.parse(JSON.stringify(TEAM_MEMBERS)),
 };
 
 function refill(target, source) { target.length = 0; source.forEach(item => target.push(item)); }
@@ -557,6 +563,7 @@ export function restoreDemoData() {
   refill(RENTAL_NOTES,         _snap.rentalNotes);
   refill(DEAL_NOTES,           _snap.dealNotes);
   refill(GENERAL_NOTES,        _snap.generalNotes);
+  refill(TEAM_MEMBERS,         _snap.teamMembers);
 }
 
 

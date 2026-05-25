@@ -26,7 +26,7 @@ import {
   REHAB_CATEGORIES, REHAB_CATEGORY_GROUPS,
   RENTAL_NOTES, GENERAL_NOTES, MOCK_USER,
   PROPERTY_DOCUMENTS, DEAL_DOCUMENTS, TENANT_DOCUMENTS,
-  MAINTENANCE_REQUESTS,
+  MAINTENANCE_REQUESTS, TEAM_MEMBERS,
   clearDemoData, restoreDemoData, DEMO_EMAIL,
 } from "../api.js";
 import { AuthScreen, useAuth } from "../auth.jsx";
@@ -89,6 +89,7 @@ import {
 } from "../db/notes.js";
 import { listMileageTrips } from "../db/mileageTrips.js";
 import { listMaintenanceRequests } from "../db/maintenanceRequests.js";
+import { listAccountMembers } from "../db/accounts.js";
 import {
   listDocuments, createDocument as dbCreateDocument,
   deleteDocument as dbDeleteDocument,
@@ -209,12 +210,13 @@ export function AppShell() {
     setHydrating(true);
     (async () => {
       try {
-        const [props, txs, tns, dls, rehab, mls, cons, bids, dexps, notes, trips, maint, docs] = await Promise.all([
+        const [props, txs, tns, dls, rehab, mls, cons, bids, dexps, notes, trips, maint, docs, members] = await Promise.all([
           listProperties(), listTransactions(), listTenants(),
           listDeals(), listRehabItems(), listMilestones(),
           listContractors(), listContractorBids(),
           listDealExpenses(), listNotes(), listMileageTrips(),
           listMaintenanceRequests(), listDocuments(),
+          listAccountMembers(),
         ]);
         if (cancelled) return;
         // Demo account fallback: if the demo user's Supabase rows are empty
@@ -292,6 +294,10 @@ export function AppShell() {
         TENANT_DOCUMENTS.push(...docs.tenantDocs);
         CONTRACTOR_DOCUMENTS.length = 0;
         CONTRACTOR_DOCUMENTS.push(...docs.contractorDocs);
+        // Real teammates for @mention support. Empty array is fine —
+        // single-user accounts just won't surface a dropdown.
+        TEAM_MEMBERS.length = 0;
+        TEAM_MEMBERS.push(...(members || []));
         setPropsVersion(v => v + 1);
         setHydrating(false);
       } catch (e) {

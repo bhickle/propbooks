@@ -2,15 +2,20 @@
 // PropBooks Settings + Onboarding
 // =============================================================================
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "./auth.jsx";
 import { supabase } from "./supabase.js";
 import { wipeUserData } from "./db/resetDemo.js";
+import {
+  getCurrentAccount, listAccountMembers, listPendingInvites,
+  inviteByEmail, revokeInvite, removeMember,
+} from "./db/accounts.js";
+import { useToast } from "./toast.jsx";
 import { Modal } from "./shared.jsx";
 import {
   User, CreditCard, Bell, Shield, Building2, ChevronRight,
   CheckCircle, ArrowRight, Star, X, Pencil, Save, AlertCircle,
-  RotateCcw,
+  RotateCcw, Users, UserPlus, Link2, Trash2, Crown,
 } from "lucide-react";
 
 const DEMO_EMAIL = "demo@propbooks.com";
@@ -40,6 +45,7 @@ const card = { background: "var(--surface)", borderRadius: 16, padding: 24, bord
 // -----------------------------------------------------------------------------
 const TABS = [
   { id: "profile",       icon: User,       label: "Profile"       },
+  { id: "team",          icon: Users,      label: "Team"          },
   { id: "subscription",  icon: CreditCard, label: "Subscription"  },
   { id: "notifications", icon: Bell,       label: "Notifications" },
   { id: "security",      icon: Shield,     label: "Security"      },
@@ -230,6 +236,229 @@ function DemoResetCard() {
         </Modal>
       )}
     </>
+  );
+}
+
+// -----------------------------------------------------------------------------
+// Team Tab — list members, owner can invite by email + remove members.
+// -----------------------------------------------------------------------------
+function TeamTab() {
+  const { user } = useAuth();
+  const { showToast } = useToast();
+  const isDemo = user?.email === DEMO_EMAIL;
+  const [account, setAccount] = useState(null);
+  const [members, setMembers] = useState([]);
+  const [invites, setInvites] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviting, setInviting] = useState(false);
+  const [error, setError] = useState("");
+  const [version, setVersion] = useState(0);
+
+  const isOwner = account?.myRole === "owner";
+  const memberLimit = account?.member_limit || 5;
+  const usedSeats = members.length + invites.length;
+  const seatsLeft = Math.max(0, memberLimit - usedSeats);
+  const atCap = seatsLeft === 0;
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    (async () => {
+      try {
+        const [acct, mem, inv] = await Promise.all([
+          getCurrentAccount(), listAccountMembers(), listPendingInvites(),
+        ]);
+        if (cancelled) return;
+        setAccount(acct);
+        setMembers(mem);
+        setInvites(inv);
+      } catch (e) {
+        if (!cancelled) showToast("Couldn't load team — " + (e.message || "unknown error"), "error");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [user?.id, version]);
+
+  async function handleInvite(e) {
+    e.preventDefault();
+    setError("");
+    if (!inviteEmail.trim()) return setError("Enter an email address.");
+    if (isDemo) return setError("Inviting is disabled on the demo account.");
+    setInviting(true);
+    try {
+      const invite = await inviteByEmail(inviteEmail);
+      const link = `${window.location.origin}/?invite=${invite.token}`;
+      try { await navigator.clipboard.writeText(link); } catch {}
+      showToast(`Invite link for ${invite.email} copied to clipboard — share it with them to join.`, "success");
+      setInviteEmail("");
+      setVersion(v => v + 1);
+    } catch (err) {
+      setError(err.message || "Could not send invite.");
+    } finally {
+      setInviting(false);
+    }
+  }
+
+  async function copyInviteLink(token, email) {
+    const link = `${window.location.origin}/?invite=${token}`;
+    try {
+      await navigator.clipboard.writeText(link);
+      showToast(`Invite link for ${email} copied to clipboard.`, "success");
+    } catch { showToast("Couldn't copy — copy manually: " + link, "info"); }
+  }
+
+  async function handleRevoke(invite) {
+    try {
+      await revokeInvite(invite.id);
+      showToast(`Revoked invite for ${invite.email}.`, "success");
+      setVersion(v => v + 1);
+    } catch (err) { showToast(err.message || "Couldn't revoke invite.", "error"); }
+  }
+
+  async function handleRemove(member) {
+    if (!confirm(`Remove ${member.name} from the account? They'll keep their login but lose access to your portfolio data.`)) return;
+    try {
+      await removeMember(member.id);
+      showToast(`${member.name} removed from the account.`, "success");
+      setVersion(v => v + 1);
+    } catch (err) { showToast(err.message || "Couldn't remove member.", "error"); }
+  }
+
+  return (
+    <div>
+      {section("Team", "Invite up to 5 people to collaborate on your portfolio")}
+
+      {/* Seat counter */}
+      <div style={{ ...card, display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <div style={{ width: 40, height: 40, borderRadius: 10, background: "var(--surface-alt)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <Users size={18} color="#e95e00" />
+          </div>
+          <div>
+            <p style={{ color: "var(--text-primary)", fontWeight: 700, fontSize: 15 }}>{usedSeats} of {memberLimit} seats used</p>
+            <p style={{ color: "var(--text-secondary)", fontSize: 13 }}>
+              {atCap ? "Account is full — remove a member or revoke an invite to add more." : `${seatsLeft} ${seatsLeft === 1 ? "seat" : "seats"} available`}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Invite form (owner only) */}
+      {isOwner && !isDemo && (
+        <div style={card}>
+          <p style={{ color: "var(--text-primary)", fontWeight: 700, fontSize: 15, marginBottom: 12 }}>Invite a teammate</p>
+          <form onSubmit={handleInvite} style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <input
+              type="email"
+              placeholder="teammate@example.com"
+              value={inviteEmail}
+              onChange={e => setInviteEmail(e.target.value)}
+              disabled={inviting || atCap}
+              style={{ ...inp, flex: 1, minWidth: 220 }}
+            />
+            <button
+              type="submit"
+              disabled={inviting || atCap}
+              style={{ padding: "10px 18px", borderRadius: 10, border: "none", background: atCap ? "var(--surface-alt)" : "#e95e00", color: atCap ? "var(--text-dim)" : "#fff", fontWeight: 700, fontSize: 13, cursor: atCap || inviting ? "not-allowed" : "pointer", opacity: inviting ? 0.7 : 1, display: "flex", alignItems: "center", gap: 6 }}
+            >
+              <UserPlus size={14} />
+              {inviting ? "Sending…" : "Send invite"}
+            </button>
+          </form>
+          {error && (
+            <div style={{ marginTop: 10, padding: "8px 12px", background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 8, color: "#b91c1c", fontSize: 13 }}>{error}</div>
+          )}
+          <p style={{ marginTop: 10, fontSize: 12, color: "var(--text-dim)" }}>
+            An invite link will be copied to your clipboard — share it directly until we wire up transactional email.
+          </p>
+        </div>
+      )}
+
+      {isDemo && (
+        <div style={{ ...card, background: "var(--surface-alt)" }}>
+          <p style={{ color: "var(--text-secondary)", fontSize: 13 }}>Inviting teammates is disabled on the demo account.</p>
+        </div>
+      )}
+
+      {/* Members list */}
+      <div style={card}>
+        <p style={{ color: "var(--text-primary)", fontWeight: 700, fontSize: 15, marginBottom: 12 }}>Members ({members.length})</p>
+        {loading ? (
+          <p style={{ color: "var(--text-dim)", fontSize: 13 }}>Loading…</p>
+        ) : members.length === 0 ? (
+          <p style={{ color: "var(--text-dim)", fontSize: 13 }}>No members yet.</p>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {members.map(m => (
+              <div key={m.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 12px", background: "var(--surface-alt)", borderRadius: 10 }}>
+                <div style={{ width: 36, height: 36, borderRadius: 10, background: m.color, color: "#fff", fontWeight: 700, fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                  {m.initials}
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <p style={{ color: "var(--text-primary)", fontWeight: 600, fontSize: 14 }}>{m.name}</p>
+                    {m.role === "owner" && (
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "2px 8px", background: "#fef3c7", color: "#92400e", borderRadius: 12, fontSize: 11, fontWeight: 700 }}>
+                        <Crown size={11} /> Owner
+                      </span>
+                    )}
+                    {m.id === user?.id && (
+                      <span style={{ fontSize: 11, color: "var(--text-dim)" }}>(you)</span>
+                    )}
+                  </div>
+                  <p style={{ color: "var(--text-dim)", fontSize: 12 }}>{m.email}</p>
+                </div>
+                {isOwner && m.role !== "owner" && !isDemo && (
+                  <button
+                    type="button"
+                    onClick={() => handleRemove(m)}
+                    title="Remove from account"
+                    style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8", padding: 6, borderRadius: 8, display: "flex", alignItems: "center" }}
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Pending invites */}
+      {invites.length > 0 && (
+        <div style={card}>
+          <p style={{ color: "var(--text-primary)", fontWeight: 700, fontSize: 15, marginBottom: 12 }}>Pending invites ({invites.length})</p>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {invites.map(inv => (
+              <div key={inv.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 12px", background: "var(--surface-alt)", borderRadius: 10 }}>
+                <div style={{ width: 36, height: 36, borderRadius: 10, background: "var(--surface)", border: "1px dashed var(--border)", color: "var(--text-dim)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                  <UserPlus size={16} />
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ color: "var(--text-primary)", fontWeight: 600, fontSize: 14 }}>{inv.email}</p>
+                  <p style={{ color: "var(--text-dim)", fontSize: 12 }}>Invited {new Date(inv.createdAt).toLocaleDateString()} · expires {new Date(inv.expiresAt).toLocaleDateString()}</p>
+                </div>
+                {isOwner && !isDemo && (
+                  <>
+                    <button type="button" onClick={() => copyInviteLink(inv.token, inv.email)} title="Copy invite link"
+                      style={{ background: "none", border: "1px solid var(--border)", cursor: "pointer", color: "var(--text-secondary)", padding: "6px 10px", borderRadius: 8, display: "inline-flex", alignItems: "center", gap: 4, fontSize: 12 }}>
+                      <Link2 size={13} /> Copy link
+                    </button>
+                    <button type="button" onClick={() => handleRevoke(inv)} title="Revoke invite"
+                      style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8", padding: 6, borderRadius: 8, display: "flex", alignItems: "center" }}>
+                      <Trash2 size={14} />
+                    </button>
+                  </>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -494,6 +723,7 @@ export function Settings({ onClose }) {
 
   const tabContent = {
     profile:       <ProfileTab />,
+    team:          <TeamTab />,
     subscription:  <SubscriptionTab />,
     notifications: <NotificationsTab />,
     security:      <SecurityTab />,
