@@ -374,7 +374,7 @@ export function AppShell() {
   // Cross-cutting tools — apply to both rentals and rehabs
   const toolNavItems = [
     { id: "notes",         label: "Notes",            icon: MessageSquare },
-    { id: "dealanalyzer",  label: "Rehab Analyzer",    icon: Calculator },
+    { id: "dealanalyzer",  label: "Investment Analyzer", icon: Calculator },
     { id: "mileage",       label: "Mileage Tracker",  icon: Car        },
   ];
 

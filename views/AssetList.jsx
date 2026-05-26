@@ -11,7 +11,7 @@
 //
 // Internal `kind: "rental" | "flip"` is the in-memory discriminator;
 // user-facing text uses Rental / Rehab to match the codebase's existing
-// vocabulary (Rehab Pipeline, Rehab Detail, Rehab Analyzer, etc.).
+// vocabulary (Rehab Pipeline, Rehab Detail, Investment Analyzer, etc.).
 // =============================================================================
 import { useState, useMemo } from "react";
 import {

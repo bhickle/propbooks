@@ -53,11 +53,11 @@ export function DealAnalyzer() {
   return (
     <div>
       <div style={{ marginBottom: 24 }}>
-        <h1 style={{ color: "var(--text-primary)", fontSize: 26, fontWeight: 700, marginBottom: 4 }}>Rehab Analyzer</h1>
+        <h1 style={{ color: "var(--text-primary)", fontSize: 26, fontWeight: 700, marginBottom: 4 }}>Investment Analyzer</h1>
         <p style={{ color: "var(--text-secondary)", fontSize: 15 }}>Run the numbers before you make an offer</p>
       </div>
       <div style={{ display: "flex", background: "var(--surface-alt)", borderRadius: 10, padding: 4, width: "fit-content", marginBottom: 28, border: "1px solid var(--border)" }}>
-        {[{ id: "deal", label: "Fix & Flip", icon: Hammer }, { id: "rental", label: "Buy & Hold", icon: Building2 }].map(m => {
+        {[{ id: "deal", label: "Rehab", icon: Hammer }, { id: "rental", label: "Rental", icon: Building2 }].map(m => {
           const active = mode === m.id;
           return (
             <button key={m.id} onClick={() => setMode(m.id)} style={{ display: "flex", alignItems: "center", gap: 7, padding: "10px 22px", borderRadius: 8, border: "none", background: active ? "#e95e00" : "transparent", color: active ? "#fff" : "var(--text-secondary)", fontWeight: active ? 700 : 500, fontSize: 14, cursor: "pointer", transition: "all 0.15s" }}>
