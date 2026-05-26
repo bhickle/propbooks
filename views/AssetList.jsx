@@ -144,17 +144,24 @@ function isClosed(row) {
 }
 
 export function AssetList({ onSelectRental, onSelectFlip, onAddRental, onAddFlip }) {
-  const [typeFilter, setTypeFilter] = useState("all"); // "all" | "rental" | "flip"
+  // "all" / "rental" / "flip" show active assets of that type. "closed" shows
+  // every closed asset (sold rentals + sold/converted rehabs) — mirrors how
+  // TenantManagement surfaces "Past Tenants" as a pill rather than a separate
+  // checkbox.
+  const [typeFilter, setTypeFilter] = useState("all");
   const [search, setSearch] = useState("");
   const [showAddMenu, setShowAddMenu] = useState(false);
-  const [showClosed, setShowClosed] = useState(false);
 
   const rows = useMemo(() => buildAssets(), []);
 
   const filtered = rows.filter(r => {
-    if (!showClosed && isClosed(r)) return false;
-    if (typeFilter === "rental" && r.kind !== "rental") return false;
-    if (typeFilter === "flip" && r.kind !== "flip") return false;
+    if (typeFilter === "closed") {
+      if (!isClosed(r)) return false;
+    } else {
+      if (isClosed(r)) return false;
+      if (typeFilter === "rental" && r.kind !== "rental") return false;
+      if (typeFilter === "flip" && r.kind !== "flip") return false;
+    }
     const q = search.toLowerCase().trim();
     if (!q) return true;
     return (
@@ -229,12 +236,13 @@ export function AssetList({ onSelectRental, onSelectFlip, onAddRental, onAddFlip
         <StatCard icon={Hammer}     label="Projected Profit"  value={fmtK(Math.round(projectedProfit))} sub="Active rehabs"                       color="#e95e00"         tip="ARV − purchase − rehab − holding & selling costs across active rehabs (excludes Sold and Converted to Rental)." />
       </div>
 
-      <div style={{ display: "flex", gap: 10, marginBottom: 20, flexWrap: "wrap", alignItems: "center" }}>
+      <div style={{ display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap", alignItems: "center" }}>
         <div style={{ display: "flex", gap: 4, background: "var(--surface-alt)", borderRadius: 10, padding: 4, border: "1px solid var(--border)" }}>
           {[
             { id: "all",    label: `All (${activeRows.length})` },
             { id: "rental", label: `Rentals (${rentalCount})` },
             { id: "flip",   label: `Rehabs (${flipCount})` },
+            ...(closedCount > 0 ? [{ id: "closed", label: `Closed (${closedCount})` }] : []),
           ].map(t => {
             const active = typeFilter === t.id;
             return (
@@ -250,14 +258,8 @@ export function AssetList({ onSelectRental, onSelectFlip, onAddRental, onAddFlip
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search assets..."
             style={{ width: "100%", paddingLeft: 36, paddingRight: 12, paddingTop: 9, paddingBottom: 9, border: "1px solid var(--border)", borderRadius: 10, fontSize: 13, color: "var(--text-primary)", background: "var(--surface)", outline: "none", boxSizing: "border-box" }} />
         </div>
-        {closedCount > 0 && (
-          <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 600, color: "var(--text-secondary)", cursor: "pointer" }}>
-            <input type="checkbox" checked={showClosed} onChange={e => setShowClosed(e.target.checked)} />
-            Show closed ({closedCount})
-          </label>
-        )}
-        {(typeFilter !== "all" || search || showClosed) && (
-          <button onClick={() => { setTypeFilter("all"); setSearch(""); setShowClosed(false); }}
+        {(typeFilter !== "all" || search) && (
+          <button onClick={() => { setTypeFilter("all"); setSearch(""); }}
             style={{ background: "none", border: "none", color: "var(--text-muted)", fontSize: 12, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
             <X size={13} /> Clear filters
           </button>
