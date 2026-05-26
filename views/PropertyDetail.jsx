@@ -812,27 +812,24 @@ export function PropertyDetail({ property, onBack, backLabel, onEditProperty, on
 
           {/* Delete confirm */}
           {noteDeleteConfirm && (
-            <div style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 500 }}>
-              <div style={{ background: "var(--surface)", borderRadius: 16, padding: 28, width: 360, boxShadow: "0 25px 60px rgba(0,0,0,0.2)" }}>
-                <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--text-primary)", margin: "0 0 8px 0" }}>Delete Note?</h3>
-                <p style={{ fontSize: 13, color: "var(--text-secondary)", margin: "0 0 20px 0" }}>This cannot be undone.</p>
-                <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
-                  <button onClick={() => setNoteDeleteConfirm(null)} style={{ padding: "8px 16px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text-label)", fontWeight: 600, fontSize: 13, cursor: "pointer" }}>Cancel</button>
-                  <button onClick={async () => {
-                    try {
-                      await dbDeleteNote(noteDeleteConfirm);
-                      const idx = RENTAL_NOTES.findIndex(n => n.id === noteDeleteConfirm);
-                      if (idx !== -1) RENTAL_NOTES.splice(idx, 1);
-                      setNoteDeleteConfirm(null);
-                      reRenderNotes(n => n + 1);
-                    } catch (e) {
-                      console.error("[PropBooks] Delete note failed:", e);
-                      showToast("Couldn't delete note — " + (e.message || "unknown error"));
-                    }
-                  }} style={{ padding: "8px 16px", borderRadius: 8, border: "none", background: "var(--c-red)", color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>Delete</button>
-                </div>
+            <Modal title="Delete Note?" onClose={() => setNoteDeleteConfirm(null)} width={400}>
+              <p style={{ fontSize: 13, color: "var(--text-secondary)", margin: "0 0 20px 0" }}>This cannot be undone.</p>
+              <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+                <button onClick={() => setNoteDeleteConfirm(null)} style={{ padding: "8px 16px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text-label)", fontWeight: 600, fontSize: 13, cursor: "pointer" }}>Cancel</button>
+                <button onClick={async () => {
+                  try {
+                    await dbDeleteNote(noteDeleteConfirm);
+                    const idx = RENTAL_NOTES.findIndex(n => n.id === noteDeleteConfirm);
+                    if (idx !== -1) RENTAL_NOTES.splice(idx, 1);
+                    setNoteDeleteConfirm(null);
+                    reRenderNotes(n => n + 1);
+                  } catch (e) {
+                    console.error("[PropBooks] Delete note failed:", e);
+                    showToast("Couldn't delete note — " + (e.message || "unknown error"));
+                  }
+                }} style={{ padding: "8px 16px", borderRadius: 8, border: "none", background: "var(--c-red)", color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>Delete</button>
               </div>
-            </div>
+            </Modal>
           )}
         </div>
       )}

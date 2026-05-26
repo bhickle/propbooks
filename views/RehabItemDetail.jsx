@@ -10,7 +10,7 @@ import {
   fmt, DEALS, DEAL_NOTES, DEAL_EXPENSES, CONTRACTORS, CONTRACTOR_BIDS,
   REHAB_CATEGORIES, REHAB_CATEGORY_GROUPS, getCanonicalByLabel,
 } from "../api.js";
-import { InfoTip, sectionS as sharedSectionS, cardS as sharedCardS } from "../shared.jsx";
+import { InfoTip, Modal, sectionS as sharedSectionS, cardS as sharedCardS } from "../shared.jsx";
 import { useToast } from "../toast.jsx";
 import { createDealNote as dbCreateDealNote, deleteNote as dbDeleteNote } from "../db/notes.js";
 import { updateRehabItem as dbUpdateRehabItem } from "../db/dealRehabItems.js";
@@ -349,12 +349,7 @@ export function RehabItemDetail({ deal, itemIdx, onBack, backLabel, onNavigateTo
 
       {/* Edit modal */}
       {showEdit && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 500 }}>
-          <div style={{ background: "var(--surface)", borderRadius: 20, padding: 28, width: 480, boxShadow: "0 25px 60px rgba(0,0,0,0.2)" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-              <h2 style={{ color: "var(--text-primary)", fontSize: 20, fontWeight: 700 }}>Edit Scope Item</h2>
-              <button onClick={() => setShowEdit(false)} style={{ background: "var(--surface-muted)", border: "none", borderRadius: 8, width: 32, height: 32, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><X size={16} color="var(--text-secondary)" /></button>
-            </div>
+        <Modal title="Edit Scope Item" onClose={() => setShowEdit(false)} width={480}>
             <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
               <div style={{ position: "relative" }}>
                 <label style={{ display: "block", color: "var(--text-dim)", fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Category *</label>
@@ -427,22 +422,18 @@ export function RehabItemDetail({ deal, itemIdx, onBack, backLabel, onNavigateTo
               <button onClick={() => setShowEdit(false)} style={{ flex: 1, padding: "12px", border: "1px solid var(--border)", borderRadius: 10, background: "var(--surface)", color: "var(--text-label)", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
               <button onClick={saveEdit} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "#e95e00", color: "#fff", fontWeight: 600, cursor: "pointer" }}>Save Changes</button>
             </div>
-          </div>
-        </div>
+        </Modal>
       )}
 
       {/* Delete note confirm */}
       {deletingNoteId && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 500 }}>
-          <div style={{ background: "var(--surface)", borderRadius: 20, padding: 28, width: 400, boxShadow: "0 25px 60px rgba(0,0,0,0.2)" }}>
-            <h2 style={{ color: "var(--text-primary)", fontSize: 18, fontWeight: 700, marginBottom: 8 }}>Delete note?</h2>
-            <p style={{ fontSize: 14, color: "var(--text-secondary)", marginBottom: 20 }}>This cannot be undone.</p>
-            <div style={{ display: "flex", gap: 10 }}>
-              <button onClick={() => setDeletingNoteId(null)} style={{ flex: 1, padding: "12px", border: "1px solid var(--border)", borderRadius: 10, background: "var(--surface)", color: "var(--text-label)", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
-              <button onClick={() => deleteNote(deletingNoteId)} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "var(--c-red)", color: "#fff", fontWeight: 600, cursor: "pointer" }}>Delete</button>
-            </div>
+        <Modal title="Delete note?" onClose={() => setDeletingNoteId(null)} width={400}>
+          <p style={{ fontSize: 14, color: "var(--text-secondary)", marginBottom: 20 }}>This cannot be undone.</p>
+          <div style={{ display: "flex", gap: 10 }}>
+            <button onClick={() => setDeletingNoteId(null)} style={{ flex: 1, padding: "12px", border: "1px solid var(--border)", borderRadius: 10, background: "var(--surface)", color: "var(--text-label)", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
+            <button onClick={() => deleteNote(deletingNoteId)} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "var(--c-red)", color: "#fff", fontWeight: 600, cursor: "pointer" }}>Delete</button>
           </div>
-        </div>
+        </Modal>
       )}
     </div>
   );

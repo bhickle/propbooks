@@ -1222,12 +1222,11 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
 
       {/* Add Rehab Modal — used by the Plan tab */}
       {showAddRehab && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
-          <div style={{ background: "var(--surface)", borderRadius: 20, width: 480, padding: 28 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-              <h2 style={{ color: "var(--text-primary)", fontSize: 18, fontWeight: 700 }}>{editingRehabIdx !== null ? "Edit Scope Item" : "Add Scope Item"}</h2>
-              <button onClick={() => { setShowAddRehab(false); setRehabForm(emptyRehab); setEditingRehabIdx(null); }} style={{ background: "var(--surface-muted)", border: "none", borderRadius: 8, width: 32, height: 32, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><X size={16} color="var(--text-secondary)" /></button>
-            </div>
+        <Modal
+          title={editingRehabIdx !== null ? "Edit Scope Item" : "Add Scope Item"}
+          onClose={() => { setShowAddRehab(false); setRehabForm(emptyRehab); setEditingRehabIdx(null); }}
+          width={480}
+        >
             <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
               <div style={{ position: "relative" }}>
                 <label style={{ display: "block", color: "var(--text-dim)", fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Category *</label>
@@ -1341,8 +1340,7 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
                 }
               }} style={{ padding: "10px 24px", borderRadius: 10, border: "none", background: "#e95e00", color: "#fff", fontWeight: 600, fontSize: 14, cursor: "pointer", opacity: (!rehabForm.category || !rehabForm.budgeted) ? 0.5 : 1 }}>{editingRehabIdx !== null ? "Save Changes" : "Add Item"}</button>
             </div>
-          </div>
-        </div>
+        </Modal>
       )}
 
       {activeTab === "expenses" && (
