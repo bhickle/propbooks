@@ -221,14 +221,6 @@ export function TenantManagement({ onBack, highlightTenantId, onClearHighlight, 
           {PROPERTIES.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
         </select>
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 24 }}>
-        {[
-          { label: "Total Units", value: totalUnits, sub: "Across portfolio", color: "var(--c-blue)", icon: Home, tip: "Count of all active unit records (excludes past tenants)" },
-          { label: "Occupied", value: `${occupied}/${totalUnits}`, sub: `${100 - Number(vacancyRate)}% occupancy`, color: "var(--c-green)", icon: CheckSquare, tip: "Units with an active-lease or month-to-month tenant divided by total units" },
-          { label: "Vacancy Rate", value: `${vacancyRate}%`, sub: `${totalUnits - occupied} unit${totalUnits - occupied !== 1 ? "s" : ""} vacant`, color: Number(vacancyRate) > 10 ? "var(--c-red)" : "#e95e00", icon: AlertCircle, semantic: true, tip: "Vacant units / total units. Red when above 10%" },
-          { label: "Gross Monthly Rent", value: fmt(grossRent), sub: "Occupied units only", color: "var(--c-purple)", icon: DollarSign, tip: "Sum of monthly rent for all occupied units (excludes vacant)" },
-        ].map((m, i) => <StatCard key={i} {...m} />)}
-      </div>
       {/* Filters */}
       <div style={{ display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap", alignItems: "center" }}>
         <div style={{ display: "flex", gap: 4, background: "var(--surface-alt)", borderRadius: 10, padding: 4, border: "1px solid var(--border)" }}>
@@ -257,6 +249,15 @@ export function TenantManagement({ onBack, highlightTenantId, onClearHighlight, 
         <button onClick={openAdd} style={{ marginLeft: "auto", background: "var(--c-blue)", color: "#fff", border: "none", borderRadius: 10, padding: "9px 16px", fontWeight: 600, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
           <Plus size={14} /> Add Tenant
         </button>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 24 }}>
+        {[
+          { label: "Total Units", value: totalUnits, sub: "Across portfolio", color: "var(--c-blue)", icon: Home, tip: "Count of all active unit records (excludes past tenants)" },
+          { label: "Occupied", value: `${occupied}/${totalUnits}`, sub: `${100 - Number(vacancyRate)}% occupancy`, color: "var(--c-green)", icon: CheckSquare, tip: "Units with an active-lease or month-to-month tenant divided by total units" },
+          { label: "Vacancy Rate", value: `${vacancyRate}%`, sub: `${totalUnits - occupied} unit${totalUnits - occupied !== 1 ? "s" : ""} vacant`, color: Number(vacancyRate) > 10 ? "var(--c-red)" : "#e95e00", icon: AlertCircle, semantic: true, tip: "Vacant units / total units. Red when above 10%" },
+          { label: "Gross Monthly Rent", value: fmt(grossRent), sub: "Occupied units only", color: "var(--c-purple)", icon: DollarSign, tip: "Sum of monthly rent for all occupied units (excludes vacant)" },
+        ].map((m, i) => <StatCard key={i} {...m} />)}
       </div>
 
       {expiringIn90.length > 0 && statusFilter !== "expiring" && !isPastView && (

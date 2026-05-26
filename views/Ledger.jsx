@@ -734,13 +734,6 @@ export function Ledger({ highlightRowKey, initialAssetFilter, onClearHighlight }
         </button>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 24 }}>
-        <StatCard icon={TrendingUp}   label="Income"   value={fmt(income)}        sub={`Filtered · ${dateRangeLabel(dateRange)}`}   color="var(--c-green)"  tip="Sum of positive amounts in the filtered ledger view (rental income only — rehabs don't have income rows until sale)." />
-        <StatCard icon={TrendingDown} label="Expenses" value={fmt(Math.abs(expenses))} sub={`Filtered · ${dateRangeLabel(dateRange)}`} color="var(--c-red)" tip="Sum of money-out across both rental expenses and rehab expenses, scoped to the current filters." />
-        <StatCard icon={Wallet}       label="Net"      value={fmt(net)}           sub="Income − Expenses"                            color={net >= 0 ? "var(--c-green)" : "var(--c-red)"} tip="Income minus Expenses for the filtered view. For a rehab-only filter this will always be negative since rehabs don't have income rows until sale." />
-        <StatCard icon={Hash}         label="Entries"  value={filtered.length}    sub={`of ${rows.length} total`}                    color="var(--c-blue)"   tip="Count of ledger rows matching the current filters." />
-      </div>
-
       {/* Filter bar */}
       <div style={{ display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap", alignItems: "center" }}>
         <div style={{ display: "flex", gap: 4, background: "var(--surface-alt)", borderRadius: 10, padding: 4, border: "1px solid var(--border)" }}>
@@ -791,6 +784,13 @@ export function Ledger({ highlightRowKey, initialAssetFilter, onClearHighlight }
             <X size={13} /> Clear filters
           </button>
         )}
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 24 }}>
+        <StatCard icon={TrendingUp}   label="Income"   value={fmt(income)}        sub={`Filtered · ${dateRangeLabel(dateRange)}`}   color="var(--c-green)"  tip="Sum of positive amounts in the filtered ledger view (rental income only — rehabs don't have income rows until sale)." />
+        <StatCard icon={TrendingDown} label="Expenses" value={fmt(Math.abs(expenses))} sub={`Filtered · ${dateRangeLabel(dateRange)}`} color="var(--c-red)" tip="Sum of money-out across both rental expenses and rehab expenses, scoped to the current filters." />
+        <StatCard icon={Wallet}       label="Net"      value={fmt(net)}           sub="Income − Expenses"                            color={net >= 0 ? "var(--c-green)" : "var(--c-red)"} tip="Income minus Expenses for the filtered view. For a rehab-only filter this will always be negative since rehabs don't have income rows until sale." />
+        <StatCard icon={Hash}         label="Entries"  value={filtered.length}    sub={`of ${rows.length} total`}                    color="var(--c-blue)"   tip="Count of ledger rows matching the current filters." />
       </div>
 
       {/* Table */}

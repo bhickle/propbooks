@@ -229,13 +229,6 @@ export function AssetList({ onSelectRental, onSelectFlip, onAddRental, onAddFlip
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 24 }}>
-        <StatCard icon={Building2}  label="Total Assets"      value={activeRows.length}      sub={`${rentalCount} rentals · ${flipCount} rehabs`} color="var(--c-blue)"   tip="Active rentals + active rehabs. Archived rentals and closed rehabs are excluded — toggle 'Show archived' below to see them." />
-        <StatCard icon={TrendingUp} label="Portfolio Value"   value={fmtK(totalValue)}       sub="Current value + ARV"                          color="var(--c-purple)" tip="Sum of current value across active rentals and ARV across active rehabs." />
-        <StatCard icon={Home}       label="Monthly Cash Flow" value={fmt(monthlyCF)}         sub="Active rentals"                                color="var(--c-green)"  tip="Sum of (rent − expenses) across active rentals using the latest 3-month average where transactions exist. Archived rentals excluded." />
-        <StatCard icon={Hammer}     label="Projected Profit"  value={fmtK(Math.round(projectedProfit))} sub="Active rehabs"                       color="#e95e00"         tip="ARV − purchase − rehab − holding & selling costs across active rehabs (excludes Sold and Converted to Rental)." />
-      </div>
-
       <div style={{ display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap", alignItems: "center" }}>
         <div style={{ display: "flex", gap: 4, background: "var(--surface-alt)", borderRadius: 10, padding: 4, border: "1px solid var(--border)" }}>
           {[
@@ -264,6 +257,13 @@ export function AssetList({ onSelectRental, onSelectFlip, onAddRental, onAddFlip
             <X size={13} /> Clear filters
           </button>
         )}
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 24 }}>
+        <StatCard icon={Building2}  label="Total Assets"      value={activeRows.length}      sub={`${rentalCount} rentals · ${flipCount} rehabs`} color="var(--c-blue)"   tip="Active rentals + active rehabs. Closed assets are excluded — switch the filter to 'Closed' above to see them." />
+        <StatCard icon={TrendingUp} label="Portfolio Value"   value={fmtK(totalValue)}       sub="Current value + ARV"                          color="var(--c-purple)" tip="Sum of current value across active rentals and ARV across active rehabs." />
+        <StatCard icon={Home}       label="Monthly Cash Flow" value={fmt(monthlyCF)}         sub="Active rentals"                                color="var(--c-green)"  tip="Sum of (rent − expenses) across active rentals using the latest 3-month average where transactions exist. Closed rentals excluded." />
+        <StatCard icon={Hammer}     label="Projected Profit"  value={fmtK(Math.round(projectedProfit))} sub="Active rehabs"                       color="#e95e00"         tip="ARV − purchase − rehab − holding & selling costs across active rehabs (excludes Sold and Converted to Rental)." />
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 20 }}>

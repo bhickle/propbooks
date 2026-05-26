@@ -145,7 +145,7 @@ Before submitting any screen change, verify:
 - [ ] Section cards: `sectionS` style from shared.jsx
 - [ ] Chart headers: `<h3>` (fontSize 16, fontWeight 700) + `<p>` subtitle (fontSize 13, color var(--text-muted), marginBottom 20)
 - [ ] KPI/stat cards: `<StatCard>` from shared.jsx with `tip` prop on every metric
-- [ ] Filter placement: Header → Dropdown/Filter bar → Stat cards → Content
+- [ ] Filter placement: Header → Filter bar → Stat cards → Content (canonical across every list screen — Assets, Ledger, Tenants, Mileage, Reports. The old "Dashboard pattern" with stats above the pill bar is retired.)
 - [ ] Modals use the `<Modal>` wrapper from shared.jsx, not inline rgba overlay divs
 - [ ] Pill buttons: gray container (var(--surface-alt), border var(--border), borderRadius 10), amber active (#f59e0b)
 - [ ] Fonts: Space Grotesk for h1/h2, Inter for everything else

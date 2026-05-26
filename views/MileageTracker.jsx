@@ -112,14 +112,6 @@ export function MileageTracker() {
           <Plus size={16} /> Add Trip
         </button>
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 24 }}>
-        {[
-          { label: "Total Miles", value: totalMiles.toFixed(1), sub: dateFilter === "thisYear" ? "This year" : dateFilter === "thisMonth" ? "This month" : dateFilter === "lastMonth" ? "Last month" : "All time", color: "var(--c-blue)", icon: Car, tip: "Sum of all miles logged for the selected time period and purpose filter." },
-          { label: "Business Miles", value: businessMiles.toFixed(1), sub: "100% deductible trips", color: "var(--c-green)", icon: Route, tip: "Miles from trips marked as 100% business deductible." },
-          { label: "Mileage Deduction", value: fmt(deduction), sub: `@ $${IRS_RATE}/mile IRS rate`, color: "var(--c-purple)", icon: DollarSign, tip: "Total deductible miles × IRS standard mileage rate. Each trip's miles are multiplied by its business-use percentage." },
-          { label: "Trips", value: filteredTrips.length, sub: `of ${tripData.length} total logged`, color: "#e95e00", icon: Truck, tip: "Number of trips matching the current filters out of all logged trips." },
-        ].map((m, i) => <StatCard key={i} {...m} />)}
-      </div>
       {/* Mileage filters */}
       <div style={{ display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap", alignItems: "center" }}>
         <div style={{ display: "flex", gap: 4, background: "var(--surface-alt)", borderRadius: 10, padding: 4, border: "1px solid var(--border)" }}>
@@ -153,6 +145,15 @@ export function MileageTracker() {
             <X size={13} /> Clear filters
           </button>
         )}
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 24 }}>
+        {[
+          { label: "Total Miles", value: totalMiles.toFixed(1), sub: dateFilter === "thisYear" ? "This year" : dateFilter === "thisMonth" ? "This month" : dateFilter === "lastMonth" ? "Last month" : "All time", color: "var(--c-blue)", icon: Car, tip: "Sum of all miles logged for the selected time period and purpose filter." },
+          { label: "Business Miles", value: businessMiles.toFixed(1), sub: "100% deductible trips", color: "var(--c-green)", icon: Route, tip: "Miles from trips marked as 100% business deductible." },
+          { label: "Mileage Deduction", value: fmt(deduction), sub: `@ $${IRS_RATE}/mile IRS rate`, color: "var(--c-purple)", icon: DollarSign, tip: "Total deductible miles × IRS standard mileage rate. Each trip's miles are multiplied by its business-use percentage." },
+          { label: "Trips", value: filteredTrips.length, sub: `of ${tripData.length} total logged`, color: "#e95e00", icon: Truck, tip: "Number of trips matching the current filters out of all logged trips." },
+        ].map((m, i) => <StatCard key={i} {...m} />)}
       </div>
 
       <div style={{ background: "var(--surface)", borderRadius: 16, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)", overflow: "hidden" }}>
