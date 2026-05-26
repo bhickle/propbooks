@@ -52,6 +52,7 @@ export function ThemeProvider({ children }) {
           --chart-axis: #94a3b8;
           --chart-grid: #f1f5f9;
           --chart-bar-primary: #1e3a5f;
+          --avatar-bg: #1e3a5f;
           --tooltip-bg: #ffffff;
           --tooltip-border: #e2e8f0;
           --tooltip-text: #041830;
@@ -104,6 +105,7 @@ export function ThemeProvider({ children }) {
           --chart-axis: #64748b;
           --chart-grid: #1e293b;
           --chart-bar-primary: #4878a8;
+          --avatar-bg: #4878a8;
           --tooltip-bg: #1e293b;
           --tooltip-border: #334155;
           --tooltip-text: #f1f5f9;

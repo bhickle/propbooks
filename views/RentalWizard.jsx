@@ -217,7 +217,7 @@ export function RentalWizard({ onComplete, onExit }) {
           </p>
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             {tenants.slice(0, unitCount).map((t, i) => (
-              <div key={i} style={{ borderRadius: 12, border: t.vacant ? "1.5px dashed #cbd5e1" : "1px solid var(--border)", padding: 20, background: t.vacant ? "var(--surface-alt)" : "var(--surface)", transition: "all 0.15s" }}>
+              <div key={i} style={{ borderRadius: 12, border: t.vacant ? "1.5px dashed var(--border-strong)" : "1px solid var(--border)", padding: 20, background: t.vacant ? "var(--surface-alt)" : "var(--surface)", transition: "all 0.15s" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: t.vacant ? 0 : 16 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                     <div style={{ width: 28, height: 28, borderRadius: 8, background: t.vacant ? "var(--surface-muted)" : "var(--info-tint)", display: "flex", alignItems: "center", justifyContent: "center" }}>

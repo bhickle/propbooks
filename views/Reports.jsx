@@ -537,7 +537,7 @@ export function Reports() {
                 return (
                   <div key={p.id} style={{ border: "1px solid var(--border-subtle)", borderRadius: 14, padding: 20, marginBottom: 16 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
-                      <div style={{ width: 30, height: 30, borderRadius: 8, background: "#1e3a5f", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 11, fontWeight: 700 }}>{p.image}</div>
+                      <div style={{ width: 30, height: 30, borderRadius: 8, background: "var(--avatar-bg)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 11, fontWeight: 700 }}>{p.image}</div>
                       <div>
                         <p style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)" }}>{p.name}</p>
                         <p style={{ fontSize: 12, color: "var(--text-muted)" }}>{p.address}</p>
@@ -703,8 +703,8 @@ export function Reports() {
               <h2 style={{ color: "var(--text-primary)", fontSize: 18, fontWeight: 700, marginBottom: 4 }}>Owner's Statement</h2>
               <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 20 }}>Monthly P&amp;L summary per property — select a property and month to generate</p>
               {propFilter === "all" ? (
-                <div style={{ background: "var(--surface-alt)", borderRadius: 14, padding: 40, textAlign: "center", border: "1px dashed #cbd5e1" }}>
-                  <Home size={36} style={{ color: "#cbd5e1", marginBottom: 12 }} />
+                <div style={{ background: "var(--surface-alt)", borderRadius: 14, padding: 40, textAlign: "center", border: "1px dashed var(--border-strong)" }}>
+                  <Home size={36} style={{ color: "var(--text-muted)", marginBottom: 12 }} />
                   <p style={{ color: "var(--text-label)", fontWeight: 600, marginBottom: 6 }}>Select a Property to Generate Owner's Statement</p>
                   <p style={{ color: "var(--text-muted)", fontSize: 13 }}>Use the property dropdown above to filter to a single property.</p>
                 </div>
@@ -724,7 +724,7 @@ export function Reports() {
                 return (
                   <div>
                     <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 24 }}>
-                      <div style={{ width: 36, height: 36, borderRadius: 10, background: "#1e3a5f", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 700 }}>{p.image}</div>
+                      <div style={{ width: 36, height: 36, borderRadius: 10, background: "var(--avatar-bg)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 700 }}>{p.image}</div>
                       <div>
                         <p style={{ fontWeight: 700, color: "var(--text-primary)", fontSize: 15 }}>{p.name}</p>
                         <p style={{ color: "var(--text-muted)", fontSize: 13 }}>{p.address}</p>
@@ -865,7 +865,7 @@ export function Reports() {
                       <tr key={p.id} style={{ background: i % 2 === 0 ? "var(--surface)" : "var(--surface-alt)" }}>
                         <td style={{ ...tdStyle, fontWeight: 600 }}>
                           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                            <div style={{ width: 22, height: 22, borderRadius: 6, background: "#1e3a5f", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 10, fontWeight: 700, flexShrink: 0 }}>{p.image}</div>
+                            <div style={{ width: 22, height: 22, borderRadius: 6, background: "var(--avatar-bg)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 10, fontWeight: 700, flexShrink: 0 }}>{p.image}</div>
                             {p.name.split(" ").slice(0, 2).join(" ")}
                           </div>
                         </td>
@@ -958,7 +958,7 @@ export function Reports() {
                     <tr key={p.id} style={{ background: i % 2 === 0 ? "var(--surface)" : "var(--surface-alt)" }}>
                       <td style={{ ...tdStyle, fontWeight: 600 }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                          <div style={{ width: 22, height: 22, borderRadius: 6, background: "#1e3a5f", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 10, fontWeight: 700, flexShrink: 0 }}>{p.image}</div>
+                          <div style={{ width: 22, height: 22, borderRadius: 6, background: "var(--avatar-bg)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 10, fontWeight: 700, flexShrink: 0 }}>{p.image}</div>
                           {p.name.split(" ").slice(0, 2).join(" ")}
                         </div>
                       </td>

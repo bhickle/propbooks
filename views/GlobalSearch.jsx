@@ -42,7 +42,7 @@ export function GlobalSearch({ onNavigate }) {
 
     // Properties
     const props = PROPERTIES.filter(p => p.name.toLowerCase().includes(q) || p.address.toLowerCase().includes(q) || p.type.toLowerCase().includes(q));
-    props.slice(0, MAX_PER).forEach(p => r.push({ type: "property", id: p.id, title: p.name, sub: p.address, icon: Building2, color: "#1e3a5f", image: p.image, data: p }));
+    props.slice(0, MAX_PER).forEach(p => r.push({ type: "property", id: p.id, title: p.name, sub: p.address, icon: Building2, color: "var(--avatar-bg)", image: p.image, data: p }));
 
     // Tenants
     const tenants = TENANTS.filter(t => t.name.toLowerCase().includes(q) || (t.email && t.email.toLowerCase().includes(q)) || (t.phone && t.phone.includes(q)));
@@ -53,7 +53,7 @@ export function GlobalSearch({ onNavigate }) {
 
     // Deals (Flips)
     const deals = DEALS.filter(f => f.name.toLowerCase().includes(q) || f.address.toLowerCase().includes(q) || f.stage.toLowerCase().includes(q));
-    deals.slice(0, MAX_PER).forEach(f => r.push({ type: "deal", id: f.id, title: f.name, sub: `${f.stage} · ${f.address.split(",")[1]?.trim() || f.address}`, icon: Hammer, color: "#1e3a5f", image: f.image, data: f }));
+    deals.slice(0, MAX_PER).forEach(f => r.push({ type: "deal", id: f.id, title: f.name, sub: `${f.stage} · ${f.address.split(",")[1]?.trim() || f.address}`, icon: Hammer, color: "var(--avatar-bg)", image: f.image, data: f }));
 
     // Transactions
     const txs = TRANSACTIONS.filter(t => {
@@ -73,7 +73,7 @@ export function GlobalSearch({ onNavigate }) {
     RENTAL_NOTES.forEach(n => {
       if (n.text.toLowerCase().includes(q)) {
         const prop = PROPERTIES.find(p => p.id === n.propertyId);
-        r.push({ type: "rental-note", id: n.id, title: n.text.length > 60 ? n.text.slice(0, 60) + "…" : n.text, sub: `${prop?.name || "Property"} · ${n.date}`, icon: MessageSquare, color: "#1e3a5f", data: { ...n, propId: n.propertyId } });
+        r.push({ type: "rental-note", id: n.id, title: n.text.length > 60 ? n.text.slice(0, 60) + "…" : n.text, sub: `${prop?.name || "Property"} · ${n.date}`, icon: MessageSquare, color: "var(--avatar-bg)", data: { ...n, propId: n.propertyId } });
       }
     });
 
@@ -81,7 +81,7 @@ export function GlobalSearch({ onNavigate }) {
     DEAL_NOTES.forEach(n => {
       if (n.text.toLowerCase().includes(q)) {
         const deal = DEALS.find(f => f.id === n.dealId);
-        r.push({ type: "deal-note", id: n.id, title: n.text.length > 60 ? n.text.slice(0, 60) + "…" : n.text, sub: `${deal?.name || "Rehab"} · ${n.date}`, icon: MessageSquare, color: "#1e3a5f", data: { ...n, dealId: n.dealId } });
+        r.push({ type: "deal-note", id: n.id, title: n.text.length > 60 ? n.text.slice(0, 60) + "…" : n.text, sub: `${deal?.name || "Rehab"} · ${n.date}`, icon: MessageSquare, color: "var(--avatar-bg)", data: { ...n, dealId: n.dealId } });
       }
     });
 
@@ -128,9 +128,9 @@ export function GlobalSearch({ onNavigate }) {
         <div style={{ position: "absolute", top: "calc(100% + 6px)", right: 0, width: 420, background: "var(--surface)", borderRadius: 14, boxShadow: "0 12px 40px rgba(0,0,0,0.15)", border: "1px solid var(--border)", maxHeight: 440, overflowY: "auto", zIndex: 999 }}>
           {results.length === 0 ? (
             <div style={{ padding: "28px 20px", textAlign: "center" }}>
-              <Search size={28} color="#cbd5e1" style={{ marginBottom: 8 }} />
+              <Search size={28} color="var(--text-muted)" style={{ marginBottom: 8 }} />
               <p style={{ color: "var(--text-muted)", fontSize: 13 }}>No results for "{query}"</p>
-              <p style={{ color: "#cbd5e1", fontSize: 12, marginTop: 4 }}>Try searching by name, address, category, or description</p>
+              <p style={{ color: "var(--text-muted)", fontSize: 12, marginTop: 4 }}>Try searching by name, address, category, or description</p>
             </div>
           ) : (
             <div style={{ padding: "6px 0" }}>
@@ -142,14 +142,14 @@ export function GlobalSearch({ onNavigate }) {
                       style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 16px", cursor: "pointer", transition: "background 0.1s" }}
                       onMouseEnter={e => e.currentTarget.style.background = "var(--surface-alt)"}
                       onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
-                      <div style={{ width: 30, height: 30, borderRadius: 8, background: item.image ? "#1e3a5f" : (item.color || "#64748b") + "18", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                      <div style={{ width: 30, height: 30, borderRadius: 8, background: item.image ? "var(--avatar-bg)" : (item.color || "#64748b") + "18", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                         {item.image ? <span style={{ fontSize: 10, fontWeight: 700, color: "#fff" }}>{item.image}</span> : <item.icon size={14} color={item.color || "#64748b"} />}
                       </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.title}</p>
                         <p style={{ fontSize: 11, color: "var(--text-muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.sub}</p>
                       </div>
-                      <ChevronRight size={14} color="#cbd5e1" />
+                      <ChevronRight size={14} color="var(--text-muted)" />
                     </div>
                   ))}
                 </div>

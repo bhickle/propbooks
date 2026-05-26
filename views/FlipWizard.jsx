@@ -297,9 +297,9 @@ export function FlipWizard({ onComplete, onExit }) {
                       <input type="number" value={item.budgeted} onChange={e => setRehab(i, "budgeted", e.target.value)}
                         style={{ ...wizardInput, paddingLeft: 24 }} placeholder="0" />
                     </div>
-                    <button onClick={() => removeRehabItem(i)} style={{ background: "none", border: "none", color: "#cbd5e1", cursor: "pointer", padding: 6, borderRadius: 6, display: "flex", marginTop: 8 }}
+                    <button onClick={() => removeRehabItem(i)} style={{ background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", padding: 6, borderRadius: 6, display: "flex", marginTop: 8 }}
                       onMouseEnter={e => e.currentTarget.style.color = "var(--c-red)"}
-                      onMouseLeave={e => e.currentTarget.style.color = "#cbd5e1"}>
+                      onMouseLeave={e => e.currentTarget.style.color = "var(--text-muted)"}>
                       <X size={16} />
                     </button>
                   </div>

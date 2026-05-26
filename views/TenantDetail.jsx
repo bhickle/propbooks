@@ -205,7 +205,7 @@ export function TenantDetail({ tenant, onBack, backLabel, onTenantUpdated, onSel
       {/* Header */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24 }}>
         <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
-          <div style={{ width: 56, height: 56, borderRadius: 16, background: "#1e3a5f", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 20, fontWeight: 800 }}>
+          <div style={{ width: 56, height: 56, borderRadius: 16, background: "var(--avatar-bg)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 20, fontWeight: 800 }}>
             {tenant.name?.charAt(0) || "?"}
           </div>
           <div>

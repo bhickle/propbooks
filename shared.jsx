@@ -85,7 +85,7 @@ export function StatCard({
   valueColor = "var(--text-primary)",
 }) {
   const up = trend === "up";
-  const iconBg = semantic ? colorWithAlpha(color, 0.1) : "#1e3a5f";
+  const iconBg = semantic ? colorWithAlpha(color, 0.1) : "var(--avatar-bg)";
   const iconColor = semantic ? color : "#e95e00";
   return (
     <div style={{ background: "var(--surface)", borderRadius: 16, padding: "24px", boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)", border: "1px solid var(--border-subtle)" }}>

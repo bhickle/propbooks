@@ -326,7 +326,7 @@ function ProfitabilityReport({ deals }) {
                   <tr key={d.id}>
                     <td style={{ ...tdS, fontWeight: 600 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#1e3a5f", flexShrink: 0 }} />
+                        <span style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--avatar-bg)", flexShrink: 0 }} />
                         {d.name}
                       </div>
                     </td>
@@ -403,7 +403,7 @@ function RehabBudgetReport({ deals }) {
           <div key={d.id} style={sectionS}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <span style={{ width: 10, height: 10, borderRadius: "50%", background: "#1e3a5f" }} />
+                <span style={{ width: 10, height: 10, borderRadius: "50%", background: "var(--avatar-bg)" }} />
                 <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--text-primary)" }}>{d.name}</h3>
                 <span style={{ background: STAGE_COLORS[d.stage]?.bg || "var(--surface-muted)", color: STAGE_COLORS[d.stage]?.text || "var(--text-secondary)", borderRadius: 20, padding: "2px 10px", fontSize: 11, fontWeight: 600, whiteSpace: "nowrap" }}>{d.stage}</span>
               </div>
@@ -506,7 +506,7 @@ function HoldingCostsReport({ deals }) {
                 <tr key={d.id}>
                   <td style={{ ...tdS, fontWeight: 600 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#1e3a5f", flexShrink: 0 }} />
+                      <span style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--avatar-bg)", flexShrink: 0 }} />
                       {d.name}
                     </div>
                   </td>
@@ -1000,7 +1000,7 @@ function PipelineReport({ deals }) {
                 <tr key={d.id}>
                   <td style={{ ...tdS, fontWeight: 600 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#1e3a5f", flexShrink: 0 }} />
+                      <span style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--avatar-bg)", flexShrink: 0 }} />
                       {d.name}
                     </div>
                   </td>

@@ -824,7 +824,7 @@ export function Ledger({ highlightRowKey, initialAssetFilter, onClearHighlight }
                     <td style={{ padding: "12px 16px" }}><TypeChip row={r} /></td>
                     <td style={{ padding: "12px 16px" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <div style={{ width: 26, height: 26, borderRadius: 7, background: "#1e3a5f", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, fontWeight: 700, color: "#fff", flexShrink: 0 }}>{r.assetImage || "•"}</div>
+                        <div style={{ width: 26, height: 26, borderRadius: 7, background: "var(--avatar-bg)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, fontWeight: 700, color: "#fff", flexShrink: 0 }}>{r.assetImage || "•"}</div>
                         <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>{r.assetName}</span>
                       </div>
                     </td>

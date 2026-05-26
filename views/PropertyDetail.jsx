@@ -208,7 +208,7 @@ export function PropertyDetail({ property, onBack, backLabel, onEditProperty, on
           <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
             {property.photo
               ? <img src={property.photo} alt={property.name} style={{ width: 72, height: 72, borderRadius: 16, objectFit: "cover", border: "3px solid rgba(30,58,95,0.2)" }} />
-              : <div style={{ width: 64, height: 64, borderRadius: 18, background: "#1e3a5f", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 22, fontWeight: 800 }}>{property.image}</div>
+              : <div style={{ width: 64, height: 64, borderRadius: 18, background: "var(--avatar-bg)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 22, fontWeight: 800 }}>{property.image}</div>
             }
             <div>
               <h1 style={{ color: "var(--text-primary)", fontSize: 26, fontWeight: 700, marginBottom: 4 }}>{property.name}</h1>
@@ -333,7 +333,7 @@ export function PropertyDetail({ property, onBack, backLabel, onEditProperty, on
                   {m.tip && <InfoTip text={m.tip} />}
                 </div>
                 <p style={{ color: m.color, fontSize: 18, fontWeight: 700 }}>{m.value}</p>
-                {m.sub && <p style={{ color: "#cbd5e1", fontSize: 10, marginTop: 2 }}>{m.sub}</p>}
+                {m.sub && <p style={{ color: "rgba(255,255,255,0.6)", fontSize: 10, marginTop: 2 }}>{m.sub}</p>}
               </div>
             ))}
           </div>
@@ -435,7 +435,7 @@ export function PropertyDetail({ property, onBack, backLabel, onEditProperty, on
                         {(() => { const group = txParentOf(t.category, t.type); return group && group !== t.category ? <p style={{ fontSize: 10, color: "var(--text-muted)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.03em", marginBottom: 2 }}>{group}</p> : null; })()}
                         <span style={{ background: "var(--surface-muted)", borderRadius: 6, padding: "3px 8px", fontSize: 12, fontWeight: 600, color: "var(--text-label)" }}>{t.category}</span>
                       </td>
-                      <td style={{ padding: "12px 16px", fontSize: 13, color: "var(--text-label)" }}>{t.payee || <span style={{ color: "#cbd5e1", fontStyle: "italic" }}>—</span>}</td>
+                      <td style={{ padding: "12px 16px", fontSize: 13, color: "var(--text-label)" }}>{t.payee || <span style={{ color: "var(--text-muted)", fontStyle: "italic" }}>—</span>}</td>
                       <td style={{ padding: "12px 16px", fontSize: 13, color: "var(--text-primary)" }}>{t.description}</td>
                       <td style={{ padding: "12px 16px", fontSize: 14, fontWeight: 700, color: t.type === "income" ? "#1a7a4a" : "#c0392b" }}>
                         {t.type === "income" ? "+" : "-"}{fmt(Math.abs(t.amount))}
@@ -609,9 +609,9 @@ export function PropertyDetail({ property, onBack, backLabel, onEditProperty, on
 
           {propTenants.length === 0 ? (
             <div style={{ background: "var(--surface)", borderRadius: 16, padding: 48, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)", textAlign: "center" }}>
-              <Users size={32} color="#cbd5e1" style={{ marginBottom: 12 }} />
+              <Users size={32} color="var(--text-muted)" style={{ marginBottom: 12 }} />
               <p style={{ color: "var(--text-muted)", fontSize: 14 }}>No tenants on record for this property.</p>
-              <p style={{ color: "#cbd5e1", fontSize: 13, marginTop: 4 }}>Add tenants from the Tenants page.</p>
+              <p style={{ color: "var(--text-muted)", fontSize: 13, marginTop: 4 }}>Add tenants from the Tenants page.</p>
             </div>
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>

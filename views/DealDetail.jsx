@@ -750,7 +750,7 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
       <div style={{ background: "var(--hero-bg)", borderRadius: 20, padding: 28, marginBottom: 20, border: "1px solid var(--hero-border)" }}>
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-            <div style={{ width: 60, height: 60, borderRadius: 18, background: "#1e3a5f", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 20, fontWeight: 800 }}>{deal.image}</div>
+            <div style={{ width: 60, height: 60, borderRadius: 18, background: "var(--avatar-bg)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 20, fontWeight: 800 }}>{deal.image}</div>
             <div>
               <h1 style={{ color: "var(--text-primary)", fontSize: 26, fontWeight: 700, marginBottom: 4 }}>{deal.name}</h1>
               <p style={{ color: "var(--text-secondary)", fontSize: 14, display: "flex", alignItems: "center", gap: 4 }}><MapPin size={13} /> {deal.address}</p>
@@ -1691,7 +1691,7 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
                           <p style={{ fontSize: 15, fontWeight: 700, color: "var(--text-primary)" }}>{c.name}</p>
                           <p style={{ fontSize: 12, color: "var(--text-muted)" }}>{c.trade}{c.phone ? ` · ${c.phone}` : ""}</p>
                         </div>
-                        {onNavigateToContractor && <ChevronRight size={16} color="#cbd5e1" style={{ marginLeft: 4, flexShrink: 0 }} />}
+                        {onNavigateToContractor && <ChevronRight size={16} color="var(--text-muted)" style={{ marginLeft: 4, flexShrink: 0 }} />}
                       </div>
                       <div style={{ display: "flex", alignItems: "center", gap: 8 }} onClick={stop}>
                         <button onClick={() => openEditCon(c)} style={{ background: "var(--surface-muted)", border: "none", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "var(--text-label)", display: "flex", alignItems: "center" }} title="Edit"><Pencil size={13} /></button>
@@ -2283,7 +2283,7 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
                 if (onDealUpdated) onDealUpdated();
                 showToast(`Deal marked as sold — ${fmt(netProfit)} net profit`);
                 setShowCloseDeal(false);
-              }} disabled={!closeForm.salePrice || !closeForm.closeDate} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: (!closeForm.salePrice || !closeForm.closeDate) ? "#cbd5e1" : "#1a7a4a", color: "#fff", fontWeight: 700, cursor: (!closeForm.salePrice || !closeForm.closeDate) ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+              }} disabled={!closeForm.salePrice || !closeForm.closeDate} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: (!closeForm.salePrice || !closeForm.closeDate) ? "var(--border-strong)" : "#1a7a4a", color: "#fff", fontWeight: 700, cursor: (!closeForm.salePrice || !closeForm.closeDate) ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
                 <DollarSign size={14} /> Mark as Sold
               </button>
             </div>
@@ -2341,7 +2341,7 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
                 if (onDealUpdated) onDealUpdated();
                 showToast("Converting to rental — review the property details");
                 setShowCloseDeal(false);
-              }} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "#1e3a5f", color: "#fff", fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+              }} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "var(--avatar-bg)", color: "#fff", fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
                 <Home size={14} /> Convert to Rental
               </button>
             </div>

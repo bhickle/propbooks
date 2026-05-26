@@ -274,7 +274,7 @@ export function UnifiedNotes({ highlightNoteId, highlightDealNoteId, onBack, onC
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                       {n.entityImage ? (
-                        <div style={{ width: 26, height: 26, borderRadius: 7, background: "#1e3a5f", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, fontWeight: 700, color: "#fff" }}>{n.entityImage}</div>
+                        <div style={{ width: 26, height: 26, borderRadius: 7, background: "var(--avatar-bg)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, fontWeight: 700, color: "#fff" }}>{n.entityImage}</div>
                       ) : (
                         <div style={{ width: 26, height: 26, borderRadius: 7, background: n.entityColor + "20", display: "flex", alignItems: "center", justifyContent: "center" }}>
                           <MessageSquare size={12} color={n.entityColor} />

@@ -167,7 +167,7 @@ export function DocumentsPanel({ documents, onAdd, onDelete, entityLabel = "item
 
       {documents.length === 0 && (
         <div style={{ padding: 40, textAlign: "center", color: "var(--text-muted)", fontSize: 14, background: "var(--surface-alt)", borderRadius: 12, border: "1px dashed var(--border)" }}>
-          <FileText size={32} color="#cbd5e1" style={{ marginBottom: 8 }} />
+          <FileText size={32} color="var(--text-muted)" style={{ marginBottom: 8 }} />
           <p>No documents yet</p>
           <p style={{ fontSize: 12, marginTop: 4 }}>Upload leases, inspections, receipts, and more</p>
         </div>

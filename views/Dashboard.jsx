@@ -104,7 +104,7 @@ export function Dashboard({ onNavigate, onNavigateToTx, onSelectProperty, onNavi
       </div>
 
       {/* KPI Row */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 20, marginBottom: 28 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 24 }}>
         <StatCard icon={DollarSign} label="Monthly Cash Flow" value={fmt(netCashFlow)} sub={`${fmt(monthlyIncome)} in · ${fmt(monthlyExpenses)} out`} color="var(--c-green)" tip="Total Monthly Income − Total Monthly Expenses across all properties." />
         <StatCard icon={Wallet} label="Total Equity" value={fmtK(totalEquity)} sub={`Portfolio value ${fmtK(totalValue)}`} color="var(--c-blue)" tip="Current Value − Mortgage Balance, summed across all properties." />
         <StatCard icon={Users} label="Occupancy" value={`${occupancyPct}%`} sub={`${occupiedUnits} of ${totalUnits} units occupied`} color={occupancyPct >= 90 ? "var(--c-green)" : occupancyPct >= 70 ? "#e95e00" : "var(--c-red)"} semantic tip="Occupied units ÷ total units across all properties." />
@@ -260,7 +260,7 @@ export function Dashboard({ onNavigate, onNavigateToTx, onSelectProperty, onNavi
               <div key={p.id} onClick={() => onSelectProperty && onSelectProperty(p)} style={{ display: "flex", alignItems: "center", gap: 14, padding: "14px 12px", borderRadius: 12, border: "1px solid var(--border-subtle)", cursor: "pointer", transition: "all 0.15s" }}
                 onMouseEnter={e => { e.currentTarget.style.background = "var(--surface-alt)"; e.currentTarget.style.borderColor = "var(--border)"; }}
                 onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.borderColor = "var(--border-subtle)"; }}>
-                <div style={{ width: 40, height: 40, borderRadius: 10, background: "#1e3a5f", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, color: "#fff", fontSize: 13, fontWeight: 700 }}>
+                <div style={{ width: 40, height: 40, borderRadius: 10, background: "var(--avatar-bg)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, color: "#fff", fontSize: 13, fontWeight: 700 }}>
                   {p.image}
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
@@ -285,7 +285,7 @@ export function Dashboard({ onNavigate, onNavigateToTx, onSelectProperty, onNavi
                     <span style={{ fontSize: 11, color: "var(--text-muted)", whiteSpace: "nowrap" }}>{p.type} · {p.units} unit{p.units !== 1 ? "s" : ""}</span>
                   </div>
                 </div>
-                <ChevronRight size={14} color="#cbd5e1" />
+                <ChevronRight size={14} color="var(--text-muted)" />
               </div>
             ))}
           </div>

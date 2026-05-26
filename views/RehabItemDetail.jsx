@@ -229,7 +229,7 @@ export function RehabItemDetail({ deal, itemIdx, onBack, backLabel, onNavigateTo
           <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--text-primary)" }}>Assigned Contractors</h3>
           {unassigned.length > 0 && (
             <select value="" onChange={e => { if (e.target.value) { addContractor(e.target.value); e.target.value = ""; } }}
-              style={{ border: "1.5px dashed #cbd5e1", borderRadius: 10, padding: "8px 12px", fontSize: 13, color: "var(--text-secondary)", background: "var(--surface-alt)", cursor: "pointer", outline: "none" }}>
+              style={{ border: "1.5px dashed var(--border-strong)", borderRadius: 10, padding: "8px 12px", fontSize: 13, color: "var(--text-secondary)", background: "var(--surface-alt)", cursor: "pointer", outline: "none" }}>
               <option value="">+ Assign contractor</option>
               {unassigned.map(c => <option key={c.id} value={c.id}>{c.name} ({c.trade})</option>)}
             </select>
@@ -274,7 +274,7 @@ export function RehabItemDetail({ deal, itemIdx, onBack, backLabel, onNavigateTo
                         <span style={{ fontSize: 12, color: "var(--text-muted)", fontStyle: "italic" }}>No bid yet</span>
                       )}
                     </div>
-                    <ChevronRight size={16} color="#cbd5e1" />
+                    <ChevronRight size={16} color="var(--text-muted)" />
                     <button onClick={(e) => { e.stopPropagation(); removeContractor(asgn.id); }} style={{ background: "var(--danger-badge)", border: "none", borderRadius: 8, padding: "8px 10px", cursor: "pointer", color: "var(--c-red)", display: "flex", alignItems: "center" }} title="Remove from scope"><X size={14} /></button>
                   </div>
                 </div>

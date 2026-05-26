@@ -212,7 +212,7 @@ export function DealDashboard({ onSelect, onNavigateToNote, onNavigateToExpense,
                     <td style={{ padding: "12px 0" }}>
                       <button onClick={() => onSelect && onSelect(f)} style={{ background: "none", border: "none", cursor: "pointer", textAlign: "left", padding: 0 }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                          <div style={{ width: 32, height: 32, borderRadius: 8, background: "#1e3a5f", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, color: "#fff" }}>{f.image}</div>
+                          <div style={{ width: 32, height: 32, borderRadius: 8, background: "var(--avatar-bg)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, color: "#fff" }}>{f.image}</div>
                           <div>
                             <p style={{ color: "var(--text-primary)", fontSize: 13, fontWeight: 600 }}>{f.name}</p>
                             <p style={{ color: "var(--text-muted)", fontSize: 11 }}>{f.address.split(",")[1]?.trim()}</p>
@@ -274,7 +274,7 @@ export function DealDashboard({ onSelect, onNavigateToNote, onNavigateToExpense,
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
           <h3 style={{ color: "var(--text-primary)", fontSize: 16, fontWeight: 700 }}>Rehab Budget Overview</h3>
           <div style={{ display: "flex", gap: 16 }}>
-            <span style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--text-secondary)" }}><span style={{ width: 10, height: 10, borderRadius: 2, background: "#1e3a5f", display: "inline-block" }} />Budgeted</span>
+            <span style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--text-secondary)" }}><span style={{ width: 10, height: 10, borderRadius: 2, background: "var(--avatar-bg)", display: "inline-block" }} />Budgeted</span>
             <span style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--text-secondary)" }}><span style={{ width: 10, height: 10, borderRadius: 2, background: "#e95e00", display: "inline-block" }} />Spent</span>
           </div>
         </div>
@@ -419,12 +419,12 @@ export function DealContractors({ onSelectContractor }) {
                 <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 10 }}>
                   {deals.map(fl => (
                     <span key={fl.id} style={{ display: "flex", alignItems: "center", gap: 4, background: "var(--surface-alt)", border: "1px solid var(--border-subtle)", borderRadius: 20, padding: "2px 8px", fontSize: 11, color: "var(--text-secondary)" }}>
-                      <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#1e3a5f" }} />{fl.name}
+                      <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--avatar-bg)" }} />{fl.name}
                     </span>
                   ))}
                 </div>
               )}
-              {deals.length === 0 && <p style={{ fontSize: 12, color: "#cbd5e1", fontStyle: "italic", marginBottom: 10 }}>No rehabs assigned yet</p>}
+              {deals.length === 0 && <p style={{ fontSize: 12, color: "var(--text-muted)", fontStyle: "italic", marginBottom: 10 }}>No rehabs assigned yet</p>}
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
                 <span style={{ fontSize: 12, color: "var(--text-muted)" }}>Accepted: {fmt(totalConBids)}</span>
                 <span style={{ fontSize: 12, color: "var(--text-primary)", fontWeight: 600 }}>{fmt(totalConPaid)} paid</span>
@@ -712,7 +712,7 @@ export function ContractorDetail({ contractor, onBack, initialTab }) {
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
               {deals.map(fl => (
                 <span key={fl.id} style={{ display: "flex", alignItems: "center", gap: 4, background: "var(--surface-alt)", border: "1px solid var(--border-subtle)", borderRadius: 20, padding: "3px 10px", fontSize: 11, color: "var(--text-secondary)" }}>
-                  <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#1e3a5f" }} />{fl.name}
+                  <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--avatar-bg)" }} />{fl.name}
                 </span>
               ))}
             </div>
@@ -800,7 +800,7 @@ export function ContractorDetail({ contractor, onBack, initialTab }) {
               return (
                 <div key={b.id} style={{ display: "flex", alignItems: "center", padding: "14px 20px", borderBottom: i < bids.length - 1 ? "1px solid var(--border-subtle)" : "none", gap: 12 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, flex: 1, minWidth: 0 }}>
-                    {fl && <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#1e3a5f", flexShrink: 0 }} />}
+                    {fl && <span style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--avatar-bg)", flexShrink: 0 }} />}
                     <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>{b.rehabItem}</span>
                     {fl && <span style={{ fontSize: 12, color: "var(--text-muted)" }}>· {fl.name}</span>}
                   </div>
@@ -845,7 +845,7 @@ export function ContractorDetail({ contractor, onBack, initialTab }) {
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
                     <span style={{ background: `${typeColor}15`, color: typeColor, borderRadius: 20, padding: "2px 8px", fontSize: 10, fontWeight: 600 }}>{DOC_TYPES[d.type] || d.type}</span>
-                    {fl && <span style={{ display: "flex", alignItems: "center", gap: 3, fontSize: 11, color: "var(--text-muted)" }}><span style={{ width: 5, height: 5, borderRadius: "50%", background: "#1e3a5f" }} />{fl.name}</span>}
+                    {fl && <span style={{ display: "flex", alignItems: "center", gap: 3, fontSize: 11, color: "var(--text-muted)" }}><span style={{ width: 5, height: 5, borderRadius: "50%", background: "var(--avatar-bg)" }} />{fl.name}</span>}
                     <span style={{ fontSize: 11, color: "var(--text-muted)" }}>{d.date}</span>
                     {d.size && <span style={{ fontSize: 11, color: "var(--text-muted)" }}>{d.size}</span>}
                   </div>
@@ -874,7 +874,7 @@ export function ContractorDetail({ contractor, onBack, initialTab }) {
                 <div key={fl.id} style={{ background: "var(--surface)", borderRadius: 14, padding: 20, border: "1px solid var(--border-subtle)" }}>
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                      <span style={{ width: 10, height: 10, borderRadius: "50%", background: "#1e3a5f" }} />
+                      <span style={{ width: 10, height: 10, borderRadius: "50%", background: "var(--avatar-bg)" }} />
                       <span style={{ fontSize: 15, fontWeight: 700, color: "var(--text-primary)" }}>{fl.name}</span>
                       <span style={{ background: stageStyle.bg, color: stageStyle.text, borderRadius: 20, padding: "2px 10px", fontSize: 11, fontWeight: 600 }}>{fl.stage}</span>
                     </div>
@@ -1107,7 +1107,7 @@ export function DealAnalytics() {
   }));
 
   const timelineData = deals.filter(f => f.daysOwned > 0).map(f => ({
-    name: f.image, fullName: f.name, days: f.daysOwned, stage: f.stage, color: "#1e3a5f",
+    name: f.image, fullName: f.name, days: f.daysOwned, stage: f.stage, color: "var(--avatar-bg)",
   }));
 
   const dealIdSet = new Set(deals.map(f => f.id));
@@ -1212,7 +1212,7 @@ export function DealAnalytics() {
         {/* Deal Return Scorecard — matches rental property scorecard */}
         <div style={{ ...sectionS, marginBottom: 20 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
-            <div style={{ width: 38, height: 38, borderRadius: 10, background: "#1e3a5f", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700, color: "#fff" }}>{singleDeal.image}</div>
+            <div style={{ width: 38, height: 38, borderRadius: 10, background: "var(--avatar-bg)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700, color: "#fff" }}>{singleDeal.image}</div>
             <div>
               <h3 style={{ color: "var(--text-primary)", fontSize: 16, fontWeight: 700, marginBottom: 2 }}>Rehab Scorecard</h3>
               <p style={{ color: "var(--text-muted)", fontSize: 13, display: "flex", alignItems: "center", gap: 4 }}><MapPin size={11} /> {singleDeal.address}</p>
@@ -1562,7 +1562,7 @@ export function DealAnalytics() {
             return (
               <div key={i} style={{ display: "flex", alignItems: "center", gap: 14 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, width: 120, flexShrink: 0 }}>
-                  <div style={{ width: 28, height: 28, borderRadius: 7, background: "#1e3a5f", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 700, color: "#fff" }}>{d.image}</div>
+                  <div style={{ width: 28, height: 28, borderRadius: 7, background: "var(--avatar-bg)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 700, color: "#fff" }}>{d.image}</div>
                   <div>
                     <p style={{ fontSize: 12, fontWeight: 600, color: "var(--text-primary)", lineHeight: 1.2 }}>{d.fullName.split(" ")[0]}</p>
                     <p style={{ fontSize: 10, color: "var(--text-muted)" }}>{d.stage}</p>
@@ -1610,7 +1610,7 @@ export function DealAnalytics() {
                 <tr key={deal.id} style={{ borderTop: "1px solid var(--border-subtle)" }}>
                   <td style={{ padding: "12px 16px" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <div style={{ width: 28, height: 28, borderRadius: 7, background: "#1e3a5f", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 700, color: "#fff" }}>{deal.image}</div>
+                      <div style={{ width: 28, height: 28, borderRadius: 7, background: "var(--avatar-bg)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 700, color: "#fff" }}>{deal.image}</div>
                       <span style={{ color: "var(--text-primary)", fontSize: 13, fontWeight: 600 }}>{deal.name}</span>
                     </div>
                   </td>
@@ -1858,7 +1858,7 @@ export function DealMilestones({ highlightMilestoneKey, onBack, onClearHighlight
           <div key={deal.id} style={{ ...sectionS }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <div style={{ width: 32, height: 32, borderRadius: 8, background: "#1e3a5f", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, color: "#fff" }}>{deal.image}</div>
+                <div style={{ width: 32, height: 32, borderRadius: 8, background: "var(--avatar-bg)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, color: "#fff" }}>{deal.image}</div>
                 <div>
                   <p style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)" }}>{deal.name}</p>
                   <p style={{ fontSize: 12, color: "var(--text-muted)" }}>{deal.stage}</p>
@@ -1909,7 +1909,7 @@ export function DealMilestones({ highlightMilestoneKey, onBack, onClearHighlight
                 ) : (
                   <div key={i} id={"ms-" + deal.id + "-" + m.label} className="ms-row" onMouseEnter={e => { if (flashKey !== (deal.id + "-" + m.label)) e.currentTarget.style.background = "var(--surface-alt)"; }} onMouseLeave={e => { if (flashKey !== (deal.id + "-" + m.label)) e.currentTarget.style.background = m.done ? "#edf7f2" : overdue ? "#faeeed" : "var(--surface-alt)"; }} style={{ display: "flex", alignItems: "center", gap: 12, padding: "8px 10px", borderRadius: 8, background: flashKey === (deal.id + "-" + m.label) ? "#fff7ed" : m.done ? "#edf7f2" : overdue ? "#faeeed" : "var(--surface-alt)", border: `1px solid ${flashKey === (deal.id + "-" + m.label) ? "#e95e00" : m.done ? "#9fcfb4" : overdue ? "#fecaca" : "var(--border-subtle)"}`, boxShadow: flashKey === (deal.id + "-" + m.label) ? "0 0 0 2px #e95e00" : "none", position: "relative", transition: "all 0.4s ease" }}>
                     <button onClick={() => m.done ? uncomplete(deal.id, m._idx) : startComplete(deal.id, m._idx)} style={{ background: "none", border: "none", cursor: "pointer", padding: 0, display: "flex", flexShrink: 0 }}>
-                      {m.done ? <CheckCircle size={18} color="var(--c-green)" /> : <Circle size={18} color={overdue ? "var(--c-red)" : "#cbd5e1"} />}
+                      {m.done ? <CheckCircle size={18} color="var(--c-green)" /> : <Circle size={18} color={overdue ? "var(--c-red)" : "var(--text-muted)"} />}
                     </button>
                     <span style={{ flex: 1, fontSize: 13, fontWeight: 500, color: m.done ? "#6b7280" : "var(--text-primary)", textDecoration: m.done ? "line-through" : "none" }}>{m.label}</span>
                     {m.targetDate && (

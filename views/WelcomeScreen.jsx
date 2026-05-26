@@ -11,9 +11,9 @@ export function WelcomeScreen({ onStartRental, onStartFlip }) {
         <div style={{ width: 64, height: 64, borderRadius: 16, background: "linear-gradient(135deg, #e95e00 0%, #f59e0b 100%)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 20px", boxShadow: "0 4px 12px rgba(233,94,0,0.25)" }}>
           <Building2 size={32} color="#fff" />
         </div>
-        <h1 style={{ fontSize: 26, fontWeight: 700, color: "var(--text-primary)", margin: "0 0 8px" }}>Welcome to PROPBOOKS</h1>
-        <p style={{ fontSize: 16, color: "var(--text-secondary)", maxWidth: 500, margin: "0 auto", lineHeight: 1.6 }}>
-          Let's get your first property or deal set up. The guided setup will walk you through everything step by step.
+        <h1 style={{ fontSize: 26, fontWeight: 700, color: "var(--text-primary)", margin: "0 0 4px" }}>Welcome to PROPBOOKS</h1>
+        <p style={{ fontSize: 15, color: "var(--text-secondary)", maxWidth: 500, margin: "0 auto", lineHeight: 1.6 }}>
+          Let's get your first rental or rehab set up. The guided setup will walk you through everything step by step.
         </p>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24, maxWidth: 600, width: "100%" }}>

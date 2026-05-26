@@ -88,7 +88,7 @@ VITE_SUPABASE_ANON_KEY=<your anon key from Supabase dashboard>
 ### Priority 3 — Polish
 - [ ] **Lazy-load Reports / Analytics / DealAnalyzer** — `React.lazy()` + `Suspense`. Should drop initial bundle by ~25-30%.
 - [ ] **`manualChunks`** for `recharts` and `lucide-react` in `vite.config.js` — better caching, parallel downloads.
-- [ ] **Hardcoded color tokens** — `#cbd5e1` and `#1e3a5f` appear in ~12 files and break dark mode. Replace with `var(--text-muted)` / `var(--avatar-bg)` etc.
+- [x] **Hardcoded color tokens** — `#cbd5e1` and `#1e3a5f` replaced with `var(--text-muted)` / `var(--avatar-bg)` / `var(--border-strong)` everywhere except the unauthenticated splash screens (App.jsx, auth.jsx) which intentionally stay dark navy regardless of theme. New `--avatar-bg` token lives in theme.jsx and flips to `#4878a8` in dark mode.
 - [ ] **Empty state standardization** — use `<EmptyState>` from shared.jsx everywhere; some detail screens still hand-roll the icon-title-subtitle block.
 - [ ] **Compress active logo** — `logos/PropBooks Horizontal Logo_transparent_white.png` is 1.1 MB and dominates first paint. Compress to <50 KB or convert to SVG.
 - [ ] **Component extraction** — typeahead duplicated in DealDetail / Ledger / PropertyDetail; ConfirmDeleteModal duplicated everywhere; pill-tab bar duplicated; FilterBar duplicated. Consolidating into `shared.jsx` would simplify support.

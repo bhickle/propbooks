@@ -125,13 +125,13 @@ export function PortfolioDashboard({ onNavigate, onSelectProperty, onSelectFlip,
   return (
     <div>
       {/* Header */}
-      <div style={{ marginBottom: 28 }}>
-        <h1 style={{ fontSize: 26, fontWeight: 700, color: "var(--text-primary)", margin: "0 0 8px 0" }}>Portfolio Overview</h1>
+      <div style={{ marginBottom: 24 }}>
+        <h1 style={{ fontSize: 26, fontWeight: 700, color: "var(--text-primary)", margin: "0 0 4px 0" }}>Portfolio Overview</h1>
         <p style={{ fontSize: 15, color: "var(--text-secondary)", margin: 0 }}>Your complete real estate snapshot — rentals and rehabs combined.</p>
       </div>
 
       {/* Row 1: KPI Cards */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 20, marginBottom: 28 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 24 }}>
         <StatCard icon={Wallet} label="Total Equity" value={fmt(totalEquity)} color="var(--c-blue)" tip="Sum of rental equity (property value − mortgage balance) plus rehab purchase prices invested." />
         <StatCard icon={TrendingUp} label="Monthly Cash Flow" value={fmt(netCashFlow)} color="var(--c-green)" tip="Net rental income across all properties (income minus expenses)." />
         <StatCard icon={Target} label="Active Rehabs" value={String(activeDeals)} color="#e95e00" tip="Number of rehabs currently in progress (not sold)." />
@@ -150,7 +150,7 @@ export function PortfolioDashboard({ onNavigate, onSelectProperty, onSelectFlip,
           <button key={i} onClick={qa.action} style={qaBtnS}
             onMouseEnter={e => { e.currentTarget.style.borderColor = "#e95e00"; e.currentTarget.style.background = "rgba(233,94,0,0.04)"; }}
             onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.background = "var(--surface)"; }}>
-            <div style={{ width: 40, height: 40, borderRadius: 12, background: "#1e3a5f", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <div style={{ width: 40, height: 40, borderRadius: 12, background: "var(--avatar-bg)", display: "flex", alignItems: "center", justifyContent: "center" }}>
               <qa.icon size={18} color="#e95e00" />
             </div>
             <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-label)" }}>{qa.label}</span>
@@ -208,7 +208,7 @@ export function PortfolioDashboard({ onNavigate, onSelectProperty, onSelectFlip,
                 style={{ display: "flex", alignItems: "center", gap: 12, padding: 12, borderRadius: 10, background: "var(--surface-alt)", border: "1px solid var(--border)", cursor: "pointer", transition: "all 0.15s" }}
                 onMouseEnter={e => { e.currentTarget.style.background = "var(--surface-muted)"; e.currentTarget.style.borderColor = "var(--border-strong)"; }}
                 onMouseLeave={e => { e.currentTarget.style.background = "var(--surface-alt)"; e.currentTarget.style.borderColor = "var(--border)"; }}>
-                <div style={{ width: 32, height: 32, borderRadius: 10, background: "#1e3a5f", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 600, fontSize: 12, flexShrink: 0 }}>
+                <div style={{ width: 32, height: 32, borderRadius: 10, background: "var(--avatar-bg)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 600, fontSize: 12, flexShrink: 0 }}>
                   {p.image?.slice(0, 1) || "P"}
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
@@ -245,7 +245,7 @@ export function PortfolioDashboard({ onNavigate, onSelectProperty, onSelectFlip,
                 style={{ display: "flex", alignItems: "center", gap: 12, padding: 12, borderRadius: 10, background: "var(--surface-alt)", border: "1px solid var(--border)", cursor: "pointer", transition: "all 0.15s" }}
                 onMouseEnter={e => { e.currentTarget.style.background = "var(--surface-muted)"; e.currentTarget.style.borderColor = "var(--border-strong)"; }}
                 onMouseLeave={e => { e.currentTarget.style.background = "var(--surface-alt)"; e.currentTarget.style.borderColor = "var(--border)"; }}>
-                <div style={{ width: 32, height: 32, borderRadius: 10, background: "#1e3a5f", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 600, fontSize: 12, flexShrink: 0 }}>
+                <div style={{ width: 32, height: 32, borderRadius: 10, background: "var(--avatar-bg)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 600, fontSize: 12, flexShrink: 0 }}>
                   {f.image?.slice(0, 1) || "F"}
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
@@ -419,7 +419,7 @@ export function PortfolioDashboard({ onNavigate, onSelectProperty, onSelectFlip,
                     <span style={{ fontSize: 13, fontWeight: 600, color: item.color }}>
                       {item.type === "transaction" && item.txType === "income" ? "+" : "−"}{fmt(item.amount)}
                     </span>
-                    <ChevronRight size={14} color="#cbd5e1" />
+                    <ChevronRight size={14} color="var(--text-muted)" />
                   </div>
                 </div>
               ))

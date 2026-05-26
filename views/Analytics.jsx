@@ -234,7 +234,7 @@ export function Analytics() {
                     onMouseEnter={e => { e.currentTarget.style.borderColor = "#e95e00"; e.currentTarget.style.transform = "translateY(-2px)"; }}
                     onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.transform = "translateY(0)"; }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
-                      <div style={{ width: 36, height: 36, borderRadius: 10, background: "#1e3a5f", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 13, fontWeight: 700 }}>{p.image}</div>
+                      <div style={{ width: 36, height: 36, borderRadius: 10, background: "var(--avatar-bg)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 13, fontWeight: 700 }}>{p.image}</div>
                       <div>
                         <p style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)", lineHeight: 1.3 }}>{p.name}</p>
                         <p style={{ fontSize: 11, color: "var(--text-muted)" }}>{p.type} · {p.units} unit{p.units > 1 ? "s" : ""}</p>
@@ -312,7 +312,7 @@ export function Analytics() {
           {/* 1. Return Scorecard — now with DSCR and Occupancy */}
           <div style={{ ...sectionS, marginBottom: 20 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
-              <div style={{ width: 38, height: 38, borderRadius: 10, background: "#1e3a5f", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 18 }}>{selectedProp.image}</div>
+              <div style={{ width: 38, height: 38, borderRadius: 10, background: "var(--avatar-bg)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 18 }}>{selectedProp.image}</div>
               <div>
                 <h3 style={{ color: "var(--text-primary)", fontSize: 16, fontWeight: 700, marginBottom: 2 }}>Return Scorecard</h3>
                 <p style={{ color: "var(--text-muted)", fontSize: 13 }}>How this property stacks up against your portfolio</p>
