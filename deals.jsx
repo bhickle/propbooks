@@ -21,6 +21,7 @@ import {
   fmt, fmtK, newId, STAGE_ORDER, STAGE_COLORS, DEFAULT_MILESTONES,
   DEAL_DOCUMENTS,
   REHAB_CATEGORIES, REHAB_CATEGORY_GROUPS, getCanonicalBySlug, getCanonicalByLabel,
+  TRADES, TRADE_GROUPS, isCanonicalTrade,
 } from "./api.js";
 
 // Shared mock data refs (passed as props or imported directly)
@@ -304,6 +305,84 @@ const STATUS_STYLES = {
   pending:  { bg: "#f1f5f9", text: "var(--text-secondary)", label: "Pending"  },
 };
 
+// TradeTypeahead — shared between the add modal in DealContractors and the
+// edit form in ContractorDetail. Mirrors the REHAB_CATEGORIES typeahead in
+// DealDetail.jsx — canonical trades from TRADES grouped at the top, any
+// previously-used customs grouped below, and an "Add ___ as new" affordance
+// when the typed text doesn't match anything. trade is stored as the label
+// string (no separate slug field) so existing free-text values keep working.
+function TradeTypeahead({ value, onChange, placeholder = "Start typing or pick from the list..." }) {
+  const [focus, setFocus] = useState(false);
+  const trimmed = (value || "").trim();
+  const isCanon = isCanonicalTrade(trimmed);
+  const customs = [...new Set(_CON.map(c => (c.trade || "").trim()).filter(t => t && !isCanonicalTrade(t)))].sort();
+
+  return (
+    <div style={{ position: "relative" }}>
+      <input
+        value={value}
+        onChange={e => { onChange(e.target.value); setFocus(true); }}
+        onFocus={() => setFocus(true)}
+        onBlur={() => setTimeout(() => setFocus(false), 150)}
+        placeholder={placeholder}
+        style={iS}
+      />
+      {trimmed && isCanon && (
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 4, marginTop: 4, fontSize: 11, fontWeight: 600, color: "#1a7a4a" }}>
+          <CheckCircle size={11} /> Standard trade
+        </span>
+      )}
+      {focus && (() => {
+        const q = trimmed.toLowerCase();
+        const canonMatches = TRADES.filter(t => !q || t.label.toLowerCase().includes(q));
+        const customMatches = customs.filter(c => !q || c.toLowerCase().includes(q));
+        const exactCanon = TRADES.some(t => t.label.toLowerCase() === q);
+        const exactCustom = customs.some(c => c.toLowerCase() === q);
+        const showNew = q && !exactCanon && !exactCustom;
+        const grouped = {};
+        canonMatches.forEach(t => { if (!grouped[t.group]) grouped[t.group] = []; grouped[t.group].push(t); });
+        const groupKeys = TRADE_GROUPS.filter(g => grouped[g] && grouped[g].length > 0);
+        if (groupKeys.length === 0 && customMatches.length === 0 && !showNew) return null;
+        return (
+          <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, boxShadow: "0 8px 24px rgba(0,0,0,0.10)", zIndex: 200, overflow: "hidden", maxHeight: 320, overflowY: "auto" }}>
+            {groupKeys.map(g => (
+              <div key={g}>
+                <div style={{ padding: "8px 14px 4px", fontSize: 10, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em", background: "var(--surface-alt)" }}>{g}</div>
+                {grouped[g].map(t => (
+                  <button key={t.slug} type="button" onMouseDown={() => { onChange(t.label); setFocus(false); }}
+                    style={{ width: "100%", padding: "8px 14px", background: "none", border: "none", borderBottom: "1px solid var(--border-subtle)", textAlign: "left", cursor: "pointer", fontSize: 13, color: "var(--text-primary)", display: "flex", alignItems: "center", gap: 8 }}>
+                    <Truck size={12} style={{ color: "var(--text-muted)", flexShrink: 0 }} />
+                    <span>{t.label}</span>
+                  </button>
+                ))}
+              </div>
+            ))}
+            {customMatches.length > 0 && (
+              <div>
+                <div style={{ padding: "8px 14px 4px", fontSize: 10, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em", background: "var(--surface-alt)" }}>Your Custom</div>
+                {customMatches.slice(0, 6).map(c => (
+                  <button key={c} type="button" onMouseDown={() => { onChange(c); setFocus(false); }}
+                    style={{ width: "100%", padding: "8px 14px", background: "none", border: "none", borderBottom: "1px solid var(--border-subtle)", textAlign: "left", cursor: "pointer", fontSize: 13, color: "var(--text-primary)", display: "flex", alignItems: "center", gap: 8 }}>
+                    <Truck size={12} style={{ color: "var(--text-muted)", flexShrink: 0 }} />
+                    <span>{c}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+            {showNew && (
+              <button type="button" onMouseDown={() => { onChange(trimmed); setFocus(false); }}
+                style={{ width: "100%", padding: "10px 14px", display: "flex", alignItems: "center", gap: 8, background: "#fff7ed", border: "none", borderTop: (groupKeys.length > 0 || customMatches.length > 0) ? "1px solid var(--border)" : "none", cursor: "pointer", textAlign: "left" }}>
+                <Plus size={13} style={{ color: "#e95e00", flexShrink: 0 }} />
+                <span style={{ fontSize: 13, color: "#e95e00", fontWeight: 600 }}>Use &ldquo;{trimmed}&rdquo; as a custom trade</span>
+              </button>
+            )}
+          </div>
+        );
+      })()}
+    </div>
+  );
+}
+
 export function DealContractors({ onSelectContractor }) {
   const [, rerender] = useState(0);
   const [filterDeal, setFilterDeal] = useState("all");
@@ -321,7 +400,32 @@ export function DealContractors({ onSelectContractor }) {
     return [...names].sort();
   }, []);
 
-  const allTrades = useMemo(() => [...new Set(_CON.map(c => c.trade).filter(Boolean))].sort(), []);
+  // Group trades for the filter: canonical (any with at least one contractor)
+  // grouped by TRADE_GROUPS first, then a "Custom" bucket for anything users
+  // typed in that isn't in the canonical list. Each entry shows its count
+  // so the filter doubles as a quick distribution overview.
+  const tradeGroups = useMemo(() => {
+    const counts = {};
+    _CON.forEach(c => {
+      const t = (c.trade || "").trim();
+      if (!t) return;
+      counts[t] = (counts[t] || 0) + 1;
+    });
+    const canonByGroup = {};
+    TRADES.forEach(t => {
+      if (counts[t.label]) {
+        if (!canonByGroup[t.group]) canonByGroup[t.group] = [];
+        canonByGroup[t.group].push({ label: t.label, count: counts[t.label] });
+      }
+    });
+    const customs = Object.keys(counts)
+      .filter(t => !isCanonicalTrade(t))
+      .sort()
+      .map(t => ({ label: t, count: counts[t] }));
+    const groups = TRADE_GROUPS.filter(g => canonByGroup[g]?.length).map(g => ({ name: g, trades: canonByGroup[g] }));
+    if (customs.length) groups.push({ name: "Custom", trades: customs });
+    return groups;
+  }, [_CON.length]);
 
   const filtered = _CON.filter(c => {
     if (filterDeal !== "all" && !(c.dealIds || []).includes(filterDeal)) return false;
@@ -382,7 +486,11 @@ export function DealContractors({ onSelectContractor }) {
       <div style={{ display: "flex", gap: 10, marginBottom: 18 }}>
         <select value={filterTrade} onChange={e => setFilterTrade(e.target.value)} style={{ ...iS, width: "auto", padding: "8px 12px", fontSize: 13 }}>
           <option value="all">All Trades</option>
-          {allTrades.map(t => <option key={t} value={t}>{t}</option>)}
+          {tradeGroups.map(g => (
+            <optgroup key={g.name} label={g.name}>
+              {g.trades.map(t => <option key={t.label} value={t.label}>{t.label} ({t.count})</option>)}
+            </optgroup>
+          ))}
         </select>
         <div style={{ fontSize: 13, color: "var(--text-secondary)", display: "flex", alignItems: "center" }}>{filtered.length} contractors</div>
         <button onClick={() => { setForm(emptyForm); setShowModal(true); }} style={{ marginLeft: "auto", background: "#e95e00", color: "#fff", border: "none", borderRadius: 10, padding: "9px 16px", fontWeight: 600, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}><Plus size={14} /> Add Contractor</button>
@@ -487,7 +595,10 @@ export function DealContractors({ onSelectContractor }) {
                 })()}
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-                <div><p style={{ fontSize: 12, fontWeight: 600, color: "var(--text-dim)", marginBottom: 5 }}>Trade</p><input style={iS} placeholder="Plumbing" value={form.trade} onChange={sf("trade")} /></div>
+                <div>
+                  <p style={{ fontSize: 12, fontWeight: 600, color: "var(--text-dim)", marginBottom: 5 }}>Trade</p>
+                  <TradeTypeahead value={form.trade} onChange={v => setForm(f => ({ ...f, trade: v }))} />
+                </div>
                 <div><p style={{ fontSize: 12, fontWeight: 600, color: "var(--text-dim)", marginBottom: 5 }}>Phone</p><input style={iS} placeholder="555-000-0000" value={form.phone} onChange={sf("phone")} /></div>
               </div>
               <div><p style={{ fontSize: 12, fontWeight: 600, color: "var(--text-dim)", marginBottom: 5 }}>Email <span style={{ color: "var(--text-muted)", fontWeight: 400 }}>(optional)</span></p><input style={iS} placeholder="contractor@email.com" value={form.email} onChange={sf("email")} /></div>
@@ -752,7 +863,10 @@ export function ContractorDetail({ contractor, onBack, initialTab }) {
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                 <div><p style={{ fontSize: 12, fontWeight: 600, color: "var(--text-dim)", marginBottom: 5 }}>Company / Name</p><input style={iS} value={editForm.name} onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))} /></div>
-                <div><p style={{ fontSize: 12, fontWeight: 600, color: "var(--text-dim)", marginBottom: 5 }}>Trade</p><input style={iS} value={editForm.trade} onChange={e => setEditForm(f => ({ ...f, trade: e.target.value }))} /></div>
+                <div>
+                  <p style={{ fontSize: 12, fontWeight: 600, color: "var(--text-dim)", marginBottom: 5 }}>Trade</p>
+                  <TradeTypeahead value={editForm.trade} onChange={v => setEditForm(f => ({ ...f, trade: v }))} />
+                </div>
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                 <div><p style={{ fontSize: 12, fontWeight: 600, color: "var(--text-dim)", marginBottom: 5 }}>Phone</p><input style={iS} value={editForm.phone} onChange={e => setEditForm(f => ({ ...f, phone: e.target.value }))} /></div>

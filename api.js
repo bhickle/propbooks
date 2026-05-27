@@ -111,6 +111,62 @@ export const getCanonicalByLabel  = (label) => {
 };
 
 // -----------------------------------------------------------------------------
+// Trades — canonical taxonomy for contractors. Mirrors REHAB_CATEGORIES: each
+// entry has a slug + label + group, the contractor form's typeahead suggests
+// these first, and the Contractors-page filter groups canonical trades first
+// then any user-added customs. contractor.trade stores the label string (not
+// the slug) so existing free-text values keep working unchanged.
+// -----------------------------------------------------------------------------
+export const TRADES = [
+  // Mechanical
+  { slug: "plumber",             label: "Plumber",                group: "Mechanical" },
+  { slug: "electrician",         label: "Electrician",            group: "Mechanical" },
+  { slug: "hvac",                label: "HVAC",                   group: "Mechanical" },
+
+  // Structural
+  { slug: "general-contractor",  label: "General Contractor",     group: "Structural" },
+  { slug: "framer",              label: "Framer",                 group: "Structural" },
+  { slug: "foundation",          label: "Foundation / Concrete",  group: "Structural" },
+  { slug: "drywall",             label: "Drywall",                group: "Structural" },
+  { slug: "roofer",              label: "Roofer",                 group: "Structural" },
+
+  // Finishing
+  { slug: "painter",             label: "Painter",                group: "Finishing" },
+  { slug: "flooring",            label: "Flooring",               group: "Finishing" },
+  { slug: "tile",                label: "Tile",                   group: "Finishing" },
+  { slug: "carpenter",           label: "Carpenter",              group: "Finishing" },
+  { slug: "cabinet",             label: "Cabinet Installer",      group: "Finishing" },
+  { slug: "countertop",          label: "Countertop Installer",   group: "Finishing" },
+
+  // Exterior
+  { slug: "siding",              label: "Siding",                 group: "Exterior" },
+  { slug: "windows",             label: "Windows",                group: "Exterior" },
+  { slug: "gutters",             label: "Gutters",                group: "Exterior" },
+
+  // Outdoor
+  { slug: "landscaper",          label: "Landscaper",             group: "Outdoor" },
+  { slug: "fencing",             label: "Fencing",                group: "Outdoor" },
+
+  // Service
+  { slug: "cleaner",             label: "Cleaner",                group: "Service" },
+  { slug: "stager",              label: "Stager",                 group: "Service" },
+  { slug: "inspector",           label: "Inspector",              group: "Service" },
+  { slug: "property-manager",    label: "Property Manager",       group: "Service" },
+  { slug: "pest-control",        label: "Pest Control",           group: "Service" },
+  { slug: "locksmith",           label: "Locksmith",              group: "Service" },
+];
+
+export const TRADE_GROUPS = [
+  "Mechanical", "Structural", "Finishing", "Exterior", "Outdoor", "Service",
+];
+
+export const isCanonicalTrade = (label) => {
+  if (!label) return false;
+  const q = label.trim().toLowerCase();
+  return TRADES.some(t => t.label.toLowerCase() === q);
+};
+
+// -----------------------------------------------------------------------------
 // Rehab Templates — one-click starter scopes for new deals. Each template is a
 // list of canonical slugs plus an optional suggested budget (user adjusts).
 // -----------------------------------------------------------------------------
