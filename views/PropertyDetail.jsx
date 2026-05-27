@@ -762,7 +762,7 @@ export function PropertyDetail({ property, onBack, backLabel, onEditProperty, on
                   console.error("[PropBooks] Save note failed:", e);
                   showToast("Couldn't save note — " + (e.message || "unknown error"));
                 }
-              }} style={{ padding: "8px 18px", borderRadius: 8, border: "none", background: "var(--c-blue)", color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
+              }} style={{ padding: "8px 18px", borderRadius: 8, border: "none", background: "#e95e00", color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
                 {noteEditId ? "Save Changes" : "Add Note"}
               </button>
             </div>

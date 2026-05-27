@@ -246,8 +246,8 @@ export function TenantManagement({ onBack, highlightTenantId, onClearHighlight, 
             <X size={13} /> Clear filters
           </button>
         )}
-        <button onClick={openAdd} style={{ marginLeft: "auto", background: "var(--c-blue)", color: "#fff", border: "none", borderRadius: 10, padding: "9px 16px", fontWeight: 600, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
-          <Plus size={14} /> Add Tenant
+        <button onClick={openAdd} style={{ marginLeft: "auto", background: "#e95e00", color: "#fff", border: "none", borderRadius: 10, padding: "10px 18px", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
+          <Plus size={16} /> Add Tenant
         </button>
       </div>
 
@@ -620,7 +620,7 @@ export function TenantManagement({ onBack, highlightTenantId, onClearHighlight, 
 
           <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
             <button onClick={() => setShowModal(false)} style={{ flex: 1, padding: "12px", border: "1px solid var(--border)", borderRadius: 10, background: "var(--surface)", color: "var(--text-label)", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
-            <button onClick={handleSaveTenant} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "var(--c-blue)", color: "#fff", fontWeight: 600, cursor: "pointer" }}>
+            <button onClick={handleSaveTenant} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "#e95e00", color: "#fff", fontWeight: 600, cursor: "pointer" }}>
               {editId ? "Save Changes" : "Add Tenant"}
             </button>
           </div>

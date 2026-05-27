@@ -404,7 +404,7 @@ export function TenantDetail({ tenant, onBack, backLabel, onTenantUpdated, onSel
               <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--text-primary)" }}>Documents</h3>
               <p style={{ fontSize: 13, color: "var(--text-muted)" }}>Lease agreements, applications, addenda, and tenant files</p>
             </div>
-            <label style={{ background: "var(--c-blue)", color: "#fff", border: "none", borderRadius: 10, padding: "9px 16px", fontWeight: 600, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
+            <label style={{ background: "#e95e00", color: "#fff", border: "none", borderRadius: 10, padding: "9px 16px", fontWeight: 600, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
               <UploadCloud size={14} /> Upload
               <input type="file" style={{ display: "none" }} onChange={async e => {
                 const file = e.target.files[0];
@@ -606,7 +606,7 @@ export function TenantDetail({ tenant, onBack, backLabel, onTenantUpdated, onSel
           </div>
           <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
             <button onClick={() => setShowEdit(false)} style={{ flex: 1, padding: "12px", border: "1px solid var(--border)", borderRadius: 10, background: "var(--surface)", color: "var(--text-label)", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
-            <button onClick={handleSaveEdit} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "var(--c-blue)", color: "#fff", fontWeight: 700, cursor: "pointer" }}>Save Changes</button>
+            <button onClick={handleSaveEdit} style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "#e95e00", color: "#fff", fontWeight: 700, cursor: "pointer" }}>Save Changes</button>
           </div>
         </Modal>
       )}
