@@ -15,8 +15,9 @@ import { Modal } from "./shared.jsx";
 import {
   User, CreditCard, Bell, Shield, Building2, ChevronRight,
   CheckCircle, ArrowRight, Star, X, Pencil, Save, AlertCircle,
-  RotateCcw, Users, UserPlus, Link2, Trash2, Crown,
+  RotateCcw, Users, UserPlus, Link2, Trash2, Crown, Upload, Sparkles,
 } from "lucide-react";
+import { ImportWizard } from "./views/ImportWizard.jsx";
 
 const DEMO_EMAIL = "demo@propbooks.com";
 
@@ -46,6 +47,7 @@ const card = { background: "var(--surface)", borderRadius: 16, padding: 24, bord
 const TABS = [
   { id: "profile",       icon: User,       label: "Profile"       },
   { id: "team",          icon: Users,      label: "Team"          },
+  { id: "import",        icon: Upload,     label: "Import Data"   },
   { id: "subscription",  icon: CreditCard, label: "Subscription"  },
   { id: "notifications", icon: Bell,       label: "Notifications" },
   { id: "security",      icon: Shield,     label: "Security"      },
@@ -488,6 +490,73 @@ function statusBadge(status) {
   }
 }
 
+// -----------------------------------------------------------------------------
+// Import Tab — entry point for the AI Import Wizard. The wizard itself lives
+// in views/ImportWizard.jsx and handles upload, AI mapping, review, and
+// bulk-insert. This tab just hosts the launcher.
+// -----------------------------------------------------------------------------
+function ImportTab() {
+  const { user } = useAuth();
+  const isDemo = user?.email === DEMO_EMAIL;
+  const [open, setOpen] = useState(false);
+
+  return (
+    <div>
+      {section("Import Data", "Bring properties or transactions over from QuickBooks, Stessa, or any spreadsheet — Claude figures out the column mapping for you")}
+
+      <div style={card}>
+        <div style={{ display: "flex", alignItems: "flex-start", gap: 16, marginBottom: 20 }}>
+          <div style={{ width: 44, height: 44, borderRadius: 12, background: "rgba(233,94,0,0.1)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+            <Sparkles size={22} color="#e95e00" />
+          </div>
+          <div style={{ flex: 1 }}>
+            <p style={{ color: "var(--text-primary)", fontWeight: 700, fontSize: 15, marginBottom: 4 }}>AI Import Wizard</p>
+            <p style={{ color: "var(--text-secondary)", fontSize: 13, lineHeight: 1.5 }}>
+              Upload a CSV exported from any system. Claude reads the header row and a few sample values, proposes how each column maps to PropBooks, and you review before anything is saved. Works for Properties and Transactions today; Tenants and Rehabs coming next.
+            </p>
+          </div>
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 18 }}>
+          {[
+            { title: "Export from your source", body: "QuickBooks: Reports → Export → CSV. Stessa: Transactions → Download CSV. Excel: Save As → CSV." },
+            { title: "Drop in & confirm", body: "Claude proposes the mapping with a confidence score. Adjust any column with a dropdown, then confirm." },
+            { title: "We import the rest", body: "Every row is normalized client-side (dates, currency, enums) and inserted. Failed rows are reported, never silently dropped." },
+          ].map((s, i) => (
+            <div key={i} style={{ background: "var(--surface-alt)", borderRadius: 10, padding: "12px 14px", border: "1px solid var(--border-subtle)" }}>
+              <p style={{ color: "var(--text-primary)", fontWeight: 700, fontSize: 13, marginBottom: 4 }}>{i + 1}. {s.title}</p>
+              <p style={{ color: "var(--text-muted)", fontSize: 12, lineHeight: 1.4 }}>{s.body}</p>
+            </div>
+          ))}
+        </div>
+
+        {isDemo ? (
+          <div style={{ padding: "10px 14px", borderRadius: 10, background: "var(--surface-alt)", border: "1px solid var(--border-subtle)", fontSize: 13, color: "var(--text-secondary)" }}>
+            Import is disabled on the demo account so the sample portfolio stays consistent across visitors.
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setOpen(true)}
+            style={{ padding: "10px 22px", borderRadius: 10, border: "none", background: "#e95e00", color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}
+          >
+            <Upload size={14} /> Start an import
+          </button>
+        )}
+      </div>
+
+      <div style={{ ...card, background: "var(--surface-alt)" }}>
+        <p style={{ color: "var(--text-primary)", fontWeight: 700, fontSize: 13, marginBottom: 6 }}>How AI usage is counted</p>
+        <p style={{ color: "var(--text-secondary)", fontSize: 12, lineHeight: 1.5 }}>
+          Each import costs one AI action (one call to Claude to figure out the column mapping). The actual row-by-row import doesn't use AI — it runs client-side. AI is bundled with your subscription with a fair-use cap of 200 actions per account per 30 days, which covers every realistic workflow.
+        </p>
+      </div>
+
+      {open && <ImportWizard onClose={() => setOpen(false)} onComplete={() => {}} />}
+    </div>
+  );
+}
+
 function SubscriptionTab() {
   const { user } = useAuth();
   const isDemo = user?.email === DEMO_EMAIL;
@@ -724,6 +793,7 @@ export function Settings({ onClose }) {
   const tabContent = {
     profile:       <ProfileTab />,
     team:          <TeamTab />,
+    import:        <ImportTab />,
     subscription:  <SubscriptionTab />,
     notifications: <NotificationsTab />,
     security:      <SecurityTab />,
