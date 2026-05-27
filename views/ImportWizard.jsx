@@ -466,31 +466,12 @@ function ReviewStep({ targetEntity, targetSchema, mapping, setMapping, headers, 
       )}
 
       {isTransactions && (
-        <div style={{ marginBottom: 14, padding: "12px 14px", background: "var(--surface-alt)", border: "1px solid var(--border-subtle)", borderRadius: 10 }}>
-          <p style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)", marginBottom: 6 }}>
-            {hasPropertyColumn ? "Property (fallback)" : "Default property"}
-            {needsDefaultProperty && <span style={{ color: "var(--c-red)", marginLeft: 4 }}>*</span>}
-          </p>
-          <p style={{ fontSize: 12, color: "var(--text-secondary)", marginBottom: 8, lineHeight: 1.5 }}>
-            {hasPropertyColumn
-              ? "Each row will be matched against your properties by the mapped Property column. If a row's value doesn't match any of your properties, this fallback property will be used instead."
-              : "Every transaction needs to belong to a property. Pick which property all rows in this file belong to."}
-          </p>
-          {PROPERTIES.length === 0 ? (
-            <p style={{ fontSize: 12, color: "var(--c-red)", fontStyle: "italic" }}>
-              You don&rsquo;t have any properties yet. Add a property first, then import the transactions.
-            </p>
-          ) : (
-            <select value={defaultPropertyId} onChange={e => setDefaultPropertyId(e.target.value)} style={{ ...iS, padding: "8px 12px", fontSize: 13 }}>
-              <option value="">— pick a property —</option>
-              {PROPERTIES.map(p => (
-                <option key={p.id} value={p.id}>
-                  {p.name}{p.address ? ` · ${p.address}` : ""}
-                </option>
-              ))}
-            </select>
-          )}
-        </div>
+        <TransactionPropertySection
+          hasPropertyColumn={hasPropertyColumn}
+          needsDefaultProperty={needsDefaultProperty}
+          defaultPropertyId={defaultPropertyId}
+          setDefaultPropertyId={setDefaultPropertyId}
+        />
       )}
 
       <p style={{ fontSize: 13, fontWeight: 700, color: "var(--text-dim)", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.04em" }}>Sample of what will be imported</p>
@@ -522,6 +503,109 @@ function ReviewStep({ targetEntity, targetSchema, mapping, setMapping, headers, 
           Import {totalRows} row{totalRows !== 1 ? "s" : ""} <ArrowRight size={14} />
         </button>
       </div>
+    </div>
+  );
+}
+
+// ── TransactionPropertySection ───────────────────────────────────────────────
+// Renders the "which property" picker for transaction imports. Includes a
+// "Quick-add property" inline form so users with zero properties (or who
+// realize mid-import that their property isn't in the list) can create one
+// without leaving the wizard and losing their parsed file.
+function TransactionPropertySection({ hasPropertyColumn, needsDefaultProperty, defaultPropertyId, setDefaultPropertyId }) {
+  const { showToast } = useToast();
+  const [showQuickAdd, setShowQuickAdd] = useState(PROPERTIES.length === 0);
+  const [qaName, setQaName] = useState("");
+  const [qaAddress, setQaAddress] = useState("");
+  const [qaSaving, setQaSaving] = useState(false);
+
+  async function handleQuickAdd() {
+    const name = qaName.trim();
+    if (!name) return;
+    setQaSaving(true);
+    try {
+      const saved = await createProperty({ name, address: qaAddress.trim() || null, type: "Single Family", units: 1, status: "Occupied" });
+      PROPERTIES.push(saved); // sync the in-memory mirror so the dropdown sees it immediately
+      setDefaultPropertyId(saved.id);
+      setShowQuickAdd(false);
+      setQaName("");
+      setQaAddress("");
+      showToast(`Added ${saved.name}.`, "success");
+    } catch (e) {
+      showToast(`Couldn't add property: ${e?.message || "unknown error"}`, "error");
+    } finally {
+      setQaSaving(false);
+    }
+  }
+
+  const label = hasPropertyColumn ? "Fallback property" : "Which property are these transactions for?";
+  const helpText = hasPropertyColumn
+    ? "Each row is matched against your properties by the Property column. If a row's value doesn't match anything, this fallback is used."
+    : "Every transaction has to belong to a property. Pick which one these rows are for — every row will be attached to it.";
+
+  return (
+    <div style={{ marginBottom: 14, padding: "12px 14px", background: "var(--surface-alt)", border: "1px solid var(--border-subtle)", borderRadius: 10 }}>
+      <p style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)", marginBottom: 6 }}>
+        {label}{needsDefaultProperty && <span style={{ color: "var(--c-red)", marginLeft: 4 }}>*</span>}
+      </p>
+      <p style={{ fontSize: 12, color: "var(--text-secondary)", marginBottom: 10, lineHeight: 1.5 }}>{helpText}</p>
+
+      {PROPERTIES.length > 0 && (
+        <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: showQuickAdd ? 10 : 0 }}>
+          <select value={defaultPropertyId} onChange={e => setDefaultPropertyId(e.target.value)} style={{ ...iS, padding: "8px 12px", fontSize: 13, flex: 1 }}>
+            <option value="">— pick a property —</option>
+            {PROPERTIES.map(p => (
+              <option key={p.id} value={p.id}>
+                {p.name}{p.address ? ` · ${p.address}` : ""}
+              </option>
+            ))}
+          </select>
+          {!showQuickAdd && (
+            <button type="button" onClick={() => setShowQuickAdd(true)}
+              style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text-primary)", fontSize: 12, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap" }}>
+              + New
+            </button>
+          )}
+        </div>
+      )}
+
+      {showQuickAdd && (
+        <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: 12 }}>
+          <p style={{ fontSize: 12, fontWeight: 700, color: "var(--text-dim)", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.04em" }}>
+            {PROPERTIES.length === 0 ? "Add your first property" : "Add a new property"}
+          </p>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1.4fr", gap: 8, marginBottom: 8 }}>
+            <input
+              placeholder="Name (e.g. Oak Street Duplex)"
+              value={qaName}
+              onChange={e => setQaName(e.target.value)}
+              style={{ ...iS, padding: "8px 12px", fontSize: 13 }}
+              autoFocus
+            />
+            <input
+              placeholder="Address (optional)"
+              value={qaAddress}
+              onChange={e => setQaAddress(e.target.value)}
+              style={{ ...iS, padding: "8px 12px", fontSize: 13 }}
+            />
+          </div>
+          <p style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 10, lineHeight: 1.4 }}>
+            We&rsquo;ll create a Single Family property with these basics — you can fill in purchase price, loan details, and the rest from the property page later.
+          </p>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button type="button" onClick={handleQuickAdd} disabled={!qaName.trim() || qaSaving}
+              style={{ padding: "8px 16px", borderRadius: 8, border: "none", background: "#e95e00", color: "#fff", fontSize: 13, fontWeight: 700, cursor: !qaName.trim() || qaSaving ? "not-allowed" : "pointer", opacity: !qaName.trim() || qaSaving ? 0.5 : 1 }}>
+              {qaSaving ? "Adding…" : "Add property"}
+            </button>
+            {PROPERTIES.length > 0 && (
+              <button type="button" onClick={() => { setShowQuickAdd(false); setQaName(""); setQaAddress(""); }}
+                style={{ padding: "8px 16px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text-label)", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
+                Cancel
+              </button>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
