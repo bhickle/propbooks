@@ -26,10 +26,19 @@ import { createDealExpense, updateDealExpense, deleteDealExpense } from "../db/d
 import { updateRehabItem as dbUpdateRehabItem } from "../db/dealRehabItems.js";
 
 // ── Row builder — one shape, two sources ─────────────────────────────────────
+// The Ledger uses signed amounts internally (negative = expense) for the
+// stat-card math and for the +/- formatting in the rows. But the rest of
+// the app — and the import wizard — stores amounts as positive numbers
+// with direction carried in `type`. Bridge the two conventions here by
+// always deriving the sign from `type`, regardless of how the DB stored
+// the number. This is resilient to both signed (legacy / Ledger-modal-
+// written rows) and unsigned (imported / PropertyDetail-written rows)
+// storage conventions in the same table.
 function buildRows() {
   const rentalRows = TRANSACTIONS.map(t => {
     const prop = PROPERTIES.find(p => p.id === t.propertyId);
     const tenant = t.tenantId ? TENANTS.find(x => x.id === t.tenantId) : null;
+    const absAmt = Math.abs(Number(t.amount) || 0);
     return {
       key: `tx-${t.id}`,
       kind: "rental",
@@ -43,7 +52,7 @@ function buildRows() {
       category: t.category,
       description: t.description,
       counterparty: t.payee || tenant?.name || null,
-      amount: Number(t.amount) || 0, // signed
+      amount: t.type === "expense" ? -absAmt : absAmt, // signed by type
     };
   });
 
@@ -63,7 +72,7 @@ function buildRows() {
       category: e.category,
       description: e.description,
       counterparty: e.vendor || con?.name || null,
-      amount: -(Number(e.amount) || 0), // normalize to signed (negative = out)
+      amount: -Math.abs(Number(e.amount) || 0), // rehabs are always out
     };
   });
 
