@@ -356,7 +356,7 @@ export function PropertyDetail({ property, onBack, backLabel, onEditProperty, on
           {/* Filter bar */}
           <div style={{ display: "flex", gap: 10, marginBottom: txHasFilters ? 10 : 20, flexWrap: "wrap", alignItems: "center" }}>
             <div style={{ position: "relative", flex: 1, minWidth: 180 }}>
-              <Search size={14} color="#94a3b8" style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)" }} />
+              <Search size={14} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "var(--text-muted)" }} />
               <input value={txSearch} onChange={e => setTxSearch(e.target.value)} placeholder="Search transactions..." style={{ width: "100%", border: "1.5px solid var(--border)", borderRadius: 10, padding: "9px 12px 9px 32px", fontSize: 13, color: "var(--text-primary)", background: "var(--surface)", outline: "none" }} />
             </div>
             <select value={txTypeFilter} onChange={e => setTxTypeFilter(e.target.value)} style={{ border: "1.5px solid var(--border)", borderRadius: 10, padding: "9px 12px", fontSize: 13, color: "var(--text-label)", background: "var(--surface)" }}>

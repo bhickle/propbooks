@@ -124,9 +124,10 @@ export function MileageTracker() {
             );
           })}
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: "0 12px" }}>
-          <Search size={14} color="#94a3b8" />
-          <input placeholder="Search trips..." value={search} onChange={e => setSearch(e.target.value)} style={{ border: "none", background: "transparent", fontSize: 13, color: "var(--text-label)", outline: "none", padding: "9px 0", width: 140 }} />
+        <div style={{ position: "relative", flex: "1 1 200px", minWidth: 160, maxWidth: 260 }}>
+          <Search size={15} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "var(--text-muted)" }} />
+          <input placeholder="Search trips..." value={search} onChange={e => setSearch(e.target.value)}
+            style={{ width: "100%", paddingLeft: 36, paddingRight: 12, paddingTop: 9, paddingBottom: 9, border: "1px solid var(--border)", borderRadius: 10, fontSize: 13, color: "var(--text-primary)", background: "var(--surface)", outline: "none", boxSizing: "border-box" }} />
         </div>
         {linkedOptions.length > 0 && (
           <select value={linkedFilter} onChange={e => setLinkedFilter(e.target.value)} style={{ ...iS, width: "auto", minWidth: 160, fontSize: 13, padding: "9px 12px" }}>
