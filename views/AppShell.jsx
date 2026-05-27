@@ -122,6 +122,16 @@ export function AppShell() {
   // the profile hydrates with a saved value. localStorage carries the splash
   // through to first paint; this overrides if the user picked something on
   // another device.
+  //
+  // One-direction sync: server → local. The reverse direction (local toggle →
+  // server write) lives at the toggle-button onClick (handleToggleTheme below)
+  // and in ThemePicker. Doing the local → server write here as a useEffect
+  // off `theme` previously caused a feedback loop: when localStorage carried
+  // a stale value from a previous user, Effect 1's `setTheme(serverValue)`
+  // and Effect 2 both fired in the same render, Effect 2 read the stale
+  // local theme and wrote it back to the server, refreshProfile triggered
+  // a refetch with the just-overwritten value, Effect 1 fired again with
+  // the new server value, and the screen oscillated visibly.
   useEffect(() => {
     if (!user) return;
     if (user.themePreference && user.themePreference !== theme) {
@@ -129,19 +139,20 @@ export function AppShell() {
     }
   }, [user?.themePreference, user?.id]);
 
-  // Persist toggle changes back to profile.theme_preference so the choice
-  // follows the user across devices. Skipped when the value is already in
-  // sync (initial hydration, or right after an explicit pick).
-  useEffect(() => {
-    if (!user?.id) return;
-    if (!user.themePreference) return; // first-time picker handles the initial write
-    if (user.themePreference === theme) return;
-    supabase.from("profiles").update({ theme_preference: theme }).eq("id", user.id)
-      .then(({ error }) => {
-        if (error) { console.error("[PropBooks] Save theme preference failed:", error); return; }
-        refreshProfile?.();
-      });
-  }, [theme, user?.id, user?.themePreference]);
+  // Explicit local-toggle handler. Persists the new theme to profile so the
+  // choice follows the user across devices. Fire-and-forget — same pattern
+  // as ThemePicker. If the network write fails the local state still wins
+  // for this session; the user can re-toggle.
+  const handleToggleTheme = useCallback(() => {
+    const newTheme = theme === "light" ? "dark" : "light";
+    toggleTheme();
+    if (user?.id) {
+      supabase.from("profiles").update({ theme_preference: newTheme }).eq("id", user.id)
+        .then(({ error }) => {
+          if (error) console.error("[PropBooks] Save theme preference failed:", error);
+        });
+    }
+  }, [theme, toggleTheme, user?.id]);
 
   // Gate demo data: real users start with a blank account.
   // Demo user (demo@propbooks.com) always sees the full sample portfolio.
@@ -694,7 +705,7 @@ export function AppShell() {
               else if (item.type === "deal-note") { setHighlightDealNoteId(item.data.id); setActiveView("notes"); }
               else if (item.type === "deal-expense") { setHighlightLedgerKey("dx-" + item.data.id); setLedgerInitialAssetFilter(null); setActiveView("ledger"); }
             }} />
-            <button onClick={toggleTheme} title={theme === "light" ? "Switch to dark mode" : "Switch to light mode"} style={{ background: "none", border: "none", cursor: "pointer", padding: 6, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center" }}
+            <button onClick={handleToggleTheme} title={theme === "light" ? "Switch to dark mode" : "Switch to light mode"} style={{ background: "none", border: "none", cursor: "pointer", padding: 6, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center" }}
               onMouseEnter={e => e.currentTarget.style.background = "var(--hover-surface)"}
               onMouseLeave={e => e.currentTarget.style.background = "none"}>
               {theme === "light" ? <Moon size={18} color="var(--text-secondary)" /> : <Sun size={18} color="#f59e0b" />}
