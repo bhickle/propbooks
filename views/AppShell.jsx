@@ -350,12 +350,10 @@ export function AppShell() {
     return () => { cancelled = true; };
   }, [user?.id]); // eslint-disable-line react-hooks/exhaustive-deps -- showToast is stable from provider
 
-  // Auto-show welcome screen when app is empty
-  useEffect(() => {
-    if (PROPERTIES.length === 0 && DEALS.length === 0 && activeView === "portfolio") {
-      setActiveView("welcome");
-    }
-  }, [propsVersion]); // eslint-disable-line react-hooks/exhaustive-deps
+  // (Removed: legacy redirect to the standalone WelcomeScreen on empty
+  // portfolio. The new welcome card lives inside PortfolioDashboard so users
+  // land on the dashboard with onboarding choices in-context rather than on
+  // a separate route that has no Import option.)
 
   // Close notification panel on outside click
   useEffect(() => {

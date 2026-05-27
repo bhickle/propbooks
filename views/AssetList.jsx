@@ -285,9 +285,7 @@ export function AssetList({ onSelectRental, onSelectFlip, onAddRental, onAddFlip
                   title="No assets yet"
                   subtitle={isDemo
                     ? "Add your first rental or rehab to start tracking your portfolio."
-                    : "Add your first rental or rehab to start tracking your portfolio. Already have data in a spreadsheet? Use Import in the top right."}
-                  actionLabel="Add Rental"
-                  onAction={onAddRental}
+                    : "Use Add Asset or Import in the top-right to get started."}
                 />
               : <EmptyState icon={Search} title="No assets match this filter" subtitle="Try selecting a different type or clearing the search." />
             }
