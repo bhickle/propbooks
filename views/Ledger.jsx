@@ -94,6 +94,7 @@ function dateInRange(dateStr, range) {
     return d.getFullYear() === ly && d.getMonth() === lm;
   }
   if (range === "thisYear") return d.getFullYear() === now.getFullYear();
+  if (range === "lastYear") return d.getFullYear() === now.getFullYear() - 1;
   return true;
 }
 
@@ -600,7 +601,10 @@ function TypeChip({ row }) {
 export function Ledger({ highlightRowKey, initialAssetFilter, onClearHighlight, onImport, isDemo }) {
   const [typeFilter, setTypeFilter] = useState("all");
   const [assetFilter, setAssetFilter] = useState(initialAssetFilter || "all");
-  const [dateRange, setDateRange] = useState("thisYear");
+  // Default to All Time — hiding historical data behind a "This Year" gate
+  // means imported back-history (e.g. last year's bookkeeping) is invisible
+  // on first open, which has burned users. They can narrow as needed.
+  const [dateRange, setDateRange] = useState("all");
   const [search, setSearch] = useState("");
   const [showAdd, setShowAdd] = useState(null); // null | "rental-income" | "rental-expense" | "flip-expense"
   const [editRow, setEditRow] = useState(null);  // a built row from buildRows()
@@ -683,11 +687,11 @@ export function Ledger({ highlightRowKey, initialAssetFilter, onClearHighlight, 
   const clearAllFilters = () => {
     setTypeFilter("all");
     setAssetFilter("all");
-    setDateRange("thisYear");
+    setDateRange("all");
     setSearch("");
   };
   const hasNonDefaultFilters =
-    typeFilter !== "all" || assetFilter !== "all" || dateRange !== "thisYear" || !!search;
+    typeFilter !== "all" || assetFilter !== "all" || dateRange !== "all" || !!search;
 
   return (
     <div>
@@ -734,10 +738,11 @@ export function Ledger({ highlightRowKey, initialAssetFilter, onClearHighlight, 
 
         <select value={dateRange} onChange={e => setDateRange(e.target.value)}
           style={{ ...iS, width: "auto", minWidth: 140, fontSize: 13, padding: "9px 12px" }}>
+          <option value="all">All Time</option>
           <option value="thisYear">This Year</option>
+          <option value="lastYear">Last Year</option>
           <option value="thisMonth">This Month</option>
           <option value="lastMonth">Last Month</option>
-          <option value="all">All Time</option>
         </select>
 
         <div style={{ position: "relative", flex: "1 1 200px", minWidth: 200, maxWidth: 320 }}>
@@ -881,6 +886,8 @@ export function Ledger({ highlightRowKey, initialAssetFilter, onClearHighlight, 
 }
 
 function dateRangeLabel(r) {
+  if (r === "all")       return "All time";
+  if (r === "lastYear")  return "Last year";
   if (r === "thisMonth") return "This month";
   if (r === "lastMonth") return "Last month";
   if (r === "thisYear")  return "This year";
