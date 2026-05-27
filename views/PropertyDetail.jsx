@@ -10,9 +10,11 @@ import {
   RENTAL_NOTES, MAINTENANCE_REQUESTS,
   PROPERTY_TYPES, PROPERTY_STATUSES,
   RENTAL_INCOME_GROUPS, RENTAL_EXPENSE_GROUPS,
+  TENANT_STATUSES, TENANT_RENEWAL_TERMS,
 } from "../api.js";
 import { useToast } from "../toast.jsx";
 import { createTransaction, updateTransaction, deleteTransaction } from "../db/transactions.js";
+import { createTenant } from "../db/tenants.js";
 import { deleteProperty as dbDeleteProperty, updateProperty as dbUpdateProperty } from "../db/properties.js";
 import { createRentalNote, updateNote as dbUpdateNote, deleteNote as dbDeleteNote } from "../db/notes.js";
 import { createDocument as dbCreateDocument, deleteDocument as dbDeleteDocument } from "../db/documents.js";
@@ -164,6 +166,53 @@ export function PropertyDetail({ property, onBack, backLabel, onEditProperty, on
     } catch (e) {
       console.error("[PropBooks] Delete transaction failed:", e);
       showToast("Couldn't delete — " + (e.message || "unknown error"));
+    }
+  };
+
+  // Inline tenant CRUD — mirrors the global Tenants page but scoped to this
+  // property, so a user on the detail screen can add a tenant without leaving.
+  // Pre-fills propertyId; everything else mirrors TenantManagement's add form
+  // 1:1 to keep the two paths semantically identical (same fields, same DB
+  // shape, same mirror push).
+  const tenantEmptyForm = {
+    unit: "Main", name: "", rent: "", phone: "", email: "",
+    leaseStart: "", leaseEnd: "", status: "active-lease",
+    securityDeposit: "", lateFeePct: "", renewalTerms: "Annual", notes: "",
+  };
+  const [showAddTenant, setShowAddTenant] = useState(false);
+  const [tenantForm, setTenantForm] = useState(tenantEmptyForm);
+  const [tenantSaving, setTenantSaving] = useState(false);
+  const tenSf = k => e => setTenantForm(f => ({ ...f, [k]: e.target.value }));
+  const tenantHandleSave = async () => {
+    if (!tenantForm.name.trim() && tenantForm.status !== "vacant") return;
+    setTenantSaving(true);
+    try {
+      const saved = await createTenant({
+        propertyId: property.id,
+        unit: tenantForm.unit || "Main",
+        name: tenantForm.name.trim(),
+        rent: parseFloat(tenantForm.rent) || 0,
+        securityDeposit: parseFloat(tenantForm.securityDeposit) || null,
+        lateFeePct: parseFloat(tenantForm.lateFeePct) || null,
+        renewalTerms: tenantForm.renewalTerms,
+        notes: tenantForm.notes,
+        leaseStart: tenantForm.leaseStart || null,
+        leaseEnd: tenantForm.leaseEnd || null,
+        status: tenantForm.status,
+        phone: tenantForm.phone || null,
+        email: tenantForm.email || null,
+        lastPayment: null, moveOutDate: null, moveOutReason: null,
+      });
+      TENANTS.push(saved);
+      setShowAddTenant(false);
+      setTenantForm(tenantEmptyForm);
+      showToast("Tenant added");
+      txForceRender(n => n + 1); // re-render so propTenants picks up the new row
+    } catch (e) {
+      console.error("[PropBooks] Save tenant failed:", e);
+      showToast("Couldn't save tenant — " + (e.message || "unknown error"));
+    } finally {
+      setTenantSaving(false);
     }
   };
 
@@ -590,15 +639,23 @@ export function PropertyDetail({ property, onBack, backLabel, onEditProperty, on
             ))}
           </div>
 
-          <div style={{ marginBottom: 14 }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14, gap: 12 }}>
             <p style={{ color: "var(--text-secondary)", fontSize: 13 }}>{propTenants.length} active unit{propTenants.length !== 1 ? "s" : ""}{propPastTenants.length > 0 ? ` · ${propPastTenants.length} past tenant${propPastTenants.length !== 1 ? "s" : ""}` : ""}</p>
+            <button onClick={() => { setTenantForm(tenantEmptyForm); setShowAddTenant(true); }}
+              style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 14px", border: "none", borderRadius: 10, background: "#e95e00", color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
+              <Plus size={14} /> Add Tenant
+            </button>
           </div>
 
           {propTenants.length === 0 ? (
             <div style={{ background: "var(--surface)", borderRadius: 16, padding: 48, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)", textAlign: "center" }}>
               <Users size={32} color="var(--text-muted)" style={{ marginBottom: 12 }} />
-              <p style={{ color: "var(--text-muted)", fontSize: 14 }}>No tenants on record for this property.</p>
-              <p style={{ color: "var(--text-muted)", fontSize: 13, marginTop: 4 }}>Add tenants from the Tenants page.</p>
+              <p style={{ color: "var(--text-primary)", fontSize: 14, fontWeight: 600, marginBottom: 4 }}>No tenants on record</p>
+              <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 16 }}>Add a tenant so rent collection, lease tracking, and Needs-Attention alerts can kick in for this property.</p>
+              <button onClick={() => { setTenantForm(tenantEmptyForm); setShowAddTenant(true); }}
+                style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "10px 18px", border: "none", borderRadius: 10, background: "#e95e00", color: "#fff", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
+                <Plus size={15} /> Add Tenant
+              </button>
             </div>
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -689,6 +746,80 @@ export function PropertyDetail({ property, onBack, backLabel, onEditProperty, on
                 ))}
               </div>
             </div>
+          )}
+
+          {/* ── Add Tenant Modal ── */}
+          {showAddTenant && (
+            <Modal title={`Add Tenant — ${property.name}`} onClose={() => setShowAddTenant(false)}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+                <div>
+                  <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Unit</label>
+                  <input type="text" placeholder="e.g. Unit A, #4B" value={tenantForm.unit} onChange={tenSf("unit")} style={iS} />
+                </div>
+                <div>
+                  <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Status</label>
+                  <select value={tenantForm.status} onChange={tenSf("status")} style={iS}>
+                    {TENANT_STATUSES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+                  </select>
+                </div>
+                <div style={{ gridColumn: "1 / -1" }}>
+                  <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Tenant Name {tenantForm.status !== "vacant" && <span style={{ color: "var(--c-red)" }}>*</span>}</label>
+                  <input type="text" placeholder="Full name" value={tenantForm.name} onChange={tenSf("name")} style={iS} autoFocus />
+                </div>
+                <div>
+                  <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Monthly Rent ($)</label>
+                  <input type="number" placeholder="0" value={tenantForm.rent} onChange={tenSf("rent")} style={iS} />
+                </div>
+                <div>
+                  <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Phone</label>
+                  <input type="text" placeholder="555-000-0000" value={tenantForm.phone} onChange={tenSf("phone")} style={iS} />
+                </div>
+                <div>
+                  <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Lease Start</label>
+                  <input type="date" value={tenantForm.leaseStart} onChange={tenSf("leaseStart")} style={iS} />
+                </div>
+                <div>
+                  <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Lease End</label>
+                  <input type="date" value={tenantForm.leaseEnd} onChange={tenSf("leaseEnd")} style={iS} />
+                </div>
+                <div style={{ gridColumn: "1 / -1" }}>
+                  <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Email</label>
+                  <input type="email" placeholder="tenant@email.com" value={tenantForm.email} onChange={tenSf("email")} style={iS} />
+                </div>
+              </div>
+
+              <div style={{ background: "var(--success-tint)", borderRadius: 14, padding: "16px 18px", marginTop: 18, border: "1px solid var(--success-border)" }}>
+                <p style={{ color: "var(--c-green)", fontSize: 13, fontWeight: 700, marginBottom: 14, letterSpacing: "0.03em", textTransform: "uppercase" }}>Lease Details</p>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+                  <div>
+                    <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Security Deposit ($)</label>
+                    <input type="number" placeholder="0" value={tenantForm.securityDeposit} onChange={tenSf("securityDeposit")} style={iS} />
+                  </div>
+                  <div>
+                    <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Late Fee (%)</label>
+                    <input type="number" placeholder="5" value={tenantForm.lateFeePct} onChange={tenSf("lateFeePct")} style={iS} />
+                  </div>
+                  <div style={{ gridColumn: "1 / -1" }}>
+                    <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Renewal Terms</label>
+                    <select value={tenantForm.renewalTerms} onChange={tenSf("renewalTerms")} style={iS}>
+                      {TENANT_RENEWAL_TERMS.map(t => <option key={t} value={t}>{t}</option>)}
+                    </select>
+                  </div>
+                  <div style={{ gridColumn: "1 / -1" }}>
+                    <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Notes</label>
+                    <textarea placeholder="Any additional notes about this tenant or lease..." value={tenantForm.notes} onChange={tenSf("notes")} rows={3} style={{ ...iS, resize: "vertical", lineHeight: 1.5 }} />
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
+                <button onClick={() => setShowAddTenant(false)} style={{ flex: 1, padding: "12px", border: "1px solid var(--border)", borderRadius: 10, background: "var(--surface)", color: "var(--text-label)", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
+                <button onClick={tenantHandleSave} disabled={tenantSaving || (!tenantForm.name.trim() && tenantForm.status !== "vacant")}
+                  style={{ flex: 1, padding: "12px", border: "none", borderRadius: 10, background: "#e95e00", color: "#fff", fontWeight: 700, cursor: tenantSaving ? "not-allowed" : "pointer", opacity: tenantSaving || (!tenantForm.name.trim() && tenantForm.status !== "vacant") ? 0.5 : 1 }}>
+                  {tenantSaving ? "Saving…" : "Add Tenant"}
+                </button>
+              </div>
+            </Modal>
           )}
         </div>
       )}
