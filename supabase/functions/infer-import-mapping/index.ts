@@ -77,10 +77,23 @@ You will receive sourceHeaders (the CSV column headers) and sampleRows (five row
 3. Fill in the mapping object: for each target field, pick the best-matching sourceHeader or null if no column matches. Each sourceHeader can only be used for ONE target field — never duplicate.
 
 MAPPING RULES (apply inside the chosen tool)
-- Pay attention to sample VALUES, not just header names. "Amount" containing "Income"/"Expense" is the type column.
+- Pay attention to sample VALUES, not just header names.
 - For enum fields, only map when sample values fit or can be normalized. Flag mismatches in notes.
 - Dates: map even if ambiguous; call out ambiguity in notes.
 - Amounts: parenthesized negatives, $/commas, "-" prefixes are all dollar amounts — the client strips formatting.
+
+THE TRANSACTIONS \`type\` FIELD IS SPECIAL — READ THIS CAREFULLY
+\`type\` only accepts two values: "income" or "expense". ONLY map type to a source column when that column contains exactly two distinct values like:
+- "Income"/"Expense"
+- "Debit"/"Credit"
+- "Deposit"/"Withdrawal"
+- "+/-"
+
+If the source has NO clear binary type column, LEAVE type UNMAPPED (null). The client will derive type from the sign of the \`amount\` column at import time (negative = expense, positive = income).
+
+DO NOT MAP type to a category column even if some category values sound income-like (e.g. a "Category" column containing "Rent Income", "Insurance", "Repairs"). Those are categories, not type indicators — they belong in the \`category\` field, not \`type\`. Mapping a polychromatic category column to type will cause most rows to fail the DB check constraint.
+
+OTHER RULES
 - confidence is 0-100. ~90+ when every required field has an obvious match and the target is clear; ~50-70 if it's a guess; below 50 if the source doesn't look like either target.
 - notes: 1-2 short sentences highlighting unmapped columns, ambiguities, or normalizations the client should expect.
 

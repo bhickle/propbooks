@@ -485,6 +485,31 @@ export function ImportWizard({ onClose, onComplete }) {
         if (normalized !== null) record[targetField] = normalized;
       }
 
+      // Transactions: normalize type + amount.
+      //
+      // The DB requires `type` to be one of {"income", "expense"} (check
+      // constraint `transactions_type_check`) and the schema description
+      // says `amount` is always positive — direction comes from `type`.
+      //
+      // Sometimes the AI maps a category-like column ("Insurance",
+      // "Repairs", "Income") to `type` because the only category that
+      // happens to look income-shaped passes the enum check. The other
+      // 80% of rows then explode at insert time. To make the import
+      // resilient: if `type` isn't a valid enum value after normalization,
+      // derive it from the sign of `amount` — the user's file encodes
+      // direction as positive/parenthesized-negative which is unambiguous.
+      // Either way, we abs() the amount before sending to the DB so the
+      // "positive amount + type carries direction" invariant holds.
+      if (targetEntity === "transactions") {
+        if (typeof record.amount === "number") {
+          const validType = record.type === "income" || record.type === "expense" ? record.type : null;
+          if (!validType) {
+            record.type = record.amount < 0 ? "expense" : "income";
+          }
+          record.amount = Math.abs(record.amount);
+        }
+      }
+
       // Transactions: resolve property_id.
       //   1. Try the mapped `property` column (exact then partial match).
       //   2. If no match → auto-create a new property using the row's value.
