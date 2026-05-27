@@ -105,7 +105,7 @@ export function ThemeProvider({ children }) {
           --chart-axis: #64748b;
           --chart-grid: #1e293b;
           --chart-bar-primary: #4878a8;
-          --avatar-bg: #4878a8;
+          --avatar-bg: #0a2240;
           --tooltip-bg: #1e293b;
           --tooltip-border: #334155;
           --tooltip-text: #f1f5f9;
