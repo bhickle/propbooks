@@ -8,6 +8,8 @@ import {
   newId, fmt,
   PROPERTY_DOCUMENTS,
   RENTAL_NOTES, MAINTENANCE_REQUESTS,
+  PROPERTY_TYPES, PROPERTY_STATUSES,
+  RENTAL_INCOME_GROUPS, RENTAL_EXPENSE_GROUPS,
 } from "../api.js";
 import { useToast } from "../toast.jsx";
 import { createTransaction, updateTransaction, deleteTransaction } from "../db/transactions.js";
@@ -100,25 +102,10 @@ export function PropertyDetail({ property, onBack, backLabel, onEditProperty, on
   const [txPayeeFocus, setTxPayeeFocus] = useState(false);
   const [txRenderKey, txForceRender] = useState(0);
 
-  const INCOME_GROUPS = {
-    "Rent":           ["Rent Income", "Parking / Storage", "Laundry Income"],
-    "Fees":           ["Late Fees", "Pet Fees", "Application Fees"],
-    "Other Income":   ["Damage Deposit Applied", "Other Income"],
-  };
-  const EXPENSE_GROUPS = {
-    "Mortgage & Financing": ["Mortgage Payment", "Loan Interest", "Refinance Costs"],
-    "Taxes":                ["Property Tax", "Tax Penalties"],
-    "Insurance":            ["Property Insurance", "Liability Insurance", "Flood Insurance"],
-    "Repairs & Maintenance":["Plumbing", "Electrical", "HVAC", "Appliance Repair", "Roof Repair", "General Maintenance"],
-    "Capital Improvement":  ["Kitchen Remodel", "Bathroom Remodel", "Flooring", "New Roof", "Other Capital"],
-    "HOA / Condo Fees":     ["HOA Dues", "Special Assessment"],
-    "Property Management":  ["Management Fee", "Leasing Fee"],
-    "Utilities":            ["Electric", "Gas", "Water / Sewer", "Trash", "Internet / Cable"],
-    "Grounds":              ["Landscaping", "Snow Removal", "Pest Control"],
-    "Professional Services":["Legal Fees", "Accounting / CPA", "Inspection Fees"],
-    "Marketing":            ["Advertising", "Listing Fees", "Signage"],
-    "General":              ["Cleaning", "Supplies & Materials", "Travel & Mileage", "Other Expenses"],
-  };
+  // Category taxonomy lives in api.js (RENTAL_INCOME_GROUPS / RENTAL_EXPENSE_GROUPS).
+  // Locally aliased so the rest of this file's references stay unchanged.
+  const INCOME_GROUPS = RENTAL_INCOME_GROUPS;
+  const EXPENSE_GROUPS = RENTAL_EXPENSE_GROUPS;
   const txGroupsForType = t => t === "income" ? INCOME_GROUPS : EXPENSE_GROUPS;
   const txParentOf = (cat, type) => {
     const groups = txGroupsForType(type);

@@ -5,7 +5,7 @@
 // =============================================================================
 import { useState, useEffect, useRef } from "react";
 import { X, UploadCloud, Trash2 } from "lucide-react";
-import { fmt, PROP_COLORS } from "../api.js";
+import { fmt, PROP_COLORS, PROPERTY_TYPES, PROPERTY_STATUSES } from "../api.js";
 import { PROPERTIES } from "../mockData.js";
 import { calcLoanBalance } from "../finance.js";
 import { useToast } from "../toast.jsx";
@@ -245,13 +245,13 @@ export function Properties({ onSelect, editPropertyId, onClearEditId, convertDea
             <div>
               <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Type</label>
               <select value={form.type} onChange={sf("type")} style={iS}>
-                {["Single Family","Multi-Family","Condo","Commercial","Land"].map(o => <option key={o}>{o}</option>)}
+                {PROPERTY_TYPES.map(o => <option key={o}>{o}</option>)}
               </select>
             </div>
             <div>
               <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Status</label>
               <select value={form.status} onChange={sf("status")} style={iS}>
-                {["Occupied","Partial Vacancy","Vacant","Inactive"].map(o => <option key={o}>{o}</option>)}
+                {PROPERTY_STATUSES.map(o => <option key={o}>{o}</option>)}
               </select>
             </div>
           </div>

@@ -65,20 +65,9 @@ export const EXPENSE_CATEGORIES = [
   { name: "Other", value: 4, color: "#6b7280" },
 ];
 
-export const FLIP_EXPENSE_GROUPS = {
-  "Acquisition":          ["Closing Costs (Buy)", "Title & Escrow", "Inspection", "Appraisal"],
-  "Rehab Labor":          ["General Contractor", "Subcontractor", "Day Labor"],
-  "Rehab Materials":      ["Materials & Supplies", "Appliances", "Fixtures & Hardware"],
-  "Permits & Fees":       ["Permits", "Inspections", "Dumpster / Debris Removal"],
-  "Holding Costs":        ["Insurance", "Property Tax", "Utilities", "Loan Interest / Hard Money", "HOA"],
-  "Selling Costs":        ["Agent Commission", "Photography / Marketing", "Staging", "Cleaning", "Closing Costs (Sell)"],
-  "General":              ["Landscaping", "Travel", "Other"],
-};
-export const FLIP_EXPENSE_CATS = Object.values(FLIP_EXPENSE_GROUPS).flat();
-export const getFlipExpGroup = (cat) => {
-  for (const [parent, subs] of Object.entries(FLIP_EXPENSE_GROUPS)) { if (subs.includes(cat)) return parent; }
-  return "General";
-};
+// FLIP_EXPENSE_GROUPS / FLIP_EXPENSE_CATS / getFlipExpGroup moved to api.js
+// alongside the other canonical taxonomy lists (PROPERTY_TYPES, TRADES,
+// RENTAL_INCOME_GROUPS, etc.). mockData.js stays focused on seed data.
 
 export const TENANTS = [
   { id: 1, propertyId: 1, unit: "Unit A", name: "Marcus & Priya Williams", rent: 1900, securityDeposit: 3800, lateFeePct: 5, renewalTerms: "Annual", notes: "Excellent tenants, always on time.", leaseStart: "2024-02-01", leaseEnd: "2025-01-31", status: "active-lease", daysUntilExpiry: 40, lastPayment: "2026-03-01", phone: "512-555-0143", email: "mwilliams@email.com", leaseDoc: null },

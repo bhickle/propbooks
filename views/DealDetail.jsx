@@ -23,7 +23,7 @@ import {
   getCanonicalBySlug, getCanonicalByLabel,
   MOCK_USER,
 } from "../api.js";
-import { FLIP_EXPENSE_GROUPS, FLIP_EXPENSE_CATS, getFlipExpGroup } from "../mockData.js";
+import { FLIP_EXPENSE_GROUPS, FLIP_EXPENSE_CATS, getFlipExpGroup } from "../api.js";
 import { InfoTip, Modal, StatCard, iS } from "../shared.jsx";
 import { useToast } from "../toast.jsx";
 import { daysAgo } from "../health.js";

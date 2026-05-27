@@ -3,7 +3,7 @@ import {
   Home, CheckSquare, AlertCircle, DollarSign, X, Plus, AlertTriangle, ArrowRight,
   FileText, UploadCloud, LogOut, Pencil, Trash2, Users,
 } from "lucide-react";
-import { fmt, MOCK_USER } from "../api.js";
+import { fmt, MOCK_USER, TENANT_RENEWAL_TERMS, TENANT_MOVE_OUT_REASONS, TENANT_STATUSES } from "../api.js";
 import { InfoTip, Modal, StatCard, EmptyState, iS } from "../shared.jsx";
 import { PROPERTIES, TENANTS } from "../mockData.js";
 import { useToast } from "../toast.jsx";
@@ -517,14 +517,7 @@ export function TenantManagement({ onBack, highlightTenantId, onClearHighlight, 
               <div>
                 <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Reason</label>
                 <select value={closeForm.moveOutReason} onChange={e => setCloseForm(f => ({ ...f, moveOutReason: e.target.value }))} style={iS}>
-                  <option>Lease ended</option>
-                  <option>Lease not renewed</option>
-                  <option>Relocated for work</option>
-                  <option>Purchased own home</option>
-                  <option>Lease ended, rent increase</option>
-                  <option>Eviction</option>
-                  <option>Mutual agreement</option>
-                  <option>Other</option>
+                  {TENANT_MOVE_OUT_REASONS.map(r => <option key={r}>{r}</option>)}
                 </select>
               </div>
             </div>
@@ -552,9 +545,7 @@ export function TenantManagement({ onBack, highlightTenantId, onClearHighlight, 
             <div>
               <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Status</label>
               <select value={form.status} onChange={sf("status")} style={iS}>
-                <option value="active-lease">Active Lease</option>
-                <option value="month-to-month">Month-to-Month</option>
-                <option value="vacant">Vacant</option>
+                {TENANT_STATUSES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
               </select>
             </div>
             <div style={{ gridColumn: "1 / -1" }}>
@@ -598,10 +589,7 @@ export function TenantManagement({ onBack, highlightTenantId, onClearHighlight, 
               <div style={{ gridColumn: "1 / -1" }}>
                 <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Renewal Terms</label>
                 <select value={form.renewalTerms} onChange={sf("renewalTerms")} style={iS}>
-                  <option value="Annual">Annual</option>
-                  <option value="Month-to-Month">Month-to-Month</option>
-                  <option value="6-Month">6-Month</option>
-                  <option value="5-Year Option">5-Year Option</option>
+                  {TENANT_RENEWAL_TERMS.map(t => <option key={t} value={t}>{t}</option>)}
                 </select>
               </div>
               <div style={{ gridColumn: "1 / -1" }}>

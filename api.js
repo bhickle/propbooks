@@ -167,6 +167,96 @@ export const isCanonicalTrade = (label) => {
 };
 
 // -----------------------------------------------------------------------------
+// Property + Tenant canonical lists — were previously inlined as literal
+// arrays in 3-6 source files each, so adding a new property type or move-out
+// reason meant editing every consumer. Single source of truth here; every
+// <select> imports from this module.
+// -----------------------------------------------------------------------------
+export const PROPERTY_TYPES = [
+  "Single Family", "Duplex", "Triplex", "Fourplex", "Apartment",
+  "Condo", "Townhouse", "Multi-Family", "Commercial", "Mixed Use", "Land",
+];
+
+export const PROPERTY_STATUSES = [
+  "Occupied", "Partial Vacancy", "Vacant", "Inactive",
+];
+
+export const TENANT_STATUSES = [
+  { value: "active-lease",   label: "Active Lease" },
+  { value: "month-to-month", label: "Month-to-Month" },
+  { value: "vacant",         label: "Vacant" },
+];
+
+export const TENANT_RENEWAL_TERMS = [
+  "Annual", "Month-to-Month", "6-Month", "5-Year Option",
+];
+
+export const TENANT_MOVE_OUT_REASONS = [
+  "Lease ended",
+  "Lease not renewed",
+  "Relocated for work",
+  "Purchased own home",
+  "Lease ended, rent increase",
+  "Eviction",
+  "Mutual agreement",
+  "Other",
+];
+
+// -----------------------------------------------------------------------------
+// Transaction category taxonomies. Three flavors share the optgroup shape but
+// represent different ledger kinds: rental income (rent + fees), rental
+// expense (operating costs), and rehab expense (acquisition through sale).
+// All three were duplicated in PropertyDetail.jsx + Ledger.jsx + mockData.js;
+// canonicalized here so the Ledger picker, the PropertyDetail picker, and the
+// DealDetail expense-group stat cards all agree on category names.
+// -----------------------------------------------------------------------------
+export const RENTAL_INCOME_GROUPS = {
+  "Rent":         ["Rent Income", "Parking / Storage", "Laundry Income"],
+  "Fees":         ["Late Fees", "Pet Fees", "Application Fees"],
+  "Other Income": ["Damage Deposit Applied", "Other Income"],
+};
+
+export const RENTAL_EXPENSE_GROUPS = {
+  "Mortgage & Financing":  ["Mortgage Payment", "Loan Interest", "Refinance Costs"],
+  "Taxes":                 ["Property Tax", "Tax Penalties"],
+  "Insurance":             ["Property Insurance", "Liability Insurance", "Flood Insurance"],
+  "Repairs & Maintenance": ["Plumbing", "Electrical", "HVAC", "Appliance Repair", "Roof Repair", "General Maintenance"],
+  "Capital Improvement":   ["Kitchen Remodel", "Bathroom Remodel", "Flooring", "New Roof", "Other Capital"],
+  "HOA / Condo Fees":      ["HOA Dues", "Special Assessment"],
+  "Property Management":   ["Management Fee", "Leasing Fee"],
+  "Utilities":             ["Electric", "Gas", "Water / Sewer", "Trash", "Internet / Cable"],
+  "Grounds":               ["Landscaping", "Snow Removal", "Pest Control"],
+  "Professional Services": ["Legal Fees", "Accounting / CPA", "Inspection Fees"],
+  "Marketing":             ["Advertising", "Listing Fees", "Signage"],
+  "General":               ["Cleaning", "Supplies & Materials", "Travel & Mileage", "Other Expenses"],
+};
+
+export const FLIP_EXPENSE_GROUPS = {
+  "Acquisition":     ["Closing Costs (Buy)", "Title & Escrow", "Inspection", "Appraisal"],
+  "Rehab Labor":     ["General Contractor", "Subcontractor", "Day Labor"],
+  "Rehab Materials": ["Materials & Supplies", "Appliances", "Fixtures & Hardware"],
+  "Permits & Fees":  ["Permits", "Inspections", "Dumpster / Debris Removal"],
+  "Holding Costs":   ["Insurance", "Property Tax", "Utilities", "Loan Interest / Hard Money", "HOA"],
+  "Selling Costs":   ["Agent Commission", "Photography / Marketing", "Staging", "Cleaning", "Closing Costs (Sell)"],
+  "General":         ["Landscaping", "Travel", "Other"],
+};
+
+export const FLIP_EXPENSE_CATS = Object.values(FLIP_EXPENSE_GROUPS).flat();
+
+export const getFlipExpGroup = (cat) => {
+  for (const [parent, subs] of Object.entries(FLIP_EXPENSE_GROUPS)) {
+    if (subs.includes(cat)) return parent;
+  }
+  return "General";
+};
+
+export function txGroupsForKind(kind) {
+  if (kind === "rental-income")  return RENTAL_INCOME_GROUPS;
+  if (kind === "rental-expense") return RENTAL_EXPENSE_GROUPS;
+  return FLIP_EXPENSE_GROUPS;
+}
+
+// -----------------------------------------------------------------------------
 // Rehab Templates — one-click starter scopes for new deals. Each template is a
 // list of canonical slugs plus an optional suggested budget (user adjusts).
 // -----------------------------------------------------------------------------

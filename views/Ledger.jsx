@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import {
   newId, fmt, fmtK, DEALS, DEAL_EXPENSES, CONTRACTORS,
+  RENTAL_INCOME_GROUPS, RENTAL_EXPENSE_GROUPS, FLIP_EXPENSE_GROUPS, txGroupsForKind,
 } from "../api.js";
 import { PROPERTIES, TRANSACTIONS, TENANTS } from "../mockData.js";
 import { StatCard, EmptyState, Modal, iS } from "../shared.jsx";
@@ -97,42 +98,9 @@ function dateInRange(dateStr, range) {
 }
 
 // ── Category groups, scoped per kind ────────────────────────────────────────
-// Same vocabulary the existing per-type forms use. Keeping these inline so
-// the unified form is a self-contained replacement and there's no
-// cross-import coupling to delete when the old forms come out.
-const RENTAL_INCOME_GROUPS = {
-  "Rent":         ["Rent Income", "Parking / Storage", "Laundry Income"],
-  "Fees":         ["Late Fees", "Pet Fees", "Application Fees"],
-  "Other Income": ["Damage Deposit Applied", "Other Income"],
-};
-const RENTAL_EXPENSE_GROUPS = {
-  "Mortgage & Financing":  ["Mortgage Payment", "Loan Interest", "Refinance Costs"],
-  "Taxes":                 ["Property Tax", "Tax Penalties"],
-  "Insurance":             ["Property Insurance", "Liability Insurance", "Flood Insurance"],
-  "Repairs & Maintenance": ["Plumbing", "Electrical", "HVAC", "Appliance Repair", "Roof Repair", "General Maintenance"],
-  "Capital Improvement":   ["Kitchen Remodel", "Bathroom Remodel", "Flooring", "New Roof", "Other Capital"],
-  "HOA / Condo Fees":      ["HOA Dues", "Special Assessment"],
-  "Property Management":   ["Management Fee", "Leasing Fee"],
-  "Utilities":             ["Electric", "Gas", "Water / Sewer", "Trash", "Internet / Cable"],
-  "Grounds":               ["Landscaping", "Snow Removal", "Pest Control"],
-  "Professional Services": ["Legal Fees", "Accounting / CPA", "Inspection Fees"],
-  "Marketing":             ["Advertising", "Listing Fees", "Signage"],
-  "General":               ["Cleaning", "Supplies & Materials", "Travel & Mileage", "Other Expenses"],
-};
-const FLIP_EXPENSE_GROUPS = {
-  "Materials & Labor":  ["Materials & Supplies", "Subcontractor", "Fixtures & Hardware", "Appliances"],
-  "Permits & Fees":     ["Permits", "Inspection Fees", "HOA Approvals"],
-  "Site Costs":         ["Dumpster / Debris Removal", "Utilities", "Storage", "Equipment Rental"],
-  "Holding & Carrying": ["Mortgage Interest", "Property Tax", "Insurance"],
-  "Selling Costs":      ["Staging", "Photography", "Listing Fees", "Marketing"],
-  "Other":              ["Travel & Mileage", "Other Expenses"],
-};
-
-function groupsForKind(kind) {
-  if (kind === "rental-income")  return RENTAL_INCOME_GROUPS;
-  if (kind === "rental-expense") return RENTAL_EXPENSE_GROUPS;
-  return FLIP_EXPENSE_GROUPS;
-}
+// Category taxonomy lives in api.js. groupsForKind keeps the existing
+// per-screen-local function name so the rest of this file is unchanged.
+const groupsForKind = txGroupsForKind;
 function defaultCategory(kind) {
   if (kind === "rental-income")  return "Rent Income";
   if (kind === "rental-expense") return "Mortgage Payment";

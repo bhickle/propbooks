@@ -6,6 +6,7 @@ import {
 import {
   newId, fmt,
   TENANT_DOCUMENTS, MAINTENANCE_REQUESTS, RENTAL_NOTES,
+  TENANT_MOVE_OUT_REASONS,
 } from "../api.js";
 import { createTransaction } from "../db/transactions.js";
 import { createRentalNote, deleteNote as dbDeleteNote } from "../db/notes.js";
@@ -629,7 +630,7 @@ export function TenantDetail({ tenant, onBack, backLabel, onTenantUpdated, onSel
               <div>
                 <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Reason</label>
                 <select value={closeForm.moveOutReason} onChange={e => setCloseForm(f => ({ ...f, moveOutReason: e.target.value }))} style={iS}>
-                  <option>Lease ended</option><option>Lease not renewed</option><option>Relocated for work</option><option>Purchased own home</option><option>Lease ended, rent increase</option><option>Eviction</option><option>Mutual agreement</option><option>Other</option>
+                  {TENANT_MOVE_OUT_REASONS.map(r => <option key={r}>{r}</option>)}
                 </select>
               </div>
             </div>

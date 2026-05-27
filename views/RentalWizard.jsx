@@ -5,7 +5,7 @@
 // =============================================================================
 import { useState, useEffect } from "react";
 import { DollarSign, Home, User, Users } from "lucide-react";
-import { fmt, PROP_COLORS } from "../api.js";
+import { fmt, PROP_COLORS, PROPERTY_TYPES } from "../api.js";
 import { PROPERTIES, TENANTS } from "../mockData.js";
 import { useToast } from "../toast.jsx";
 import { WizardShell, WizardNav, WizardField, wizardInput, wizardSelect } from "./wizardPrimitives.jsx";
@@ -131,7 +131,7 @@ export function RentalWizard({ onComplete, onExit }) {
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
             <WizardField label="Property Type">
               <select value={basics.type} onChange={sb("type")} style={wizardSelect}>
-                {["Single Family", "Duplex", "Triplex", "Fourplex", "Apartment", "Condo", "Townhouse", "Commercial", "Mixed Use"].map(t => <option key={t}>{t}</option>)}
+                {PROPERTY_TYPES.map(t => <option key={t}>{t}</option>)}
               </select>
             </WizardField>
             <WizardField label="Units" hint="Total rentable units">
