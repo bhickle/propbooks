@@ -117,10 +117,18 @@ export function GlobalSearch({ onNavigate }) {
 
   return (
     <div ref={ref} style={{ position: "relative" }}>
-      <div style={{ background: focused ? "var(--surface)" : "var(--surface-muted)", borderRadius: 10, padding: "8px 14px", display: "flex", alignItems: "center", gap: 8, border: focused ? "1px solid var(--border)" : "1px solid transparent", boxShadow: focused ? "0 4px 16px rgba(0,0,0,0.08)" : "none", transition: "all 0.15s" }}>
-        <Search size={14} color="#94a3b8" />
+      <div style={{
+        background: "var(--surface-alt)",
+        borderRadius: 10,
+        padding: "8px 14px",
+        display: "flex", alignItems: "center", gap: 8,
+        border: focused ? "1.5px solid #e95e00" : "1px solid var(--border)",
+        boxShadow: focused ? "0 0 0 3px rgba(233,94,0,0.12)" : "none",
+        transition: "all 0.15s",
+      }}>
+        <Search size={14} color="var(--text-muted)" />
         <input ref={inputRef} value={query} onChange={e => setQuery(e.target.value)} onFocus={() => setFocused(true)} placeholder="Search everything…" style={{ border: "none", background: "transparent", fontSize: 14, color: "var(--text-primary)", outline: "none", width: 200 }} />
-        {!query && <kbd style={{ fontSize: 10, color: "var(--text-muted)", background: "var(--surface-muted)", border: "1px solid var(--border)", borderRadius: 4, padding: "1px 5px", fontFamily: "inherit" }}>{navigator.platform?.includes("Mac") ? "⌘" : "Ctrl+"}K</kbd>}
+        {!query && <kbd style={{ fontSize: 10, color: "var(--text-muted)", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 4, padding: "1px 5px", fontFamily: "inherit" }}>{navigator.platform?.includes("Mac") ? "⌘" : "Ctrl+"}K</kbd>}
         {query && <button onClick={() => { setQuery(""); inputRef.current?.focus(); }} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)", padding: 0, display: "flex" }}><X size={14} /></button>}
       </div>
 
