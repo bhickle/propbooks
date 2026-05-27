@@ -17,6 +17,7 @@ import { useToast } from "../toast.jsx";
 import { createProperty } from "../db/properties.js";
 import { createTransaction } from "../db/transactions.js";
 import { iS } from "../shared.jsx";
+import { PROPERTIES } from "../mockData.js";
 
 const TARGETS = [
   { id: "properties",   label: "Properties",   icon: FileSpreadsheet, sub: "Rentals, addresses, purchase prices, loans" },
@@ -127,6 +128,7 @@ export function ImportWizard({ onClose, onComplete }) {
   const [allRows, setAllRows] = useState([]);    // raw string rows (no header)
   const [aiResult, setAiResult] = useState(null); // {mapping, confidence, notes, target_schema, unmapped_source_headers}
   const [mapping, setMapping] = useState({});    // editable copy of aiResult.mapping
+  const [defaultPropertyId, setDefaultPropertyId] = useState(""); // transactions only: fallback property when no per-row column exists
   const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState(null); // {created, failed, errors[]}
   const [error, setError] = useState("");
@@ -199,6 +201,17 @@ export function ImportWizard({ onClose, onComplete }) {
     let created = 0;
     const errors = [];
 
+    // Pre-build a lookup table for transactions: lowercased name OR address
+    // → property.id. The match is case-insensitive and partial — "123 Main"
+    // in the CSV finds the property named "123 Main St".
+    const propertyByKey = new Map();
+    if (targetEntity === "transactions") {
+      for (const p of PROPERTIES) {
+        if (p.name)    propertyByKey.set(p.name.toLowerCase().trim(), p.id);
+        if (p.address) propertyByKey.set(p.address.toLowerCase().trim(), p.id);
+      }
+    }
+
     for (let i = 0; i < allRows.length; i++) {
       const row = allRows[i];
       const record = {};
@@ -211,6 +224,35 @@ export function ImportWizard({ onClose, onComplete }) {
         const normalized = normalizeValue(targetField, spec, row[colIdx]);
         if (normalized !== null) record[targetField] = normalized;
       }
+
+      // Transactions: resolve property_id. Try the mapped `property` column
+      // first (look up by name/address), then fall back to the default
+      // property the user picked. If neither resolves, fail the row.
+      if (targetEntity === "transactions") {
+        let propertyId = null;
+        const propVal = record.property;
+        if (propVal) {
+          const key = String(propVal).toLowerCase().trim();
+          propertyId = propertyByKey.get(key) || null;
+          if (!propertyId) {
+            // Partial match: any property whose name/address contains this
+            // value or vice versa. Handles "Oak St" → "123 Oak Street".
+            for (const [k, id] of propertyByKey.entries()) {
+              if (k.includes(key) || key.includes(k)) { propertyId = id; break; }
+            }
+          }
+        }
+        if (!propertyId) propertyId = defaultPropertyId || null;
+        if (!propertyId) {
+          errors.push({ row: i + 2, reason: propVal
+            ? `couldn't match "${propVal}" to any property — pick a default property below or add the property first`
+            : "no property — pick a default property below" });
+          continue;
+        }
+        record.propertyId = propertyId;
+        delete record.property; // virtual field, not a real DB column
+      }
+
       // Skip rows missing required fields.
       const missing = Object.entries(targetSchema).filter(([k, s]) => s.required && (record[k] === undefined || record[k] === null || record[k] === ""));
       if (missing.length > 0) {
@@ -267,6 +309,7 @@ export function ImportWizard({ onClose, onComplete }) {
 
         {step === "review" && aiResult && (
           <ReviewStep
+            targetEntity={targetEntity}
             targetSchema={targetSchema}
             mapping={mapping}
             setMapping={setMapping}
@@ -277,6 +320,8 @@ export function ImportWizard({ onClose, onComplete }) {
             sampleRows={allRows.slice(0, 3)}
             fileName={fileName}
             totalRows={allRows.length}
+            defaultPropertyId={defaultPropertyId}
+            setDefaultPropertyId={setDefaultPropertyId}
             onBack={() => setStep("pick")}
             onConfirm={handleImport}
           />
@@ -348,7 +393,7 @@ function PickStep({ targetEntity, setTargetEntity, onFile, error }) {
 }
 
 // ── ReviewStep ──────────────────────────────────────────────────────────────
-function ReviewStep({ targetSchema, mapping, setMapping, headers, confidence, notes, unmapped, sampleRows, fileName, totalRows, onBack, onConfirm }) {
+function ReviewStep({ targetEntity, targetSchema, mapping, setMapping, headers, confidence, notes, unmapped, sampleRows, fileName, totalRows, defaultPropertyId, setDefaultPropertyId, onBack, onConfirm }) {
   const fields = Object.entries(targetSchema);
   const confColor = confidence >= 80 ? "var(--c-green)" : confidence >= 50 ? "#e95e00" : "var(--c-red)";
   // Which sourceHeaders are still assigned to a target field (for the dropdown to show "used elsewhere").
@@ -361,6 +406,14 @@ function ReviewStep({ targetSchema, mapping, setMapping, headers, confidence, no
   function setField(field, sourceHeader) {
     setMapping(prev => ({ ...prev, [field]: sourceHeader || null }));
   }
+
+  // Transactions need a property_id per row. If the CSV doesn't have a
+  // property column (or the AI couldn't map one), the user must pick a
+  // default property here — otherwise the import would fail with FK errors.
+  const isTransactions = targetEntity === "transactions";
+  const hasPropertyColumn = !!mapping.property;
+  const needsDefaultProperty = isTransactions && !hasPropertyColumn;
+  const canConfirm = !needsDefaultProperty || !!defaultPropertyId;
 
   return (
     <div>
@@ -412,6 +465,34 @@ function ReviewStep({ targetSchema, mapping, setMapping, headers, confidence, no
         </div>
       )}
 
+      {isTransactions && (
+        <div style={{ marginBottom: 14, padding: "12px 14px", background: "var(--surface-alt)", border: "1px solid var(--border-subtle)", borderRadius: 10 }}>
+          <p style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)", marginBottom: 6 }}>
+            {hasPropertyColumn ? "Property (fallback)" : "Default property"}
+            {needsDefaultProperty && <span style={{ color: "var(--c-red)", marginLeft: 4 }}>*</span>}
+          </p>
+          <p style={{ fontSize: 12, color: "var(--text-secondary)", marginBottom: 8, lineHeight: 1.5 }}>
+            {hasPropertyColumn
+              ? "Each row will be matched against your properties by the mapped Property column. If a row's value doesn't match any of your properties, this fallback property will be used instead."
+              : "Every transaction needs to belong to a property. Pick which property all rows in this file belong to."}
+          </p>
+          {PROPERTIES.length === 0 ? (
+            <p style={{ fontSize: 12, color: "var(--c-red)", fontStyle: "italic" }}>
+              You don&rsquo;t have any properties yet. Add a property first, then import the transactions.
+            </p>
+          ) : (
+            <select value={defaultPropertyId} onChange={e => setDefaultPropertyId(e.target.value)} style={{ ...iS, padding: "8px 12px", fontSize: 13 }}>
+              <option value="">— pick a property —</option>
+              {PROPERTIES.map(p => (
+                <option key={p.id} value={p.id}>
+                  {p.name}{p.address ? ` · ${p.address}` : ""}
+                </option>
+              ))}
+            </select>
+          )}
+        </div>
+      )}
+
       <p style={{ fontSize: 13, fontWeight: 700, color: "var(--text-dim)", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.04em" }}>Sample of what will be imported</p>
       <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 18, maxHeight: 160, overflowY: "auto", border: "1px solid var(--border-subtle)", borderRadius: 8, padding: 8 }}>
         {sampleRows.map((row, i) => (
@@ -432,7 +513,12 @@ function ReviewStep({ targetSchema, mapping, setMapping, headers, confidence, no
         <button onClick={onBack} style={{ padding: "10px 18px", borderRadius: 10, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text-label)", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
           <ArrowLeft size={14} /> Back
         </button>
-        <button onClick={onConfirm} style={{ padding: "10px 18px", borderRadius: 10, border: "none", background: "#e95e00", color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
+        <button
+          onClick={onConfirm}
+          disabled={!canConfirm}
+          title={!canConfirm ? "Pick a default property first" : ""}
+          style={{ padding: "10px 18px", borderRadius: 10, border: "none", background: "#e95e00", color: "#fff", fontWeight: 700, fontSize: 14, cursor: canConfirm ? "pointer" : "not-allowed", opacity: canConfirm ? 1 : 0.5, display: "flex", alignItems: "center", gap: 6 }}
+        >
           Import {totalRows} row{totalRows !== 1 ? "s" : ""} <ArrowRight size={14} />
         </button>
       </div>

@@ -48,6 +48,7 @@ const TARGET_SCHEMAS: Record<string, Record<string, FieldSpec>> = {
     date:        { type: "date",    required: true,  description: "Transaction date (YYYY-MM-DD)" },
     amount:      { type: "number",  required: true,  description: "Dollar amount (always positive; direction comes from `type`)" },
     type:        { type: "string",  required: true,  enum: ["income", "expense"], description: "Direction of money. If the source has negative amounts for expenses, set this to 'expense' and use the absolute value for amount." },
+    property:    { type: "string",  required: false, description: "Property name, nickname, or address — the client will look up the matching property by this value. If the CSV doesn't have a property column (e.g. it's all for one property), leave this null and the user will pick a default property in the UI." },
     category:    { type: "string",  required: false, description: "Category like 'Rent Income', 'Mortgage Payment', 'Plumbing', etc." },
     description: { type: "string",  required: false, description: "Memo / description text" },
     payee:       { type: "string",  required: false, description: "Vendor name (for expenses) or tenant name (for income)" },
