@@ -192,6 +192,13 @@ export function AppShell() {
   // CTAs on Assets / Ledger, Settings → Import tab, future spots) can open
   // it without each one re-mounting the component.
   const [showImportWizard, setShowImportWizard] = useState(false);
+
+  // ThemePicker dismissal guard. Once the user picks (or closes the modal),
+  // we never re-mount it in this session — even if profile state briefly
+  // shows themePreference as null between the local setTheme and the
+  // server write reflecting back. Resets per user.id (new login).
+  const [themePickerDismissed, setThemePickerDismissed] = useState(false);
+  useEffect(() => { setThemePickerDismissed(false); }, [user?.id]);
   const [hydrating, setHydrating] = useState(true);
   const [showSignOutConfirm, setShowSignOutConfirm] = useState(false);
   const { showToast } = useToast();
@@ -802,6 +809,10 @@ export function AppShell() {
                 onNavigateToDealExpense: (expId) => { setHighlightLedgerKey("dx-" + expId); setLedgerInitialAssetFilter(null); setActiveView("ledger"); },
                 onNavigateToLease: (prop, tenantId) => { setSelectedProperty(prop); setPropDetailTab("tenants"); setPropDetailTenantHighlight(tenantId); setNavSource("portfolio"); setActiveView("propertyDetail"); },
                 onSelectContractor: (c) => { setSelectedContractor(c); setContractorInitialTab(null); setNavSource("portfolio"); setActiveView("contractorDetail"); },
+                onAddRental: () => setActiveView("rentalWizard"),
+                onAddFlip:   () => setActiveView("flipWizard"),
+                onImport:    () => setShowImportWizard(true),
+                isDemo:      isDemoForOnboarding,
               }}
               rentalProps={{
                 onNavigate: setActiveView,
@@ -904,10 +915,14 @@ export function AppShell() {
 
       {/* ThemePicker — one-time on first login (themePreference is null).
           Shown before OnboardingWizard so onboarding renders in the chosen
-          theme. Once a user picks once it never reappears (the demo account
-          included — picking on demo persists like any other account). */}
-      {user && user.themePreference === null && (
-        <ThemePicker user={user} onComplete={() => refreshProfile?.()} />
+          theme. The dismiss guard makes this a strict once-per-session
+          modal so any profile-state churn between local setTheme and the
+          server write reflecting back can't make it flicker. */}
+      {user && user.themePreference === null && !themePickerDismissed && (
+        <ThemePicker user={user} onComplete={() => {
+          setThemePickerDismissed(true);
+          refreshProfile?.();
+        }} />
       )}
 
       {/* Onboarding Wizard (new users only — and only after they've picked a theme) */}

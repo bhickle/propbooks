@@ -7,7 +7,7 @@ import { useState } from "react";
 import {
   Wallet, TrendingUp, Target, DollarSign, ArrowUpDown, Hammer, Building2,
   MessageSquare, ArrowRight, AlertCircle, CheckCircle, Clock, X,
-  MoreHorizontal, ArrowUp, ArrowDown, ChevronRight,
+  MoreHorizontal, ArrowUp, ArrowDown, ChevronRight, Home, Upload, Plus,
 } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
@@ -20,7 +20,7 @@ import { calcLoanBalance, getEffectiveMonthly } from "../finance.js";
 import { generateAlerts, snoozeAlert, dismissAlert, QuickPayInline } from "../alerts.jsx";
 import { StatCard, InfoTip, sectionS as sharedSectionS } from "../shared.jsx";
 
-export function PortfolioDashboard({ onNavigate, onSelectProperty, onSelectFlip, onNavigateToTx, onNavigateToDealExpense, onNavigateToLease, onSelectContractor }) {
+export function PortfolioDashboard({ onNavigate, onSelectProperty, onSelectFlip, onNavigateToTx, onNavigateToDealExpense, onNavigateToLease, onSelectContractor, onAddRental, onAddFlip, onImport, isDemo }) {
   const now = new Date();
   const todayStr = now.toISOString().slice(0, 10);
   // Force a re-render when snooze/dismiss state changes
@@ -121,6 +121,50 @@ export function PortfolioDashboard({ onNavigate, onSelectProperty, onSelectFlip,
 
   const sectionS = sharedSectionS;
   const qaBtnS = { display: "flex", flexDirection: "column", alignItems: "center", gap: 8, padding: "16px 12px", borderRadius: 12, border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", transition: "all 0.15s", flex: 1 };
+
+  // Empty-state mode: brand-new account with no rentals or rehabs. Replace
+  // the all-zero dashboard with a welcome panel that points at the three
+  // ways to get started.
+  const isEmpty = PROPERTIES.length === 0 && DEALS.length === 0;
+  if (isEmpty) {
+    return (
+      <div>
+        <div style={{ marginBottom: 24 }}>
+          <h1 style={{ fontSize: 26, fontWeight: 700, color: "var(--text-primary)", margin: "0 0 4px 0" }}>Portfolio Overview</h1>
+          <p style={{ fontSize: 15, color: "var(--text-secondary)", margin: 0 }}>Welcome — let&rsquo;s get your first asset in so the dashboard has something to show.</p>
+        </div>
+
+        <div style={{ background: "var(--surface)", borderRadius: 16, padding: 40, border: "1px solid var(--border-subtle)", boxShadow: "0 1px 3px rgba(0,0,0,0.06)", textAlign: "center" }}>
+          <div style={{ width: 64, height: 64, borderRadius: 16, background: "linear-gradient(135deg, #e95e00 0%, #f59e0b 100%)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 20px", boxShadow: "0 4px 12px rgba(233,94,0,0.25)" }}>
+            <Building2 size={32} color="#fff" />
+          </div>
+          <h2 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)", marginBottom: 8 }}>Get started in one of three ways</h2>
+          <p style={{ fontSize: 14, color: "var(--text-secondary)", maxWidth: 520, margin: "0 auto 28px", lineHeight: 1.6 }}>
+            Add a single property by hand, kick off a rehab project, or import an existing portfolio from a spreadsheet. You can mix and match — there&rsquo;s no wrong order.
+          </p>
+          <div style={{ display: "grid", gridTemplateColumns: !isDemo && onImport ? "1fr 1fr 1fr" : "1fr 1fr", gap: 14, maxWidth: !isDemo && onImport ? 720 : 480, margin: "0 auto" }}>
+            <EmptyChoice
+              icon={Home} accent="var(--c-blue)" tint="var(--info-tint)"
+              title="Add Rental" body="Buy & hold — track rent, tenants, leases, and cash flow."
+              onClick={onAddRental}
+            />
+            <EmptyChoice
+              icon={Hammer} accent="#e95e00" tint="var(--warning-bg)"
+              title="Add Rehab" body="Track rehab budget, contractors, milestones, and profit."
+              onClick={onAddFlip}
+            />
+            {!isDemo && onImport && (
+              <EmptyChoice
+                icon={Upload} accent="var(--c-purple)" tint="var(--purple-tint)"
+                title="Import from spreadsheet" body="Bring properties or transactions over from QuickBooks, Stessa, or Excel."
+                onClick={onImport}
+              />
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -430,5 +474,23 @@ export function PortfolioDashboard({ onNavigate, onSelectProperty, onSelectFlip,
         </div>
       </div>
     </div>
+  );
+}
+
+// Empty-state choice card used in the welcome panel when the portfolio has
+// no assets yet. Kept inline rather than in shared.jsx since this pattern
+// only exists here and on WelcomeScreen.
+function EmptyChoice({ icon: Icon, accent, tint, title, body, onClick }) {
+  return (
+    <button onClick={onClick}
+      style={{ background: "var(--surface)", border: "1.5px solid var(--border)", borderRadius: 14, padding: "22px 18px", cursor: "pointer", textAlign: "left", transition: "all 0.15s", display: "flex", flexDirection: "column", gap: 8 }}
+      onMouseEnter={e => { e.currentTarget.style.borderColor = accent; e.currentTarget.style.boxShadow = "0 4px 16px rgba(0,0,0,0.06)"; e.currentTarget.style.transform = "translateY(-2px)"; }}
+      onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.boxShadow = "none"; e.currentTarget.style.transform = "translateY(0)"; }}>
+      <div style={{ width: 40, height: 40, borderRadius: 10, background: tint, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <Icon size={20} color={accent} />
+      </div>
+      <h3 style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>{title}</h3>
+      <p style={{ fontSize: 12, color: "var(--text-secondary)", margin: 0, lineHeight: 1.5 }}>{body}</p>
+    </button>
   );
 }

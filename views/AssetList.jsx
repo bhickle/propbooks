@@ -207,25 +207,34 @@ export function AssetList({ onSelectRental, onSelectFlip, onAddRental, onAddFlip
             {rentalCount} rental{rentalCount !== 1 ? "s" : ""} · {flipCount} rehab{flipCount !== 1 ? "s" : ""}
           </p>
         </div>
-        <div style={{ position: "relative" }}>
-          <button onClick={() => setShowAddMenu(s => !s)}
-            style={{ background: "#e95e00", color: "#fff", border: "none", borderRadius: 10, padding: "10px 18px", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
-            <Plus size={16} /> Add Asset
-          </button>
-          {showAddMenu && (
-            <div style={{ position: "absolute", top: "calc(100% + 6px)", right: 0, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, boxShadow: "0 8px 24px rgba(0,0,0,0.12)", overflow: "hidden", zIndex: 50, minWidth: 180 }}>
-              <button onClick={() => { setShowAddMenu(false); onAddRental && onAddRental(); }}
-                style={{ width: "100%", padding: "12px 16px", background: "none", border: "none", textAlign: "left", cursor: "pointer", display: "flex", alignItems: "center", gap: 10, fontSize: 13, color: "var(--text-primary)", borderBottom: "1px solid var(--border-subtle)" }}>
-                <Home size={14} color="var(--c-blue)" />
-                <span style={{ fontWeight: 600 }}>Add Rental</span>
-              </button>
-              <button onClick={() => { setShowAddMenu(false); onAddFlip && onAddFlip(); }}
-                style={{ width: "100%", padding: "12px 16px", background: "none", border: "none", textAlign: "left", cursor: "pointer", display: "flex", alignItems: "center", gap: 10, fontSize: 13, color: "var(--text-primary)" }}>
-                <Hammer size={14} color="#e95e00" />
-                <span style={{ fontWeight: 600 }}>Add Rehab</span>
-              </button>
-            </div>
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          {!isDemo && onImport && (
+            <button onClick={onImport}
+              title="Import from spreadsheet"
+              style={{ background: "var(--surface)", color: "var(--text-primary)", border: "1px solid var(--border)", borderRadius: 10, padding: "10px 16px", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
+              <Upload size={16} /> Import
+            </button>
           )}
+          <div style={{ position: "relative" }}>
+            <button onClick={() => setShowAddMenu(s => !s)}
+              style={{ background: "#e95e00", color: "#fff", border: "none", borderRadius: 10, padding: "10px 18px", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
+              <Plus size={16} /> Add Asset
+            </button>
+            {showAddMenu && (
+              <div style={{ position: "absolute", top: "calc(100% + 6px)", right: 0, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, boxShadow: "0 8px 24px rgba(0,0,0,0.12)", overflow: "hidden", zIndex: 50, minWidth: 180 }}>
+                <button onClick={() => { setShowAddMenu(false); onAddRental && onAddRental(); }}
+                  style={{ width: "100%", padding: "12px 16px", background: "none", border: "none", textAlign: "left", cursor: "pointer", display: "flex", alignItems: "center", gap: 10, fontSize: 13, color: "var(--text-primary)", borderBottom: "1px solid var(--border-subtle)" }}>
+                  <Home size={14} color="var(--c-blue)" />
+                  <span style={{ fontWeight: 600 }}>Add Rental</span>
+                </button>
+                <button onClick={() => { setShowAddMenu(false); onAddFlip && onAddFlip(); }}
+                  style={{ width: "100%", padding: "12px 16px", background: "none", border: "none", textAlign: "left", cursor: "pointer", display: "flex", alignItems: "center", gap: 10, fontSize: 13, color: "var(--text-primary)" }}>
+                  <Hammer size={14} color="#e95e00" />
+                  <span style={{ fontWeight: 600 }}>Add Rehab</span>
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -276,12 +285,9 @@ export function AssetList({ onSelectRental, onSelectFlip, onAddRental, onAddFlip
                   title="No assets yet"
                   subtitle={isDemo
                     ? "Add your first rental or rehab to start tracking your portfolio."
-                    : "Add your first rental or rehab, or import an existing portfolio from a spreadsheet."}
+                    : "Add your first rental or rehab to start tracking your portfolio. Already have data in a spreadsheet? Use Import in the top right."}
                   actionLabel="Add Rental"
                   onAction={onAddRental}
-                  secondaryActionLabel={!isDemo && onImport ? "Import from spreadsheet" : null}
-                  onSecondaryAction={!isDemo && onImport ? onImport : null}
-                  secondaryIcon={Upload}
                 />
               : <EmptyState icon={Search} title="No assets match this filter" subtitle="Try selecting a different type or clearing the search." />
             }

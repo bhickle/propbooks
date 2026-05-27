@@ -12,18 +12,21 @@ import { supabase } from "../supabase.js";
 export function ThemePicker({ user, onComplete }) {
   const { setTheme } = useTheme();
 
-  async function pick(choice) {
-    setTheme(choice); // flip the live UI immediately
-    try {
-      const { error } = await supabase
-        .from("profiles")
-        .update({ theme_preference: choice })
-        .eq("id", user.id);
-      if (error) throw error;
-    } catch (e) {
-      console.error("[PropBooks] Save theme preference failed:", e);
-    }
+  // Dismissal is instant; the server write is fire-and-forget so the modal
+  // closes without waiting on network latency, and a slow DB write can't
+  // make the picker visibly hang or flicker. AppShell's dismiss guard
+  // ensures the picker stays gone even if profile state briefly churns
+  // before the saved preference reflects back.
+  function pick(choice) {
+    setTheme(choice);
     onComplete?.(choice);
+    supabase
+      .from("profiles")
+      .update({ theme_preference: choice })
+      .eq("id", user.id)
+      .then(({ error }) => {
+        if (error) console.error("[PROPBOOKS] Save theme preference failed:", error);
+      });
   }
 
   return (
