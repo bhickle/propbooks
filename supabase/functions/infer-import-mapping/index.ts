@@ -1,13 +1,11 @@
 // =============================================================================
-// infer-import-mapping — given a CSV header + 5 sample rows + target entity,
-// asks Claude Sonnet 4.6 to propose a column mapping. The browser does the
-// deterministic bulk transform after the user confirms the mapping; this
-// function makes exactly one Claude call per import.
-//
-// Auth: caller's JWT (RLS-scoped). Logs token usage to ai_usage. Soft-caps at
-// 200 calls/account/month. Prompt caching on the system prompt (target schema
-// goes in system to keep the cached prefix large enough — Sonnet 4.6 needs
-// >=2048 tokens for the cache to actually populate).
+// infer-import-mapping — given a CSV header + 5 sample rows, asks Claude
+// Sonnet 4.6 to (1) decide whether the file is a Properties or Transactions
+// import and (2) propose a column mapping. One tool per target; Claude picks
+// which to call via tool_choice: { type: "any" } so the user doesn't have
+// to pick the target upfront. The browser does the deterministic bulk
+// transform after the user confirms — this function makes exactly one
+// Claude call per import (or two if the user overrides the inferred target).
 // =============================================================================
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import Anthropic from "https://esm.sh/@anthropic-ai/sdk@0.40.0";
@@ -15,16 +13,18 @@ import Anthropic from "https://esm.sh/@anthropic-ai/sdk@0.40.0";
 const MONTHLY_CAP = 200;
 const MODEL = "claude-sonnet-4-6";
 
-// Per-million-token pricing for Sonnet 4.6 (used to log cost_cents).
-// Cache write = 1.25x input, cache read = 0.1x input.
 const PRICE_INPUT_PER_M    = 3.00;
 const PRICE_OUTPUT_PER_M   = 15.00;
 const PRICE_CACHE_WRITE_PER_M = 3.75;
 const PRICE_CACHE_READ_PER_M  = 0.30;
 
-// Target schemas. Listed in a stable order with stable JSON formatting so the
-// cached system prompt prefix doesn't drift across calls. Keep this file as
-// the single source of truth for what the AI can map TO.
+type FieldSpec = {
+  type: "string" | "number" | "integer" | "date";
+  required: boolean;
+  description: string;
+  enum?: string[];
+};
+
 const TARGET_SCHEMAS: Record<string, Record<string, FieldSpec>> = {
   properties: {
     name:             { type: "string",  required: true,  description: "Property nickname or short name (e.g. 'Oak Street Duplex')" },
@@ -48,43 +48,46 @@ const TARGET_SCHEMAS: Record<string, Record<string, FieldSpec>> = {
     date:        { type: "date",    required: true,  description: "Transaction date (YYYY-MM-DD)" },
     amount:      { type: "number",  required: true,  description: "Dollar amount (always positive; direction comes from `type`)" },
     type:        { type: "string",  required: true,  enum: ["income", "expense"], description: "Direction of money. If the source has negative amounts for expenses, set this to 'expense' and use the absolute value for amount." },
-    property:    { type: "string",  required: false, description: "Property name, nickname, or address — the client will look up the matching property by this value. If the CSV doesn't have a property column (e.g. it's all for one property), leave this null and the user will pick a default property in the UI." },
+    property:    { type: "string",  required: false, description: "Property name, nickname, or address — the client will look up the matching property by this value. If the CSV doesn't have a property column, leave null; the user will pick a default in the UI." },
     category:    { type: "string",  required: false, description: "Category like 'Rent Income', 'Mortgage Payment', 'Plumbing', etc." },
     description: { type: "string",  required: false, description: "Memo / description text" },
     payee:       { type: "string",  required: false, description: "Vendor name (for expenses) or tenant name (for income)" },
   },
 };
 
-type FieldSpec = {
-  type: "string" | "number" | "integer" | "date";
-  required: boolean;
-  description: string;
-  enum?: string[];
+const TOOL_NAME_BY_TARGET: Record<string, string> = {
+  properties:   "propose_properties_mapping",
+  transactions: "propose_transactions_mapping",
 };
 
-const SYSTEM_PROMPT = `You are an expert at mapping CSV columns from external real estate accounting exports (QuickBooks, Stessa, generic spreadsheets) to the PropBooks data model.
+const TARGET_BY_TOOL_NAME: Record<string, string> = {
+  propose_properties_mapping:   "properties",
+  propose_transactions_mapping: "transactions",
+};
 
-INPUTS YOU RECEIVE
-- targetEntity: which PropBooks table the user is importing into.
-- sourceHeaders: the column headers from the user's CSV.
-- sampleRows: five rows of sample values (string-typed, matched positionally to sourceHeaders).
+const SYSTEM_PROMPT = `You are an expert at mapping CSV columns from external real estate accounting exports (QuickBooks, Stessa, generic spreadsheets) into the target data model.
 
-YOU MUST CALL THE propose_mapping TOOL with your inferred mapping.
+WHAT TO DO
+You will receive sourceHeaders (the CSV column headers) and sampleRows (five rows of example values). Your job is to:
 
-MAPPING RULES
-1. For each target field in the schema, pick ONE sourceHeader that best fits, or null if no column matches.
-2. Each sourceHeader can only be used for ONE target field — never duplicate.
-3. Pay attention to SAMPLE VALUES, not just header names. A column called "Amount" that contains "Income" / "Expense" is actually the type column. A column called "Date" containing free-text descriptions is not a date column.
-4. For enum fields, only suggest mappings when sample values look like they fit the enum (or can be normalized to fit). If the column contains values outside the enum (e.g. property type "Duplex" when the enum has only "Single Family" / "Multi-Family"), still map the column — the client transform will normalize. But flag it in notes.
-5. For dates: if the sample format is unambiguous (YYYY-MM-DD, or US MM/DD/YYYY in a US context), map the column. If the date column is ambiguous (e.g. "1/2/24" — could be Jan 2 or Feb 1), still map it and call out the ambiguity in notes.
-6. For amount/dollar columns: look at the sample values, not just the header. Columns with parenthesized negatives ("(1,234.56)") or leading "-" are dollar amounts; the client will strip formatting.
-7. confidence is 0-100 — a single number representing your overall confidence in the mapping. Use ~90+ when every required field has a clear, obvious match; ~50-70 when several fields are guesses; below 50 when the source schema doesn't look like the target entity at all.
-8. notes: one or two short sentences. Mention any columns you couldn't map, any ambiguities the user should resolve, or any normalizations the client should expect.
+1. Decide which target the file describes — Properties (rows are real-estate assets the user owns) or Transactions (rows are individual income/expense entries). Inspect both the headers AND the sample values to decide. Signals:
+   - Transactions: date column + dollar-amount column + category/memo + income/expense direction. Many rows per property.
+   - Properties: name/address + purchase price + loan details + rent/expenses. Usually one row per asset.
+2. Call exactly one tool — propose_properties_mapping OR propose_transactions_mapping — based on your decision. The tool you choose IS your decision.
+3. Fill in the mapping object: for each target field, pick the best-matching sourceHeader or null if no column matches. Each sourceHeader can only be used for ONE target field — never duplicate.
+
+MAPPING RULES (apply inside the chosen tool)
+- Pay attention to sample VALUES, not just header names. "Amount" containing "Income"/"Expense" is the type column.
+- For enum fields, only map when sample values fit or can be normalized. Flag mismatches in notes.
+- Dates: map even if ambiguous; call out ambiguity in notes.
+- Amounts: parenthesized negatives, $/commas, "-" prefixes are all dollar amounts — the client strips formatting.
+- confidence is 0-100. ~90+ when every required field has an obvious match and the target is clear; ~50-70 if it's a guess; below 50 if the source doesn't look like either target.
+- notes: 1-2 short sentences highlighting unmapped columns, ambiguities, or normalizations the client should expect.
 
 DO NOT
+- Do not call both tools.
+- Do not return free-text. Always call one of the tools.
 - Do not invent target fields that aren't in the schema.
-- Do not return free-text — always call propose_mapping.
-- Do not explain your reasoning outside the tool call.
 
 TARGET SCHEMAS (frozen, do not deviate):
 ${JSON.stringify(TARGET_SCHEMAS, null, 2)}`;
@@ -102,6 +105,32 @@ function jsonResponse(body: unknown, status = 200): Response {
   });
 }
 
+function buildTool(target: string) {
+  const schema = TARGET_SCHEMAS[target];
+  const mappingProperties: Record<string, unknown> = {};
+  for (const field of Object.keys(schema)) {
+    mappingProperties[field] = {
+      type: ["string", "null"],
+      description: `sourceHeader to use for ${field}, or null if no column matches`,
+    };
+  }
+  return {
+    name: TOOL_NAME_BY_TARGET[target],
+    description: `Use this tool when the file describes ${target}. Returns the column mapping from sourceHeaders to ${target} target fields.`,
+    input_schema: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        mapping: { type: "object", additionalProperties: false, properties: mappingProperties },
+        confidence: { type: "integer", minimum: 0, maximum: 100, description: "Overall confidence in the mapping AND the target choice (0-100)." },
+        notes: { type: "string", description: "1-2 short sentences about ambiguities, unmapped columns, or normalizations the client should expect." },
+        unmapped_source_headers: { type: "array", items: { type: "string" }, description: "sourceHeaders that couldn't be confidently mapped to any target field." },
+      },
+      required: ["mapping", "confidence", "notes", "unmapped_source_headers"],
+    },
+  };
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS_HEADERS });
   if (req.method !== "POST") return jsonResponse({ error: "Method not allowed" }, 405);
@@ -111,13 +140,11 @@ Deno.serve(async (req: Request) => {
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY");
     const anthropicKey = Deno.env.get("ANTHROPIC_API_KEY");
     if (!supabaseUrl || !supabaseAnonKey) return jsonResponse({ error: "Server is missing Supabase env vars" }, 500);
-    if (!anthropicKey) return jsonResponse({ error: "ANTHROPIC_API_KEY is not configured on this Edge Function. Set it in Supabase → Project Settings → Edge Functions → Secrets." }, 500);
+    if (!anthropicKey) return jsonResponse({ error: "Import service is not yet configured. Contact support." }, 500);
 
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) return jsonResponse({ error: "Missing Authorization header" }, 401);
 
-    // RLS-scoped client (uses caller's JWT). All reads/writes below are
-    // automatically constrained to the caller's account.
     const supabase = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } },
     });
@@ -133,7 +160,6 @@ Deno.serve(async (req: Request) => {
       .maybeSingle();
     if (profErr || !profile?.account_id) return jsonResponse({ error: "No account found for user" }, 400);
 
-    // Fair-use gate. Count AI calls this account has made in the last 30 days.
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
     const { count: usageCount } = await supabase
       .from("ai_usage")
@@ -141,10 +167,9 @@ Deno.serve(async (req: Request) => {
       .eq("account_id", profile.account_id)
       .gte("created_at", thirtyDaysAgo);
     if ((usageCount ?? 0) >= MONTHLY_CAP) {
-      return jsonResponse({ error: `Monthly AI quota reached (${MONTHLY_CAP} actions / 30 days). Try again later or contact support.` }, 429);
+      return jsonResponse({ error: `Monthly import quota reached. Try again later or contact support.` }, 429);
     }
 
-    // Parse + validate request body.
     let body: { sourceHeaders?: string[]; sampleRows?: string[][]; targetEntity?: string };
     try { body = await req.json(); }
     catch { return jsonResponse({ error: "Body must be JSON" }, 400); }
@@ -152,85 +177,44 @@ Deno.serve(async (req: Request) => {
     const { sourceHeaders, sampleRows, targetEntity } = body;
     if (!Array.isArray(sourceHeaders) || sourceHeaders.length === 0) return jsonResponse({ error: "sourceHeaders must be a non-empty array" }, 400);
     if (!Array.isArray(sampleRows)) return jsonResponse({ error: "sampleRows must be an array" }, 400);
-    if (!targetEntity || !TARGET_SCHEMAS[targetEntity]) return jsonResponse({ error: `Unknown targetEntity. Allowed: ${Object.keys(TARGET_SCHEMAS).join(", ")}` }, 400);
-
-    const targetSchema = TARGET_SCHEMAS[targetEntity];
-
-    // Build the propose_mapping tool. The mapping object has one nullable
-    // string property per target field — strict object so the model can't
-    // invent extras.
-    const mappingProperties: Record<string, unknown> = {};
-    for (const field of Object.keys(targetSchema)) {
-      mappingProperties[field] = {
-        type: ["string", "null"],
-        description: `sourceHeader to use for ${field}, or null if no column matches`,
-      };
+    // targetEntity is optional now — when omitted, the AI auto-detects which
+    // tool to call. When provided, we force that specific tool so the user's
+    // override always wins over the model's guess.
+    if (targetEntity && !TARGET_SCHEMAS[targetEntity]) {
+      return jsonResponse({ error: `Unknown targetEntity. Allowed: ${Object.keys(TARGET_SCHEMAS).join(", ")}` }, 400);
     }
 
-    const tools = [{
-      name: "propose_mapping",
-      description: "Return the proposed column mapping from sourceHeaders to PropBooks target fields.",
-      input_schema: {
-        type: "object",
-        additionalProperties: false,
-        properties: {
-          mapping: {
-            type: "object",
-            additionalProperties: false,
-            properties: mappingProperties,
-          },
-          confidence: {
-            type: "integer",
-            minimum: 0,
-            maximum: 100,
-            description: "Overall confidence in the mapping (0-100).",
-          },
-          notes: {
-            type: "string",
-            description: "1-2 short sentences highlighting ambiguities, unmapped columns, or normalizations the client should expect.",
-          },
-          unmapped_source_headers: {
-            type: "array",
-            items: { type: "string" },
-            description: "sourceHeaders that you couldn't confidently map to any target field.",
-          },
-        },
-        required: ["mapping", "confidence", "notes", "unmapped_source_headers"],
-      },
-    }];
+    const tools = Object.keys(TARGET_SCHEMAS).map(buildTool);
+    // tool_choice: forced to a specific tool if the caller overrode, else
+    // "any" — which forces the model to call exactly one of the tools.
+    const tool_choice = targetEntity
+      ? { type: "tool" as const, name: TOOL_NAME_BY_TARGET[targetEntity] }
+      : { type: "any" as const };
 
-    const userPrompt = `targetEntity: ${targetEntity}
-
-sourceHeaders: ${JSON.stringify(sourceHeaders)}
-
-sampleRows (5):
-${sampleRows.slice(0, 5).map((r, i) => `Row ${i + 1}: ${JSON.stringify(r)}`).join("\n")}
-
-Call propose_mapping now.`;
+    const userPrompt = `sourceHeaders: ${JSON.stringify(sourceHeaders)}\n\nsampleRows (5):\n${sampleRows.slice(0, 5).map((r, i) => `Row ${i + 1}: ${JSON.stringify(r)}`).join("\n")}\n\nPick the right tool and call it.`;
 
     const anthropic = new Anthropic({ apiKey: anthropicKey });
 
     const response = await anthropic.messages.create({
       model: MODEL,
       max_tokens: 1024,
-      system: [{
-        type: "text",
-        text: SYSTEM_PROMPT,
-        cache_control: { type: "ephemeral" },
-      }],
+      system: [{ type: "text", text: SYSTEM_PROMPT, cache_control: { type: "ephemeral" } }],
       messages: [{ role: "user", content: userPrompt }],
       tools,
-      tool_choice: { type: "tool", name: "propose_mapping" },
+      tool_choice,
     });
 
     const toolUse = response.content.find((b: { type: string }) => b.type === "tool_use") as
-      | { type: "tool_use"; input: { mapping: Record<string, string | null>; confidence: number; notes: string; unmapped_source_headers: string[] } }
+      | { type: "tool_use"; name: string; input: { mapping: Record<string, string | null>; confidence: number; notes: string; unmapped_source_headers: string[] } }
       | undefined;
     if (!toolUse) {
-      return jsonResponse({ error: "Couldn't infer a column mapping. Try again with a clearer header row, or fix the headers and retry." }, 502);
+      return jsonResponse({ error: "Couldn't infer a column mapping. Try again with a clearer header row." }, 502);
+    }
+    const inferredTarget = TARGET_BY_TOOL_NAME[toolUse.name];
+    if (!inferredTarget) {
+      return jsonResponse({ error: `Unexpected tool call: ${toolUse.name}` }, 502);
     }
 
-    // Log usage. usage fields come straight off response.usage.
     const inputTokens   = response.usage?.input_tokens                ?? 0;
     const outputTokens  = response.usage?.output_tokens               ?? 0;
     const cacheCreation = response.usage?.cache_creation_input_tokens ?? 0;
@@ -241,9 +225,6 @@ Call propose_mapping now.`;
       (cacheCreation * PRICE_CACHE_WRITE_PER_M / 1_000_000) * 100 +
       (cacheRead     * PRICE_CACHE_READ_PER_M  / 1_000_000) * 100;
 
-    // Service-role write so the row gets inserted even though there's no
-    // authenticated-insert RLS policy. account_id is taken from the trusted
-    // profile lookup, not the request body.
     const serviceRole = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     if (serviceRole) {
       const admin = createClient(supabaseUrl, serviceRole);
@@ -264,7 +245,8 @@ Call propose_mapping now.`;
 
     return jsonResponse({
       ...toolUse.input,
-      target_schema: targetSchema,
+      target_entity: inferredTarget,
+      target_schema: TARGET_SCHEMAS[inferredTarget],
       usage: { input_tokens: inputTokens, output_tokens: outputTokens, cache_read_tokens: cacheRead, cache_creation_tokens: cacheCreation },
     });
   } catch (err) {

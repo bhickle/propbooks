@@ -11,7 +11,7 @@
 //   6. Summary screen
 // =============================================================================
 import { useState, useMemo } from "react";
-import { Upload, FileSpreadsheet, CheckCircle, AlertCircle, Loader, ArrowRight, ArrowLeft, Sparkles, X } from "lucide-react";
+import { Upload, CheckCircle, AlertCircle, Loader, ArrowRight, ArrowLeft, Sparkles, X } from "lucide-react";
 import { supabase } from "../supabase.js";
 import { useToast } from "../toast.jsx";
 import { createProperty } from "../db/properties.js";
@@ -19,10 +19,15 @@ import { createTransaction } from "../db/transactions.js";
 import { iS } from "../shared.jsx";
 import { PROPERTIES } from "../mockData.js";
 
-const TARGETS = [
-  { id: "properties",   label: "Properties",   icon: FileSpreadsheet, sub: "Rentals, addresses, purchase prices, loans" },
-  { id: "transactions", label: "Transactions", icon: FileSpreadsheet, sub: "Income and expense entries with dates and amounts" },
-];
+// Display labels for inferred targets in the review step.
+const TARGET_LABELS = {
+  properties:   "Properties",
+  transactions: "Transactions",
+};
+const TARGET_DESCRIPTIONS = {
+  properties:   "Rentals — addresses, purchase prices, loan details",
+  transactions: "Income and expense entries with dates and amounts",
+};
 
 // Minimal CSV parser. Handles quoted fields, escaped quotes (""), and \r\n.
 // Not RFC-4180-complete — sufficient for QuickBooks / Stessa / Excel exports.
@@ -121,18 +126,18 @@ function normalizeValue(field, spec, raw) {
 
 export function ImportWizard({ onClose, onComplete }) {
   const { showToast } = useToast();
-  const [step, setStep] = useState("pick");      // pick → loading → review → importing → done
-  const [targetEntity, setTargetEntity] = useState("properties");
+  const [step, setStep] = useState("upload");    // upload → loading → review → importing → done
   const [fileName, setFileName] = useState("");
   const [headers, setHeaders] = useState([]);
   const [allRows, setAllRows] = useState([]);    // raw string rows (no header)
-  const [aiResult, setAiResult] = useState(null); // {mapping, confidence, notes, target_schema, unmapped_source_headers}
+  const [aiResult, setAiResult] = useState(null); // {mapping, confidence, notes, target_entity, target_schema, unmapped_source_headers}
   const [mapping, setMapping] = useState({});    // editable copy of aiResult.mapping
   const [defaultPropertyId, setDefaultPropertyId] = useState(""); // transactions only: fallback property when no per-row column exists
   const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState(null); // {created, failed, errors[]}
   const [error, setError] = useState("");
 
+  const targetEntity = aiResult?.target_entity || null;
   const targetSchema = aiResult?.target_schema || {};
 
   // ─── Step 1: handle upload ─────────────────────────────────────────────────
@@ -162,24 +167,31 @@ export function ImportWizard({ onClose, onComplete }) {
       }
       if (rows.length < 2) {
         setError(`${isCsv ? "CSV" : "Excel sheet"} needs at least a header row and one data row.`);
-        setStep("pick");
+        setStep("upload");
         return;
       }
       const [hdr, ...rest] = rows;
       setHeaders(hdr);
       setAllRows(rest);
-      await callInferEdgeFunction(hdr, rest.slice(0, 5));
+      // No targetEntity passed — Edge Function picks via tool_choice: "any".
+      await callInferEdgeFunction(hdr, rest.slice(0, 5), null);
     } catch (e) {
       setError(`Couldn't read ${file.name}: ${e?.message || "unknown error"}`);
-      setStep("pick");
+      setStep("upload");
     }
   }
 
   // ─── Step 2: call Edge Function for mapping ────────────────────────────────
-  async function callInferEdgeFunction(hdr, sample) {
+  // overrideTarget is non-null when the user clicked "Actually this is X" in
+  // the review step to override the AI's auto-detected target. We then
+  // re-call the function with that target forced via tool_choice.
+  async function callInferEdgeFunction(hdr, sample, overrideTarget) {
+    setStep("loading");
     try {
+      const requestBody = { sourceHeaders: hdr, sampleRows: sample };
+      if (overrideTarget) requestBody.targetEntity = overrideTarget;
       const { data, error: fnErr } = await supabase.functions.invoke("infer-import-mapping", {
-        body: { sourceHeaders: hdr, sampleRows: sample, targetEntity },
+        body: requestBody,
       });
       if (fnErr) throw fnErr;
       if (data?.error) throw new Error(data.error);
@@ -189,9 +201,15 @@ export function ImportWizard({ onClose, onComplete }) {
     } catch (e) {
       const msg = e?.message || "Couldn't infer mapping.";
       setError(msg);
-      setStep("pick");
+      setStep("upload");
       showToast(msg, "error");
     }
+  }
+
+  // Called from the review step when the user disagrees with the inferred
+  // target. Re-runs the AI call with the chosen target forced.
+  async function reInferAs(otherTarget) {
+    await callInferEdgeFunction(headers, allRows.slice(0, 5), otherTarget);
   }
 
   // ─── Step 3: transform + bulk insert ───────────────────────────────────────
@@ -289,13 +307,8 @@ export function ImportWizard({ onClose, onComplete }) {
           <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)" }}><X size={20} /></button>
         </div>
 
-        {step === "pick" && (
-          <PickStep
-            targetEntity={targetEntity}
-            setTargetEntity={setTargetEntity}
-            onFile={handleFile}
-            error={error}
-          />
+        {step === "upload" && (
+          <UploadStep onFile={handleFile} error={error} />
         )}
 
         {step === "loading" && (
@@ -322,7 +335,8 @@ export function ImportWizard({ onClose, onComplete }) {
             totalRows={allRows.length}
             defaultPropertyId={defaultPropertyId}
             setDefaultPropertyId={setDefaultPropertyId}
-            onBack={() => setStep("pick")}
+            onBack={() => { setAiResult(null); setMapping({}); setStep("upload"); }}
+            onReinterpret={reInferAs}
             onConfirm={handleImport}
           />
         )}
@@ -342,46 +356,26 @@ export function ImportWizard({ onClose, onComplete }) {
   );
 }
 
-// ── PickStep ────────────────────────────────────────────────────────────────
-function PickStep({ targetEntity, setTargetEntity, onFile, error }) {
+// ── UploadStep ──────────────────────────────────────────────────────────────
+// Just a file picker. We figure out whether the file is Properties or
+// Transactions automatically once it's uploaded, so the user doesn't have
+// to commit to a target upfront.
+function UploadStep({ onFile, error }) {
   return (
     <div>
       <p style={{ color: "var(--text-secondary)", fontSize: 14, marginBottom: 20 }}>
-        Import data from QuickBooks, Stessa, or a spreadsheet. We&rsquo;ll read your column headers and a few sample rows, propose how they map into PROPBOOKS, and you review before anything is saved.
+        Drop in a CSV or Excel file. We&rsquo;ll read your column headers and a few sample rows, figure out whether it&rsquo;s properties or transactions, propose how the columns map into PROPBOOKS, and let you review before anything is saved.
       </p>
 
-      <div style={{ marginBottom: 18 }}>
-        <p style={{ fontSize: 13, fontWeight: 700, color: "var(--text-dim)", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.04em" }}>What are you importing?</p>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-          {TARGETS.map(t => {
-            const active = targetEntity === t.id;
-            const Icon = t.icon;
-            return (
-              <button key={t.id} type="button" onClick={() => setTargetEntity(t.id)}
-                style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 4, padding: 14, borderRadius: 12, border: active ? "1.5px solid #e95e00" : "1px solid var(--border)", background: active ? "rgba(233,94,0,0.06)" : "var(--surface)", cursor: "pointer", textAlign: "left", transition: "all 0.15s" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <Icon size={16} color={active ? "#e95e00" : "var(--text-muted)"} />
-                  <p style={{ color: active ? "#e95e00" : "var(--text-primary)", fontWeight: 700, fontSize: 14 }}>{t.label}</p>
-                </div>
-                <p style={{ color: "var(--text-muted)", fontSize: 12 }}>{t.sub}</p>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      <div>
-        <p style={{ fontSize: 13, fontWeight: 700, color: "var(--text-dim)", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.04em" }}>Upload file</p>
-        <label style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8, padding: 32, border: "1.5px dashed var(--border)", borderRadius: 12, background: "var(--surface-alt)", cursor: "pointer", transition: "all 0.15s" }}
-          onDragOver={e => { e.preventDefault(); e.currentTarget.style.borderColor = "#e95e00"; }}
-          onDragLeave={e => { e.currentTarget.style.borderColor = "var(--border)"; }}
-          onDrop={e => { e.preventDefault(); e.currentTarget.style.borderColor = "var(--border)"; onFile(e.dataTransfer.files?.[0]); }}>
-          <Upload size={28} color="var(--text-muted)" />
-          <p style={{ color: "var(--text-primary)", fontWeight: 600, fontSize: 14 }}>Drop your file here or click to browse</p>
-          <p style={{ color: "var(--text-muted)", fontSize: 12 }}>CSV or Excel (.xlsx / .xls). Up to 10 MB.</p>
-          <input type="file" accept=".csv,.xlsx,.xls,text/csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" style={{ display: "none" }} onChange={e => onFile(e.target.files?.[0])} />
-        </label>
-      </div>
+      <label style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8, padding: 40, border: "1.5px dashed var(--border)", borderRadius: 12, background: "var(--surface-alt)", cursor: "pointer", transition: "all 0.15s" }}
+        onDragOver={e => { e.preventDefault(); e.currentTarget.style.borderColor = "#e95e00"; }}
+        onDragLeave={e => { e.currentTarget.style.borderColor = "var(--border)"; }}
+        onDrop={e => { e.preventDefault(); e.currentTarget.style.borderColor = "var(--border)"; onFile(e.dataTransfer.files?.[0]); }}>
+        <Upload size={32} color="var(--text-muted)" />
+        <p style={{ color: "var(--text-primary)", fontWeight: 600, fontSize: 15 }}>Drop your file here or click to browse</p>
+        <p style={{ color: "var(--text-muted)", fontSize: 13 }}>CSV or Excel (.xlsx / .xls). Up to 10 MB.</p>
+        <input type="file" accept=".csv,.xlsx,.xls,text/csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" style={{ display: "none" }} onChange={e => onFile(e.target.files?.[0])} />
+      </label>
 
       {error && (
         <div style={{ marginTop: 14, padding: "10px 14px", background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 10, color: "#b91c1c", fontSize: 13, display: "flex", alignItems: "center", gap: 8 }}>
@@ -393,7 +387,7 @@ function PickStep({ targetEntity, setTargetEntity, onFile, error }) {
 }
 
 // ── ReviewStep ──────────────────────────────────────────────────────────────
-function ReviewStep({ targetEntity, targetSchema, mapping, setMapping, headers, confidence, notes, unmapped, sampleRows, fileName, totalRows, defaultPropertyId, setDefaultPropertyId, onBack, onConfirm }) {
+function ReviewStep({ targetEntity, targetSchema, mapping, setMapping, headers, confidence, notes, unmapped, sampleRows, fileName, totalRows, defaultPropertyId, setDefaultPropertyId, onBack, onReinterpret, onConfirm }) {
   const fields = Object.entries(targetSchema);
   const confColor = confidence >= 80 ? "var(--c-green)" : confidence >= 50 ? "#e95e00" : "var(--c-red)";
   // Which sourceHeaders are still assigned to a target field (for the dropdown to show "used elsewhere").
@@ -415,6 +409,8 @@ function ReviewStep({ targetEntity, targetSchema, mapping, setMapping, headers, 
   const needsDefaultProperty = isTransactions && !hasPropertyColumn;
   const canConfirm = !needsDefaultProperty || !!defaultPropertyId;
 
+  const otherTarget = targetEntity === "properties" ? "transactions" : "properties";
+
   return (
     <div>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14, padding: "12px 14px", background: "var(--surface-alt)", borderRadius: 10, border: "1px solid var(--border-subtle)" }}>
@@ -425,6 +421,21 @@ function ReviewStep({ targetEntity, targetSchema, mapping, setMapping, headers, 
         <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "5px 10px", background: "var(--surface)", border: `1px solid ${confColor}`, borderRadius: 20 }}>
           <Sparkles size={12} color={confColor} />
           <span style={{ fontSize: 11, fontWeight: 700, color: confColor }}>{confidence}% confidence</span>
+        </div>
+      </div>
+
+      {/* Inferred-target banner with override link */}
+      <div style={{ marginBottom: 14, padding: "12px 14px", background: "rgba(233,94,0,0.06)", border: "1px solid rgba(233,94,0,0.25)", borderRadius: 10 }}>
+        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+          <div style={{ flex: 1, minWidth: 200 }}>
+            <p style={{ fontSize: 12, fontWeight: 700, color: "var(--text-dim)", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.04em" }}>Detected import type</p>
+            <p style={{ fontSize: 15, fontWeight: 700, color: "var(--text-primary)" }}>{TARGET_LABELS[targetEntity] || targetEntity}</p>
+            <p style={{ fontSize: 12, color: "var(--text-secondary)", marginTop: 2 }}>{TARGET_DESCRIPTIONS[targetEntity] || ""}</p>
+          </div>
+          <button type="button" onClick={() => onReinterpret(otherTarget)}
+            style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 8, padding: "7px 12px", fontSize: 12, fontWeight: 600, color: "var(--text-primary)", cursor: "pointer", whiteSpace: "nowrap" }}>
+            Actually it&rsquo;s {TARGET_LABELS[otherTarget]}
+          </button>
         </div>
       </div>
 
