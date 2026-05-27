@@ -17,7 +17,7 @@ import { useToast } from "../toast.jsx";
 import { createProperty } from "../db/properties.js";
 import { createTransaction } from "../db/transactions.js";
 import { iS } from "../shared.jsx";
-import { PROPERTIES } from "../mockData.js";
+import { PROPERTIES, TRANSACTIONS } from "../mockData.js";
 
 // Display labels for inferred targets in the review step.
 const TARGET_LABELS = {
@@ -609,8 +609,18 @@ export function ImportWizard({ onClose, onComplete }) {
         continue;
       }
       try {
-        if (targetEntity === "properties")        await createProperty(record);
-        else if (targetEntity === "transactions") await createTransaction(record);
+        // Push every saved row into the in-memory mirror that the UI reads
+        // from. Ledger / PortfolioDashboard / AssetList all read directly
+        // from PROPERTIES + TRANSACTIONS (synchronous), so without these
+        // pushes the imported rows wouldn't appear until the next page
+        // reload (when AppShell re-hydrates from Supabase).
+        if (targetEntity === "properties") {
+          const saved = await createProperty(record);
+          PROPERTIES.push(saved);
+        } else if (targetEntity === "transactions") {
+          const saved = await createTransaction(record);
+          TRANSACTIONS.push(saved);
+        }
         created++;
       } catch (e) {
         errors.push({ row: i + 2, reason: e?.message || "insert failed" });
