@@ -120,20 +120,19 @@ export function AppShell() {
   // Sync the server-side theme preference into the live ThemeProvider whenever
   // the profile hydrates with a saved value. localStorage carries the splash
   // through to first paint; this overrides if the user picked something on
-  // another device. Skipped for the demo account (always uses local choice).
-  const isDemoTheme = user?.email === DEMO_EMAIL;
+  // another device.
   useEffect(() => {
-    if (!user || isDemoTheme) return;
+    if (!user) return;
     if (user.themePreference && user.themePreference !== theme) {
       applyServerTheme(user.themePreference);
     }
-  }, [user?.themePreference, user?.id, isDemoTheme]);
+  }, [user?.themePreference, user?.id]);
 
   // Persist toggle changes back to profile.theme_preference so the choice
   // follows the user across devices. Skipped when the value is already in
   // sync (initial hydration, or right after an explicit pick).
   useEffect(() => {
-    if (!user?.id || isDemoTheme) return;
+    if (!user?.id) return;
     if (!user.themePreference) return; // first-time picker handles the initial write
     if (user.themePreference === theme) return;
     supabase.from("profiles").update({ theme_preference: theme }).eq("id", user.id)
@@ -141,7 +140,7 @@ export function AppShell() {
         if (error) { console.error("[PropBooks] Save theme preference failed:", error); return; }
         refreshProfile?.();
       });
-  }, [theme, user?.id, user?.themePreference, isDemoTheme]);
+  }, [theme, user?.id, user?.themePreference]);
 
   // Gate demo data: real users start with a blank account.
   // Demo user (demo@propbooks.com) always sees the full sample portfolio.
@@ -895,8 +894,9 @@ export function AppShell() {
 
       {/* ThemePicker — one-time on first login (themePreference is null).
           Shown before OnboardingWizard so onboarding renders in the chosen
-          theme. Demo account skips it. */}
-      {user && !isDemoTheme && user.themePreference === null && (
+          theme. Once a user picks once it never reappears (the demo account
+          included — picking on demo persists like any other account). */}
+      {user && user.themePreference === null && (
         <ThemePicker user={user} onComplete={() => refreshProfile?.()} />
       )}
 
