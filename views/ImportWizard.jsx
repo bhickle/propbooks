@@ -205,7 +205,7 @@ export function ImportWizard({ onClose, onComplete }) {
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <Sparkles size={20} color="#e95e00" />
-            <h2 style={{ color: "var(--text-primary)", fontSize: 20, fontWeight: 700 }}>AI Import Wizard</h2>
+            <h2 style={{ color: "var(--text-primary)", fontSize: 20, fontWeight: 700 }}>Import Wizard</h2>
           </div>
           <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)" }}><X size={20} /></button>
         </div>
@@ -223,7 +223,7 @@ export function ImportWizard({ onClose, onComplete }) {
           <div style={{ textAlign: "center", padding: "60px 20px" }}>
             <Loader size={32} color="#e95e00" style={{ animation: "spin 1s linear infinite", marginBottom: 14 }} />
             <p style={{ color: "var(--text-primary)", fontWeight: 600, fontSize: 15 }}>Analyzing {fileName}…</p>
-            <p style={{ color: "var(--text-muted)", fontSize: 13, marginTop: 6 }}>Claude is figuring out how your columns map to PropBooks. This usually takes a few seconds.</p>
+            <p style={{ color: "var(--text-muted)", fontSize: 13, marginTop: 6 }}>Figuring out how your columns map into PROPBOOKS. This usually takes a few seconds.</p>
             <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
           </div>
         )}
@@ -265,7 +265,7 @@ function PickStep({ targetEntity, setTargetEntity, onFile, error }) {
   return (
     <div>
       <p style={{ color: "var(--text-secondary)", fontSize: 14, marginBottom: 20 }}>
-        Import data from QuickBooks, Stessa, or a spreadsheet. Claude reads your column headers and a few sample rows, proposes how they map to PropBooks, and you review before anything is saved.
+        Import data from QuickBooks, Stessa, or a spreadsheet. We&rsquo;ll read your column headers and a few sample rows, propose how they map into PROPBOOKS, and you review before anything is saved.
       </p>
 
       <div style={{ marginBottom: 18 }}>
@@ -340,7 +340,7 @@ function ReviewStep({ targetSchema, mapping, setMapping, headers, confidence, no
 
       {notes && (
         <div style={{ marginBottom: 14, padding: "10px 14px", background: "var(--info-tint)", border: "1px solid var(--info-border)", borderRadius: 10, color: "var(--c-blue)", fontSize: 12 }}>
-          <strong style={{ fontWeight: 700 }}>Claude says:</strong> {notes}
+          <strong style={{ fontWeight: 700 }}>Mapping notes:</strong> {notes}
         </div>
       )}
 

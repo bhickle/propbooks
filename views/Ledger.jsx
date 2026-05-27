@@ -12,7 +12,7 @@ import { useState, useMemo, useEffect, useRef } from "react";
 import {
   Search, X, ArrowUpRight, ArrowDownRight, Wallet,
   TrendingUp, TrendingDown, Hash, Plus, Home, Hammer,
-  Pencil, Trash2, CheckCircle, User, UserCheck, Users,
+  Pencil, Trash2, CheckCircle, User, UserCheck, Users, Upload,
 } from "lucide-react";
 import {
   newId, fmt, fmtK, DEALS, DEAL_EXPENSES, CONTRACTORS,
@@ -597,7 +597,7 @@ function TypeChip({ row }) {
   return <span style={{ background: "var(--warning-btn-bg)", color: "#c2410c", borderRadius: 12, padding: "2px 8px", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.04em" }}>Rehab Expense</span>;
 }
 
-export function Ledger({ highlightRowKey, initialAssetFilter, onClearHighlight }) {
+export function Ledger({ highlightRowKey, initialAssetFilter, onClearHighlight, onImport, isDemo }) {
   const [typeFilter, setTypeFilter] = useState("all");
   const [assetFilter, setAssetFilter] = useState(initialAssetFilter || "all");
   const [dateRange, setDateRange] = useState("thisYear");
@@ -777,7 +777,14 @@ export function Ledger({ highlightRowKey, initialAssetFilter, onClearHighlight }
                 <EmptyState
                   icon={Wallet}
                   title={rows.length === 0 ? "No transactions yet" : "No entries match your filters"}
-                  subtitle={rows.length === 0 ? "Income and expenses recorded across your rentals and rehabs will appear here." : "Try clearing some filters or expanding the date range."}
+                  subtitle={rows.length === 0
+                    ? (isDemo
+                        ? "Income and expenses recorded across your rentals and rehabs will appear here."
+                        : "Income and expenses recorded across your rentals and rehabs will appear here. Already have a ledger somewhere? Import it.")
+                    : "Try clearing some filters or expanding the date range."}
+                  secondaryActionLabel={rows.length === 0 && !isDemo && onImport ? "Import from spreadsheet" : null}
+                  onSecondaryAction={rows.length === 0 && !isDemo && onImport ? onImport : null}
+                  secondaryIcon={Upload}
                 />
               </td></tr>
             ) : (

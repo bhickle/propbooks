@@ -15,7 +15,7 @@
 // =============================================================================
 import { useState, useMemo } from "react";
 import {
-  Plus, Search, MapPin, Hammer, Home, X, Clock, Building2, TrendingUp,
+  Plus, Search, MapPin, Hammer, Home, X, Clock, Building2, TrendingUp, Upload,
 } from "lucide-react";
 import { fmt, fmtK, DEALS, STAGE_COLORS } from "../api.js";
 import { PROPERTIES, TRANSACTIONS } from "../mockData.js";
@@ -143,7 +143,7 @@ function isClosed(row) {
   return row.asset.stage === "Sold" || row.asset.stage === "Converted to Rental";
 }
 
-export function AssetList({ onSelectRental, onSelectFlip, onAddRental, onAddFlip }) {
+export function AssetList({ onSelectRental, onSelectFlip, onAddRental, onAddFlip, onImport, isDemo }) {
   // "all" / "rental" / "flip" show active assets of that type. "closed" shows
   // every closed asset (sold rentals + sold/converted rehabs) — mirrors how
   // TenantManagement surfaces "Past Tenants" as a pill rather than a separate
@@ -271,7 +271,18 @@ export function AssetList({ onSelectRental, onSelectFlip, onAddRental, onAddFlip
         {filtered.length === 0 && (
           <div style={{ gridColumn: "1 / -1" }}>
             {rows.length === 0
-              ? <EmptyState icon={Home} title="No assets yet" subtitle="Add your first rental property or rehab to start tracking your portfolio." actionLabel="Add Rental" onAction={onAddRental} />
+              ? <EmptyState
+                  icon={Home}
+                  title="No assets yet"
+                  subtitle={isDemo
+                    ? "Add your first rental or rehab to start tracking your portfolio."
+                    : "Add your first rental or rehab, or import an existing portfolio from a spreadsheet."}
+                  actionLabel="Add Rental"
+                  onAction={onAddRental}
+                  secondaryActionLabel={!isDemo && onImport ? "Import from spreadsheet" : null}
+                  onSecondaryAction={!isDemo && onImport ? onImport : null}
+                  secondaryIcon={Upload}
+                />
               : <EmptyState icon={Search} title="No assets match this filter" subtitle="Try selecting a different type or clearing the search." />
             }
           </div>

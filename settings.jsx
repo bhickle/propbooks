@@ -491,18 +491,18 @@ function statusBadge(status) {
 }
 
 // -----------------------------------------------------------------------------
-// Import Tab — entry point for the AI Import Wizard. The wizard itself lives
-// in views/ImportWizard.jsx and handles upload, AI mapping, review, and
-// bulk-insert. This tab just hosts the launcher.
+// Import Tab — entry point for the Import Wizard. The wizard itself lives in
+// views/ImportWizard.jsx and is mounted at the AppShell level so the same
+// instance is shared between this tab and the empty-state CTAs on AssetList /
+// Ledger. This tab just hosts the launcher and explanatory copy.
 // -----------------------------------------------------------------------------
-function ImportTab() {
+function ImportTab({ onLaunchImport }) {
   const { user } = useAuth();
   const isDemo = user?.email === DEMO_EMAIL;
-  const [open, setOpen] = useState(false);
 
   return (
     <div>
-      {section("Import Data", "Bring properties or transactions over from QuickBooks, Stessa, or any spreadsheet — Claude figures out the column mapping for you")}
+      {section("Import Data", "Bring properties or transactions over from QuickBooks, Stessa, or any spreadsheet — we'll figure out the column mapping for you")}
 
       <div style={card}>
         <div style={{ display: "flex", alignItems: "flex-start", gap: 16, marginBottom: 20 }}>
@@ -510,9 +510,9 @@ function ImportTab() {
             <Sparkles size={22} color="#e95e00" />
           </div>
           <div style={{ flex: 1 }}>
-            <p style={{ color: "var(--text-primary)", fontWeight: 700, fontSize: 15, marginBottom: 4 }}>AI Import Wizard</p>
+            <p style={{ color: "var(--text-primary)", fontWeight: 700, fontSize: 15, marginBottom: 4 }}>Import Wizard</p>
             <p style={{ color: "var(--text-secondary)", fontSize: 13, lineHeight: 1.5 }}>
-              Upload a CSV exported from any system. Claude reads the header row and a few sample values, proposes how each column maps to PropBooks, and you review before anything is saved. Works for Properties and Transactions today; Tenants and Rehabs coming next.
+              Upload a CSV exported from any system. We read the header row and a few sample values, propose how each column maps into PROPBOOKS, and you review before anything is saved. Works for Properties and Transactions today; Tenants and Rehabs coming next.
             </p>
           </div>
         </div>
@@ -520,8 +520,8 @@ function ImportTab() {
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 18 }}>
           {[
             { title: "Export from your source", body: "QuickBooks: Reports → Export → CSV. Stessa: Transactions → Download CSV. Excel: Save As → CSV." },
-            { title: "Drop in & confirm", body: "Claude proposes the mapping with a confidence score. Adjust any column with a dropdown, then confirm." },
-            { title: "We import the rest", body: "Every row is normalized client-side (dates, currency, enums) and inserted. Failed rows are reported, never silently dropped." },
+            { title: "Drop in & confirm", body: "We propose the mapping with a confidence score. Adjust any column with a dropdown, then confirm." },
+            { title: "We import the rest", body: "Every row is normalized client-side (dates, currency, categories) and inserted. Failed rows are reported, never silently dropped." },
           ].map((s, i) => (
             <div key={i} style={{ background: "var(--surface-alt)", borderRadius: 10, padding: "12px 14px", border: "1px solid var(--border-subtle)" }}>
               <p style={{ color: "var(--text-primary)", fontWeight: 700, fontSize: 13, marginBottom: 4 }}>{i + 1}. {s.title}</p>
@@ -537,22 +537,13 @@ function ImportTab() {
         ) : (
           <button
             type="button"
-            onClick={() => setOpen(true)}
+            onClick={() => onLaunchImport?.()}
             style={{ padding: "10px 22px", borderRadius: 10, border: "none", background: "#e95e00", color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}
           >
             <Upload size={14} /> Start an import
           </button>
         )}
       </div>
-
-      <div style={{ ...card, background: "var(--surface-alt)" }}>
-        <p style={{ color: "var(--text-primary)", fontWeight: 700, fontSize: 13, marginBottom: 6 }}>How AI usage is counted</p>
-        <p style={{ color: "var(--text-secondary)", fontSize: 12, lineHeight: 1.5 }}>
-          Each import costs one AI action (one call to Claude to figure out the column mapping). The actual row-by-row import doesn't use AI — it runs client-side. AI is bundled with your subscription with a fair-use cap of 200 actions per account per 30 days, which covers every realistic workflow.
-        </p>
-      </div>
-
-      {open && <ImportWizard onClose={() => setOpen(false)} onComplete={() => {}} />}
     </div>
   );
 }
@@ -569,7 +560,7 @@ function SubscriptionTab() {
 
   return (
     <div>
-      {section("Subscription", "Manage your PropBooks plan and billing")}
+      {section("Subscription", "Manage your PROPBOOKS plan and billing")}
 
       {/* Status banner */}
       <div style={{ ...card, border: `2px solid ${isPaying ? "#10b981" : "#e2e8f0"}`, background: isPaying ? "#f0fdf4" : "var(--surface-alt)" }}>
@@ -593,7 +584,7 @@ function SubscriptionTab() {
       {/* The PropBooks plan */}
       <div style={card}>
         <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginBottom: 6 }}>
-          <p style={{ color: "var(--text-primary)", fontWeight: 800, fontSize: 22 }}>PropBooks</p>
+          <p style={{ color: "var(--text-primary)", fontWeight: 800, fontSize: 22 }}>PROPBOOKS</p>
           <p style={{ color: "var(--text-primary)", fontWeight: 800, fontSize: 22 }}>
             $25<span style={{ fontSize: 14, fontWeight: 500, color: "var(--text-dim)" }}> / month</span>
           </p>
@@ -787,13 +778,13 @@ function SecurityTab() {
 // -----------------------------------------------------------------------------
 // Main Settings Component
 // -----------------------------------------------------------------------------
-export function Settings({ onClose }) {
+export function Settings({ onClose, onLaunchImport }) {
   const [activeTab, setActiveTab] = useState("profile");
 
   const tabContent = {
     profile:       <ProfileTab />,
     team:          <TeamTab />,
-    import:        <ImportTab />,
+    import:        <ImportTab onLaunchImport={onLaunchImport} />,
     subscription:  <SubscriptionTab />,
     notifications: <NotificationsTab />,
     security:      <SecurityTab />,

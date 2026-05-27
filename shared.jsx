@@ -116,13 +116,27 @@ export function StatCard({
 }
 
 // ─── EmptyState — illustrated empty state for list views ────────────────────
-export function EmptyState({ icon: Icon, title, subtitle, actionLabel, onAction }) {
+export function EmptyState({ icon: Icon, title, subtitle, actionLabel, onAction, secondaryActionLabel, onSecondaryAction, secondaryIcon: SecondaryIcon }) {
+  const hasAnyAction = (onAction && actionLabel) || (onSecondaryAction && secondaryActionLabel);
   return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "60px 24px", textAlign: "center" }}>
       {Icon && <div style={{ width: 64, height: 64, borderRadius: 20, background: "var(--surface-alt)", border: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 16 }}><Icon size={28} color="#94a3b8" /></div>}
       <h3 style={{ color: "var(--text-primary)", fontSize: 16, fontWeight: 700, marginBottom: 6 }}>{title}</h3>
-      {subtitle && <p style={{ color: "var(--text-muted)", fontSize: 14, maxWidth: 340, marginBottom: onAction ? 20 : 0 }}>{subtitle}</p>}
-      {onAction && actionLabel && <button onClick={onAction} style={{ background: "#e95e00", color: "#fff", border: "none", borderRadius: 10, padding: "10px 20px", fontSize: 14, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}><Plus size={16} /> {actionLabel}</button>}
+      {subtitle && <p style={{ color: "var(--text-muted)", fontSize: 14, maxWidth: 340, marginBottom: hasAnyAction ? 20 : 0 }}>{subtitle}</p>}
+      {hasAnyAction && (
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center" }}>
+          {onAction && actionLabel && (
+            <button onClick={onAction} style={{ background: "#e95e00", color: "#fff", border: "none", borderRadius: 10, padding: "10px 20px", fontSize: 14, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
+              <Plus size={16} /> {actionLabel}
+            </button>
+          )}
+          {onSecondaryAction && secondaryActionLabel && (
+            <button onClick={onSecondaryAction} style={{ background: "var(--surface)", color: "var(--text-primary)", border: "1px solid var(--border)", borderRadius: 10, padding: "10px 20px", fontSize: 14, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
+              {SecondaryIcon && <SecondaryIcon size={16} />} {secondaryActionLabel}
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }

@@ -51,6 +51,7 @@ import {
 } from "../deals.jsx";
 import { WelcomeScreen } from "./WelcomeScreen.jsx";
 import { ThemePicker } from "./ThemePicker.jsx";
+import { ImportWizard } from "./ImportWizard.jsx";
 import { GlobalSearch } from "./GlobalSearch.jsx";
 import { MileageTracker } from "./MileageTracker.jsx";
 import { DealAnalyzer } from "./DealAnalyzer.jsx";
@@ -186,6 +187,11 @@ export function AppShell() {
     if (isDemoForOnboarding) { setShowOnboarding(false); return; }
     if (user && user.hasOnboarded === false) setShowOnboarding(true);
   }, [user?.id, user?.hasOnboarded, isDemoForOnboarding]);
+
+  // Import Wizard is mounted at the shell level so any screen (empty-state
+  // CTAs on Assets / Ledger, Settings → Import tab, future spots) can open
+  // it without each one re-mounting the component.
+  const [showImportWizard, setShowImportWizard] = useState(false);
   const [hydrating, setHydrating] = useState(true);
   const [showSignOutConfirm, setShowSignOutConfirm] = useState(false);
   const { showToast } = useToast();
@@ -533,7 +539,7 @@ export function AppShell() {
       <div style={{ width: 240, background: "var(--sidebar-bg)", display: "flex", flexDirection: "column", position: "fixed", top: 0, bottom: 0, left: 0, zIndex: 100 }}>
         <div style={{ padding: "24px 20px", borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
           <div style={{ display: "flex", alignItems: "center" }}>
-            <img src={propbooksLogo} alt="PropBooks" style={{ height: 40, objectFit: "contain" }} />
+            <img src={propbooksLogo} alt="PROPBOOKS" style={{ height: 40, objectFit: "contain" }} />
           </div>
         </div>
         <nav style={{ flex: 1, padding: "16px 12px", overflowY: "auto" }}>
@@ -818,11 +824,15 @@ export function AppShell() {
             onSelectFlip={(f) => handleDealSelect(f, null, "assets")}
             onAddRental={() => setActiveView("rentalWizard")}
             onAddFlip={() => setActiveView("flipWizard")}
+            onImport={() => setShowImportWizard(true)}
+            isDemo={isDemoForOnboarding}
           />}
           {activeView === "ledger" && <Ledger
             highlightRowKey={highlightLedgerKey}
             initialAssetFilter={ledgerInitialAssetFilter}
             onClearHighlight={() => { setHighlightLedgerKey(null); setLedgerInitialAssetFilter(null); }}
+            onImport={() => setShowImportWizard(true)}
+            isDemo={isDemoForOnboarding}
           />}
           {/* Properties view is gone — AssetList replaced the list. The
               edit/add modal lives in <Properties> below, rendered outside
@@ -887,7 +897,7 @@ export function AppShell() {
       {showSettings && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 500 }}>
           <div style={{ background: "var(--surface)", borderRadius: 20, padding: 32, width: "min(880px, 95vw)", maxHeight: "90vh", overflowY: "auto", boxShadow: "0 25px 60px rgba(0,0,0,0.2)" }}>
-            <Settings onClose={() => setShowSettings(false)} />
+            <Settings onClose={() => setShowSettings(false)} onLaunchImport={() => { setShowSettings(false); setShowImportWizard(true); }} />
           </div>
         </div>
       )}
@@ -915,6 +925,16 @@ export function AppShell() {
             } catch (e) { console.error("[PropBooks] Failed to mark onboarded:", e); }
           }
         }} />
+      )}
+
+      {/* Import Wizard — opened from Settings → Import or from empty-state
+          CTAs on AssetList / Ledger. Disabled on demo so the shared sample
+          portfolio doesn't get clobbered. */}
+      {showImportWizard && !isDemoForOnboarding && (
+        <ImportWizard
+          onClose={() => setShowImportWizard(false)}
+          onComplete={() => { setPropsVersion(v => v + 1); }}
+        />
       )}
 
       {/* Sign-out confirmation */}

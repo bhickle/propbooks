@@ -212,13 +212,13 @@ export function DealReports() {
               const rows = filterTxDetail({ txDateFrom, txDateTo, txCatFilter, txSearch, txSort, dealFilter });
               const { csv, scopeName } = buildTxDetailCSV(rows, dealFilter);
               const safeScope = scopeName.replace(/[^a-zA-Z0-9_-]/g, "_");
-              downloadFile(csv, `PropBooks_txdetail_${safeScope}_${txDateFrom}_to_${txDateTo}.csv`, "text/csv");
+              downloadFile(csv, `PROPBOOKS_txdetail_${safeScope}_${txDateFrom}_to_${txDateTo}.csv`, "text/csv");
               return;
             }
             const { csv, scopeName } = buildProjectReportCSV(activeReport, allMetrics, dealFilter);
             const safeScope = scopeName.replace(/[^a-zA-Z0-9_-]/g, "_");
             const yearSuffix = yearApplies ? `_${taxYear}` : "";
-            downloadFile(csv, `PropBooks_${activeReport}_${safeScope}${yearSuffix}_${ts}.csv`, "text/csv");
+            downloadFile(csv, `PROPBOOKS_${activeReport}_${safeScope}${yearSuffix}_${ts}.csv`, "text/csv");
           }} style={{ background: "var(--surface)", color: "var(--text-label)", border: "1px solid var(--border)", borderRadius: 10, padding: "10px 16px", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
             <Download size={15} /> Export CSV
           </button>

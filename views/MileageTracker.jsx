@@ -166,7 +166,7 @@ export function MileageTracker() {
               csv += `${t.date},"${t.description}","${t.from}","${t.to}",${t.miles},${t.purpose},${t.businessPct},${(t.miles * IRS_RATE * t.businessPct / 100).toFixed(2)},"${t.linkedTo || ""}"\n`;
             });
             csv += `\nTotal,,,,${totalMiles.toFixed(1)},,,${deduction.toFixed(2)},\n`;
-            downloadFile(csv, `PropBooks_Mileage_${mThisYear}.csv`, "text/csv");
+            downloadFile(csv, `PROPBOOKS_Mileage_${mThisYear}.csv`, "text/csv");
           }} style={{ border: "1px solid var(--border)", borderRadius: 8, padding: "7px 12px", background: "var(--surface)", color: "var(--text-label)", fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
             <Download size={13} /> Export CSV
           </button>

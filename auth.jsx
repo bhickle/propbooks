@@ -12,7 +12,7 @@ const AuthContext = createContext(null);
 
 const PLAN_DESCRIPTIONS = {
   free:     "No paid plan yet",
-  pro:      "PropBooks Pro — $25/mo",
+  pro:      "PROPBOOKS — $25/mo",
   trialing: "Free trial — converts at end of period",
 };
 
@@ -436,7 +436,7 @@ export function SetPasswordScreen() {
       <div style={{ position: "absolute", inset: 0, pointerEvents: "none",
         backgroundImage: `radial-gradient(circle, rgba(255,255,255,0.06) 1px, transparent 1px)`,
         backgroundSize: "28px 28px" }} />
-      <img src={propbooksLogo} alt="PropBooks" style={{ height: 44, marginBottom: 28, position: "relative", objectFit: "contain" }} />
+      <img src={propbooksLogo} alt="PROPBOOKS" style={{ height: 44, marginBottom: 28, position: "relative", objectFit: "contain" }} />
       <div style={{
         position: "relative", background: "#fff", borderRadius: 20,
         padding: "36px 36px 32px", width: "100%", maxWidth: 420,
@@ -477,7 +477,7 @@ function AuthUI({ onAuthenticated } = {}) {
       {/* Logo above card */}
       <img
         src={propbooksLogo}
-        alt="PropBooks"
+        alt="PROPBOOKS"
         style={{ height: 44, marginBottom: 28, position: "relative", objectFit: "contain" }}
       />
 

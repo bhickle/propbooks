@@ -226,7 +226,7 @@ Call propose_mapping now.`;
       | { type: "tool_use"; input: { mapping: Record<string, string | null>; confidence: number; notes: string; unmapped_source_headers: string[] } }
       | undefined;
     if (!toolUse) {
-      return jsonResponse({ error: "Claude did not return a mapping. Try again with a clearer header row." }, 502);
+      return jsonResponse({ error: "Couldn't infer a column mapping. Try again with a clearer header row, or fix the headers and retry." }, 502);
     }
 
     // Log usage. usage fields come straight off response.usage.
