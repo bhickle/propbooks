@@ -303,7 +303,9 @@ export function ImportWizard({ onClose, onComplete }) {
       setAllRows(rest);
       setAutoCleanup({ skippedHeader, skippedSubtotal });
       // No targetEntity passed — Edge Function picks via tool_choice: "any".
-      await callInferEdgeFunction(hdr, rest.slice(0, 5), null);
+      // Pass full rows so the clarifications pass (chained inside) can reason
+      // over them without waiting for the setAllRows state commit.
+      await callInferEdgeFunction(hdr, rest.slice(0, 5), null, rest);
     } catch (e) {
       setError(`Couldn't read ${file.name}: ${e?.message || "unknown error"}`);
       setStep("upload");
@@ -314,7 +316,7 @@ export function ImportWizard({ onClose, onComplete }) {
   // overrideTarget is non-null when the user clicked "Actually this is X" in
   // the review step to override the AI's auto-detected target. We then
   // re-call the function with that target forced via tool_choice.
-  async function callInferEdgeFunction(hdr, sample, overrideTarget) {
+  async function callInferEdgeFunction(hdr, sample, overrideTarget, fullRows) {
     setStep("loading");
     setLoadingMessage("Figuring out how your columns map into PROPBOOKS. This usually takes a few seconds.");
     try {
@@ -327,6 +329,22 @@ export function ImportWizard({ onClose, onComplete }) {
       if (data?.error) throw new Error(data.error);
       setAiResult(data);
       setMapping(data.mapping || {});
+
+      // Clear any clarifications from a previous run (e.g. user re-inferred as a different target).
+      setClarifications([]);
+      setClarificationAnswers({});
+
+      // Chain a clarifications call for transactions imports that have blank-
+      // property rows. The AI's smart questions render inline in the review
+      // step in place of the radio-button blank handling, so this is part of
+      // the same "loading" experience — no separate step transition.
+      if (data.target_entity === "transactions" && data.mapping?.property && fullRows) {
+        const propColIdx = hdr.indexOf(data.mapping.property);
+        const blankCount = propColIdx === -1 ? 0 : fullRows.filter(r => !(r[propColIdx] || "").trim()).length;
+        if (blankCount >= 3) {
+          await fetchClarifications(hdr, fullRows, data.mapping, data.target_schema);
+        }
+      }
       setStep("review");
     } catch (e) {
       const msg = e?.message || "Couldn't infer mapping.";
@@ -339,7 +357,48 @@ export function ImportWizard({ onClose, onComplete }) {
   // Called from the review step when the user disagrees with the inferred
   // target. Re-runs the AI call with the chosen target forced.
   async function reInferAs(otherTarget) {
-    await callInferEdgeFunction(headers, allRows.slice(0, 5), otherTarget);
+    await callInferEdgeFunction(headers, allRows.slice(0, 5), otherTarget, allRows);
+  }
+
+  // Second-pass AI call. Returns silently on failure — clarifications are
+  // "smart help", never a gate. Run inside callInferEdgeFunction so the
+  // whole analysis is one continuous loading spinner from the user's POV.
+  async function fetchClarifications(hdr, fullRows, mappingArg, schemaArg) {
+    setLoadingMessage("Reading the full file for anything that needs a judgment call…");
+    try {
+      const normalizedRows = fullRows.map(row => {
+        const r = {};
+        for (const [field, src] of Object.entries(mappingArg)) {
+          if (!src) continue;
+          const colIdx = hdr.indexOf(src);
+          if (colIdx === -1) continue;
+          const spec = schemaArg[field];
+          const v = spec ? normalizeValue(field, spec, row[colIdx]) : row[colIdx];
+          if (v != null && v !== "") r[field] = v;
+        }
+        return r;
+      });
+      const existingProps = PROPERTIES.map(p => p.address || p.name).filter(Boolean);
+      const willCreate = computeWillCreateProperties({ mapping: mappingArg, headers: hdr, allRows: fullRows, propertiesList: PROPERTIES });
+      const pendingProps = willCreate.map(w => w.name);
+
+      const { data, error: fnErr } = await supabase.functions.invoke("propose-import-clarifications", {
+        body: { mapping: mappingArg, rows: normalizedRows, existingProperties: existingProps, pendingProperties: pendingProps },
+      });
+      if (fnErr || data?.error) {
+        console.warn("[ImportWizard] clarifications call failed:", fnErr || data?.error);
+        return;
+      }
+      const cls = Array.isArray(data?.clarifications) ? data.clarifications : [];
+      if (cls.length === 0) return;
+      // Default each answer to the AI's first option — usually the most likely.
+      const defaults = {};
+      for (const c of cls) defaults[c.id] = c.options?.[0]?.id || null;
+      setClarifications(cls);
+      setClarificationAnswers(defaults);
+    } catch (e) {
+      console.warn("[ImportWizard] clarifications threw:", e);
+    }
   }
 
   // Translate one clarification answer into the same resolution shape that
@@ -370,67 +429,17 @@ export function ImportWizard({ onClose, onComplete }) {
     return { skipBlank: skip, defaultProperty: def };
   }
 
-  // Bridge between the review step and the actual import. Calls the
-  // clarifications Edge Function with the full row data; if the AI surfaces
-  // anything, shows the chat-style clarify step. Otherwise jumps straight
-  // to import. Clarifications failures don't block — we just import.
+  // Single bridge from the review step's confirm button to handleImport.
+  // If clarifications were surfaced during the loading pass, the user's
+  // answers (already collected inline in the review step) get resolved
+  // into an import-time override. Otherwise we run with no override and
+  // handleImport reads from the standard skipBlank/defaultProperty state.
   async function handleReviewContinue() {
-    if (!aiResult || aiResult.target_entity !== "transactions") {
-      // Properties imports don't need clarifications.
-      return handleImport();
+    if (clarifications.length > 0) {
+      const resolution = resolveClarifications(clarificationAnswers, clarifications);
+      return handleImport(resolution);
     }
-    setStep("loading");
-    setLoadingMessage("Looking at the full file for anything that needs a judgment call…");
-    try {
-      // Build the normalized row payload the Edge Function will reason over.
-      // We send the post-mapping, post-normalization view — same shape the AI
-      // would see if it could re-run the wizard's deterministic transform.
-      const normalizedRows = allRows.map(row => {
-        const r = {};
-        for (const [field, src] of Object.entries(mapping)) {
-          if (!src) continue;
-          const colIdx = headers.indexOf(src);
-          if (colIdx === -1) continue;
-          const spec = targetSchema[field];
-          const v = spec ? normalizeValue(field, spec, row[colIdx]) : row[colIdx];
-          if (v != null && v !== "") r[field] = v;
-        }
-        return r;
-      });
-      const existingProps = PROPERTIES.map(p => p.address || p.name).filter(Boolean);
-      const willCreate = computeWillCreateProperties({ mapping, headers, allRows, propertiesList: PROPERTIES });
-      const pendingProps = willCreate.map(w => w.name);
-
-      const { data, error: fnErr } = await supabase.functions.invoke("propose-import-clarifications", {
-        body: { mapping, rows: normalizedRows, existingProperties: existingProps, pendingProperties: pendingProps },
-      });
-
-      if (fnErr || data?.error) {
-        console.warn("[ImportWizard] clarifications call failed, skipping:", fnErr || data?.error);
-        return handleImport();
-      }
-      const cls = Array.isArray(data?.clarifications) ? data.clarifications : [];
-      if (cls.length === 0) {
-        return handleImport();
-      }
-      // Default each answer to the first option so the user can just click
-      // through if the AI's top suggestion matches what they want.
-      const defaults = {};
-      for (const c of cls) defaults[c.id] = c.options?.[0]?.id || null;
-      setClarifications(cls);
-      setClarificationAnswers(defaults);
-      setStep("clarify");
-    } catch (e) {
-      console.warn("[ImportWizard] clarifications threw, skipping:", e);
-      return handleImport();
-    }
-  }
-
-  // Called when the user confirms answers in the clarify step. Resolves the
-  // chosen effects into an import-time override, then runs the import.
-  async function handleClarifyContinue() {
-    const resolution = resolveClarifications(clarificationAnswers, clarifications);
-    await handleImport(resolution);
+    return handleImport();
   }
 
   // ─── Step 3: transform + bulk insert ───────────────────────────────────────
@@ -639,17 +648,9 @@ export function ImportWizard({ onClose, onComplete }) {
             onBack={() => { setAiResult(null); setMapping({}); setStep("upload"); }}
             onReinterpret={reInferAs}
             onConfirm={handleReviewContinue}
-          />
-        )}
-
-        {step === "clarify" && (
-          <ClarifyStep
             clarifications={clarifications}
-            answers={clarificationAnswers}
-            setAnswer={(cid, oid) => setClarificationAnswers(prev => ({ ...prev, [cid]: oid }))}
-            totalRows={allRows.length}
-            onBack={() => setStep("review")}
-            onConfirm={handleClarifyContinue}
+            clarificationAnswers={clarificationAnswers}
+            setClarificationAnswer={(cid, oid) => setClarificationAnswers(prev => ({ ...prev, [cid]: oid }))}
           />
         )}
 
@@ -699,7 +700,7 @@ function UploadStep({ onFile, error }) {
 }
 
 // ── ReviewStep ──────────────────────────────────────────────────────────────
-function ReviewStep({ targetEntity, targetSchema, mapping, setMapping, headers, allRows, confidence, notes, unmapped, sampleRows, fileName, totalRows, autoCleanup, defaultPropertyId, setDefaultPropertyId, skipBlankPropertyRows, setSkipBlankPropertyRows, onBack, onReinterpret, onConfirm }) {
+function ReviewStep({ targetEntity, targetSchema, mapping, setMapping, headers, allRows, confidence, notes, unmapped, sampleRows, fileName, totalRows, autoCleanup, defaultPropertyId, setDefaultPropertyId, skipBlankPropertyRows, setSkipBlankPropertyRows, clarifications, clarificationAnswers, setClarificationAnswer, onBack, onReinterpret, onConfirm }) {
   const fields = Object.entries(targetSchema);
   const confColor = confidence >= 80 ? "var(--c-green)" : confidence >= 50 ? "#e95e00" : "var(--c-red)";
   // Which sourceHeaders are still assigned to a target field (for the dropdown to show "used elsewhere").
@@ -755,9 +756,13 @@ function ReviewStep({ targetEntity, targetSchema, mapping, setMapping, headers, 
     return { hasColumn: true, matchedCount, matchedDistinct: matchedSet.size, willCreate: willCreateList, blank };
   }, [isTransactions, hasPropertyColumn, mapping.property, allRows, headers]);
 
-  // Confirm-button gate: any blanks need either a fallback or the skip toggle.
+  // Confirm-button gate. When the AI surfaced clarifications, those replace
+  // the radio-button blank handling, so the gate is "every clarification has
+  // an answer selected" instead of "default property picked OR skip toggle".
   const blanks = propertyResolution?.blank || 0;
-  const blanksHandled = !!defaultPropertyId || skipBlankPropertyRows;
+  const hasClarifications = Array.isArray(clarifications) && clarifications.length > 0;
+  const allClarificationsAnswered = hasClarifications && clarifications.every(c => !!clarificationAnswers[c.id]);
+  const blanksHandled = hasClarifications ? allClarificationsAnswered : (!!defaultPropertyId || skipBlankPropertyRows);
   const canConfirm = !isTransactions ? true : (blanks === 0 || blanksHandled);
 
   // Which mapped fields make the most sense as quick-id columns when
@@ -880,6 +885,9 @@ function ReviewStep({ targetEntity, targetSchema, mapping, setMapping, headers, 
           blankPreviewRows={blankPreviewRows}
           blankPreviewFields={blankPreviewFields}
           totalRows={totalRows}
+          clarifications={clarifications}
+          clarificationAnswers={clarificationAnswers}
+          setClarificationAnswer={setClarificationAnswer}
         />
       )}
 
@@ -931,10 +939,10 @@ function ReviewStep({ targetEntity, targetSchema, mapping, setMapping, headers, 
         <button
           onClick={onConfirm}
           disabled={!canConfirm}
-          title={!canConfirm ? "Pick a default property first" : ""}
+          title={!canConfirm ? (hasClarifications ? "Pick an answer for each question above" : "Pick a default property first") : ""}
           style={{ padding: "10px 18px", borderRadius: 10, border: "none", background: "#e95e00", color: "#fff", fontWeight: 700, fontSize: 14, cursor: canConfirm ? "pointer" : "not-allowed", opacity: canConfirm ? 1 : 0.5, display: "flex", alignItems: "center", gap: 6 }}
         >
-          Continue <ArrowRight size={14} />
+          Import {totalRows} row{totalRows !== 1 ? "s" : ""} <ArrowRight size={14} />
         </button>
       </div>
     </div>
@@ -953,7 +961,7 @@ function ReviewStep({ targetEntity, targetSchema, mapping, setMapping, headers, 
 // Has an inline quick-add form for users who are starting from zero
 // properties (so they don't have to leave the wizard and lose their parsed
 // file just to create their first property).
-function TransactionPropertySection({ propertyResolution, defaultPropertyId, setDefaultPropertyId, skipBlankPropertyRows, setSkipBlankPropertyRows, blankPreviewRows, blankPreviewFields, totalRows }) {
+function TransactionPropertySection({ propertyResolution, defaultPropertyId, setDefaultPropertyId, skipBlankPropertyRows, setSkipBlankPropertyRows, blankPreviewRows, blankPreviewFields, totalRows, clarifications, clarificationAnswers, setClarificationAnswer }) {
   const { showToast } = useToast();
   const [showAllCreates, setShowAllCreates] = useState(false);
   const [quickAddOpen, setQuickAddOpen] = useState(false);
@@ -1044,8 +1052,70 @@ function TransactionPropertySection({ propertyResolution, defaultPropertyId, set
         </p>
       )}
 
-      {/* Blank handling: shown whenever any row has no property value. */}
-      {blank > 0 && (
+      {/* When the AI returned clarifications, they replace the deterministic
+          radio-button blank-handling UI below. The user picks an answer per
+          question; the wizard translates effects into the same skipBlank /
+          defaultProperty shape at import time. */}
+      {blank > 0 && Array.isArray(clarifications) && clarifications.length > 0 && (
+        <div style={{ padding: "12px 14px", background: "rgba(233,94,0,0.06)", border: "1px solid rgba(233,94,0,0.25)", borderRadius: 10 }}>
+          <div style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 10 }}>
+            <MessageCircle size={18} color="#e95e00" style={{ flexShrink: 0, marginTop: 1 }} />
+            <div>
+              <p style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)" }}>
+                {clarifications.length === 1 ? "A quick question" : "A few quick questions"}
+              </p>
+              <p style={{ fontSize: 12, color: "var(--text-secondary)", marginTop: 2, lineHeight: 1.4 }}>
+                I noticed {clarifications.length === 1 ? "something" : "a few things"} in your file that {clarifications.length === 1 ? "needs" : "need"} a judgment call. Pick the option that fits.
+              </p>
+            </div>
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            {clarifications.map(c => (
+              <div key={c.id} style={{ padding: "10px 12px", background: "var(--surface)", border: "1px solid var(--border-subtle)", borderRadius: 10 }}>
+                <p style={{ fontSize: 12.5, color: "var(--text-primary)", lineHeight: 1.5, marginBottom: 4 }}>{c.summary}</p>
+                {c.example_payees && c.example_payees.length > 0 && (
+                  <p style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 8, fontStyle: "italic" }}>
+                    Examples: {c.example_payees.slice(0, 3).join(", ")}
+                    {c.row_count ? ` · ${c.row_count} row${c.row_count !== 1 ? "s" : ""}` : ""}
+                  </p>
+                )}
+                <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+                  {c.options.map(opt => {
+                    const selected = clarificationAnswers[c.id] === opt.id;
+                    return (
+                      <label key={opt.id} style={{
+                        display: "flex",
+                        alignItems: "flex-start",
+                        gap: 8,
+                        padding: "7px 10px",
+                        borderRadius: 8,
+                        border: `1px solid ${selected ? "#e95e00" : "var(--border-subtle)"}`,
+                        background: selected ? "rgba(233,94,0,0.08)" : "var(--surface-alt)",
+                        cursor: "pointer",
+                        transition: "all 0.12s",
+                      }}>
+                        <input
+                          type="radio"
+                          name={`clarify-${c.id}`}
+                          checked={selected}
+                          onChange={() => setClarificationAnswer(c.id, opt.id)}
+                          style={{ marginTop: 2 }}
+                        />
+                        <span style={{ fontSize: 12.5, color: "var(--text-primary)", lineHeight: 1.4 }}>{opt.label}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Standard deterministic blank handling — used when the AI returned no
+          clarifications (no blanks, no ambiguity, or the AI call failed). */}
+      {blank > 0 && (!Array.isArray(clarifications) || clarifications.length === 0) && (
         <div style={{ padding: "10px 12px", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 8 }}>
           <p style={{ fontSize: 12, color: "var(--text-primary)", fontWeight: 600, marginBottom: hasColumn && blankPreviewRows.length > 0 ? 6 : 8 }}>
             {hasColumn
@@ -1172,77 +1242,6 @@ function TransactionPropertySection({ propertyResolution, defaultPropertyId, set
           )}
         </div>
       )}
-    </div>
-  );
-}
-
-// ── ClarifyStep ─────────────────────────────────────────────────────────────
-// Chat-style multi-choice questions surfaced by propose-import-clarifications.
-// Renders each clarification as a "message bubble" with radio options; the
-// user picks one per question. On confirm, the parent translates answers
-// into import-time overrides.
-function ClarifyStep({ clarifications, answers, setAnswer, totalRows, onBack, onConfirm }) {
-  return (
-    <div>
-      <div style={{ marginBottom: 14, padding: "10px 14px", background: "rgba(233,94,0,0.06)", border: "1px solid rgba(233,94,0,0.25)", borderRadius: 10, display: "flex", alignItems: "flex-start", gap: 10 }}>
-        <MessageCircle size={18} color="#e95e00" style={{ flexShrink: 0, marginTop: 1 }} />
-        <div>
-          <p style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)" }}>A {clarifications.length === 1 ? "quick question" : "few quick questions"} before importing</p>
-          <p style={{ fontSize: 12, color: "var(--text-secondary)", marginTop: 2, lineHeight: 1.4 }}>
-            I noticed {clarifications.length === 1 ? "something" : "a few things"} in your file that {clarifications.length === 1 ? "needs" : "need"} a judgment call. Pick the option that fits and I&rsquo;ll handle the rest.
-          </p>
-        </div>
-      </div>
-
-      <div style={{ display: "flex", flexDirection: "column", gap: 14, marginBottom: 18 }}>
-        {clarifications.map(c => (
-          <div key={c.id} style={{ padding: "12px 14px", background: "var(--surface-alt)", border: "1px solid var(--border-subtle)", borderRadius: 10 }}>
-            <p style={{ fontSize: 13, color: "var(--text-primary)", lineHeight: 1.5, marginBottom: 6 }}>{c.summary}</p>
-            {c.example_payees && c.example_payees.length > 0 && (
-              <p style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 10, fontStyle: "italic" }}>
-                Examples: {c.example_payees.slice(0, 3).join(", ")}
-                {c.row_count ? ` · ${c.row_count} row${c.row_count !== 1 ? "s" : ""}` : ""}
-              </p>
-            )}
-            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-              {c.options.map(opt => {
-                const selected = answers[c.id] === opt.id;
-                return (
-                  <label key={opt.id} style={{
-                    display: "flex",
-                    alignItems: "flex-start",
-                    gap: 8,
-                    padding: "8px 10px",
-                    borderRadius: 8,
-                    border: `1px solid ${selected ? "#e95e00" : "var(--border-subtle)"}`,
-                    background: selected ? "rgba(233,94,0,0.06)" : "var(--surface)",
-                    cursor: "pointer",
-                    transition: "all 0.12s",
-                  }}>
-                    <input
-                      type="radio"
-                      name={`clarify-${c.id}`}
-                      checked={selected}
-                      onChange={() => setAnswer(c.id, opt.id)}
-                      style={{ marginTop: 2 }}
-                    />
-                    <span style={{ fontSize: 12.5, color: "var(--text-primary)", lineHeight: 1.4 }}>{opt.label}</span>
-                  </label>
-                );
-              })}
-            </div>
-          </div>
-        ))}
-      </div>
-
-      <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
-        <button onClick={onBack} style={{ padding: "10px 18px", borderRadius: 10, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text-label)", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
-          <ArrowLeft size={14} /> Back
-        </button>
-        <button onClick={onConfirm} style={{ padding: "10px 18px", borderRadius: 10, border: "none", background: "#e95e00", color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
-          Apply and import {totalRows} row{totalRows !== 1 ? "s" : ""} <ArrowRight size={14} />
-        </button>
-      </div>
     </div>
   );
 }
