@@ -11,7 +11,7 @@
 //   6. Summary screen
 // =============================================================================
 import { useState, useMemo } from "react";
-import { Upload, CheckCircle, AlertCircle, Loader, ArrowRight, ArrowLeft, Sparkles, X } from "lucide-react";
+import { Upload, CheckCircle, AlertCircle, Loader, ArrowRight, ArrowLeft, Sparkles, X, MessageCircle } from "lucide-react";
 import { supabase } from "../supabase.js";
 import { useToast } from "../toast.jsx";
 import { createProperty } from "../db/properties.js";
@@ -151,6 +151,41 @@ function preprocessRows(rows) {
   return { rows: final, skippedHeader: headerIdx, skippedSubtotal };
 }
 
+// Walk the parsed rows and figure out which property values would be
+// auto-created at import time (i.e., values that don't match any existing
+// property by exact OR partial name/address match). Returns
+// [{ name, count }, ...] sorted by count descending. Used by both the
+// review step (to preview auto-creates) and the clarifications call (to
+// tell the AI which pending properties are valid attach-to targets).
+function computeWillCreateProperties({ mapping, headers, allRows, propertiesList }) {
+  if (!mapping?.property) return [];
+  const colIdx = headers.indexOf(mapping.property);
+  if (colIdx === -1) return [];
+
+  const propertyKeys = new Set();
+  for (const p of propertiesList) {
+    if (p.name)    propertyKeys.add(p.name.toLowerCase().trim());
+    if (p.address) propertyKeys.add(p.address.toLowerCase().trim());
+  }
+
+  const willCreate = new Map();
+  for (const row of allRows) {
+    const raw = (row[colIdx] || "").trim();
+    if (!raw) continue;
+    const key = raw.toLowerCase();
+    if (propertyKeys.has(key)) continue;
+    let foundPartial = false;
+    for (const k of propertyKeys) {
+      if (k.includes(key) || key.includes(k)) { foundPartial = true; break; }
+    }
+    if (foundPartial) continue;
+    willCreate.set(raw, (willCreate.get(raw) || 0) + 1);
+  }
+  return Array.from(willCreate.entries())
+    .map(([name, count]) => ({ name, count }))
+    .sort((a, b) => b.count - a.count);
+}
+
 // ── Per-target-field value normalizer ────────────────────────────────────────
 // Coerces raw CSV strings into the shapes Supabase expects. Centralized here
 // so the AI's mapping doesn't need to specify transforms — the schema knows.
@@ -203,7 +238,8 @@ function normalizeValue(field, spec, raw) {
 
 export function ImportWizard({ onClose, onComplete }) {
   const { showToast } = useToast();
-  const [step, setStep] = useState("upload");    // upload → loading → review → importing → done
+  const [step, setStep] = useState("upload");    // upload → loading → review → clarify → importing → done
+  const [loadingMessage, setLoadingMessage] = useState("");
   const [fileName, setFileName] = useState("");
   const [headers, setHeaders] = useState([]);
   const [allRows, setAllRows] = useState([]);    // raw string rows (no header)
@@ -212,6 +248,12 @@ export function ImportWizard({ onClose, onComplete }) {
   const [defaultPropertyId, setDefaultPropertyId] = useState(""); // transactions only: fallback property when no per-row column exists
   const [skipBlankPropertyRows, setSkipBlankPropertyRows] = useState(false); // when a row has no property value, drop it instead of using the fallback
   const [autoCleanup, setAutoCleanup] = useState({ skippedHeader: 0, skippedSubtotal: 0 });
+  // Tier-1 chat-style clarifications: second-pass AI call after mapping is
+  // confirmed. The AI looks at the full row data and returns 0-3 multiple-
+  // choice questions about patterns it can't decide on its own (umbrella
+  // expenses, potential duplicate properties, etc). Empty array = skip step.
+  const [clarifications, setClarifications] = useState([]);
+  const [clarificationAnswers, setClarificationAnswers] = useState({}); // { [clarificationId]: optionId }
   const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState(null); // {created, failed, errors[]}
   const [error, setError] = useState("");
@@ -235,6 +277,7 @@ export function ImportWizard({ onClose, onComplete }) {
       return;
     }
     setStep("loading");
+    setLoadingMessage(`Analyzing ${file.name}… Figuring out how your columns map into PROPBOOKS.`);
     setFileName(file.name);
     try {
       let rows;
@@ -273,6 +316,7 @@ export function ImportWizard({ onClose, onComplete }) {
   // re-call the function with that target forced via tool_choice.
   async function callInferEdgeFunction(hdr, sample, overrideTarget) {
     setStep("loading");
+    setLoadingMessage("Figuring out how your columns map into PROPBOOKS. This usually takes a few seconds.");
     try {
       const requestBody = { sourceHeaders: hdr, sampleRows: sample };
       if (overrideTarget) requestBody.targetEntity = overrideTarget;
@@ -298,10 +342,109 @@ export function ImportWizard({ onClose, onComplete }) {
     await callInferEdgeFunction(headers, allRows.slice(0, 5), otherTarget);
   }
 
+  // Translate one clarification answer into the same resolution shape that
+  // handleImport reads (override of {skipBlank, defaultProperty}). When the
+  // user picks "Attach to '524 Speer St'" and Speer doesn't exist yet,
+  // returns `pending:524 Speer St` so the auto-create path handles it; when
+  // they pick an existing property by name, returns its real UUID.
+  function resolveClarifications(answers, cls) {
+    let skip = skipBlankPropertyRows;
+    let def = defaultPropertyId;
+    for (const c of cls) {
+      const optId = answers[c.id];
+      const opt = c.options.find(o => o.id === optId);
+      const ef = opt?.effect;
+      if (!ef) continue;
+      if (ef.type === "skip_blank_property_rows") {
+        skip = true;
+      } else if (ef.type === "attach_blank_property_rows_to_value" && ef.value) {
+        const lower = ef.value.toLowerCase().trim();
+        const existing = PROPERTIES.find(p =>
+          (p.name && p.name.toLowerCase().trim() === lower) ||
+          (p.address && p.address.toLowerCase().trim() === lower)
+        );
+        def = existing ? existing.id : `pending:${ef.value}`;
+        skip = false;
+      }
+    }
+    return { skipBlank: skip, defaultProperty: def };
+  }
+
+  // Bridge between the review step and the actual import. Calls the
+  // clarifications Edge Function with the full row data; if the AI surfaces
+  // anything, shows the chat-style clarify step. Otherwise jumps straight
+  // to import. Clarifications failures don't block — we just import.
+  async function handleReviewContinue() {
+    if (!aiResult || aiResult.target_entity !== "transactions") {
+      // Properties imports don't need clarifications.
+      return handleImport();
+    }
+    setStep("loading");
+    setLoadingMessage("Looking at the full file for anything that needs a judgment call…");
+    try {
+      // Build the normalized row payload the Edge Function will reason over.
+      // We send the post-mapping, post-normalization view — same shape the AI
+      // would see if it could re-run the wizard's deterministic transform.
+      const normalizedRows = allRows.map(row => {
+        const r = {};
+        for (const [field, src] of Object.entries(mapping)) {
+          if (!src) continue;
+          const colIdx = headers.indexOf(src);
+          if (colIdx === -1) continue;
+          const spec = targetSchema[field];
+          const v = spec ? normalizeValue(field, spec, row[colIdx]) : row[colIdx];
+          if (v != null && v !== "") r[field] = v;
+        }
+        return r;
+      });
+      const existingProps = PROPERTIES.map(p => p.address || p.name).filter(Boolean);
+      const willCreate = computeWillCreateProperties({ mapping, headers, allRows, propertiesList: PROPERTIES });
+      const pendingProps = willCreate.map(w => w.name);
+
+      const { data, error: fnErr } = await supabase.functions.invoke("propose-import-clarifications", {
+        body: { mapping, rows: normalizedRows, existingProperties: existingProps, pendingProperties: pendingProps },
+      });
+
+      if (fnErr || data?.error) {
+        console.warn("[ImportWizard] clarifications call failed, skipping:", fnErr || data?.error);
+        return handleImport();
+      }
+      const cls = Array.isArray(data?.clarifications) ? data.clarifications : [];
+      if (cls.length === 0) {
+        return handleImport();
+      }
+      // Default each answer to the first option so the user can just click
+      // through if the AI's top suggestion matches what they want.
+      const defaults = {};
+      for (const c of cls) defaults[c.id] = c.options?.[0]?.id || null;
+      setClarifications(cls);
+      setClarificationAnswers(defaults);
+      setStep("clarify");
+    } catch (e) {
+      console.warn("[ImportWizard] clarifications threw, skipping:", e);
+      return handleImport();
+    }
+  }
+
+  // Called when the user confirms answers in the clarify step. Resolves the
+  // chosen effects into an import-time override, then runs the import.
+  async function handleClarifyContinue() {
+    const resolution = resolveClarifications(clarificationAnswers, clarifications);
+    await handleImport(resolution);
+  }
+
   // ─── Step 3: transform + bulk insert ───────────────────────────────────────
-  async function handleImport() {
+  // `resolutionOverride` (optional) lets the clarify step override the
+  // skipBlankPropertyRows / defaultPropertyId state without waiting for the
+  // (async) setState to commit. When omitted, we read directly from state.
+  async function handleImport(resolutionOverride) {
     setImporting(true);
     setStep("importing");
+    // Resolve override values up-front — these win over the review-step state
+    // when the user came through the clarify step, since setState wouldn't
+    // have committed yet at the moment we read state inside this function.
+    const effectiveSkipBlank   = resolutionOverride?.skipBlank ?? skipBlankPropertyRows;
+    const effectiveDefaultProp = resolutionOverride?.defaultProperty ?? defaultPropertyId;
     let created = 0;
     let propsCreated = 0;
     let blanksSkipped = 0;
@@ -379,7 +522,7 @@ export function ImportWizard({ onClose, onComplete }) {
 
         // Row had no property value: fall back, skip, or fail.
         if (!propertyId) {
-          if (skipBlankPropertyRows) {
+          if (effectiveSkipBlank) {
             blanksSkipped++;
             continue;
           }
@@ -390,8 +533,8 @@ export function ImportWizard({ onClose, onComplete }) {
           //      the auto-create cache so the first blank we hit triggers
           //      the insert and subsequent blanks (and any non-blank rows
           //      with the same name) reuse the new id.
-          if (defaultPropertyId && defaultPropertyId.startsWith("pending:")) {
-            const displayName = defaultPropertyId.slice("pending:".length);
+          if (effectiveDefaultProp && effectiveDefaultProp.startsWith("pending:")) {
+            const displayName = effectiveDefaultProp.slice("pending:".length);
             const key = displayName.toLowerCase().trim();
             propertyId = propertyByKey.get(key) || null;
             if (!propertyId) {
@@ -414,7 +557,7 @@ export function ImportWizard({ onClose, onComplete }) {
               }
             }
           } else {
-            propertyId = defaultPropertyId || null;
+            propertyId = effectiveDefaultProp || null;
           }
         }
         if (!propertyId) {
@@ -468,8 +611,8 @@ export function ImportWizard({ onClose, onComplete }) {
         {step === "loading" && (
           <div style={{ textAlign: "center", padding: "60px 20px" }}>
             <Loader size={32} color="#e95e00" style={{ animation: "spin 1s linear infinite", marginBottom: 14 }} />
-            <p style={{ color: "var(--text-primary)", fontWeight: 600, fontSize: 15 }}>Analyzing {fileName}…</p>
-            <p style={{ color: "var(--text-muted)", fontSize: 13, marginTop: 6 }}>Figuring out how your columns map into PROPBOOKS. This usually takes a few seconds.</p>
+            <p style={{ color: "var(--text-primary)", fontWeight: 600, fontSize: 15 }}>{fileName || "Working…"}</p>
+            <p style={{ color: "var(--text-muted)", fontSize: 13, marginTop: 6 }}>{loadingMessage || "This usually takes a few seconds."}</p>
             <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
           </div>
         )}
@@ -495,7 +638,18 @@ export function ImportWizard({ onClose, onComplete }) {
             setSkipBlankPropertyRows={setSkipBlankPropertyRows}
             onBack={() => { setAiResult(null); setMapping({}); setStep("upload"); }}
             onReinterpret={reInferAs}
-            onConfirm={handleImport}
+            onConfirm={handleReviewContinue}
+          />
+        )}
+
+        {step === "clarify" && (
+          <ClarifyStep
+            clarifications={clarifications}
+            answers={clarificationAnswers}
+            setAnswer={(cid, oid) => setClarificationAnswers(prev => ({ ...prev, [cid]: oid }))}
+            totalRows={allRows.length}
+            onBack={() => setStep("review")}
+            onConfirm={handleClarifyContinue}
           />
         )}
 
@@ -780,7 +934,7 @@ function ReviewStep({ targetEntity, targetSchema, mapping, setMapping, headers, 
           title={!canConfirm ? "Pick a default property first" : ""}
           style={{ padding: "10px 18px", borderRadius: 10, border: "none", background: "#e95e00", color: "#fff", fontWeight: 700, fontSize: 14, cursor: canConfirm ? "pointer" : "not-allowed", opacity: canConfirm ? 1 : 0.5, display: "flex", alignItems: "center", gap: 6 }}
         >
-          Import {totalRows} row{totalRows !== 1 ? "s" : ""} <ArrowRight size={14} />
+          Continue <ArrowRight size={14} />
         </button>
       </div>
     </div>
@@ -1018,6 +1172,77 @@ function TransactionPropertySection({ propertyResolution, defaultPropertyId, set
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+// ── ClarifyStep ─────────────────────────────────────────────────────────────
+// Chat-style multi-choice questions surfaced by propose-import-clarifications.
+// Renders each clarification as a "message bubble" with radio options; the
+// user picks one per question. On confirm, the parent translates answers
+// into import-time overrides.
+function ClarifyStep({ clarifications, answers, setAnswer, totalRows, onBack, onConfirm }) {
+  return (
+    <div>
+      <div style={{ marginBottom: 14, padding: "10px 14px", background: "rgba(233,94,0,0.06)", border: "1px solid rgba(233,94,0,0.25)", borderRadius: 10, display: "flex", alignItems: "flex-start", gap: 10 }}>
+        <MessageCircle size={18} color="#e95e00" style={{ flexShrink: 0, marginTop: 1 }} />
+        <div>
+          <p style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)" }}>A {clarifications.length === 1 ? "quick question" : "few quick questions"} before importing</p>
+          <p style={{ fontSize: 12, color: "var(--text-secondary)", marginTop: 2, lineHeight: 1.4 }}>
+            I noticed {clarifications.length === 1 ? "something" : "a few things"} in your file that {clarifications.length === 1 ? "needs" : "need"} a judgment call. Pick the option that fits and I&rsquo;ll handle the rest.
+          </p>
+        </div>
+      </div>
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 14, marginBottom: 18 }}>
+        {clarifications.map(c => (
+          <div key={c.id} style={{ padding: "12px 14px", background: "var(--surface-alt)", border: "1px solid var(--border-subtle)", borderRadius: 10 }}>
+            <p style={{ fontSize: 13, color: "var(--text-primary)", lineHeight: 1.5, marginBottom: 6 }}>{c.summary}</p>
+            {c.example_payees && c.example_payees.length > 0 && (
+              <p style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 10, fontStyle: "italic" }}>
+                Examples: {c.example_payees.slice(0, 3).join(", ")}
+                {c.row_count ? ` · ${c.row_count} row${c.row_count !== 1 ? "s" : ""}` : ""}
+              </p>
+            )}
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              {c.options.map(opt => {
+                const selected = answers[c.id] === opt.id;
+                return (
+                  <label key={opt.id} style={{
+                    display: "flex",
+                    alignItems: "flex-start",
+                    gap: 8,
+                    padding: "8px 10px",
+                    borderRadius: 8,
+                    border: `1px solid ${selected ? "#e95e00" : "var(--border-subtle)"}`,
+                    background: selected ? "rgba(233,94,0,0.06)" : "var(--surface)",
+                    cursor: "pointer",
+                    transition: "all 0.12s",
+                  }}>
+                    <input
+                      type="radio"
+                      name={`clarify-${c.id}`}
+                      checked={selected}
+                      onChange={() => setAnswer(c.id, opt.id)}
+                      style={{ marginTop: 2 }}
+                    />
+                    <span style={{ fontSize: 12.5, color: "var(--text-primary)", lineHeight: 1.4 }}>{opt.label}</span>
+                  </label>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+        <button onClick={onBack} style={{ padding: "10px 18px", borderRadius: 10, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text-label)", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
+          <ArrowLeft size={14} /> Back
+        </button>
+        <button onClick={onConfirm} style={{ padding: "10px 18px", borderRadius: 10, border: "none", background: "#e95e00", color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
+          Apply and import {totalRows} row{totalRows !== 1 ? "s" : ""} <ArrowRight size={14} />
+        </button>
+      </div>
     </div>
   );
 }
