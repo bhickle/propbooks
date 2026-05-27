@@ -210,6 +210,7 @@ export function ImportWizard({ onClose, onComplete }) {
   const [aiResult, setAiResult] = useState(null); // {mapping, confidence, notes, target_entity, target_schema, unmapped_source_headers}
   const [mapping, setMapping] = useState({});    // editable copy of aiResult.mapping
   const [defaultPropertyId, setDefaultPropertyId] = useState(""); // transactions only: fallback property when no per-row column exists
+  const [skipBlankPropertyRows, setSkipBlankPropertyRows] = useState(false); // when a row has no property value, drop it instead of using the fallback
   const [autoCleanup, setAutoCleanup] = useState({ skippedHeader: 0, skippedSubtotal: 0 });
   const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState(null); // {created, failed, errors[]}
@@ -302,11 +303,15 @@ export function ImportWizard({ onClose, onComplete }) {
     setImporting(true);
     setStep("importing");
     let created = 0;
+    let propsCreated = 0;
+    let blanksSkipped = 0;
     const errors = [];
 
     // Pre-build a lookup table for transactions: lowercased name OR address
     // → property.id. The match is case-insensitive and partial — "123 Main"
-    // in the CSV finds the property named "123 Main St".
+    // in the CSV finds the property named "123 Main St". Auto-created
+    // properties are appended to this map as we go so subsequent rows with
+    // the same value reuse the new id.
     const propertyByKey = new Map();
     if (targetEntity === "transactions") {
       for (const p of PROPERTIES) {
@@ -328,14 +333,19 @@ export function ImportWizard({ onClose, onComplete }) {
         if (normalized !== null) record[targetField] = normalized;
       }
 
-      // Transactions: resolve property_id. Try the mapped `property` column
-      // first (look up by name/address), then fall back to the default
-      // property the user picked. If neither resolves, fail the row.
+      // Transactions: resolve property_id.
+      //   1. Try the mapped `property` column (exact then partial match).
+      //   2. If no match → auto-create a new property using the row's value.
+      //      Cached per-value so 50 rows for "Oak St" create one property.
+      //   3. If the column was blank → use the user's fallback property, or
+      //      skip the row if they checked "Skip rows without a property".
       if (targetEntity === "transactions") {
         let propertyId = null;
         const propVal = record.property;
-        if (propVal) {
-          const key = String(propVal).toLowerCase().trim();
+        const propValStr = propVal != null ? String(propVal).trim() : "";
+
+        if (propValStr) {
+          const key = propValStr.toLowerCase();
           propertyId = propertyByKey.get(key) || null;
           if (!propertyId) {
             // Partial match: any property whose name/address contains this
@@ -344,12 +354,39 @@ export function ImportWizard({ onClose, onComplete }) {
               if (k.includes(key) || key.includes(k)) { propertyId = id; break; }
             }
           }
+          if (!propertyId) {
+            // No match → auto-create. The review step already showed the
+            // user this list so they've signed off on it.
+            try {
+              const newProp = await createProperty({
+                name: propValStr,
+                address: propValStr,
+                type: "Single Family",
+                units: 1,
+                status: "Occupied",
+              });
+              PROPERTIES.push(newProp);
+              propertyByKey.set(key, newProp.id);
+              if (newProp.address) propertyByKey.set(newProp.address.toLowerCase().trim(), newProp.id);
+              propertyId = newProp.id;
+              propsCreated++;
+            } catch (e) {
+              errors.push({ row: i + 2, reason: `couldn't auto-create property "${propValStr}": ${e?.message || "insert failed"}` });
+              continue;
+            }
+          }
         }
-        if (!propertyId) propertyId = defaultPropertyId || null;
+
+        // Row had no property value: fall back, skip, or fail.
         if (!propertyId) {
-          errors.push({ row: i + 2, reason: propVal
-            ? `couldn't match "${propVal}" to any property — pick a default property below or add the property first`
-            : "no property — pick a default property below" });
+          if (skipBlankPropertyRows) {
+            blanksSkipped++;
+            continue;
+          }
+          propertyId = defaultPropertyId || null;
+        }
+        if (!propertyId) {
+          errors.push({ row: i + 2, reason: "no property in this row — pick a fallback property or check 'Skip rows without a property' in the review step" });
           continue;
         }
         record.propertyId = propertyId;
@@ -371,11 +408,11 @@ export function ImportWizard({ onClose, onComplete }) {
       }
     }
 
-    setImportResult({ created, failed: errors.length, errors: errors.slice(0, 10) });
+    setImportResult({ created, propsCreated, blanksSkipped, failed: errors.length, errors: errors.slice(0, 10) });
     setImporting(false);
     setStep("done");
     if (created > 0) {
-      showToast(`Imported ${created} ${targetEntity === "properties" ? "properties" : "transactions"}.`, "success");
+      showToast(`Imported ${created} ${targetEntity === "properties" ? "properties" : "transactions"}${propsCreated > 0 ? ` and created ${propsCreated} new propert${propsCreated === 1 ? "y" : "ies"}` : ""}.`, "success");
       onComplete?.();
     }
   }
@@ -412,6 +449,7 @@ export function ImportWizard({ onClose, onComplete }) {
             mapping={mapping}
             setMapping={setMapping}
             headers={headers}
+            allRows={allRows}
             confidence={aiResult.confidence}
             notes={aiResult.notes}
             unmapped={aiResult.unmapped_source_headers || []}
@@ -421,6 +459,8 @@ export function ImportWizard({ onClose, onComplete }) {
             autoCleanup={autoCleanup}
             defaultPropertyId={defaultPropertyId}
             setDefaultPropertyId={setDefaultPropertyId}
+            skipBlankPropertyRows={skipBlankPropertyRows}
+            setSkipBlankPropertyRows={setSkipBlankPropertyRows}
             onBack={() => { setAiResult(null); setMapping({}); setStep("upload"); }}
             onReinterpret={reInferAs}
             onConfirm={handleImport}
@@ -473,7 +513,7 @@ function UploadStep({ onFile, error }) {
 }
 
 // ── ReviewStep ──────────────────────────────────────────────────────────────
-function ReviewStep({ targetEntity, targetSchema, mapping, setMapping, headers, confidence, notes, unmapped, sampleRows, fileName, totalRows, autoCleanup, defaultPropertyId, setDefaultPropertyId, onBack, onReinterpret, onConfirm }) {
+function ReviewStep({ targetEntity, targetSchema, mapping, setMapping, headers, allRows, confidence, notes, unmapped, sampleRows, fileName, totalRows, autoCleanup, defaultPropertyId, setDefaultPropertyId, skipBlankPropertyRows, setSkipBlankPropertyRows, onBack, onReinterpret, onConfirm }) {
   const fields = Object.entries(targetSchema);
   const confColor = confidence >= 80 ? "var(--c-green)" : confidence >= 50 ? "#e95e00" : "var(--c-red)";
   // Which sourceHeaders are still assigned to a target field (for the dropdown to show "used elsewhere").
@@ -487,13 +527,52 @@ function ReviewStep({ targetEntity, targetSchema, mapping, setMapping, headers, 
     setMapping(prev => ({ ...prev, [field]: sourceHeader || null }));
   }
 
-  // Transactions need a property_id per row. If the CSV doesn't have a
-  // property column (or the AI couldn't map one), the user must pick a
-  // default property here — otherwise the import would fail with FK errors.
   const isTransactions = targetEntity === "transactions";
-  const hasPropertyColumn = !!mapping.property;
-  const needsDefaultProperty = isTransactions && !hasPropertyColumn;
-  const canConfirm = !needsDefaultProperty || !!defaultPropertyId;
+  const hasPropertyColumn = isTransactions && !!mapping.property;
+
+  // Walk the rows once, classify each by what'll happen to its property
+  // assignment at import time. Lets us surface the breakdown in the review
+  // step instead of dumping it as errors after the import runs.
+  const propertyResolution = useMemo(() => {
+    if (!isTransactions) return null;
+    if (!hasPropertyColumn) {
+      return { hasColumn: false, matchedCount: 0, matchedDistinct: 0, willCreate: [], blank: allRows.length };
+    }
+    const propertyByKey = new Map();
+    for (const p of PROPERTIES) {
+      if (p.name)    propertyByKey.set(p.name.toLowerCase().trim(), p.id);
+      if (p.address) propertyByKey.set(p.address.toLowerCase().trim(), p.id);
+    }
+    const colIdx = headers.indexOf(mapping.property);
+    if (colIdx === -1) return { hasColumn: false, matchedCount: 0, matchedDistinct: 0, willCreate: [], blank: allRows.length };
+
+    const matchedSet = new Set();
+    const willCreate = new Map(); // displayName → row count
+    let matchedCount = 0;
+    let blank = 0;
+    for (const row of allRows) {
+      const raw = (row[colIdx] || "").trim();
+      if (!raw) { blank++; continue; }
+      const key = raw.toLowerCase();
+      let matched = propertyByKey.has(key);
+      if (!matched) {
+        for (const k of propertyByKey.keys()) {
+          if (k.includes(key) || key.includes(k)) { matched = true; break; }
+        }
+      }
+      if (matched) { matchedCount++; matchedSet.add(key); }
+      else        { willCreate.set(raw, (willCreate.get(raw) || 0) + 1); }
+    }
+    const willCreateList = Array.from(willCreate.entries())
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => b.count - a.count);
+    return { hasColumn: true, matchedCount, matchedDistinct: matchedSet.size, willCreate: willCreateList, blank };
+  }, [isTransactions, hasPropertyColumn, mapping.property, allRows, headers]);
+
+  // Confirm-button gate: any blanks need either a fallback or the skip toggle.
+  const blanks = propertyResolution?.blank || 0;
+  const blanksHandled = !!defaultPropertyId || skipBlankPropertyRows;
+  const canConfirm = !isTransactions ? true : (blanks === 0 || blanksHandled);
 
   const otherTarget = targetEntity === "properties" ? "transactions" : "properties";
 
@@ -574,10 +653,11 @@ function ReviewStep({ targetEntity, targetSchema, mapping, setMapping, headers, 
 
       {isTransactions && (
         <TransactionPropertySection
-          hasPropertyColumn={hasPropertyColumn}
-          needsDefaultProperty={needsDefaultProperty}
+          propertyResolution={propertyResolution}
           defaultPropertyId={defaultPropertyId}
           setDefaultPropertyId={setDefaultPropertyId}
+          skipBlankPropertyRows={skipBlankPropertyRows}
+          setSkipBlankPropertyRows={setSkipBlankPropertyRows}
         />
       )}
 
@@ -640,13 +720,21 @@ function ReviewStep({ targetEntity, targetSchema, mapping, setMapping, headers, 
 }
 
 // ── TransactionPropertySection ───────────────────────────────────────────────
-// Renders the "which property" picker for transaction imports. Includes a
-// "Quick-add property" inline form so users with zero properties (or who
-// realize mid-import that their property isn't in the list) can create one
-// without leaving the wizard and losing their parsed file.
-function TransactionPropertySection({ hasPropertyColumn, needsDefaultProperty, defaultPropertyId, setDefaultPropertyId }) {
+// Renders the property-handling controls for transaction imports. Three
+// distinct UI surfaces, driven by `propertyResolution`:
+//
+//   1. "Matched X rows to Y existing properties"  — pure info
+//   2. "Will create N new properties: a, b, c, …" — collapsible list,
+//                                                    surfaces auto-creates
+//   3. "M rows have no property"                  — radio: fallback vs skip
+//
+// Has an inline quick-add form for users who are starting from zero
+// properties (so they don't have to leave the wizard and lose their parsed
+// file just to create their first property).
+function TransactionPropertySection({ propertyResolution, defaultPropertyId, setDefaultPropertyId, skipBlankPropertyRows, setSkipBlankPropertyRows }) {
   const { showToast } = useToast();
   const [showQuickAdd, setShowQuickAdd] = useState(PROPERTIES.length === 0);
+  const [showAllCreates, setShowAllCreates] = useState(false);
   const [qaName, setQaName] = useState("");
   const [qaAddress, setQaAddress] = useState("");
   const [qaSaving, setQaSaving] = useState(false);
@@ -670,72 +758,138 @@ function TransactionPropertySection({ hasPropertyColumn, needsDefaultProperty, d
     }
   }
 
-  const label = hasPropertyColumn ? "Fallback property" : "Which property are these transactions for?";
-  const helpText = hasPropertyColumn
-    ? "Each row is matched against your properties by the Property column. If a row's value doesn't match anything, this fallback is used."
-    : "Every transaction has to belong to a property. Pick which one these rows are for — every row will be attached to it.";
+  const hasColumn = propertyResolution?.hasColumn;
+  const matched = propertyResolution?.matchedCount || 0;
+  const matchedDistinct = propertyResolution?.matchedDistinct || 0;
+  const willCreate = propertyResolution?.willCreate || [];
+  const willCreateRows = willCreate.reduce((s, p) => s + p.count, 0);
+  const blank = propertyResolution?.blank || 0;
+  const visibleCreates = showAllCreates ? willCreate : willCreate.slice(0, 5);
 
   return (
     <div style={{ marginBottom: 14, padding: "12px 14px", background: "var(--surface-alt)", border: "1px solid var(--border-subtle)", borderRadius: 10 }}>
-      <p style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)", marginBottom: 6 }}>
-        {label}{needsDefaultProperty && <span style={{ color: "var(--c-red)", marginLeft: 4 }}>*</span>}
-      </p>
-      <p style={{ fontSize: 12, color: "var(--text-secondary)", marginBottom: 10, lineHeight: 1.5 }}>{helpText}</p>
+      <p style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)", marginBottom: 6 }}>Property handling</p>
 
-      {PROPERTIES.length > 0 && (
-        <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: showQuickAdd ? 10 : 0 }}>
-          <select value={defaultPropertyId} onChange={e => setDefaultPropertyId(e.target.value)} style={{ ...iS, padding: "8px 12px", fontSize: 13, flex: 1 }}>
-            <option value="">— pick a property —</option>
-            {PROPERTIES.map(p => (
-              <option key={p.id} value={p.id}>
-                {p.name}{p.address ? ` · ${p.address}` : ""}
-              </option>
-            ))}
-          </select>
-          {!showQuickAdd && (
-            <button type="button" onClick={() => setShowQuickAdd(true)}
-              style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text-primary)", fontSize: 12, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap" }}>
-              + New
-            </button>
+      {/* Case A: file has a property column. Show full breakdown. */}
+      {hasColumn && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: blank > 0 ? 12 : 0 }}>
+          {matched > 0 && (
+            <p style={{ fontSize: 12, color: "var(--text-secondary)", lineHeight: 1.5 }}>
+              <span style={{ color: "var(--c-green)", fontWeight: 700 }}>✓</span>{" "}
+              Matched <strong>{matched}</strong> row{matched !== 1 ? "s" : ""} to <strong>{matchedDistinct}</strong> existing propert{matchedDistinct === 1 ? "y" : "ies"}.
+            </p>
+          )}
+
+          {willCreate.length > 0 && (
+            <div style={{ fontSize: 12, color: "var(--text-secondary)", lineHeight: 1.5 }}>
+              <p>
+                <span style={{ color: "#e95e00", fontWeight: 700 }}>+</span>{" "}
+                We&rsquo;ll create <strong>{willCreate.length}</strong> new propert{willCreate.length === 1 ? "y" : "ies"} for <strong>{willCreateRows}</strong> row{willCreateRows !== 1 ? "s" : ""}:
+              </p>
+              <ul style={{ margin: "6px 0 0 18px", padding: 0, fontSize: 11.5 }}>
+                {visibleCreates.map(p => (
+                  <li key={p.name} style={{ marginBottom: 2 }}>
+                    <span style={{ color: "var(--text-primary)" }}>{p.name}</span> <span style={{ color: "var(--text-muted)" }}>({p.count} row{p.count !== 1 ? "s" : ""})</span>
+                  </li>
+                ))}
+              </ul>
+              {willCreate.length > 5 && (
+                <button type="button" onClick={() => setShowAllCreates(s => !s)}
+                  style={{ marginTop: 4, background: "none", border: "none", color: "var(--c-blue)", fontSize: 11.5, fontWeight: 600, cursor: "pointer", padding: 0 }}>
+                  {showAllCreates ? "Show fewer" : `Show all ${willCreate.length}`}
+                </button>
+              )}
+              <p style={{ marginTop: 6, fontSize: 11, color: "var(--text-muted)", fontStyle: "italic" }}>
+                If any of these look like duplicates of properties you already have, go back and either rename them in the file or add the missing properties first.
+              </p>
+            </div>
           )}
         </div>
       )}
 
-      {showQuickAdd && (
-        <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: 12 }}>
-          <p style={{ fontSize: 12, fontWeight: 700, color: "var(--text-dim)", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.04em" }}>
-            {PROPERTIES.length === 0 ? "Add your first property" : "Add a new property"}
+      {/* Case B: no property column. Frame the picker as "which property are these for". */}
+      {!hasColumn && (
+        <p style={{ fontSize: 12, color: "var(--text-secondary)", marginBottom: 10, lineHeight: 1.5 }}>
+          Your file doesn&rsquo;t have a property column, so every row needs a property to attach to. Pick one below, or skip the rows entirely.
+        </p>
+      )}
+
+      {/* Blank handling: shown whenever any row has no property value. */}
+      {blank > 0 && (
+        <div style={{ padding: "10px 12px", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 8 }}>
+          <p style={{ fontSize: 12, color: "var(--text-primary)", fontWeight: 600, marginBottom: 8 }}>
+            {hasColumn
+              ? <><span style={{ color: "#e95e00", fontWeight: 700 }}>⚠</span> <strong>{blank}</strong> row{blank !== 1 ? "s" : ""} {blank === 1 ? "is" : "are"} missing a property value. What should we do with {blank === 1 ? "it" : "them"}?</>
+              : <>What should we do with {blank} row{blank !== 1 ? "s" : ""}?</>}
           </p>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1.4fr", gap: 8, marginBottom: 8 }}>
-            <input
-              placeholder="Name (e.g. Oak Street Duplex)"
-              value={qaName}
-              onChange={e => setQaName(e.target.value)}
-              style={{ ...iS, padding: "8px 12px", fontSize: 13 }}
-              autoFocus
-            />
-            <input
-              placeholder="Address (optional)"
-              value={qaAddress}
-              onChange={e => setQaAddress(e.target.value)}
-              style={{ ...iS, padding: "8px 12px", fontSize: 13 }}
-            />
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "var(--text-secondary)", cursor: "pointer" }}>
+              <input type="radio" name="blank-handling" checked={!skipBlankPropertyRows} onChange={() => setSkipBlankPropertyRows(false)} />
+              <span><strong style={{ color: "var(--text-primary)" }}>Attach {blank === 1 ? "it" : "them"} to a property</strong> (pick one below)</span>
+            </label>
+            <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "var(--text-secondary)", cursor: "pointer" }}>
+              <input type="radio" name="blank-handling" checked={skipBlankPropertyRows} onChange={() => setSkipBlankPropertyRows(true)} />
+              <span><strong style={{ color: "var(--text-primary)" }}>Skip {blank === 1 ? "it" : "them"}</strong> (don&rsquo;t import — you&rsquo;ll be told the count when we&rsquo;re done)</span>
+            </label>
           </div>
-          <p style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 10, lineHeight: 1.4 }}>
-            We&rsquo;ll create a Single Family property with these basics — you can fill in purchase price, loan details, and the rest from the property page later.
-          </p>
-          <div style={{ display: "flex", gap: 8 }}>
-            <button type="button" onClick={handleQuickAdd} disabled={!qaName.trim() || qaSaving}
-              style={{ padding: "8px 16px", borderRadius: 8, border: "none", background: "#e95e00", color: "#fff", fontSize: 13, fontWeight: 700, cursor: !qaName.trim() || qaSaving ? "not-allowed" : "pointer", opacity: !qaName.trim() || qaSaving ? 0.5 : 1 }}>
-              {qaSaving ? "Adding…" : "Add property"}
-            </button>
-            {PROPERTIES.length > 0 && (
-              <button type="button" onClick={() => { setShowQuickAdd(false); setQaName(""); setQaAddress(""); }}
-                style={{ padding: "8px 16px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text-label)", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
-                Cancel
-              </button>
-            )}
-          </div>
+
+          {!skipBlankPropertyRows && (
+            <div style={{ marginTop: 10 }}>
+              {PROPERTIES.length > 0 && (
+                <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: showQuickAdd ? 10 : 0 }}>
+                  <select value={defaultPropertyId} onChange={e => setDefaultPropertyId(e.target.value)} style={{ ...iS, padding: "8px 12px", fontSize: 13, flex: 1 }}>
+                    <option value="">— pick a property —</option>
+                    {PROPERTIES.map(p => (
+                      <option key={p.id} value={p.id}>
+                        {p.name}{p.address ? ` · ${p.address}` : ""}
+                      </option>
+                    ))}
+                  </select>
+                  {!showQuickAdd && (
+                    <button type="button" onClick={() => setShowQuickAdd(true)}
+                      style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text-primary)", fontSize: 12, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap" }}>
+                      + New
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {showQuickAdd && (
+                <div style={{ background: "var(--surface-alt)", border: "1px solid var(--border)", borderRadius: 10, padding: 12 }}>
+                  <p style={{ fontSize: 12, fontWeight: 700, color: "var(--text-dim)", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.04em" }}>
+                    {PROPERTIES.length === 0 ? "Add your first property" : "Add a new property"}
+                  </p>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1.4fr", gap: 8, marginBottom: 8 }}>
+                    <input
+                      placeholder="Name (e.g. Oak Street Duplex)"
+                      value={qaName}
+                      onChange={e => setQaName(e.target.value)}
+                      style={{ ...iS, padding: "8px 12px", fontSize: 13 }}
+                      autoFocus
+                    />
+                    <input
+                      placeholder="Address (optional)"
+                      value={qaAddress}
+                      onChange={e => setQaAddress(e.target.value)}
+                      style={{ ...iS, padding: "8px 12px", fontSize: 13 }}
+                    />
+                  </div>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <button type="button" onClick={handleQuickAdd} disabled={!qaName.trim() || qaSaving}
+                      style={{ padding: "8px 16px", borderRadius: 8, border: "none", background: "#e95e00", color: "#fff", fontSize: 13, fontWeight: 700, cursor: !qaName.trim() || qaSaving ? "not-allowed" : "pointer", opacity: !qaName.trim() || qaSaving ? 0.5 : 1 }}>
+                      {qaSaving ? "Adding…" : "Add property"}
+                    </button>
+                    {PROPERTIES.length > 0 && (
+                      <button type="button" onClick={() => { setShowQuickAdd(false); setQaName(""); setQaAddress(""); }}
+                        style={{ padding: "8px 16px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text-label)", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
+                        Cancel
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -745,6 +899,8 @@ function TransactionPropertySection({ hasPropertyColumn, needsDefaultProperty, d
 // ── DoneStep ────────────────────────────────────────────────────────────────
 function DoneStep({ result, entity, onClose }) {
   const ok = result.failed === 0;
+  const propsCreated = result.propsCreated || 0;
+  const blanksSkipped = result.blanksSkipped || 0;
   return (
     <div style={{ textAlign: "center", padding: "30px 20px" }}>
       {ok
@@ -753,6 +909,16 @@ function DoneStep({ result, entity, onClose }) {
       <h3 style={{ color: "var(--text-primary)", fontSize: 18, fontWeight: 700, marginBottom: 6 }}>
         {result.created > 0 ? `Imported ${result.created} ${entity === "properties" ? "propert" + (result.created === 1 ? "y" : "ies") : "transaction" + (result.created === 1 ? "" : "s")}` : "Nothing imported"}
       </h3>
+      {propsCreated > 0 && (
+        <p style={{ color: "var(--text-secondary)", fontSize: 13, marginBottom: 6 }}>
+          Created <strong style={{ color: "var(--text-primary)" }}>{propsCreated}</strong> new propert{propsCreated === 1 ? "y" : "ies"} along the way.
+        </p>
+      )}
+      {blanksSkipped > 0 && (
+        <p style={{ color: "var(--text-secondary)", fontSize: 13, marginBottom: 6 }}>
+          Skipped <strong style={{ color: "var(--text-primary)" }}>{blanksSkipped}</strong> row{blanksSkipped !== 1 ? "s" : ""} with no property listed.
+        </p>
+      )}
       {result.failed > 0 && (
         <p style={{ color: "var(--text-secondary)", fontSize: 14, marginBottom: 12 }}>
           {result.failed} row{result.failed !== 1 ? "s" : ""} couldn't be imported. First few errors below.
