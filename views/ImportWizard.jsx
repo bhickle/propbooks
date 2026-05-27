@@ -383,7 +383,39 @@ export function ImportWizard({ onClose, onComplete }) {
             blanksSkipped++;
             continue;
           }
-          propertyId = defaultPropertyId || null;
+          // The fallback picker emits two value shapes:
+          //   1. A real property UUID — use it directly.
+          //   2. `pending:<DisplayName>` — the user picked a property that
+          //      this same file will create. Create-or-reuse it now using
+          //      the auto-create cache so the first blank we hit triggers
+          //      the insert and subsequent blanks (and any non-blank rows
+          //      with the same name) reuse the new id.
+          if (defaultPropertyId && defaultPropertyId.startsWith("pending:")) {
+            const displayName = defaultPropertyId.slice("pending:".length);
+            const key = displayName.toLowerCase().trim();
+            propertyId = propertyByKey.get(key) || null;
+            if (!propertyId) {
+              try {
+                const newProp = await createProperty({
+                  name: displayName,
+                  address: displayName,
+                  type: "Single Family",
+                  units: 1,
+                  status: "Occupied",
+                });
+                PROPERTIES.push(newProp);
+                propertyByKey.set(key, newProp.id);
+                if (newProp.address) propertyByKey.set(newProp.address.toLowerCase().trim(), newProp.id);
+                propertyId = newProp.id;
+                propsCreated++;
+              } catch (e) {
+                errors.push({ row: i + 2, reason: `couldn't create fallback property "${displayName}": ${e?.message || "insert failed"}` });
+                continue;
+              }
+            }
+          } else {
+            propertyId = defaultPropertyId || null;
+          }
         }
         if (!propertyId) {
           errors.push({ row: i + 2, reason: "no property in this row — pick a fallback property or check 'Skip rows without a property' in the review step" });
@@ -574,6 +606,39 @@ function ReviewStep({ targetEntity, targetSchema, mapping, setMapping, headers, 
   const blanksHandled = !!defaultPropertyId || skipBlankPropertyRows;
   const canConfirm = !isTransactions ? true : (blanks === 0 || blanksHandled);
 
+  // Which mapped fields make the most sense as quick-id columns when
+  // showing the user the actual rows that are missing a property value.
+  // Prefer date + payee + amount as the "who and how much" trio; fall back
+  // to anything else they mapped.
+  const blankPreviewFields = useMemo(() => {
+    if (!isTransactions) return [];
+    const priority = ["date", "paidTo", "receivedFrom", "amount", "category", "notes"];
+    return priority.filter(f => mapping[f]);
+  }, [isTransactions, mapping]);
+
+  // First 10 blank-property rows, with the mapping + normalizer applied so
+  // the preview shows real values (1/15/2025, $58.58) not raw cells.
+  const blankPreviewRows = useMemo(() => {
+    if (!isTransactions || !propertyResolution?.hasColumn) return [];
+    const propColIdx = headers.indexOf(mapping.property);
+    if (propColIdx === -1) return [];
+    const out = [];
+    for (let i = 0; i < allRows.length && out.length < 10; i++) {
+      const row = allRows[i];
+      if (((row[propColIdx] || "").trim()) !== "") continue;
+      const mapped = {};
+      for (const f of blankPreviewFields) {
+        const colIdx = headers.indexOf(mapping[f]);
+        if (colIdx === -1) continue;
+        const spec = targetSchema[f];
+        const v = spec ? normalizeValue(f, spec, row[colIdx]) : row[colIdx];
+        if (v != null && v !== "") mapped[f] = v;
+      }
+      out.push(mapped);
+    }
+    return out;
+  }, [isTransactions, propertyResolution?.hasColumn, mapping, headers, allRows, targetSchema, blankPreviewFields]);
+
   const otherTarget = targetEntity === "properties" ? "transactions" : "properties";
 
   return (
@@ -658,6 +723,9 @@ function ReviewStep({ targetEntity, targetSchema, mapping, setMapping, headers, 
           setDefaultPropertyId={setDefaultPropertyId}
           skipBlankPropertyRows={skipBlankPropertyRows}
           setSkipBlankPropertyRows={setSkipBlankPropertyRows}
+          blankPreviewRows={blankPreviewRows}
+          blankPreviewFields={blankPreviewFields}
+          totalRows={totalRows}
         />
       )}
 
@@ -731,13 +799,29 @@ function ReviewStep({ targetEntity, targetSchema, mapping, setMapping, headers, 
 // Has an inline quick-add form for users who are starting from zero
 // properties (so they don't have to leave the wizard and lose their parsed
 // file just to create their first property).
-function TransactionPropertySection({ propertyResolution, defaultPropertyId, setDefaultPropertyId, skipBlankPropertyRows, setSkipBlankPropertyRows }) {
+function TransactionPropertySection({ propertyResolution, defaultPropertyId, setDefaultPropertyId, skipBlankPropertyRows, setSkipBlankPropertyRows, blankPreviewRows, blankPreviewFields, totalRows }) {
   const { showToast } = useToast();
-  const [showQuickAdd, setShowQuickAdd] = useState(PROPERTIES.length === 0);
   const [showAllCreates, setShowAllCreates] = useState(false);
+  const [quickAddOpen, setQuickAddOpen] = useState(false);
   const [qaName, setQaName] = useState("");
   const [qaAddress, setQaAddress] = useState("");
   const [qaSaving, setQaSaving] = useState(false);
+
+  const hasColumn = propertyResolution?.hasColumn;
+  const matched = propertyResolution?.matchedCount || 0;
+  const matchedDistinct = propertyResolution?.matchedDistinct || 0;
+  const willCreate = propertyResolution?.willCreate || [];
+  const willCreateRows = willCreate.reduce((s, p) => s + p.count, 0);
+  const blank = propertyResolution?.blank || 0;
+  const visibleCreates = showAllCreates ? willCreate : willCreate.slice(0, 5);
+
+  // The picker lists BOTH existing properties and properties about to be
+  // auto-created from this file. The pending entries use a `pending:NAME`
+  // synthetic value so handleImport knows to create-or-reuse on demand.
+  const pickerHasOptions = PROPERTIES.length > 0 || willCreate.length > 0;
+  // Quick-add is shown if (a) there's literally nothing to pick from yet, or
+  // (b) the user explicitly clicked "+ New" to add another one.
+  const showQuickAdd = quickAddOpen || (!pickerHasOptions && !skipBlankPropertyRows && blank > 0);
 
   async function handleQuickAdd() {
     const name = qaName.trim();
@@ -747,7 +831,7 @@ function TransactionPropertySection({ propertyResolution, defaultPropertyId, set
       const saved = await createProperty({ name, address: qaAddress.trim() || null, type: "Single Family", units: 1, status: "Occupied" });
       PROPERTIES.push(saved); // sync the in-memory mirror so the dropdown sees it immediately
       setDefaultPropertyId(saved.id);
-      setShowQuickAdd(false);
+      setQuickAddOpen(false);
       setQaName("");
       setQaAddress("");
       showToast(`Added ${saved.name}.`, "success");
@@ -757,14 +841,6 @@ function TransactionPropertySection({ propertyResolution, defaultPropertyId, set
       setQaSaving(false);
     }
   }
-
-  const hasColumn = propertyResolution?.hasColumn;
-  const matched = propertyResolution?.matchedCount || 0;
-  const matchedDistinct = propertyResolution?.matchedDistinct || 0;
-  const willCreate = propertyResolution?.willCreate || [];
-  const willCreateRows = willCreate.reduce((s, p) => s + p.count, 0);
-  const blank = propertyResolution?.blank || 0;
-  const visibleCreates = showAllCreates ? willCreate : willCreate.slice(0, 5);
 
   return (
     <div style={{ marginBottom: 14, padding: "12px 14px", background: "var(--surface-alt)", border: "1px solid var(--border-subtle)", borderRadius: 10 }}>
@@ -817,47 +893,97 @@ function TransactionPropertySection({ propertyResolution, defaultPropertyId, set
       {/* Blank handling: shown whenever any row has no property value. */}
       {blank > 0 && (
         <div style={{ padding: "10px 12px", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 8 }}>
-          <p style={{ fontSize: 12, color: "var(--text-primary)", fontWeight: 600, marginBottom: 8 }}>
+          <p style={{ fontSize: 12, color: "var(--text-primary)", fontWeight: 600, marginBottom: hasColumn && blankPreviewRows.length > 0 ? 6 : 8 }}>
             {hasColumn
-              ? <><span style={{ color: "#e95e00", fontWeight: 700 }}>⚠</span> <strong>{blank}</strong> row{blank !== 1 ? "s" : ""} {blank === 1 ? "is" : "are"} missing a property value. What should we do with {blank === 1 ? "it" : "them"}?</>
-              : <>What should we do with {blank} row{blank !== 1 ? "s" : ""}?</>}
+              ? <><span style={{ color: "#e95e00", fontWeight: 700 }}>⚠</span> <strong>{blank}</strong> row{blank !== 1 ? "s" : ""} {blank === 1 ? "is" : "are"} missing a property value.</>
+              : <>All <strong>{totalRows}</strong> row{totalRows !== 1 ? "s" : ""} need a property assignment.</>}
           </p>
+
+          {/* Preview of the actual blank rows — defaults open when ≤5 blanks
+              so the user immediately sees what they're deciding about. */}
+          {hasColumn && blankPreviewRows.length > 0 && blankPreviewFields.length > 0 && (
+            <details open={blank <= 5} style={{ marginBottom: 10, fontSize: 11.5 }}>
+              <summary style={{ cursor: "pointer", color: "var(--c-blue)", fontWeight: 600, marginBottom: 6, userSelect: "none" }}>
+                {blank <= blankPreviewRows.length ? `Show the ${blank} blank row${blank !== 1 ? "s" : ""}` : `Show the first ${blankPreviewRows.length} (of ${blank})`}
+              </summary>
+              <div style={{ border: "1px solid var(--border-subtle)", borderRadius: 6, overflow: "auto", maxHeight: 150 }}>
+                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11 }}>
+                  <thead>
+                    <tr style={{ background: "var(--surface-alt)", position: "sticky", top: 0 }}>
+                      {blankPreviewFields.map(f => (
+                        <th key={f} style={{ padding: "5px 8px", textAlign: "left", fontWeight: 700, color: "var(--text-dim)", textTransform: "uppercase", fontSize: 9.5, whiteSpace: "nowrap" }}>{f}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {blankPreviewRows.map((mapped, i) => (
+                      <tr key={i} style={{ borderTop: i > 0 ? "1px solid var(--border-subtle)" : "none" }}>
+                        {blankPreviewFields.map(f => (
+                          <td key={f} style={{ padding: "5px 8px", color: "var(--text-secondary)", whiteSpace: "nowrap" }}>
+                            {mapped[f] != null && mapped[f] !== "" ? String(mapped[f]) : <span style={{ color: "var(--text-muted)" }}>—</span>}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              {blank > blankPreviewRows.length && (
+                <p style={{ marginTop: 4, fontSize: 11, color: "var(--text-muted)", fontStyle: "italic" }}>
+                  …and {blank - blankPreviewRows.length} more.
+                </p>
+              )}
+            </details>
+          )}
+
+          <p style={{ fontSize: 12, color: "var(--text-primary)", fontWeight: 600, marginBottom: 6 }}>What should we do with {blank === 1 ? "it" : "them"}?</p>
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "var(--text-secondary)", cursor: "pointer" }}>
               <input type="radio" name="blank-handling" checked={!skipBlankPropertyRows} onChange={() => setSkipBlankPropertyRows(false)} />
-              <span><strong style={{ color: "var(--text-primary)" }}>Attach {blank === 1 ? "it" : "them"} to a property</strong> (pick one below)</span>
+              <span><strong style={{ color: "var(--text-primary)" }}>Attach {blank === 1 ? "it" : "them all"} to a property</strong></span>
             </label>
             <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "var(--text-secondary)", cursor: "pointer" }}>
               <input type="radio" name="blank-handling" checked={skipBlankPropertyRows} onChange={() => setSkipBlankPropertyRows(true)} />
-              <span><strong style={{ color: "var(--text-primary)" }}>Skip {blank === 1 ? "it" : "them"}</strong> (don&rsquo;t import — you&rsquo;ll be told the count when we&rsquo;re done)</span>
+              <span><strong style={{ color: "var(--text-primary)" }}>Skip {blank === 1 ? "it" : "them"}</strong> — won&rsquo;t be imported (you&rsquo;ll see the count on the next screen)</span>
             </label>
           </div>
 
           {!skipBlankPropertyRows && (
             <div style={{ marginTop: 10 }}>
-              {PROPERTIES.length > 0 && (
-                <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: showQuickAdd ? 10 : 0 }}>
+              {pickerHasOptions && !showQuickAdd && (
+                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                   <select value={defaultPropertyId} onChange={e => setDefaultPropertyId(e.target.value)} style={{ ...iS, padding: "8px 12px", fontSize: 13, flex: 1 }}>
                     <option value="">— pick a property —</option>
-                    {PROPERTIES.map(p => (
-                      <option key={p.id} value={p.id}>
-                        {p.name}{p.address ? ` · ${p.address}` : ""}
-                      </option>
-                    ))}
+                    {PROPERTIES.length > 0 && (
+                      <optgroup label="Your existing properties">
+                        {PROPERTIES.map(p => (
+                          <option key={p.id} value={p.id}>
+                            {p.name}{p.address ? ` · ${p.address}` : ""}
+                          </option>
+                        ))}
+                      </optgroup>
+                    )}
+                    {willCreate.length > 0 && (
+                      <optgroup label="New properties from this file">
+                        {willCreate.map(w => (
+                          <option key={`pending:${w.name}`} value={`pending:${w.name}`}>
+                            {w.name} (will be created)
+                          </option>
+                        ))}
+                      </optgroup>
+                    )}
                   </select>
-                  {!showQuickAdd && (
-                    <button type="button" onClick={() => setShowQuickAdd(true)}
-                      style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text-primary)", fontSize: 12, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap" }}>
-                      + New
-                    </button>
-                  )}
+                  <button type="button" onClick={() => setQuickAddOpen(true)}
+                    style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text-primary)", fontSize: 12, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap" }}>
+                    + New
+                  </button>
                 </div>
               )}
 
               {showQuickAdd && (
                 <div style={{ background: "var(--surface-alt)", border: "1px solid var(--border)", borderRadius: 10, padding: 12 }}>
                   <p style={{ fontSize: 12, fontWeight: 700, color: "var(--text-dim)", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.04em" }}>
-                    {PROPERTIES.length === 0 ? "Add your first property" : "Add a new property"}
+                    {!pickerHasOptions ? "Add your first property" : "Add a new property"}
                   </p>
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1.4fr", gap: 8, marginBottom: 8 }}>
                     <input
@@ -879,8 +1005,8 @@ function TransactionPropertySection({ propertyResolution, defaultPropertyId, set
                       style={{ padding: "8px 16px", borderRadius: 8, border: "none", background: "#e95e00", color: "#fff", fontSize: 13, fontWeight: 700, cursor: !qaName.trim() || qaSaving ? "not-allowed" : "pointer", opacity: !qaName.trim() || qaSaving ? 0.5 : 1 }}>
                       {qaSaving ? "Adding…" : "Add property"}
                     </button>
-                    {PROPERTIES.length > 0 && (
-                      <button type="button" onClick={() => { setShowQuickAdd(false); setQaName(""); setQaAddress(""); }}
+                    {pickerHasOptions && (
+                      <button type="button" onClick={() => { setQuickAddOpen(false); setQaName(""); setQaAddress(""); }}
                         style={{ padding: "8px 16px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text-label)", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
                         Cancel
                       </button>
