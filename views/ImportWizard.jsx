@@ -74,33 +74,81 @@ async function parseExcel(file) {
     .filter(r => r.some(cell => cell.trim() !== ""));
 }
 
-// Clean up common report-export gremlins before sending to the AI:
-//   1. Strip the UTF-8 BOM (﻿) from header text — Excel/QuickBooks
-//      exports often leave it on the first cell, which makes the AI treat
-//      "Date" as a different string than a date header.
-//   2. Trim whitespace from headers.
-//   3. Drop any column whose header is empty AND every data cell is empty —
-//      pretty-printed reports pad the left and right with blank columns.
-//   4. Drop columns whose header looks like a "padding" marker (single space, etc.).
-// Header trimming is safe; data trimming happens later in the normalizer so
-// raw values are preserved for inspection in the review step.
-function cleanParsedRows(rows) {
-  if (rows.length === 0) return rows;
+// Detect which row in the first ~10 rows is the actual header.
+// Most accounting/PM exports (QuickBooks, Stessa, Buildium, AppFolio) put a
+// report title + date range on rows 1-3 and the real headers below them.
+// Score each candidate by how text-y it is, then return the highest scorer.
+function detectHeaderRow(rows) {
+  if (rows.length < 2) return 0;
+  const scanCount = Math.min(10, rows.length);
+  let bestIdx = 0;
+  let bestScore = -Infinity;
+  for (let i = 0; i < scanCount; i++) {
+    const row = rows[i];
+    const nonEmpty = row.filter(c => c.trim() !== "");
+    if (nonEmpty.length < 2) continue;
+    let score = nonEmpty.length;
+    for (const cell of nonEmpty) {
+      const s = cell.trim();
+      // Numeric / currency / paren-negative — looks like data, not a label.
+      if (/^[\(\)$,.\d\s\-]+$/.test(s) && /\d/.test(s)) score -= 2;
+      // Date — also data.
+      else if (/^\d{1,4}[\/\-]\d{1,2}[\/\-]\d{1,4}/.test(s)) score -= 2;
+      // Very long cell — probably a report banner sentence ("Jan 1 - Dec 31").
+      else if (s.length > 50) score -= 1;
+    }
+    // Bonus if the row after this one has numeric data — that's the shape
+    // we expect for "header row immediately followed by transactions".
+    const next = rows[i + 1] || [];
+    if (next.some(c => /\d/.test(c) && c.trim() !== "")) score += 2;
+    if (score > bestScore) { bestScore = score; bestIdx = i; }
+  }
+  return bestIdx;
+}
+
+// Drop rows that look like injected subtotals / group totals — common in
+// QuickBooks, Buildium, and Stessa exports. Conservative: only drops when
+// a "Total"/"Subtotal" keyword is present AND the row is mostly empty
+// (real transactions almost always have date + payee filled in).
+function isSubtotalRow(row) {
+  const cells = row.map(c => c.trim());
+  const nonEmpty = cells.filter(c => c !== "");
+  if (nonEmpty.length === 0) return true;
+  const hasTotalKeyword = cells.some(c => /^(sub)?total\b/i.test(c) || /\btotal:?$/i.test(c));
+  if (!hasTotalKeyword) return false;
+  return nonEmpty.length <= Math.max(2, Math.floor(cells.length / 2));
+}
+
+// Compose all the gremlin-cleanup passes in the right order:
+//   1. Strip the UTF-8 BOM from every cell (QuickBooks/Excel artifact).
+//   2. Detect which row is the actual header, skip banner/title rows above.
+//   3. Drop subtotal rows mixed into the data.
+//   4. Trim header whitespace.
+//   5. Drop columns whose header is empty AND every data cell is empty
+//      (Excel report exports pad the left and right edges).
+// Returns { rows, skippedHeader, skippedSubtotal } so the UI can show the
+// user what we filtered automatically — silent filtering breaks trust.
+function preprocessRows(rows) {
+  if (rows.length === 0) return { rows, skippedHeader: 0, skippedSubtotal: 0 };
   // Strip BOM from every cell once — it's only ever a parsing artifact.
-  const stripped = rows.map(r => r.map(c => c.replace(/^﻿/, "")));
-  const [rawHeader, ...rest] = stripped;
-  const trimmedHeader = rawHeader.map(h => h.trim());
-
-  // For each column index, decide if it's keep-worthy.
-  const keepCols = trimmedHeader.map((h, i) => {
-    if (h !== "") return true; // named column → keep
-    // Header is empty: only drop if EVERY data row is also empty here.
-    const anyData = rest.some(r => (r[i] ?? "").trim() !== "");
-    return anyData;
+  const noBom = rows.map(r => r.map(c => c.replace(/^﻿/, "")));
+  const headerIdx = detectHeaderRow(noBom);
+  const afterHeader = noBom.slice(headerIdx);
+  const [rawHeader, ...rest] = afterHeader;
+  let skippedSubtotal = 0;
+  const filteredData = rest.filter(r => {
+    if (isSubtotalRow(r)) { skippedSubtotal++; return false; }
+    return true;
   });
-
+  const trimmedHeader = rawHeader.map(h => h.trim());
+  // Drop empty padding columns.
+  const keepCols = trimmedHeader.map((h, i) => {
+    if (h !== "") return true;
+    return filteredData.some(r => (r[i] ?? "").trim() !== "");
+  });
   const filterRow = (r) => keepCols.map((keep, i) => keep ? (r[i] ?? "") : null).filter(c => c !== null);
-  return [filterRow(trimmedHeader), ...rest.map(filterRow)];
+  const final = [filterRow(trimmedHeader), ...filteredData.map(filterRow)];
+  return { rows: final, skippedHeader: headerIdx, skippedSubtotal };
 }
 
 // ── Per-target-field value normalizer ────────────────────────────────────────
@@ -162,6 +210,7 @@ export function ImportWizard({ onClose, onComplete }) {
   const [aiResult, setAiResult] = useState(null); // {mapping, confidence, notes, target_entity, target_schema, unmapped_source_headers}
   const [mapping, setMapping] = useState({});    // editable copy of aiResult.mapping
   const [defaultPropertyId, setDefaultPropertyId] = useState(""); // transactions only: fallback property when no per-row column exists
+  const [autoCleanup, setAutoCleanup] = useState({ skippedHeader: 0, skippedSubtotal: 0 });
   const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState(null); // {created, failed, errors[]}
   const [error, setError] = useState("");
@@ -199,10 +248,16 @@ export function ImportWizard({ onClose, onComplete }) {
         setStep("upload");
         return;
       }
-      const cleaned = cleanParsedRows(rows);
+      const { rows: cleaned, skippedHeader, skippedSubtotal } = preprocessRows(rows);
+      if (cleaned.length < 2) {
+        setError(`After cleanup there's nothing to import. The file may not contain transaction or property data.`);
+        setStep("upload");
+        return;
+      }
       const [hdr, ...rest] = cleaned;
       setHeaders(hdr);
       setAllRows(rest);
+      setAutoCleanup({ skippedHeader, skippedSubtotal });
       // No targetEntity passed — Edge Function picks via tool_choice: "any".
       await callInferEdgeFunction(hdr, rest.slice(0, 5), null);
     } catch (e) {
@@ -360,9 +415,10 @@ export function ImportWizard({ onClose, onComplete }) {
             confidence={aiResult.confidence}
             notes={aiResult.notes}
             unmapped={aiResult.unmapped_source_headers || []}
-            sampleRows={allRows.slice(0, 3)}
+            sampleRows={allRows.slice(0, 5)}
             fileName={fileName}
             totalRows={allRows.length}
+            autoCleanup={autoCleanup}
             defaultPropertyId={defaultPropertyId}
             setDefaultPropertyId={setDefaultPropertyId}
             onBack={() => { setAiResult(null); setMapping({}); setStep("upload"); }}
@@ -417,7 +473,7 @@ function UploadStep({ onFile, error }) {
 }
 
 // ── ReviewStep ──────────────────────────────────────────────────────────────
-function ReviewStep({ targetEntity, targetSchema, mapping, setMapping, headers, confidence, notes, unmapped, sampleRows, fileName, totalRows, defaultPropertyId, setDefaultPropertyId, onBack, onReinterpret, onConfirm }) {
+function ReviewStep({ targetEntity, targetSchema, mapping, setMapping, headers, confidence, notes, unmapped, sampleRows, fileName, totalRows, autoCleanup, defaultPropertyId, setDefaultPropertyId, onBack, onReinterpret, onConfirm }) {
   const fields = Object.entries(targetSchema);
   const confColor = confidence >= 80 ? "var(--c-green)" : confidence >= 50 ? "#e95e00" : "var(--c-red)";
   // Which sourceHeaders are still assigned to a target field (for the dropdown to show "used elsewhere").
@@ -475,6 +531,16 @@ function ReviewStep({ targetEntity, targetSchema, mapping, setMapping, headers, 
         </div>
       )}
 
+      {(autoCleanup?.skippedHeader > 0 || autoCleanup?.skippedSubtotal > 0) && (
+        <div style={{ marginBottom: 14, padding: "10px 14px", background: "var(--surface-alt)", border: "1px solid var(--border-subtle)", borderRadius: 10, fontSize: 12, color: "var(--text-secondary)" }}>
+          <strong style={{ fontWeight: 700, color: "var(--text-primary)" }}>Auto-cleanup:</strong>{" "}
+          {autoCleanup.skippedHeader > 0 && `skipped ${autoCleanup.skippedHeader} title row${autoCleanup.skippedHeader > 1 ? "s" : ""} at the top of the file`}
+          {autoCleanup.skippedHeader > 0 && autoCleanup.skippedSubtotal > 0 && "; "}
+          {autoCleanup.skippedSubtotal > 0 && `dropped ${autoCleanup.skippedSubtotal} subtotal row${autoCleanup.skippedSubtotal > 1 ? "s" : ""}`}
+          . If that looks wrong, click Back and we&rsquo;ll start over.
+        </div>
+      )}
+
       <p style={{ fontSize: 13, fontWeight: 700, color: "var(--text-dim)", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.04em" }}>Review the mapping</p>
       <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 14 }}>
         {fields.map(([field, spec]) => {
@@ -515,20 +581,45 @@ function ReviewStep({ targetEntity, targetSchema, mapping, setMapping, headers, 
         />
       )}
 
-      <p style={{ fontSize: 13, fontWeight: 700, color: "var(--text-dim)", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.04em" }}>Sample of what will be imported</p>
-      <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 18, maxHeight: 160, overflowY: "auto", border: "1px solid var(--border-subtle)", borderRadius: 8, padding: 8 }}>
-        {sampleRows.map((row, i) => (
-          <div key={i} style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: 6, fontSize: 11, color: "var(--text-secondary)" }}>
-            <span style={{ color: "var(--text-muted)", fontWeight: 600 }}>Row {i + 1}:</span>
-            <span style={{ wordBreak: "break-word" }}>
-              {Object.entries(mapping).filter(([, src]) => src).map(([field, src]) => {
-                const colIdx = headers.indexOf(src);
-                const val = colIdx !== -1 ? row[colIdx] : "";
-                return <span key={field} style={{ marginRight: 10 }}><strong>{field}:</strong> {val || "—"}</span>;
-              })}
-            </span>
-          </div>
-        ))}
+      <p style={{ fontSize: 13, fontWeight: 700, color: "var(--text-dim)", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.04em" }}>
+        Preview — first {Math.min(sampleRows.length, 5)} of {totalRows} rows
+      </p>
+      <p style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 8 }}>
+        This is exactly what will be imported. If anything looks wrong, fix the mapping above or go back and try a different file.
+      </p>
+      <div style={{ marginBottom: 18, border: "1px solid var(--border-subtle)", borderRadius: 8, overflow: "auto", maxHeight: 200 }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11 }}>
+          <thead>
+            <tr style={{ background: "var(--surface-alt)", position: "sticky", top: 0 }}>
+              {Object.entries(mapping).filter(([, src]) => src).map(([field]) => (
+                <th key={field} style={{ padding: "6px 10px", textAlign: "left", fontWeight: 700, color: "var(--text-dim)", textTransform: "uppercase", fontSize: 10, borderBottom: "1px solid var(--border-subtle)", whiteSpace: "nowrap" }}>
+                  {field}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {sampleRows.map((row, i) => {
+              const mappedFields = Object.entries(mapping).filter(([, src]) => src);
+              return (
+                <tr key={i} style={{ borderTop: i > 0 ? "1px solid var(--border-subtle)" : "none" }}>
+                  {mappedFields.map(([field, src]) => {
+                    const colIdx = headers.indexOf(src);
+                    const raw = colIdx !== -1 ? row[colIdx] : "";
+                    const spec = targetSchema[field];
+                    const normalized = spec ? normalizeValue(field, spec, raw) : raw;
+                    const display = normalized != null && normalized !== "" ? String(normalized) : null;
+                    return (
+                      <td key={field} style={{ padding: "6px 10px", color: "var(--text-secondary)", whiteSpace: "nowrap", verticalAlign: "top" }}>
+                        {display ?? <span style={{ color: "var(--text-muted)" }}>—</span>}
+                      </td>
+                    );
+                  })}
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
       </div>
 
       <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
