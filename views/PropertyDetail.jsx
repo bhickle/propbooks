@@ -136,7 +136,7 @@ export function PropertyDetail({ property, onBack, backLabel, onEditProperty, on
   const txHandleSave = async () => {
     if (!txForm.description || !txForm.amount) return;
     const amt = parseFloat(txForm.amount) || 0;
-    const built = { date: txForm.date || new Date().toISOString().split("T")[0], propertyId: property.id, category: txForm.category || "Other", description: txForm.description, amount: txForm.type === "income" ? Math.abs(amt) : -Math.abs(amt), type: txForm.type, payee: (txForm.payee || "").trim() };
+    const built = { date: txForm.date || new Date().toISOString().split("T")[0], propertyId: property.id, category: txForm.category || "Other", description: txForm.description, amount: Math.abs(amt), type: txForm.type, payee: (txForm.payee || "").trim() };
     try {
       if (txEditId !== null) {
         const saved = await updateTransaction(txEditId, built);

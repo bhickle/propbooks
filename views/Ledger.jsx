@@ -26,19 +26,17 @@ import { createDealExpense, updateDealExpense, deleteDealExpense } from "../db/d
 import { updateRehabItem as dbUpdateRehabItem } from "../db/dealRehabItems.js";
 
 // ── Row builder — one shape, two sources ─────────────────────────────────────
-// The Ledger uses signed amounts internally (negative = expense) for the
-// stat-card math and for the +/- formatting in the rows. But the rest of
-// the app — and the import wizard — stores amounts as positive numbers
-// with direction carried in `type`. Bridge the two conventions here by
-// always deriving the sign from `type`, regardless of how the DB stored
-// the number. This is resilient to both signed (legacy / Ledger-modal-
-// written rows) and unsigned (imported / PropertyDetail-written rows)
-// storage conventions in the same table.
+// Canonical convention used here, in the DB, and across the rest of the app:
+// `amount` is always non-negative; `type` ("income" or "expense") carries
+// direction. Rehab line items are inherently expenses so flipRows get
+// type="expense" hard-coded. Display logic (+/-, color, arrow) and math
+// (income vs expense filters, totals) all read from `type`, never from
+// the sign of `amount`. The DB enforces this with a CHECK (amount >= 0)
+// constraint on both transactions.amount and deal_expenses.amount.
 function buildRows() {
   const rentalRows = TRANSACTIONS.map(t => {
     const prop = PROPERTIES.find(p => p.id === t.propertyId);
     const tenant = t.tenantId ? TENANTS.find(x => x.id === t.tenantId) : null;
-    const absAmt = Math.abs(Number(t.amount) || 0);
     return {
       key: `tx-${t.id}`,
       kind: "rental",
@@ -52,7 +50,7 @@ function buildRows() {
       category: t.category,
       description: t.description,
       counterparty: t.payee || tenant?.name || null,
-      amount: t.type === "expense" ? -absAmt : absAmt, // signed by type
+      amount: Math.abs(Number(t.amount) || 0),
     };
   });
 
@@ -62,7 +60,7 @@ function buildRows() {
     return {
       key: `dx-${e.id}`,
       kind: "flip",
-      type: "expense", // flip rows are always expense
+      type: "expense", // rehab line items are always expenses
       raw: e,
       date: e.date,
       assetKind: "flip",
@@ -72,7 +70,7 @@ function buildRows() {
       category: e.category,
       description: e.description,
       counterparty: e.vendor || con?.name || null,
-      amount: -Math.abs(Number(e.amount) || 0), // rehabs are always out
+      amount: Math.abs(Number(e.amount) || 0),
     };
   });
 
@@ -300,9 +298,10 @@ function LedgerAddModal({ initialKind, editRow, onClose, onSaved }) {
           onSaved && onSaved({ kind: "flip", row: saved });
         }
       } else {
-        // Rental income or rental expense. Income amounts stay positive,
-        // expenses are stored negative — same convention as the existing
-        // TRANSACTIONS data so the Ledger sign logic keeps working.
+        // Rental income or rental expense. Amount is always stored positive;
+        // direction comes from `type` ("income" or "expense"). This matches
+        // the canonical convention used everywhere else in the app and
+        // enforced by the `amount >= 0` check constraint on the DB.
         const isIncome = kind === "rental-income";
         // If user selected a tenant on income but didn't type a payee,
         // auto-fill from the tenant's name.
@@ -318,7 +317,7 @@ function LedgerAddModal({ initialKind, editRow, onClose, onSaved }) {
           type: isIncome ? "income" : "expense",
           category: form.category,
           description: form.description || "",
-          amount: isIncome ? amt : -amt,
+          amount: amt,
           payee: counterparty || null,
         };
         // Mortgage P/I split — auto-compute interest from loan terms unless
@@ -656,8 +655,8 @@ export function Ledger({ highlightRowKey, initialAssetFilter, onClearHighlight, 
 
   // Stat roll-up uses the *currently filtered* rows so users can scope a stat
   // (e.g., "expenses on this property this year") by adjusting the filters.
-  const income   = filtered.filter(r => r.amount > 0).reduce((s, r) => s + r.amount, 0);
-  const expenses = filtered.filter(r => r.amount < 0).reduce((s, r) => s + r.amount, 0);
+  const income   = filtered.filter(r => r.type === "income").reduce((s, r) => s + r.amount, 0);
+  const expenses = filtered.filter(r => r.type === "expense").reduce((s, r) => s + r.amount, 0);
   const net      = income + expenses;
 
   // Row click opens the unified edit modal in-place.
@@ -769,8 +768,8 @@ export function Ledger({ highlightRowKey, initialAssetFilter, onClearHighlight, 
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 24 }}>
-        <StatCard icon={TrendingUp}   label="Income"   value={fmt(income)}        sub={`Filtered · ${dateRangeLabel(dateRange)}`}   color="var(--c-green)"  tip="Sum of positive amounts in the filtered ledger view (rental income only — rehabs don't have income rows until sale)." />
-        <StatCard icon={TrendingDown} label="Expenses" value={fmt(Math.abs(expenses))} sub={`Filtered · ${dateRangeLabel(dateRange)}`} color="var(--c-red)" tip="Sum of money-out across both rental expenses and rehab expenses, scoped to the current filters." />
+        <StatCard icon={TrendingUp}   label="Income"   value={fmt(income)}   sub={`Filtered · ${dateRangeLabel(dateRange)}`} color="var(--c-green)" tip="Sum of income rows in the filtered ledger view (rental income only — rehabs don't have income rows until sale)." />
+        <StatCard icon={TrendingDown} label="Expenses" value={fmt(expenses)} sub={`Filtered · ${dateRangeLabel(dateRange)}`} color="var(--c-red)"   tip="Sum of money-out across both rental expenses and rehab expenses, scoped to the current filters." />
         <StatCard icon={Wallet}       label="Net"      value={fmt(net)}           sub="Income − Expenses"                            color={net >= 0 ? "var(--c-green)" : "var(--c-red)"} tip="Income minus Expenses for the filtered view. For a rehab-only filter this will always be negative since rehabs don't have income rows until sale." />
         <StatCard icon={Hash}         label="Entries"  value={filtered.length}    sub={`of ${rows.length} total`}                    color="var(--c-blue)"   tip="Count of ledger rows matching the current filters." />
       </div>
@@ -803,7 +802,7 @@ export function Ledger({ highlightRowKey, initialAssetFilter, onClearHighlight, 
               </td></tr>
             ) : (
               filtered.map((r, i) => {
-                const isIncome = r.amount > 0;
+                const isIncome = r.type === "income";
                 return (
                   <tr key={r.key} ref={flashKey === r.key ? highlightRef : null} onClick={() => handleEdit(r)}
                     style={{ borderTop: "1px solid var(--border-subtle)", cursor: "pointer", background: flashKey === r.key ? "var(--warning-bg)" : i % 2 === 0 ? "var(--surface)" : "var(--surface-alt)", boxShadow: flashKey === r.key ? "inset 3px 0 0 #e95e00" : "none", transition: "background 0.4s ease" }}
@@ -823,7 +822,7 @@ export function Ledger({ highlightRowKey, initialAssetFilter, onClearHighlight, 
                     <td style={{ padding: "12px 16px", fontSize: 14, fontWeight: 700, color: isIncome ? "var(--c-green)" : "var(--c-red)", whiteSpace: "nowrap" }}>
                       <span style={{ display: "inline-flex", alignItems: "center", gap: 3 }}>
                         {isIncome ? <ArrowUpRight size={13} /> : <ArrowDownRight size={13} />}
-                        {fmt(Math.abs(r.amount))}
+                        {fmt(r.amount)}
                       </span>
                     </td>
                     <td style={{ padding: "12px 16px" }}>
@@ -876,7 +875,7 @@ export function Ledger({ highlightRowKey, initialAssetFilter, onClearHighlight, 
           <p style={{ color: "var(--text-label)", fontSize: 14, marginBottom: 8 }}>Are you sure you want to delete this entry?</p>
           <div style={{ background: "var(--surface-alt)", borderRadius: 10, padding: 14, marginBottom: 18 }}>
             <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>{deleteRow.description || deleteRow.category || "(no description)"}</p>
-            <p style={{ fontSize: 12, color: "var(--text-secondary)", marginTop: 4 }}>{deleteRow.date} · {deleteRow.assetName} · {fmt(Math.abs(deleteRow.amount))}</p>
+            <p style={{ fontSize: 12, color: "var(--text-secondary)", marginTop: 4 }}>{deleteRow.date} · {deleteRow.assetName} · {fmt(deleteRow.amount)}</p>
           </div>
           {deleteRow.kind === "flip" && deleteRow.raw.rehabItemIdx != null && (
             <p style={{ color: "#9a3412", fontSize: 12, marginBottom: 14, padding: "8px 10px", background: "var(--warning-bg)", borderRadius: 8 }}>
