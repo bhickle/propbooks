@@ -48,6 +48,26 @@ function parseCSV(text) {
   return rows.filter(r => r.some(cell => cell.trim() !== ""));
 }
 
+// Parse the first sheet of an .xlsx / .xls workbook into the same string[][]
+// shape parseCSV returns. SheetJS is heavy (~600KB) so we dynamic-import it
+// only when an Excel file is dropped — CSV imports never pay the bundle cost.
+async function parseExcel(file) {
+  const XLSX = await import("xlsx");
+  const buffer = await file.arrayBuffer();
+  const wb = XLSX.read(buffer, { type: "array" });
+  const sheetName = wb.SheetNames[0];
+  if (!sheetName) return [];
+  const sheet = wb.Sheets[sheetName];
+  // `raw: false` makes XLSX format dates/numbers as strings (matches CSV path).
+  // `defval: ""` fills sparse cells with empty strings so column counts stay aligned.
+  const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: false, defval: "" });
+  // sheet_to_json may return rows of mixed types if some cells are numbers —
+  // coerce everything to string here so downstream normalizers see uniform input.
+  return rows
+    .map(r => r.map(c => c == null ? "" : String(c)))
+    .filter(r => r.some(cell => cell.trim() !== ""));
+}
+
 // ── Per-target-field value normalizer ────────────────────────────────────────
 // Coerces raw CSV strings into the shapes Supabase expects. Centralized here
 // so the AI's mapping doesn't need to specify transforms — the schema knows.
@@ -117,23 +137,40 @@ export function ImportWizard({ onClose, onComplete }) {
   async function handleFile(file) {
     setError("");
     if (!file) return;
-    if (!file.name.toLowerCase().endsWith(".csv")) {
-      setError("Only CSV files are supported in this release. Export from Excel as CSV first.");
+    const lower = file.name.toLowerCase();
+    const isCsv   = lower.endsWith(".csv");
+    const isExcel = lower.endsWith(".xlsx") || lower.endsWith(".xls");
+    if (!isCsv && !isExcel) {
+      setError("Only CSV and Excel files (.csv, .xlsx, .xls) are supported.");
       return;
     }
-    if (file.size > 5 * 1024 * 1024) {
-      setError("File is over 5 MB. Split into smaller files before importing.");
+    if (file.size > 10 * 1024 * 1024) {
+      setError("File is over 10 MB. Split into smaller files before importing.");
       return;
     }
-    const text = await file.text();
-    const rows = parseCSV(text);
-    if (rows.length < 2) { setError("CSV needs at least a header row and one data row."); return; }
-    const [hdr, ...rest] = rows;
-    setFileName(file.name);
-    setHeaders(hdr);
-    setAllRows(rest);
     setStep("loading");
-    await callInferEdgeFunction(hdr, rest.slice(0, 5));
+    setFileName(file.name);
+    try {
+      let rows;
+      if (isCsv) {
+        const text = await file.text();
+        rows = parseCSV(text);
+      } else {
+        rows = await parseExcel(file);
+      }
+      if (rows.length < 2) {
+        setError(`${isCsv ? "CSV" : "Excel sheet"} needs at least a header row and one data row.`);
+        setStep("pick");
+        return;
+      }
+      const [hdr, ...rest] = rows;
+      setHeaders(hdr);
+      setAllRows(rest);
+      await callInferEdgeFunction(hdr, rest.slice(0, 5));
+    } catch (e) {
+      setError(`Couldn't read ${file.name}: ${e?.message || "unknown error"}`);
+      setStep("pick");
+    }
   }
 
   // ─── Step 2: call Edge Function for mapping ────────────────────────────────
@@ -289,15 +326,15 @@ function PickStep({ targetEntity, setTargetEntity, onFile, error }) {
       </div>
 
       <div>
-        <p style={{ fontSize: 13, fontWeight: 700, color: "var(--text-dim)", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.04em" }}>Upload CSV</p>
+        <p style={{ fontSize: 13, fontWeight: 700, color: "var(--text-dim)", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.04em" }}>Upload file</p>
         <label style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8, padding: 32, border: "1.5px dashed var(--border)", borderRadius: 12, background: "var(--surface-alt)", cursor: "pointer", transition: "all 0.15s" }}
           onDragOver={e => { e.preventDefault(); e.currentTarget.style.borderColor = "#e95e00"; }}
           onDragLeave={e => { e.currentTarget.style.borderColor = "var(--border)"; }}
           onDrop={e => { e.preventDefault(); e.currentTarget.style.borderColor = "var(--border)"; onFile(e.dataTransfer.files?.[0]); }}>
           <Upload size={28} color="var(--text-muted)" />
-          <p style={{ color: "var(--text-primary)", fontWeight: 600, fontSize: 14 }}>Drop your CSV here or click to browse</p>
-          <p style={{ color: "var(--text-muted)", fontSize: 12 }}>Up to 5 MB. Export from Excel as CSV first.</p>
-          <input type="file" accept=".csv,text/csv" style={{ display: "none" }} onChange={e => onFile(e.target.files?.[0])} />
+          <p style={{ color: "var(--text-primary)", fontWeight: 600, fontSize: 14 }}>Drop your file here or click to browse</p>
+          <p style={{ color: "var(--text-muted)", fontSize: 12 }}>CSV or Excel (.xlsx / .xls). Up to 10 MB.</p>
+          <input type="file" accept=".csv,.xlsx,.xls,text/csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" style={{ display: "none" }} onChange={e => onFile(e.target.files?.[0])} />
         </label>
       </div>
 

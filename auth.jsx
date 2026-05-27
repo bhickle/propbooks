@@ -47,9 +47,11 @@ function shapeUser(raw, profile) {
     currentPeriodEnd: profile?.current_period_end || null,
     stripeCustomerId: profile?.stripe_customer_id || null,
     stripeSubscriptionId: profile?.stripe_subscription_id || null,
-    // null = user hasn't picked a theme yet → ThemePicker renders on first
-    // login. Once chosen, the value here drives ThemeProvider.
-    themePreference: profile?.theme_preference || null,
+    // undefined = profile not loaded yet (suppresses ThemePicker so it doesn't
+    // flash during the auth → profile-fetch window).
+    // null = loaded and user hasn't picked yet → ThemePicker renders.
+    // "light"/"dark" = picked and persisted.
+    themePreference: profile === null ? undefined : (profile.theme_preference || null),
   };
 }
 

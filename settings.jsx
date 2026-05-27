@@ -519,7 +519,7 @@ function ImportTab({ onLaunchImport }) {
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 18 }}>
           {[
-            { title: "Export from your source", body: "QuickBooks: Reports → Export → CSV. Stessa: Transactions → Download CSV. Excel: Save As → CSV." },
+            { title: "Export from your source", body: "Save as CSV or Excel (.xlsx). Works with QuickBooks reports, Stessa transaction exports, or any spreadsheet you maintain by hand." },
             { title: "Drop in & confirm", body: "We propose the mapping with a confidence score. Adjust any column with a dropdown, then confirm." },
             { title: "We import the rest", body: "Every row is normalized client-side (dates, currency, categories) and inserted. Failed rows are reported, never silently dropped." },
           ].map((s, i) => (
