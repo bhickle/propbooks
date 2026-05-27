@@ -74,6 +74,35 @@ async function parseExcel(file) {
     .filter(r => r.some(cell => cell.trim() !== ""));
 }
 
+// Clean up common report-export gremlins before sending to the AI:
+//   1. Strip the UTF-8 BOM (﻿) from header text — Excel/QuickBooks
+//      exports often leave it on the first cell, which makes the AI treat
+//      "Date" as a different string than a date header.
+//   2. Trim whitespace from headers.
+//   3. Drop any column whose header is empty AND every data cell is empty —
+//      pretty-printed reports pad the left and right with blank columns.
+//   4. Drop columns whose header looks like a "padding" marker (single space, etc.).
+// Header trimming is safe; data trimming happens later in the normalizer so
+// raw values are preserved for inspection in the review step.
+function cleanParsedRows(rows) {
+  if (rows.length === 0) return rows;
+  // Strip BOM from every cell once — it's only ever a parsing artifact.
+  const stripped = rows.map(r => r.map(c => c.replace(/^﻿/, "")));
+  const [rawHeader, ...rest] = stripped;
+  const trimmedHeader = rawHeader.map(h => h.trim());
+
+  // For each column index, decide if it's keep-worthy.
+  const keepCols = trimmedHeader.map((h, i) => {
+    if (h !== "") return true; // named column → keep
+    // Header is empty: only drop if EVERY data row is also empty here.
+    const anyData = rest.some(r => (r[i] ?? "").trim() !== "");
+    return anyData;
+  });
+
+  const filterRow = (r) => keepCols.map((keep, i) => keep ? (r[i] ?? "") : null).filter(c => c !== null);
+  return [filterRow(trimmedHeader), ...rest.map(filterRow)];
+}
+
 // ── Per-target-field value normalizer ────────────────────────────────────────
 // Coerces raw CSV strings into the shapes Supabase expects. Centralized here
 // so the AI's mapping doesn't need to specify transforms — the schema knows.
@@ -170,7 +199,8 @@ export function ImportWizard({ onClose, onComplete }) {
         setStep("upload");
         return;
       }
-      const [hdr, ...rest] = rows;
+      const cleaned = cleanParsedRows(rows);
+      const [hdr, ...rest] = cleaned;
       setHeaders(hdr);
       setAllRows(rest);
       // No targetEntity passed — Edge Function picks via tool_choice: "any".
