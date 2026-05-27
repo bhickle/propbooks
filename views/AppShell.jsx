@@ -50,6 +50,7 @@ import {
   ContractorDetail, DealMilestones,
 } from "../deals.jsx";
 import { WelcomeScreen } from "./WelcomeScreen.jsx";
+import { ThemePicker } from "./ThemePicker.jsx";
 import { GlobalSearch } from "./GlobalSearch.jsx";
 import { MileageTracker } from "./MileageTracker.jsx";
 import { DealAnalyzer } from "./DealAnalyzer.jsx";
@@ -114,7 +115,33 @@ class ErrorBoundary extends React.Component {
 
 export function AppShell() {
   const { user, signOut, refreshProfile } = useAuth();
-  const { theme, toggleTheme } = useTheme();
+  const { theme, toggleTheme, applyServerTheme } = useTheme();
+
+  // Sync the server-side theme preference into the live ThemeProvider whenever
+  // the profile hydrates with a saved value. localStorage carries the splash
+  // through to first paint; this overrides if the user picked something on
+  // another device. Skipped for the demo account (always uses local choice).
+  const isDemoTheme = user?.email === DEMO_EMAIL;
+  useEffect(() => {
+    if (!user || isDemoTheme) return;
+    if (user.themePreference && user.themePreference !== theme) {
+      applyServerTheme(user.themePreference);
+    }
+  }, [user?.themePreference, user?.id, isDemoTheme]);
+
+  // Persist toggle changes back to profile.theme_preference so the choice
+  // follows the user across devices. Skipped when the value is already in
+  // sync (initial hydration, or right after an explicit pick).
+  useEffect(() => {
+    if (!user?.id || isDemoTheme) return;
+    if (!user.themePreference) return; // first-time picker handles the initial write
+    if (user.themePreference === theme) return;
+    supabase.from("profiles").update({ theme_preference: theme }).eq("id", user.id)
+      .then(({ error }) => {
+        if (error) { console.error("[PropBooks] Save theme preference failed:", error); return; }
+        refreshProfile?.();
+      });
+  }, [theme, user?.id, user?.themePreference, isDemoTheme]);
 
   // Gate demo data: real users start with a blank account.
   // Demo user (demo@propbooks.com) always sees the full sample portfolio.
@@ -866,8 +893,15 @@ export function AppShell() {
         </div>
       )}
 
-      {/* Onboarding Wizard (new users only) */}
-      {showOnboarding && (
+      {/* ThemePicker — one-time on first login (themePreference is null).
+          Shown before OnboardingWizard so onboarding renders in the chosen
+          theme. Demo account skips it. */}
+      {user && !isDemoTheme && user.themePreference === null && (
+        <ThemePicker user={user} onComplete={() => refreshProfile?.()} />
+      )}
+
+      {/* Onboarding Wizard (new users only — and only after they've picked a theme) */}
+      {showOnboarding && user?.themePreference !== null && (
         <OnboardingWizard onComplete={async () => {
           setShowOnboarding(false);
           // Persist so the wizard doesn't reappear on next login. RLS scopes

@@ -47,6 +47,9 @@ function shapeUser(raw, profile) {
     currentPeriodEnd: profile?.current_period_end || null,
     stripeCustomerId: profile?.stripe_customer_id || null,
     stripeSubscriptionId: profile?.stripe_subscription_id || null,
+    // null = user hasn't picked a theme yet → ThemePicker renders on first
+    // login. Once chosen, the value here drives ThemeProvider.
+    themePreference: profile?.theme_preference || null,
   };
 }
 

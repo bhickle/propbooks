@@ -5,17 +5,22 @@
 // `data-theme` attribute on the document root swaps the palette globally.
 // Brand (#e95e00) and semantic (#1a7a4a, #c0392b, #3b82f6, #f59e0b) colors
 // stay consistent in both themes — only neutrals and surfaces flip.
+//
+// Theme persistence: each user picks a theme on first login via ThemePicker
+// (AppShell). Their choice is stored in profiles.theme_preference and applied
+// here via applyServerTheme() whenever the auth provider hydrates the profile.
+// localStorage is used as a pre-auth fallback so the splash doesn't flicker.
 // =============================================================================
 import React, { useState, useCallback, useEffect } from "react";
 
-const ThemeContext = React.createContext({ theme: "light", toggleTheme: () => {} });
+const ThemeContext = React.createContext({ theme: "light", toggleTheme: () => {}, applyServerTheme: () => {} });
 
 export function useTheme() { return React.useContext(ThemeContext); }
 
 export function ThemeProvider({ children }) {
   const [theme, setTheme] = useState(() => {
     if (typeof window !== "undefined") {
-      return window.__pb_theme || "light";
+      return window.__pb_theme || window.localStorage?.getItem("pb_theme") || "light";
     }
     return "light";
   });
@@ -23,11 +28,18 @@ export function ThemeProvider({ children }) {
     if (typeof document !== "undefined") {
       document.documentElement.setAttribute("data-theme", theme);
       window.__pb_theme = theme;
+      try { window.localStorage?.setItem("pb_theme", theme); } catch {}
     }
   }, [theme]);
   const toggleTheme = useCallback(() => setTheme(t => t === "light" ? "dark" : "light"), []);
+  // Called by AuthProvider once the profile loads. If the server-side
+  // preference differs from what we're currently showing (e.g., user logged in
+  // on a new device), flip without writing back to the server.
+  const applyServerTheme = useCallback((serverTheme) => {
+    if (serverTheme === "light" || serverTheme === "dark") setTheme(serverTheme);
+  }, []);
   return (
-    <ThemeContext.Provider value={{ theme, toggleTheme }}>
+    <ThemeContext.Provider value={{ theme, setTheme, toggleTheme, applyServerTheme }}>
       <style>{`
         :root {
           --font-display: 'Space Grotesk', 'Inter', sans-serif;
