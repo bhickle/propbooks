@@ -311,7 +311,7 @@ const STATUS_STYLES = {
 // previously-used customs grouped below, and an "Add ___ as new" affordance
 // when the typed text doesn't match anything. trade is stored as the label
 // string (no separate slug field) so existing free-text values keep working.
-function TradeTypeahead({ value, onChange, placeholder = "Start typing or pick from the list..." }) {
+function TradeTypeahead({ value, onChange, placeholder = "Type or pick…" }) {
   const [focus, setFocus] = useState(false);
   const trimmed = (value || "").trim();
   const isCanon = isCanonicalTrade(trimmed);
@@ -561,7 +561,7 @@ export function DealContractors({ onSelectContractor }) {
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               <div style={{ position: "relative" }}>
                 <p style={{ fontSize: 12, fontWeight: 600, color: "var(--text-dim)", marginBottom: 5 }}>Company / Name *</p>
-                <input style={iS} placeholder="Start typing to search or add new..." value={form.name}
+                <input style={iS} placeholder="Type or pick…" value={form.name}
                   onChange={e => { setForm(f => ({ ...f, name: e.target.value })); setNameFocus(true); }}
                   onFocus={() => setNameFocus(true)} onBlur={() => setTimeout(() => setNameFocus(false), 150)} />
                 {!nameFocus && !form.name && <p style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4, fontStyle: "italic" }}>Type to search existing contractors or add new</p>}
@@ -1079,7 +1079,7 @@ export function ContractorDetail({ contractor, onBack, initialTab }) {
               })()}
               <div style={{ position: "relative" }}>
                 <p style={{ fontSize: 12, fontWeight: 600, color: "var(--text-dim)", marginBottom: 5 }}>Scope item *</p>
-                <input style={iS} placeholder={bidForm.dealId ? "Start typing or pick from the list..." : "Select a rehab first"} disabled={!bidForm.dealId}
+                <input style={iS} placeholder={bidForm.dealId ? "Type or pick…" : "Select a rehab first"} disabled={!bidForm.dealId}
                   value={bidForm.rehabItem} onChange={e => { setBidForm(f => ({ ...f, rehabItem: e.target.value })); setRehabFocus(true); }}
                   onFocus={() => setRehabFocus(true)} onBlur={() => setTimeout(() => setRehabFocus(false), 150)} />
                 {!rehabFocus && !bidForm.rehabItem && bidForm.dealId && <p style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4, fontStyle: "italic" }}>Pick a standard category or type your own</p>}
@@ -2066,7 +2066,7 @@ export function DealMilestones({ highlightMilestoneKey, onBack, onClearHighlight
               </div>
               <div style={{ position: "relative" }}>
                 <p style={{ fontSize: 12, fontWeight: 600, color: "var(--text-dim)", marginBottom: 5 }}>Milestone Name *</p>
-                <input value={msForm.label} style={iS} placeholder="Start typing to search or add new..."
+                <input value={msForm.label} style={iS} placeholder="Type or pick…"
                   onChange={e => { setMsForm(f => ({ ...f, label: e.target.value })); setLabelFocus(true); }}
                   onFocus={() => setLabelFocus(true)} onBlur={() => setTimeout(() => setLabelFocus(false), 150)} />
                 {!labelFocus && !msForm.label && <p style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4, fontStyle: "italic" }}>Type to search previous milestones or add new</p>}

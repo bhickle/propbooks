@@ -11,17 +11,13 @@ import { useState, useRef } from "react";
 import {
   UploadCloud, Loader, FileText, FileImage, X, ScanLine, Star, FilePlus, Trash2, ExternalLink,
 } from "lucide-react";
-import { newId } from "../api.js";
+import { newId, DOCUMENT_TYPES } from "../api.js";
 import { iS } from "../shared.jsx";
 import { getDocumentUrl } from "../db/documents.js";
 
-export const DOC_TYPE_OPTIONS = [
-  { value: "lease", label: "Lease" }, { value: "contract", label: "Contract" }, { value: "insurance", label: "Insurance" },
-  { value: "inspection", label: "Inspection" }, { value: "appraisal", label: "Appraisal" }, { value: "closing", label: "Closing Statement" },
-  { value: "scope", label: "Scope of Work" }, { value: "addendum", label: "Addendum" }, { value: "application", label: "Application" },
-  { value: "w9", label: "W-9" }, { value: "warranty", label: "Warranty" }, { value: "receipt", label: "Receipt" },
-  { value: "photo", label: "Photo" }, { value: "other", label: "Other" },
-];
+// Re-exported under the old name for any callers that still reference it.
+// New code should import DOCUMENT_TYPES from api.js directly.
+export const DOC_TYPE_OPTIONS = DOCUMENT_TYPES;
 
 // ── AttachmentZone — reusable drag-and-drop / click-to-browse file upload ──
 export function AttachmentZone({ onFiles, accept = "image/*,.pdf", label = "Drop file here or click to browse", compact = false, scanning = false }) {

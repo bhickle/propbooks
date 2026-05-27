@@ -1230,7 +1230,7 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
             <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
               <div style={{ position: "relative" }}>
                 <label style={{ display: "block", color: "var(--text-dim)", fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Category *</label>
-                <input value={rehabForm.category} placeholder="Start typing or pick from the list..." style={iS}
+                <input value={rehabForm.category} placeholder="Type or pick…" style={iS}
                   onChange={e => { setRehabForm(f => ({ ...f, category: e.target.value, canonicalCategory: null })); setCatFocus(true); }}
                   onFocus={() => setCatFocus(true)} onBlur={() => setTimeout(() => setCatFocus(false), 150)} />
                 {!catFocus && !rehabForm.category && <p style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4, fontStyle: "italic" }}>Pick a standard category or type your own</p>}
@@ -1783,7 +1783,7 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
             <p style={{ fontSize: 12, color: "var(--text-secondary)", marginTop: -6, marginBottom: 14 }}>For <strong style={{ color: "var(--text-primary)" }}>{deal.address}</strong></p>
             <div style={{ position: "relative", marginBottom: 14 }}>
               <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Scope item *</label>
-              <input value={quickBid.rehabItem} placeholder="Start typing or pick from the list..." style={iS}
+              <input value={quickBid.rehabItem} placeholder="Type or pick…" style={iS}
                 onChange={e => setQuickBid(q => ({ ...q, rehabItem: e.target.value, canonicalCategory: null }))}
                 onFocus={() => setQuickBidRehabFocus(true)} onBlur={() => setTimeout(() => setQuickBidRehabFocus(false), 150)} />
               {quickBid.canonicalCategory && (
@@ -1936,7 +1936,7 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
             <div style={{ position: "relative" }}>
               <label style={{ display: "block", color: "var(--text-label)", fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Milestone Name *</label>
-              <input value={milestoneForm.label} style={iS} placeholder="Start typing to search or add new..."
+              <input value={milestoneForm.label} style={iS} placeholder="Type or pick…"
                 onChange={e => { setMilestoneForm(f => ({ ...f, label: e.target.value })); setMsLabelFocus(true); }}
                 onFocus={() => setMsLabelFocus(true)} onBlur={() => setTimeout(() => setMsLabelFocus(false), 150)} />
               {!msLabelFocus && !milestoneForm.label && <p style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4, fontStyle: "italic" }}>Type to search previous milestones or add new</p>}

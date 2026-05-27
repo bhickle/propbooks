@@ -241,7 +241,7 @@ export function FlipWizard({ onComplete, onExit }) {
                         onChange={e => { setRehab(i, "label", e.target.value); setRehab(i, "canonicalCategory", null); setCatFocusIdx(i); }}
                         onFocus={() => setCatFocusIdx(i)}
                         onBlur={() => setTimeout(() => setCatFocusIdx(-1), 150)}
-                        style={wizardInput} placeholder="Start typing to search categories..." />
+                        style={wizardInput} placeholder="Type or pick…" />
                       {catFocusIdx === i && (() => {
                         const q = item.label.toLowerCase().trim();
                         const canonMatches = q ? allCategories.canonical.filter(c => c.label.toLowerCase().includes(q)) : allCategories.canonical;

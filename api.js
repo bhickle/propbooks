@@ -257,6 +257,29 @@ export function txGroupsForKind(kind) {
 }
 
 // -----------------------------------------------------------------------------
+// Document types — drives the type-selector dropdown on every Documents tab
+// (property docs, deal docs, tenant docs, contractor docs). Was previously
+// exported from views/Attachments.jsx; lives here so the canonical taxonomy
+// stays in one place alongside the other lists.
+// -----------------------------------------------------------------------------
+export const DOCUMENT_TYPES = [
+  { value: "lease",       label: "Lease"             },
+  { value: "contract",    label: "Contract"          },
+  { value: "insurance",   label: "Insurance"         },
+  { value: "inspection",  label: "Inspection"        },
+  { value: "appraisal",   label: "Appraisal"         },
+  { value: "closing",     label: "Closing Statement" },
+  { value: "scope",       label: "Scope of Work"     },
+  { value: "addendum",    label: "Addendum"          },
+  { value: "application", label: "Application"       },
+  { value: "w9",          label: "W-9"               },
+  { value: "warranty",    label: "Warranty"          },
+  { value: "receipt",     label: "Receipt"           },
+  { value: "photo",       label: "Photo"             },
+  { value: "other",       label: "Other"             },
+];
+
+// -----------------------------------------------------------------------------
 // Rehab Templates — one-click starter scopes for new deals. Each template is a
 // list of canonical slugs plus an optional suggested budget (user adjusts).
 // -----------------------------------------------------------------------------
