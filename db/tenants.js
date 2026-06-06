@@ -6,6 +6,7 @@
 // mock TENANTS entries. RLS scopes every query to the current user's rows.
 // =============================================================================
 import { supabase } from "../supabase.js";
+import { isDemoSession, demoCreated, demoUpdated } from "./demo.js";
 
 function fromRow(row) {
   if (!row) return row;
@@ -67,6 +68,7 @@ export async function listTenants() {
 
 export async function createTenant(t) {
   if (!supabase) throw new Error("Supabase not configured");
+  if (await isDemoSession()) return demoCreated(t);
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("Not authenticated");
   const { data, error } = await supabase
@@ -80,6 +82,7 @@ export async function createTenant(t) {
 
 export async function updateTenant(id, updates) {
   if (!supabase) throw new Error("Supabase not configured");
+  if (await isDemoSession()) return demoUpdated(id, updates);
   const { data, error } = await supabase
     .from("tenants")
     .update(toRow(updates))
@@ -92,6 +95,7 @@ export async function updateTenant(id, updates) {
 
 export async function deleteTenant(id) {
   if (!supabase) throw new Error("Supabase not configured");
+  if (await isDemoSession()) return;
   const { error } = await supabase.from("tenants").delete().eq("id", id);
   if (error) throw error;
 }

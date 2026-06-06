@@ -2,6 +2,7 @@
 // db/dealExpenses.js — Supabase wrapper for the `deal_expenses` table.
 // =============================================================================
 import { supabase } from "../supabase.js";
+import { isDemoSession, demoCreated, demoUpdated } from "./demo.js";
 
 function fromRow(row) {
   if (!row) return row;
@@ -49,6 +50,7 @@ export async function listDealExpenses() {
 
 export async function createDealExpense(e) {
   if (!supabase) throw new Error("Supabase not configured");
+  if (await isDemoSession()) return demoCreated(e);
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("Not authenticated");
   const { data, error } = await supabase
@@ -62,6 +64,7 @@ export async function createDealExpense(e) {
 
 export async function updateDealExpense(id, updates) {
   if (!supabase) throw new Error("Supabase not configured");
+  if (await isDemoSession()) return demoUpdated(id, updates);
   const { data, error } = await supabase
     .from("deal_expenses")
     .update(toRow(updates))
@@ -74,6 +77,7 @@ export async function updateDealExpense(id, updates) {
 
 export async function deleteDealExpense(id) {
   if (!supabase) throw new Error("Supabase not configured");
+  if (await isDemoSession()) return;
   const { error } = await supabase.from("deal_expenses").delete().eq("id", id);
   if (error) throw error;
 }

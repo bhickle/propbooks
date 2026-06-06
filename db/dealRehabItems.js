@@ -4,6 +4,7 @@
 // AppShell merges DB rows back into that nested shape so views are unchanged.
 // =============================================================================
 import { supabase } from "../supabase.js";
+import { isDemoSession, demoCreated, demoUpdated } from "./demo.js";
 
 function fromRow(row) {
   if (!row) return row;
@@ -46,6 +47,7 @@ export async function listRehabItems() {
 
 export async function createRehabItem(r) {
   if (!supabase) throw new Error("Supabase not configured");
+  if (await isDemoSession()) return demoCreated(r, { contractors: [] });
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("Not authenticated");
   const { data, error } = await supabase
@@ -59,6 +61,7 @@ export async function createRehabItem(r) {
 
 export async function updateRehabItem(id, updates) {
   if (!supabase) throw new Error("Supabase not configured");
+  if (await isDemoSession()) return demoUpdated(id, updates);
   const { data, error } = await supabase
     .from("deal_rehab_items")
     .update(toRow(updates))
@@ -71,6 +74,7 @@ export async function updateRehabItem(id, updates) {
 
 export async function deleteRehabItem(id) {
   if (!supabase) throw new Error("Supabase not configured");
+  if (await isDemoSession()) return;
   const { error } = await supabase.from("deal_rehab_items").delete().eq("id", id);
   if (error) throw error;
 }

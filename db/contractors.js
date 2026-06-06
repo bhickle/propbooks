@@ -6,6 +6,7 @@
 // downstream filtering by deal still works without changes.
 // =============================================================================
 import { supabase } from "../supabase.js";
+import { isDemoSession, demoCreated, demoUpdated } from "./demo.js";
 
 function fromRow(row, dealIds = []) {
   if (!row) return row;
@@ -56,6 +57,7 @@ export async function listContractors() {
 
 export async function createContractor(c) {
   if (!supabase) throw new Error("Supabase not configured");
+  if (await isDemoSession()) return demoCreated(c, { dealIds: [] });
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("Not authenticated");
   const { data, error } = await supabase
@@ -69,6 +71,8 @@ export async function createContractor(c) {
 
 export async function updateContractor(id, updates) {
   if (!supabase) throw new Error("Supabase not configured");
+  // Omit dealIds so the merge onto the existing mirror entry keeps its links.
+  if (await isDemoSession()) return demoUpdated(id, updates);
   const { data, error } = await supabase
     .from("contractors")
     .update(toRow(updates))
@@ -85,6 +89,7 @@ export async function updateContractor(id, updates) {
 
 export async function deleteContractor(id) {
   if (!supabase) throw new Error("Supabase not configured");
+  if (await isDemoSession()) return;
   const { error } = await supabase.from("contractors").delete().eq("id", id);
   if (error) throw error;
 }
@@ -93,6 +98,7 @@ export async function deleteContractor(id) {
 
 export async function linkContractorToDeal(contractorId, dealId) {
   if (!supabase) throw new Error("Supabase not configured");
+  if (await isDemoSession()) return;
   const { error } = await supabase
     .from("contractor_deals")
     .upsert({ contractor_id: contractorId, deal_id: dealId }, { onConflict: "contractor_id,deal_id" });
@@ -101,6 +107,7 @@ export async function linkContractorToDeal(contractorId, dealId) {
 
 export async function unlinkContractorFromDeal(contractorId, dealId) {
   if (!supabase) throw new Error("Supabase not configured");
+  if (await isDemoSession()) return;
   const { error } = await supabase
     .from("contractor_deals")
     .delete()

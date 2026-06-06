@@ -10,6 +10,7 @@
 // they get migrated.
 // =============================================================================
 import { supabase } from "../supabase.js";
+import { isDemoSession, demoCreated, demoUpdated } from "./demo.js";
 
 function fromRow(row) {
   if (!row) return row;
@@ -57,6 +58,7 @@ export async function listTransactions() {
 
 export async function createTransaction(tx) {
   if (!supabase) throw new Error("Supabase not configured");
+  if (await isDemoSession()) return demoCreated(tx);
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("Not authenticated");
   const { data, error } = await supabase
@@ -70,6 +72,7 @@ export async function createTransaction(tx) {
 
 export async function updateTransaction(id, updates) {
   if (!supabase) throw new Error("Supabase not configured");
+  if (await isDemoSession()) return demoUpdated(id, updates);
   const { data, error } = await supabase
     .from("transactions")
     .update(toRow(updates))
@@ -82,6 +85,7 @@ export async function updateTransaction(id, updates) {
 
 export async function deleteTransaction(id) {
   if (!supabase) throw new Error("Supabase not configured");
+  if (await isDemoSession()) return;
   const { error } = await supabase.from("transactions").delete().eq("id", id);
   if (error) throw error;
 }

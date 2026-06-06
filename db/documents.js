@@ -12,6 +12,7 @@
 // documents_storage_rls_policies).
 // =============================================================================
 import { supabase } from "../supabase.js";
+import { isDemoSession, demoId } from "./demo.js";
 
 const BUCKET = "documents";
 
@@ -77,6 +78,27 @@ function formatSize(bytes) {
 //   dealId?:    uuid (only used for contractor docs that link to a specific deal)
 export async function createDocument({ entityType, entityId, meta, file = null, dealId = null }) {
   if (!supabase) throw new Error("Supabase not configured");
+  // Demo sandbox: don't touch Storage or the documents table — return a
+  // synthetic in-memory record (no real file behind it, so storage_path stays
+  // null and getDocumentUrl() falls back to the null url).
+  if (await isDemoSession()) {
+    const now = new Date().toISOString();
+    return fromRow({
+      id: demoId(),
+      entity_type: entityType,
+      entity_id: entityId,
+      deal_id: entityType === "contractor" ? dealId : null,
+      name: meta.name,
+      type: meta.type || "other",
+      mime_type: meta.mimeType ?? null,
+      size: meta.size ?? null,
+      url: null,
+      storage_path: null,
+      date: meta.date || new Date().toISOString().slice(0, 10),
+      created_at: now,
+      updated_at: now,
+    });
+  }
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("Not authenticated");
 
@@ -133,6 +155,7 @@ export async function createDocument({ entityType, entityId, meta, file = null, 
 // for contractor docs, the linked dealId). Does not move the file in Storage.
 export async function updateDocument(id, updates) {
   if (!supabase) throw new Error("Supabase not configured");
+  if (await isDemoSession()) return { id, ...updates, updatedAt: new Date().toISOString() };
   const out = {};
   if (updates.name !== undefined) out.name = updates.name;
   if (updates.type !== undefined) out.type = updates.type;
@@ -150,6 +173,7 @@ export async function updateDocument(id, updates) {
 
 export async function deleteDocument(doc) {
   if (!supabase) throw new Error("Supabase not configured");
+  if (await isDemoSession()) return;
   if (doc.storagePath) {
     await supabase.storage.from(BUCKET).remove([doc.storagePath]).catch(() => {});
   }

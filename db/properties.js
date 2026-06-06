@@ -9,6 +9,7 @@
 // (camelCase keys, JS-friendly types) so component code is unchanged.
 // =============================================================================
 import { supabase } from "../supabase.js";
+import { isDemoSession, demoCreated, demoUpdated } from "./demo.js";
 
 // ── snake_case ↔ camelCase mappers ──────────────────────────────────────────
 // One source of truth for the mapping. Keep this aligned with the
@@ -90,6 +91,7 @@ export async function listProperties() {
 
 export async function createProperty(prop) {
   if (!supabase) throw new Error("Supabase not configured");
+  if (await isDemoSession()) return demoCreated(prop);
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("Not authenticated");
   const { data, error } = await supabase
@@ -103,6 +105,7 @@ export async function createProperty(prop) {
 
 export async function updateProperty(id, updates) {
   if (!supabase) throw new Error("Supabase not configured");
+  if (await isDemoSession()) return demoUpdated(id, updates);
   const { data, error } = await supabase
     .from("properties")
     .update(toRow(updates))
@@ -115,6 +118,7 @@ export async function updateProperty(id, updates) {
 
 export async function deleteProperty(id) {
   if (!supabase) throw new Error("Supabase not configured");
+  if (await isDemoSession()) return;
   const { error } = await supabase.from("properties").delete().eq("id", id);
   if (error) throw error;
 }

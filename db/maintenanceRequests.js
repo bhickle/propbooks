@@ -2,6 +2,7 @@
 // db/maintenanceRequests.js — Supabase wrapper for `maintenance_requests`.
 // =============================================================================
 import { supabase } from "../supabase.js";
+import { isDemoSession, demoCreated, demoUpdated } from "./demo.js";
 
 function fromRow(row) {
   if (!row) return row;
@@ -49,6 +50,7 @@ export async function listMaintenanceRequests() {
 
 export async function createMaintenanceRequest(r) {
   if (!supabase) throw new Error("Supabase not configured");
+  if (await isDemoSession()) return demoCreated(r);
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("Not authenticated");
   const { data, error } = await supabase
@@ -62,6 +64,7 @@ export async function createMaintenanceRequest(r) {
 
 export async function updateMaintenanceRequest(id, updates) {
   if (!supabase) throw new Error("Supabase not configured");
+  if (await isDemoSession()) return demoUpdated(id, updates);
   const { data, error } = await supabase
     .from("maintenance_requests")
     .update(toRow(updates))
@@ -74,6 +77,7 @@ export async function updateMaintenanceRequest(id, updates) {
 
 export async function deleteMaintenanceRequest(id) {
   if (!supabase) throw new Error("Supabase not configured");
+  if (await isDemoSession()) return;
   const { error } = await supabase.from("maintenance_requests").delete().eq("id", id);
   if (error) throw error;
 }

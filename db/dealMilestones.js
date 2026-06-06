@@ -2,6 +2,7 @@
 // db/dealMilestones.js — Supabase wrapper for the `deal_milestones` table.
 // =============================================================================
 import { supabase } from "../supabase.js";
+import { isDemoSession, demoCreated, demoUpdated } from "./demo.js";
 
 function fromRow(row) {
   if (!row) return row;
@@ -41,6 +42,7 @@ export async function listMilestones() {
 
 export async function createMilestone(m) {
   if (!supabase) throw new Error("Supabase not configured");
+  if (await isDemoSession()) return demoCreated(m);
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("Not authenticated");
   const { data, error } = await supabase
@@ -54,6 +56,7 @@ export async function createMilestone(m) {
 
 export async function updateMilestone(id, updates) {
   if (!supabase) throw new Error("Supabase not configured");
+  if (await isDemoSession()) return demoUpdated(id, updates);
   const { data, error } = await supabase
     .from("deal_milestones")
     .update(toRow(updates))
@@ -66,6 +69,7 @@ export async function updateMilestone(id, updates) {
 
 export async function deleteMilestone(id) {
   if (!supabase) throw new Error("Supabase not configured");
+  if (await isDemoSession()) return;
   const { error } = await supabase.from("deal_milestones").delete().eq("id", id);
   if (error) throw error;
 }

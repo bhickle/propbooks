@@ -11,6 +11,7 @@
 // the same three buckets the app already keeps as in-memory arrays.
 // =============================================================================
 import { supabase } from "../supabase.js";
+import { isDemoSession, demoId, demoUpdated } from "./demo.js";
 
 function fromRow(row) {
   if (!row) return row;
@@ -66,6 +67,12 @@ export async function listNotes() {
 
 async function insertNote(payload) {
   if (!supabase) throw new Error("Supabase not configured");
+  if (await isDemoSession()) {
+    // payload is already the snake_case row shape fromRow() reads, so round-trip
+    // it straight back as the synthetic camelCase note.
+    const now = new Date().toISOString();
+    return fromRow({ ...payload, id: demoId(), created_at: now, updated_at: now });
+  }
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("Not authenticated");
   const { data, error } = await supabase
@@ -104,6 +111,7 @@ export async function createGeneralNote(n) {
 
 export async function updateNote(id, updates) {
   if (!supabase) throw new Error("Supabase not configured");
+  if (await isDemoSession()) return demoUpdated(id, updates);
   const { data, error } = await supabase
     .from("notes")
     .update(commonToRow(updates))
@@ -116,6 +124,7 @@ export async function updateNote(id, updates) {
 
 export async function deleteNote(id) {
   if (!supabase) throw new Error("Supabase not configured");
+  if (await isDemoSession()) return;
   const { error } = await supabase.from("notes").delete().eq("id", id);
   if (error) throw error;
 }

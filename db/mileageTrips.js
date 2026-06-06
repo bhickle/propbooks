@@ -8,6 +8,7 @@
 //   linked_to     ↔ linkedTo
 // =============================================================================
 import { supabase } from "../supabase.js";
+import { isDemoSession, demoCreated, demoUpdated } from "./demo.js";
 
 function fromRow(row) {
   if (!row) return row;
@@ -51,6 +52,7 @@ export async function listMileageTrips() {
 
 export async function createMileageTrip(t) {
   if (!supabase) throw new Error("Supabase not configured");
+  if (await isDemoSession()) return demoCreated(t);
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("Not authenticated");
   const { data, error } = await supabase
@@ -64,6 +66,7 @@ export async function createMileageTrip(t) {
 
 export async function updateMileageTrip(id, updates) {
   if (!supabase) throw new Error("Supabase not configured");
+  if (await isDemoSession()) return demoUpdated(id, updates);
   const { data, error } = await supabase
     .from("mileage_trips")
     .update(toRow(updates))
@@ -76,6 +79,7 @@ export async function updateMileageTrip(id, updates) {
 
 export async function deleteMileageTrip(id) {
   if (!supabase) throw new Error("Supabase not configured");
+  if (await isDemoSession()) return;
   const { error } = await supabase.from("mileage_trips").delete().eq("id", id);
   if (error) throw error;
 }

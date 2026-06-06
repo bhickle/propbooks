@@ -2,6 +2,7 @@
 // db/contractorBids.js — Supabase wrapper for the `contractor_bids` table.
 // =============================================================================
 import { supabase } from "../supabase.js";
+import { isDemoSession, demoCreated, demoUpdated } from "./demo.js";
 
 function fromRow(row) {
   if (!row) return row;
@@ -41,6 +42,7 @@ export async function listContractorBids() {
 
 export async function createContractorBid(b) {
   if (!supabase) throw new Error("Supabase not configured");
+  if (await isDemoSession()) return demoCreated(b);
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("Not authenticated");
   const { data, error } = await supabase
@@ -54,6 +56,7 @@ export async function createContractorBid(b) {
 
 export async function updateContractorBid(id, updates) {
   if (!supabase) throw new Error("Supabase not configured");
+  if (await isDemoSession()) return demoUpdated(id, updates);
   const { data, error } = await supabase
     .from("contractor_bids")
     .update(toRow(updates))
@@ -66,6 +69,7 @@ export async function updateContractorBid(id, updates) {
 
 export async function deleteContractorBid(id) {
   if (!supabase) throw new Error("Supabase not configured");
+  if (await isDemoSession()) return;
   const { error } = await supabase.from("contractor_bids").delete().eq("id", id);
   if (error) throw error;
 }
