@@ -77,8 +77,8 @@ function AssetCard({ row, onSelect }) {
       onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "0 1px 3px rgba(0,0,0,0.06)"; }}>
       {(() => {
         const placeholderBg = kind === "rental"
-          ? "linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)"
-          : "linear-gradient(135deg, #fff7ed 0%, #fed7aa 100%)";
+          ? "var(--tile-rental-bg)"
+          : "var(--tile-rehab-bg)";
         const PlaceholderIcon = kind === "rental" ? Home : Hammer;
         const iconColor = kind === "rental" ? "#3b82f6" : "#e95e00";
         const iconBg = kind === "rental" ? "rgba(59,130,246,0.15)" : "rgba(233,94,0,0.12)";

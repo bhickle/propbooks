@@ -94,6 +94,8 @@ export function ThemeProvider({ children }) {
           --hero-border: #e2e8f0;
           --hero-badge-bg: rgba(255,255,255,0.7);
           --hero-select-bg: rgba(255,255,255,0.8);
+          --tile-rental-bg: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+          --tile-rehab-bg: linear-gradient(135deg, #fff7ed 0%, #fed7aa 100%);
         }
         :root[data-theme="dark"] {
           --surface: #1e293b;
@@ -147,6 +149,8 @@ export function ThemeProvider({ children }) {
           --hero-border: #334155;
           --hero-badge-bg: rgba(255,255,255,0.08);
           --hero-select-bg: rgba(255,255,255,0.06);
+          --tile-rental-bg: linear-gradient(135deg, rgba(59,130,246,0.12) 0%, rgba(59,130,246,0.22) 100%);
+          --tile-rehab-bg: linear-gradient(135deg, rgba(233,94,0,0.12) 0%, rgba(233,94,0,0.22) 100%);
         }
         :root[data-theme="dark"] body { background: var(--page-bg); }
         :root[data-theme="dark"] input, :root[data-theme="dark"] select, :root[data-theme="dark"] textarea {
