@@ -253,25 +253,25 @@ export function PropertyDetail({ property, onBack, backLabel, onEditProperty, on
                 <span style={{ background: "var(--hero-badge-bg)", borderRadius: 20, padding: "3px 10px", fontSize: 12, color: "var(--text-label)", fontWeight: 600 }}>{property.type}</span>
                 <span style={{ background: "var(--hero-badge-bg)", borderRadius: 20, padding: "3px 10px", fontSize: 12, color: "var(--text-label)", fontWeight: 600 }}>{property.units} unit{property.units > 1 ? "s" : ""}</span>
                 <Badge status={property.status} />
-                <button onClick={() => onEditProperty && onEditProperty(property)} style={{ background: "rgba(255,255,255,0.7)", border: "1px solid rgba(0,0,0,0.08)", borderRadius: 8, padding: "4px 10px", fontSize: 12, fontWeight: 600, color: "var(--text-label)", cursor: "pointer", display: "flex", alignItems: "center", gap: 5 }}>
+                <button onClick={() => onEditProperty && onEditProperty(property)} style={{ background: "var(--hero-badge-bg)", border: "1px solid var(--border-subtle)", borderRadius: 8, padding: "4px 10px", fontSize: 12, fontWeight: 600, color: "var(--text-label)", cursor: "pointer", display: "flex", alignItems: "center", gap: 5 }}>
                   <Pencil size={12} /> Edit Property
                 </button>
                 {!isClosed && (
                   <>
-                    <button onClick={() => setShowMarkSold(true)} style={{ background: "rgba(255,255,255,0.7)", border: "1px solid rgba(0,0,0,0.08)", borderRadius: 8, padding: "4px 10px", fontSize: 12, fontWeight: 600, color: "var(--text-label)", cursor: "pointer", display: "flex", alignItems: "center", gap: 5 }}>
+                    <button onClick={() => setShowMarkSold(true)} style={{ background: "var(--hero-badge-bg)", border: "1px solid var(--border-subtle)", borderRadius: 8, padding: "4px 10px", fontSize: 12, fontWeight: 600, color: "var(--text-label)", cursor: "pointer", display: "flex", alignItems: "center", gap: 5 }}>
                       <DollarSign size={12} /> Mark as Sold
                     </button>
-                    <button onClick={() => setShowMarkInactive(true)} style={{ background: "rgba(255,255,255,0.7)", border: "1px solid rgba(0,0,0,0.08)", borderRadius: 8, padding: "4px 10px", fontSize: 12, fontWeight: 600, color: "var(--text-label)", cursor: "pointer", display: "flex", alignItems: "center", gap: 5 }}>
+                    <button onClick={() => setShowMarkInactive(true)} style={{ background: "var(--hero-badge-bg)", border: "1px solid var(--border-subtle)", borderRadius: 8, padding: "4px 10px", fontSize: 12, fontWeight: 600, color: "var(--text-label)", cursor: "pointer", display: "flex", alignItems: "center", gap: 5 }}>
                       <Archive size={12} /> Mark Inactive
                     </button>
                   </>
                 )}
                 {isClosed && (
-                  <button onClick={() => setShowReopenProperty(true)} style={{ background: "rgba(255,255,255,0.7)", border: "1px solid rgba(0,0,0,0.08)", borderRadius: 8, padding: "4px 10px", fontSize: 12, fontWeight: 600, color: "var(--text-label)", cursor: "pointer", display: "flex", alignItems: "center", gap: 5 }}>
+                  <button onClick={() => setShowReopenProperty(true)} style={{ background: "var(--hero-badge-bg)", border: "1px solid var(--border-subtle)", borderRadius: 8, padding: "4px 10px", fontSize: 12, fontWeight: 600, color: "var(--text-label)", cursor: "pointer", display: "flex", alignItems: "center", gap: 5 }}>
                     <RefreshCw size={12} /> Reopen Property
                   </button>
                 )}
-                <button onClick={() => setShowDeleteProperty(true)} style={{ background: "rgba(255,255,255,0.7)", border: "1px solid rgba(0,0,0,0.08)", borderRadius: 8, padding: "4px 10px", fontSize: 12, fontWeight: 600, color: "var(--c-red)", cursor: "pointer", display: "flex", alignItems: "center", gap: 5 }}>
+                <button onClick={() => setShowDeleteProperty(true)} style={{ background: "var(--hero-badge-bg)", border: "1px solid var(--border-subtle)", borderRadius: 8, padding: "4px 10px", fontSize: 12, fontWeight: 600, color: "var(--c-red)", cursor: "pointer", display: "flex", alignItems: "center", gap: 5 }}>
                   <Trash2 size={12} /> Delete
                 </button>
               </div>
@@ -293,7 +293,7 @@ export function PropertyDetail({ property, onBack, backLabel, onEditProperty, on
       </div>
 
       {/* Tab bar */}
-      <div style={{ display: "flex", gap: 0, marginBottom: 24, borderBottom: "2px solid #f1f5f9" }}>
+      <div style={{ display: "flex", gap: 0, marginBottom: 24, borderBottom: "2px solid var(--border-subtle)" }}>
         {tabs.map(tab => {
           const active = activeTab === tab.id;
           return (
@@ -690,7 +690,7 @@ export function PropertyDetail({ property, onBack, backLabel, onEditProperty, on
                       </div>
                     </div>
                     {!isVacant && (
-                      <div style={{ display: "flex", gap: 24, marginTop: 12, paddingTop: 12, borderTop: "1px solid #f8fafc" }}>
+                      <div style={{ display: "flex", gap: 24, marginTop: 12, paddingTop: 12, borderTop: "1px solid var(--border-subtle)" }}>
                         <div>
                           <p style={{ color: "var(--text-muted)", fontSize: 11, fontWeight: 600, textTransform: "uppercase" }}>Lease</p>
                           <p style={{ color: "var(--text-dim)", fontSize: 12, fontWeight: 500 }}>{t.leaseStart} — {t.leaseEnd || "MTM"}</p>

@@ -75,15 +75,25 @@ function AssetCard({ row, onSelect }) {
       style={{ background: "var(--surface)", borderRadius: 16, overflow: "hidden", boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid var(--border-subtle)", cursor: "pointer", transition: "transform 0.15s, box-shadow 0.15s" }}
       onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-3px)"; e.currentTarget.style.boxShadow = "0 8px 24px rgba(0,0,0,0.1)"; }}
       onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "0 1px 3px rgba(0,0,0,0.06)"; }}>
-      <div style={{ height: 130, background: asset.photo ? "transparent" : "linear-gradient(135deg, var(--avatar-bg), var(--sidebar-bg))", display: "flex", alignItems: "center", justifyContent: "center", position: "relative", overflow: "hidden" }}>
-        {asset.photo
-          ? <img src={asset.photo} alt={asset.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-          : <div style={{ width: 56, height: 56, borderRadius: 16, background: "rgba(255,255,255,0.12)", border: "1.5px solid rgba(255,255,255,0.18)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 18, fontWeight: 800 }}>{asset.image}</div>
-        }
-        <div style={{ position: "absolute", top: 10, left: 10 }}>
-          <TypeStageChip row={row} />
+      {(() => {
+        const placeholderBg = kind === "rental"
+          ? "linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)"
+          : "linear-gradient(135deg, #fff7ed 0%, #fed7aa 100%)";
+        const PlaceholderIcon = kind === "rental" ? Home : Hammer;
+        const iconColor = kind === "rental" ? "#3b82f6" : "#e95e00";
+        const iconBg = kind === "rental" ? "rgba(59,130,246,0.15)" : "rgba(233,94,0,0.12)";
+        return (
+        <div style={{ height: 130, background: asset.photo ? "transparent" : placeholderBg, display: "flex", alignItems: "center", justifyContent: "center", position: "relative", overflow: "hidden" }}>
+          {asset.photo
+            ? <img src={asset.photo} alt={asset.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+            : <div style={{ width: 56, height: 56, borderRadius: 16, background: iconBg, display: "flex", alignItems: "center", justifyContent: "center" }}><PlaceholderIcon size={28} color={iconColor} strokeWidth={1.5} /></div>
+          }
+          <div style={{ position: "absolute", top: 10, left: 10 }}>
+            <TypeStageChip row={row} />
+          </div>
         </div>
-      </div>
+        );
+      })()}
       <div style={{ padding: 18 }}>
         <h3 style={{ color: "var(--text-primary)", fontSize: 15, fontWeight: 700, marginBottom: 3 }}>{asset.name}</h3>
         <p style={{ color: "var(--text-muted)", fontSize: 12, marginBottom: 14, display: "flex", alignItems: "center", gap: 4 }}>

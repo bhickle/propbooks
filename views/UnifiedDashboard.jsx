@@ -14,6 +14,10 @@ export function UnifiedDashboard(props) {
   const [tab, setTab] = useState("portfolio");
   return (
     <div>
+      <div style={{ marginBottom: 20 }}>
+        <h1 style={{ fontSize: 26, fontWeight: 700, color: "var(--text-primary)", fontFamily: "var(--font-display)", marginBottom: 4 }}>Dashboard</h1>
+        <p style={{ fontSize: 15, color: "var(--text-secondary)" }}>Your portfolio at a glance — rentals and rehabs together.</p>
+      </div>
       <div style={{ display: "flex", gap: 6, marginBottom: 24, background: "var(--surface-alt)", borderRadius: 10, padding: 4, border: "1px solid var(--border)", width: "fit-content" }}>
         <DashTab id="portfolio" label="Portfolio" Icon={PieChartIcon} active={tab === "portfolio"} onClick={() => setTab("portfolio")} />
         <DashTab id="rentals"   label="Rentals"   Icon={Home}         active={tab === "rentals"}   onClick={() => setTab("rentals")} />

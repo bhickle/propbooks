@@ -15,6 +15,15 @@ import { isDemoSession, demoCreated, demoUpdated } from "./demo.js";
 // One source of truth for the mapping. Keep this aligned with the
 // `properties` schema; if you add a column in a migration, add it here too.
 
+// `image` holds the 1–2 char initials shown in avatar tiles across the app.
+// The wizards set it on create, but imported rows never get one and a rename
+// never refreshes the stored value — both leave blank tiles. Derive it from
+// the name whenever the column is empty so every avatar is populated.
+function initialsFrom(name) {
+  if (!name) return "?";
+  return name.trim().split(/\s+/).map(w => w[0]).join("").toUpperCase().slice(0, 2) || "?";
+}
+
 function fromRow(row) {
   if (!row) return row;
   return {
@@ -24,7 +33,7 @@ function fromRow(row) {
     type: row.type,
     units: row.units,
     status: row.status,
-    image: row.image,
+    image: row.image || initialsFrom(row.name),
     photo: row.photo,
     purchasePrice: row.purchase_price == null ? null : Number(row.purchase_price),
     currentValue: row.current_value == null ? null : Number(row.current_value),

@@ -4,6 +4,13 @@
 import { supabase } from "../supabase.js";
 import { isDemoSession, demoCreated, demoUpdated } from "./demo.js";
 
+// `image` holds the initials shown in avatar tiles. Derive from the name when
+// the column is empty so imported/renamed rehabs never render a blank tile.
+function initialsFrom(name) {
+  if (!name) return "?";
+  return name.trim().split(/\s+/).map(w => w[0]).join("").toUpperCase().slice(0, 2) || "?";
+}
+
 function fromRow(row) {
   if (!row) return row;
   return {
@@ -11,7 +18,7 @@ function fromRow(row) {
     name: row.name,
     address: row.address,
     stage: row.stage,
-    image: row.image,
+    image: row.image || initialsFrom(row.name),
     purchasePrice: row.purchase_price == null ? null : Number(row.purchase_price),
     arv: row.arv == null ? null : Number(row.arv),
     arvUpdatedAt: row.arv_updated_at,

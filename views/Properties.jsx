@@ -12,6 +12,13 @@ import { useToast } from "../toast.jsx";
 import { Modal, iS } from "../shared.jsx";
 import { createProperty, updateProperty as dbUpdateProperty, deleteProperty as dbDeleteProperty } from "../db/properties.js";
 
+// Avatar-tile initials, derived from the name. Matches the fallback in
+// db/properties.js#fromRow so create, edit, and hydration all agree.
+function propInitials(name) {
+  if (!name) return "?";
+  return name.trim().split(/\s+/).map(w => w[0]).join("").toUpperCase().slice(0, 2) || "?";
+}
+
 export function Properties({ onSelect, editPropertyId, onClearEditId, convertDealData, onClearConvertFlip, onGuidedSetup, onComplete }) {
   // Modal-only mode: when an edit or convert trigger is set, hide the list
   // and treat the screen as a modal-host overlay. After the modal closes the
@@ -113,6 +120,7 @@ export function Properties({ onSelect, editPropertyId, onClearEditId, convertDea
           monthlyRent: rent, monthlyExpenses: exp,
           purchaseDate: form.purchaseDate || null, status: form.status,
           photo: form.photo ?? prev?.photo,
+          image: propInitials(form.name),
         };
         const saved = await dbUpdateProperty(editId, updates);
         if (idx !== -1) PROPERTIES[idx] = { ...prev, ...saved, color: prev.color };
@@ -129,7 +137,7 @@ export function Properties({ onSelect, editPropertyId, onClearEditId, convertDea
           closingCosts: cc, landValue: land,
           monthlyRent: rent, monthlyExpenses: exp,
           purchaseDate: form.purchaseDate || null, status: form.status,
-          image: form.name.slice(0, 2).toUpperCase(),
+          image: propInitials(form.name),
           photo: form.photo || null,
         });
         PROPERTIES.push({ ...saved, color });

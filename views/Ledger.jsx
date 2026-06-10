@@ -13,6 +13,7 @@ import {
   Search, X, ArrowUpRight, ArrowDownRight, Wallet,
   TrendingUp, TrendingDown, Hash, Plus, Home, Hammer,
   Pencil, Trash2, CheckCircle, User, UserCheck, Users, Upload,
+  ChevronDown, DollarSign, Wrench,
 } from "lucide-react";
 import {
   newId, fmt, fmtK, DEALS, DEAL_EXPENSES, CONTRACTORS,
@@ -615,11 +616,21 @@ export function Ledger({ highlightRowKey, initialAssetFilter, onClearHighlight, 
   const [dateRange, setDateRange] = useState("all");
   const [search, setSearch] = useState("");
   const [showAdd, setShowAdd] = useState(null); // null | "rental-income" | "rental-expense" | "flip-expense"
+  const [showAddMenu, setShowAddMenu] = useState(false);
+  const addMenuRef = useRef(null);
   const [editRow, setEditRow] = useState(null);  // a built row from buildRows()
   const [deleteRow, setDeleteRow] = useState(null);
   const [renderKey, setRenderKey] = useState(0);
   const [flashKey, setFlashKey] = useState(highlightRowKey || null);
   const highlightRef = useRef(null);
+
+  // Close "Add Entry" dropdown when clicking outside
+  useEffect(() => {
+    if (!showAddMenu) return;
+    const handler = e => { if (addMenuRef.current && !addMenuRef.current.contains(e.target)) setShowAddMenu(false); };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [showAddMenu]);
 
   // Flash + scroll on incoming highlight (e.g., from Dashboard activity click)
   useEffect(() => {
@@ -657,7 +668,7 @@ export function Ledger({ highlightRowKey, initialAssetFilter, onClearHighlight, 
   // (e.g., "expenses on this property this year") by adjusting the filters.
   const income   = filtered.filter(r => r.type === "income").reduce((s, r) => s + r.amount, 0);
   const expenses = filtered.filter(r => r.type === "expense").reduce((s, r) => s + r.amount, 0);
-  const net      = income + expenses;
+  const net      = income - expenses;
 
   // Row click opens the unified edit modal in-place.
   const handleEdit = (row) => setEditRow(row);
@@ -708,10 +719,31 @@ export function Ledger({ highlightRowKey, initialAssetFilter, onClearHighlight, 
           <h1 style={{ color: "var(--text-primary)", fontSize: 26, fontWeight: 700, marginBottom: 4 }}>Ledger</h1>
           <p style={{ color: "var(--text-secondary)", fontSize: 15 }}>Every dollar in and out, across rentals and rehabs</p>
         </div>
-        <button onClick={() => setShowAdd("rental-expense")}
-          style={{ background: "#e95e00", color: "#fff", border: "none", borderRadius: 10, padding: "10px 18px", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
-          <Plus size={16} /> Add Entry
-        </button>
+        <div ref={addMenuRef} style={{ position: "relative" }}>
+          <button onClick={() => setShowAddMenu(v => !v)}
+            style={{ background: "#e95e00", color: "#fff", border: "none", borderRadius: 10, padding: "10px 18px", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
+            <Plus size={16} /> Add Entry <ChevronDown size={14} style={{ marginLeft: 2 }} />
+          </button>
+          {showAddMenu && (
+            <div style={{ position: "absolute", right: 0, top: "calc(100% + 6px)", background: "var(--surface)", border: "1px solid var(--border-subtle)", borderRadius: 12, boxShadow: "0 8px 24px rgba(0,0,0,0.12)", zIndex: 200, minWidth: 210, overflow: "hidden" }}>
+              {[
+                { kind: "rental-income",  label: "Add Income",         icon: DollarSign, color: "#16a34a", bg: "rgba(22,163,74,0.08)" },
+                { kind: "rental-expense", label: "Add Rental Expense", icon: Home,        color: "#e95e00", bg: "rgba(233,94,0,0.08)" },
+                { kind: "flip-expense",   label: "Add Rehab Expense",  icon: Wrench,      color: "#7c3aed", bg: "rgba(124,58,237,0.08)" },
+              ].map(opt => (
+                <button key={opt.kind} onClick={() => { setShowAdd(opt.kind); setShowAddMenu(false); }}
+                  style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, padding: "11px 16px", background: "none", border: "none", cursor: "pointer", textAlign: "left", transition: "background 0.1s" }}
+                  onMouseEnter={e => e.currentTarget.style.background = opt.bg}
+                  onMouseLeave={e => e.currentTarget.style.background = "none"}>
+                  <div style={{ width: 32, height: 32, borderRadius: 8, background: opt.bg, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                    <opt.icon size={15} color={opt.color} />
+                  </div>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>{opt.label}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Filter bar */}

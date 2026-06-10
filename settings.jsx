@@ -107,8 +107,8 @@ function ProfileTab() {
             {user?.initials || "?"}
           </div>
           <div>
-            <p style={{ color: "#041830", fontWeight: 700, fontSize: 17 }}>{user?.name}</p>
-            <p style={{ color: "#64748b", fontSize: 13 }}>{user?.email}</p>
+            <p style={{ color: "var(--text-primary)", fontWeight: 700, fontSize: 17 }}>{user?.name}</p>
+            <p style={{ color: "var(--text-secondary)", fontSize: 13 }}>{user?.email}</p>
             <p style={{ color: "#94a3b8", fontSize: 12, marginTop: 2 }}>
               Member since {user?.memberSince || "2024"}
             </p>
@@ -146,7 +146,7 @@ function ProfileTab() {
                 <Save size={13} /> {saving ? "Saving…" : "Save Changes"}
               </button>
               <button onClick={() => { setEditing(false); setError(""); }} disabled={saving}
-                style={{ padding: "9px 16px", borderRadius: 9, border: "1.5px solid #e2e8f0", background: "#fff", fontWeight: 600, fontSize: 13, cursor: saving ? "not-allowed" : "pointer", color: "#64748b", opacity: saving ? 0.7 : 1 }}>
+                style={{ padding: "9px 16px", borderRadius: 9, border: "1.5px solid #e2e8f0", background: "#fff", fontWeight: 600, fontSize: 13, cursor: saving ? "not-allowed" : "pointer", color: "var(--text-secondary)", opacity: saving ? 0.7 : 1 }}>
                 Cancel
               </button>
             </div>
@@ -166,7 +166,7 @@ function ProfileTab() {
       {isDemo && <DemoResetCard />}
 
       <div style={card}>
-        <p style={{ color: "#041830", fontWeight: 700, fontSize: 15, marginBottom: 4 }}>Sign Out</p>
+        <p style={{ color: "var(--text-primary)", fontWeight: 700, fontSize: 15, marginBottom: 4 }}>Sign Out</p>
         <p style={{ color: "#94a3b8", fontSize: 13, marginBottom: 16 }}>Sign out of your PROPBOOKS account on this device.</p>
         <button onClick={signOut}
           style={{ padding: "9px 18px", borderRadius: 9, border: "1.5px solid #fecaca", background: "#fef2f2", color: "#b91c1c", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
@@ -204,7 +204,7 @@ function DemoResetCard() {
   return (
     <>
       <div style={card}>
-        <p style={{ color: "#041830", fontWeight: 700, fontSize: 15, marginBottom: 4 }}>Demo Account</p>
+        <p style={{ color: "var(--text-primary)", fontWeight: 700, fontSize: 15, marginBottom: 4 }}>Demo Account</p>
         <p style={{ color: "#94a3b8", fontSize: 13, marginBottom: 16 }}>
           Reset the demo back to its starting portfolio. Wipes every property, tenant, rehab, contractor, transaction, note, and uploaded document tied to this account, then restores the sample data.
         </p>
@@ -486,7 +486,7 @@ function statusBadge(status) {
     case "incomplete":
     case "incomplete_expired":  return { label: "Payment incomplete",    color: "#b91c1c", bg: "#fef2f2" };
     case "unpaid":              return { label: "Unpaid",                color: "#b91c1c", bg: "#fef2f2" };
-    default:                    return { label: "No active subscription", color: "#64748b", bg: "#f1f5f9" };
+    default:                    return { label: "No active subscription", color: "var(--text-secondary)", bg: "#f1f5f9" };
   }
 }
 
@@ -679,7 +679,7 @@ function NotificationsTab() {
             borderBottom: i < items.length - 1 ? "1px solid #f1f5f9" : "none",
           }}>
             <div>
-              <p style={{ color: "#041830", fontWeight: 600, fontSize: 14 }}>{item.label}</p>
+              <p style={{ color: "var(--text-primary)", fontWeight: 600, fontSize: 14 }}>{item.label}</p>
               <p style={{ color: "#94a3b8", fontSize: 12, marginTop: 2 }}>{item.desc}</p>
             </div>
             <Toggle on={prefs[item.key]} onChange={() => toggle(item.key)} />
@@ -737,7 +737,7 @@ function SecurityTab() {
     <div>
       {section("Security", "Manage your password and account security")}
       <div style={card}>
-        <p style={{ color: "#041830", fontWeight: 700, fontSize: 15, marginBottom: 16 }}>Change Password</p>
+        <p style={{ color: "var(--text-primary)", fontWeight: 700, fontSize: 15, marginBottom: 16 }}>Change Password</p>
         <form onSubmit={handleSave}>
           <div style={{ display: "flex", flexDirection: "column", gap: 14, marginBottom: 20 }}>
             <div>{label("Current Password")}<input style={inp} type="password" value={current} onChange={e => setCurrent(e.target.value)} placeholder="••••••••" /></div>
@@ -764,11 +764,11 @@ function SecurityTab() {
       </div>
 
       <div style={card}>
-        <p style={{ color: "#041830", fontWeight: 700, fontSize: 15, marginBottom: 4 }}>Two-Factor Authentication</p>
+        <p style={{ color: "var(--text-primary)", fontWeight: 700, fontSize: 15, marginBottom: 4 }}>Two-Factor Authentication</p>
         <p style={{ color: "#94a3b8", fontSize: 13, marginBottom: 14 }}>Add an extra layer of security to your account. Coming soon.</p>
         <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 8, padding: "7px 12px" }}>
           <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#e95e00" }} />
-          <span style={{ fontSize: 13, color: "#64748b", fontWeight: 500 }}>Not enabled</span>
+          <span style={{ fontSize: 13, color: "var(--text-secondary)", fontWeight: 500 }}>Not enabled</span>
         </div>
       </div>
     </div>
@@ -795,7 +795,7 @@ export function Settings({ onClose, onLaunchImport }) {
       {/* Sidebar */}
       <div style={{ width: 220, borderRight: "1px solid #f1f5f9", paddingRight: 24, flexShrink: 0 }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
-          <h2 style={{ color: "#041830", fontSize: 18, fontWeight: 700 }}>Settings</h2>
+          <h2 style={{ color: "var(--text-primary)", fontSize: 18, fontWeight: 700 }}>Settings</h2>
           {onClose && (
             <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8" }}>
               <X size={18} />
@@ -865,8 +865,8 @@ export function OnboardingWizard({ onComplete }) {
           ))}
         </div>
 
-        <h2 style={{ color: "#041830", fontSize: 22, fontWeight: 800, marginBottom: 6 }}>{current.title}</h2>
-        <p style={{ color: "#64748b", fontSize: 14, marginBottom: 28 }}>{current.sub}</p>
+        <h2 style={{ color: "var(--text-primary)", fontSize: 22, fontWeight: 800, marginBottom: 6 }}>{current.title}</h2>
+        <p style={{ color: "var(--text-secondary)", fontSize: 14, marginBottom: 28 }}>{current.sub}</p>
 
         {/* Step content */}
         {step === 0 && (
@@ -881,7 +881,7 @@ export function OnboardingWizard({ onComplete }) {
                   <item.icon size={18} color={item.color} />
                 </div>
                 <div>
-                  <p style={{ fontWeight: 700, color: "#041830", fontSize: 14 }}>{item.title}</p>
+                  <p style={{ fontWeight: 700, color: "var(--text-primary)", fontSize: 14 }}>{item.title}</p>
                   <p style={{ color: "#94a3b8", fontSize: 12 }}>{item.sub}</p>
                 </div>
               </div>
@@ -893,26 +893,26 @@ export function OnboardingWizard({ onComplete }) {
           <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 28 }}>
             <div>
               <p style={{ fontSize: 13, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Property Name</p>
-              <input style={{ width: "100%", padding: "10px 13px", border: "1.5px solid #e2e8f0", borderRadius: 10, fontSize: 14, color: "#041830", background: "#fff", outline: "none", boxSizing: "border-box" }}
+              <input style={{ width: "100%", padding: "10px 13px", border: "1.5px solid #e2e8f0", borderRadius: 10, fontSize: 14, color: "var(--text-primary)", background: "#fff", outline: "none", boxSizing: "border-box" }}
                 placeholder="e.g. Oak Street Duplex"
                 value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
             </div>
             <div>
               <p style={{ fontSize: 13, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Address</p>
-              <input style={{ width: "100%", padding: "10px 13px", border: "1.5px solid #e2e8f0", borderRadius: 10, fontSize: 14, color: "#041830", background: "#fff", outline: "none", boxSizing: "border-box" }}
+              <input style={{ width: "100%", padding: "10px 13px", border: "1.5px solid #e2e8f0", borderRadius: 10, fontSize: 14, color: "var(--text-primary)", background: "#fff", outline: "none", boxSizing: "border-box" }}
                 placeholder="123 Main St, City, State"
                 value={form.address} onChange={e => setForm(f => ({ ...f, address: e.target.value }))} />
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
               <div>
                 <p style={{ fontSize: 13, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Purchase Price</p>
-                <input style={{ width: "100%", padding: "10px 13px", border: "1.5px solid #e2e8f0", borderRadius: 10, fontSize: 14, color: "#041830", background: "#fff", outline: "none", boxSizing: "border-box" }}
+                <input style={{ width: "100%", padding: "10px 13px", border: "1.5px solid #e2e8f0", borderRadius: 10, fontSize: 14, color: "var(--text-primary)", background: "#fff", outline: "none", boxSizing: "border-box" }}
                   placeholder="$350,000" type="number"
                   value={form.purchasePrice} onChange={e => setForm(f => ({ ...f, purchasePrice: e.target.value }))} />
               </div>
               <div>
                 <p style={{ fontSize: 13, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Monthly Rent</p>
-                <input style={{ width: "100%", padding: "10px 13px", border: "1.5px solid #e2e8f0", borderRadius: 10, fontSize: 14, color: "#041830", background: "#fff", outline: "none", boxSizing: "border-box" }}
+                <input style={{ width: "100%", padding: "10px 13px", border: "1.5px solid #e2e8f0", borderRadius: 10, fontSize: 14, color: "var(--text-primary)", background: "#fff", outline: "none", boxSizing: "border-box" }}
                   placeholder="$2,500" type="number"
                   value={form.monthlyRent} onChange={e => setForm(f => ({ ...f, monthlyRent: e.target.value }))} />
               </div>
@@ -929,7 +929,7 @@ export function OnboardingWizard({ onComplete }) {
             }}>
               <CheckCircle size={36} color="#15803d" />
             </div>
-            <p style={{ color: "#64748b", fontSize: 14 }}>
+            <p style={{ color: "var(--text-secondary)", fontSize: 14 }}>
               Your portfolio dashboard is ready. Start by exploring the Dashboard or adding more properties.
             </p>
           </div>

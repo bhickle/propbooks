@@ -565,7 +565,7 @@ export function AppShell() {
             return (
               <>
                 <button onClick={() => { setActiveView("dashboard"); setSelectedProperty(null); setSelectedDeal(null); setHighlightLedgerKey(null); setNavSource(null); }}
-                  style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 10, border: "none", background: isDashActive ? "rgba(139,92,246,0.2)" : "transparent", color: isDashActive ? "#c4b5fd" : "#64748b", fontWeight: isDashActive ? 700 : 500, fontSize: 14, cursor: "pointer", marginBottom: 2, textAlign: "left", transition: "all 0.15s" }}
+                  style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 10, border: "none", background: isDashActive ? "rgba(233,94,0,0.2)" : "transparent", color: isDashActive ? "#fbbf77" : "#64748b", fontWeight: isDashActive ? 700 : 500, fontSize: 14, cursor: "pointer", marginBottom: 2, textAlign: "left", transition: "all 0.15s" }}
                   onMouseEnter={e => { if (!isDashActive) e.currentTarget.style.background = "rgba(255,255,255,0.05)"; }}
                   onMouseLeave={e => { if (!isDashActive) e.currentTarget.style.background = "transparent"; }}>
                   <PieChartIcon size={17} />
@@ -583,6 +583,7 @@ export function AppShell() {
             onMouseLeave={e => { if (activeView !== "assets") e.currentTarget.style.background = "transparent"; }}>
             <Building2 size={17} />
             Assets
+            {activeView === "assets" && <ChevronRight size={14} style={{ marginLeft: "auto" }} />}
           </button>
           {/* Ledger (preview) — unified money in/out across rentals + rehabs */}
           <button onClick={() => { setActiveView("ledger"); setSelectedProperty(null); setSelectedDeal(null); setHighlightLedgerKey(null); setNavSource(null); }}
@@ -591,6 +592,7 @@ export function AppShell() {
             onMouseLeave={e => { if (activeView !== "ledger") e.currentTarget.style.background = "transparent"; }}>
             <ArrowUpDown size={17} />
             Ledger
+            {activeView === "ledger" && <ChevronRight size={14} style={{ marginLeft: "auto" }} />}
           </button>
           {/* Contractors — top-level so the same plumber who fixes a tenant
               drain and the one demoing a rehab lives in one place */}
@@ -600,6 +602,7 @@ export function AppShell() {
             onMouseLeave={e => { if (activeView !== "dealcontractors") e.currentTarget.style.background = "transparent"; }}>
             <Users size={17} />
             Contractors
+            {activeView === "dealcontractors" && <ChevronRight size={14} style={{ marginLeft: "auto" }} />}
           </button>
           {/* Tenants — promoted to top-level. Conceptually rental-only, but
               there's no longer a Rentals sub-section to bury it under. */}
@@ -607,7 +610,7 @@ export function AppShell() {
             const isActive = activeView === "tenants" || activeView === "tenantDetail";
             return (
               <button onClick={() => { setActiveView("tenants"); setSelectedProperty(null); setSelectedDeal(null); setHighlightLedgerKey(null); setNavSource(null); }}
-                style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 10, border: "none", background: isActive ? "rgba(59,130,246,0.2)" : "transparent", color: isActive ? "#93c5fd" : "#64748b", fontWeight: isActive ? 700 : 500, fontSize: 14, cursor: "pointer", marginBottom: 2, textAlign: "left", transition: "all 0.15s" }}
+                style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 10, border: "none", background: isActive ? "rgba(233,94,0,0.2)" : "transparent", color: isActive ? "#fbbf77" : "#64748b", fontWeight: isActive ? 700 : 500, fontSize: 14, cursor: "pointer", marginBottom: 2, textAlign: "left", transition: "all 0.15s" }}
                 onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = "rgba(255,255,255,0.05)"; }}
                 onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = "transparent"; }}>
                 <UserCheck size={17} />
@@ -623,6 +626,7 @@ export function AppShell() {
             onMouseLeave={e => { if (activeView !== "analytics") e.currentTarget.style.background = "transparent"; }}>
             <BarChart3 size={17} />
             Analytics
+            {activeView === "analytics" && <ChevronRight size={14} style={{ marginLeft: "auto" }} />}
           </button>
           {/* Reports (unified across rentals + rehabs, tab toggle inside) */}
           <button onClick={() => { setActiveView("reports"); setSelectedProperty(null); setSelectedDeal(null); setHighlightLedgerKey(null); setNavSource(null); }}
@@ -631,6 +635,7 @@ export function AppShell() {
             onMouseLeave={e => { if (activeView !== "reports") e.currentTarget.style.background = "transparent"; }}>
             <FileText size={17} />
             Reports
+            {activeView === "reports" && <ChevronRight size={14} style={{ marginLeft: "auto" }} />}
           </button>
           <div style={{ height: 1, background: "rgba(255,255,255,0.07)", margin: "14px 8px 12px" }} />
           <p style={{ color: "var(--text-label)", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", padding: "0 8px", marginBottom: 8 }}>Tools</p>
@@ -638,7 +643,7 @@ export function AppShell() {
             const active = activeView === item.id;
             return (
               <button key={item.id} onClick={() => { setActiveView(item.id); setSelectedDeal(null); setSelectedProperty(null); setHighlightLedgerKey(null); setNavSource(null); }}
-                style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 10, border: "none", background: active ? "rgba(139,92,246,0.18)" : "transparent", color: active ? "#c4b5fd" : "#64748b", fontWeight: active ? 700 : 500, fontSize: 14, cursor: "pointer", marginBottom: 2, textAlign: "left", transition: "all 0.15s" }}
+                style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 10, border: "none", background: active ? "rgba(233,94,0,0.2)" : "transparent", color: active ? "#fbbf77" : "#64748b", fontWeight: active ? 700 : 500, fontSize: 14, cursor: "pointer", marginBottom: 2, textAlign: "left", transition: "all 0.15s" }}
                 onMouseEnter={e => { if (!active) e.currentTarget.style.background = "rgba(255,255,255,0.05)"; }}
                 onMouseLeave={e => { if (!active) e.currentTarget.style.background = "transparent"; }}>
                 <item.icon size={17} />

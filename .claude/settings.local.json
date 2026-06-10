@@ -15,7 +15,9 @@
       "Bash(awk '/^\\\\//{f=$0; next} /exhaustive-deps/{print f\"|\"$0}')",
       "Bash(npx eslint *)",
       "Bash(grep -n \"^  Info\\\\|Info,\\\\| Info$\\\\| Info \" App.jsx deals.jsx)",
-      "Bash(grep *)"
+      "Bash(grep *)",
+      "mcp__claude_ai_Supabase__apply_migration",
+      "mcp__claude_ai_Supabase__execute_sql"
     ]
   }
 }

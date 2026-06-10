@@ -129,11 +129,6 @@ export function PortfolioDashboard({ onNavigate, onSelectProperty, onSelectFlip,
   if (isEmpty) {
     return (
       <div>
-        <div style={{ marginBottom: 24 }}>
-          <h1 style={{ fontSize: 26, fontWeight: 700, color: "var(--text-primary)", margin: "0 0 4px 0" }}>Portfolio Overview</h1>
-          <p style={{ fontSize: 15, color: "var(--text-secondary)", margin: 0 }}>Welcome — let&rsquo;s get your first asset in so the dashboard has something to show.</p>
-        </div>
-
         <div style={{ background: "var(--surface)", borderRadius: 16, padding: 40, border: "1px solid var(--border-subtle)", boxShadow: "0 1px 3px rgba(0,0,0,0.06)", textAlign: "center" }}>
           <div style={{ width: 64, height: 64, borderRadius: 16, background: "linear-gradient(135deg, #e95e00 0%, #f59e0b 100%)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 20px", boxShadow: "0 4px 12px rgba(233,94,0,0.25)" }}>
             <Building2 size={32} color="#fff" />
@@ -168,12 +163,6 @@ export function PortfolioDashboard({ onNavigate, onSelectProperty, onSelectFlip,
 
   return (
     <div>
-      {/* Header */}
-      <div style={{ marginBottom: 24 }}>
-        <h1 style={{ fontSize: 26, fontWeight: 700, color: "var(--text-primary)", margin: "0 0 4px 0" }}>Portfolio Overview</h1>
-        <p style={{ fontSize: 15, color: "var(--text-secondary)", margin: 0 }}>Your complete real estate snapshot — rentals and rehabs combined.</p>
-      </div>
-
       {/* Row 1: KPI Cards */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 24 }}>
         <StatCard icon={Wallet} label="Total Equity" value={fmt(totalEquity)} color="var(--c-blue)" tip="Sum of rental equity (property value − mortgage balance) plus rehab purchase prices invested." />

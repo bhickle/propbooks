@@ -97,12 +97,6 @@ export function Dashboard({ onNavigate, onNavigateToTx, onSelectProperty, onNavi
 
   return (
     <div>
-      {/* Header */}
-      <div style={{ marginBottom: 28 }}>
-        <h1 style={{ color: "var(--text-primary)", fontSize: 26, fontWeight: 700, marginBottom: 4 }}>Dashboard</h1>
-        <p style={{ color: "var(--text-secondary)", fontSize: 15 }}>Here's what needs your attention today.</p>
-      </div>
-
       {/* KPI Row */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 24 }}>
         <StatCard icon={DollarSign} label="Monthly Cash Flow" value={fmt(netCashFlow)} sub={`${fmt(monthlyIncome)} in · ${fmt(monthlyExpenses)} out`} color="var(--c-green)" tip="Total Monthly Income − Total Monthly Expenses across all properties." />

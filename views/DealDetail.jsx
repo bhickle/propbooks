@@ -760,7 +760,7 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
                   <>
                     <span style={{ fontSize: 12, color: "var(--text-muted)", fontStyle: "italic" }}>Rehab closed</span>
                     <button onClick={() => setShowReopenConfirm(true)}
-                      style={{ background: "rgba(255,255,255,0.7)", border: "1px solid rgba(0,0,0,0.08)", borderRadius: 8, padding: "4px 10px", fontSize: 12, fontWeight: 600, color: "var(--text-label)", cursor: "pointer", display: "flex", alignItems: "center", gap: 5 }}>
+                      style={{ background: "var(--hero-badge-bg)", border: "1px solid var(--border-subtle)", borderRadius: 8, padding: "4px 10px", fontSize: 12, fontWeight: 600, color: "var(--text-label)", cursor: "pointer", display: "flex", alignItems: "center", gap: 5 }}>
                       <RefreshCw size={12} /> Reopen Rehab
                     </button>
                   </>
@@ -811,13 +811,13 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
                   console.error("[PropBooks] Clone rehab failed:", e);
                   showToast("Couldn't clone rehab — " + (e.message || "unknown error"));
                 }
-              }} style={{ background: "rgba(255,255,255,0.7)", border: "1px solid rgba(0,0,0,0.08)", borderRadius: 8, padding: "6px 12px", fontSize: 12, fontWeight: 600, color: "var(--text-label)", cursor: "pointer", display: "flex", alignItems: "center", gap: 5 }}>
+              }} style={{ background: "var(--hero-badge-bg)", border: "1px solid var(--border-subtle)", borderRadius: 8, padding: "6px 12px", fontSize: 12, fontWeight: 600, color: "var(--text-label)", cursor: "pointer", display: "flex", alignItems: "center", gap: 5 }}>
                 <Copy size={12} /> Clone Rehab
               </button>
-              <button onClick={openEditDeal} style={{ background: "rgba(255,255,255,0.7)", border: "1px solid rgba(0,0,0,0.08)", borderRadius: 8, padding: "6px 12px", fontSize: 12, fontWeight: 600, color: "var(--text-label)", cursor: "pointer", display: "flex", alignItems: "center", gap: 5 }}>
+              <button onClick={openEditDeal} style={{ background: "var(--hero-badge-bg)", border: "1px solid var(--border-subtle)", borderRadius: 8, padding: "6px 12px", fontSize: 12, fontWeight: 600, color: "var(--text-label)", cursor: "pointer", display: "flex", alignItems: "center", gap: 5 }}>
                 <Pencil size={12} /> Edit Rehab
               </button>
-              <button onClick={() => setShowDeleteDeal(true)} style={{ background: "rgba(255,255,255,0.7)", border: "1px solid rgba(0,0,0,0.08)", borderRadius: 8, padding: "6px 12px", fontSize: 12, fontWeight: 600, color: "var(--c-red)", cursor: "pointer", display: "flex", alignItems: "center", gap: 5 }}>
+              <button onClick={() => setShowDeleteDeal(true)} style={{ background: "var(--hero-badge-bg)", border: "1px solid var(--border-subtle)", borderRadius: 8, padding: "6px 12px", fontSize: 12, fontWeight: 600, color: "var(--c-red)", cursor: "pointer", display: "flex", alignItems: "center", gap: 5 }}>
                 <Trash2 size={12} /> Delete
               </button>
               {stage !== "Converted to Rental" && stage !== "Sold" && (() => {
@@ -866,7 +866,7 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
           </div>
         </div>
       </div>
-      <div style={{ display: "flex", gap: 6, background: "var(--surface-alt)", borderRadius: 14, padding: 5, marginBottom: 24, border: "1px solid var(--border)" }}>
+      <div style={{ display: "flex", gap: 6, background: "var(--surface-alt)", borderRadius: 14, padding: 5, marginBottom: 24, border: "1px solid var(--border)", overflowX: "auto", scrollbarWidth: "none", msOverflowStyle: "none" }}>
         {tabs.map(t => {
           const active = activeTab === t.id;
           return (
@@ -888,7 +888,7 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
             { label: "Holding Costs", value: fmt(totalHolding), color: "#c0392b", sign: "-" },
             { label: `Selling Costs (~${currentFlip.sellingCostPct || 6}%)`, value: fmt(sellingCosts), color: "#c0392b", sign: "-" },
           ].map((r, i) => (
-            <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 0", borderBottom: "1px solid #f8fafc" }}>
+            <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 0", borderBottom: "1px solid var(--border-subtle)" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <span style={{ color: r.color, fontWeight: 700, fontSize: 16, lineHeight: 1 }}>{r.sign}</span>
                 <span style={{ fontSize: 14, color: "var(--text-label)" }}>{r.label}</span>
@@ -1255,7 +1255,7 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
                           <div style={{ padding: "8px 14px 4px", fontSize: 10, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em", background: "var(--surface-alt)" }}>{g}</div>
                           {grouped[g].map(c => (
                             <button key={c.slug} onMouseDown={() => { setRehabForm(f => ({ ...f, category: c.label, canonicalCategory: c.slug })); setCatFocus(false); }}
-                              style={{ width: "100%", padding: "8px 14px", background: "none", border: "none", borderBottom: "1px solid #f8fafc", textAlign: "left", cursor: "pointer", fontSize: 13, color: "var(--text-primary)", display: "flex", alignItems: "center", gap: 8 }}>
+                              style={{ width: "100%", padding: "8px 14px", background: "none", border: "none", borderBottom: "1px solid var(--border-subtle)", textAlign: "left", cursor: "pointer", fontSize: 13, color: "var(--text-primary)", display: "flex", alignItems: "center", gap: 8 }}>
                               <Wrench size={12} style={{ color: "var(--text-muted)", flexShrink: 0 }} />
                               <span>{c.label}</span>
                             </button>
@@ -1267,7 +1267,7 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
                           <div style={{ padding: "8px 14px 4px", fontSize: 10, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em", background: "var(--surface-alt)" }}>Your Custom</div>
                           {customMatches.slice(0, 6).map(c => (
                             <button key={c} onMouseDown={() => { setRehabForm(f => ({ ...f, category: c, canonicalCategory: null })); setCatFocus(false); }}
-                              style={{ width: "100%", padding: "8px 14px", background: "none", border: "none", borderBottom: "1px solid #f8fafc", textAlign: "left", cursor: "pointer", fontSize: 13, color: "var(--text-primary)", display: "flex", alignItems: "center", gap: 8 }}>
+                              style={{ width: "100%", padding: "8px 14px", background: "none", border: "none", borderBottom: "1px solid var(--border-subtle)", textAlign: "left", cursor: "pointer", fontSize: 13, color: "var(--text-primary)", display: "flex", alignItems: "center", gap: 8 }}>
                               <Wrench size={12} style={{ color: "var(--text-muted)", flexShrink: 0 }} />
                               <span>{c}</span>
                             </button>
@@ -1808,7 +1808,7 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
                         <div style={{ padding: "8px 14px 4px", fontSize: 10, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em", background: "var(--surface-alt)" }}>{g}</div>
                         {grouped[g].map(c => (
                           <button key={c.slug} onMouseDown={() => { setQuickBid(qq => ({ ...qq, rehabItem: c.label, canonicalCategory: c.slug })); setQuickBidRehabFocus(false); }}
-                            style={{ width: "100%", padding: "8px 14px", background: "none", border: "none", borderBottom: "1px solid #f8fafc", textAlign: "left", cursor: "pointer", fontSize: 13, color: "var(--text-primary)", display: "flex", alignItems: "center", gap: 8 }}>
+                            style={{ width: "100%", padding: "8px 14px", background: "none", border: "none", borderBottom: "1px solid var(--border-subtle)", textAlign: "left", cursor: "pointer", fontSize: 13, color: "var(--text-primary)", display: "flex", alignItems: "center", gap: 8 }}>
                             <Wrench size={12} style={{ color: "var(--text-muted)", flexShrink: 0 }} />
                             <span>{c.label}</span>
                           </button>
@@ -1820,7 +1820,7 @@ export function DealDetail({ deal, onBack, backLabel, allDeals, setAllFlips, onN
                         <div style={{ padding: "8px 14px 4px", fontSize: 10, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em", background: "var(--surface-alt)" }}>On This Rehab</div>
                         {customMatches.slice(0, 6).map(c => (
                           <button key={c} onMouseDown={() => { setQuickBid(qq => ({ ...qq, rehabItem: c, canonicalCategory: null })); setQuickBidRehabFocus(false); }}
-                            style={{ width: "100%", padding: "8px 14px", background: "none", border: "none", borderBottom: "1px solid #f8fafc", textAlign: "left", cursor: "pointer", fontSize: 13, color: "var(--text-primary)", display: "flex", alignItems: "center", gap: 8 }}>
+                            style={{ width: "100%", padding: "8px 14px", background: "none", border: "none", borderBottom: "1px solid var(--border-subtle)", textAlign: "left", cursor: "pointer", fontSize: 13, color: "var(--text-primary)", display: "flex", alignItems: "center", gap: 8 }}>
                             <Wrench size={12} style={{ color: "var(--text-muted)", flexShrink: 0 }} />
                             <span>{c}</span>
                           </button>

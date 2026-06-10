@@ -161,8 +161,6 @@ export function DealDashboard({ onSelect, onNavigateToNote, onNavigateToExpense,
 
   return (
     <div>
-      <PageHeader title="Dashboard" sub="Here's where your deals stand." />
-
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 20 }}>
         <StatCard icon={Hammer}     label="Active Rehabs"     value={active.length}              sub={isFiltered ? "Filtered" : "In pipeline"}        color="#e95e00" tip="Number of deals in active pipeline stages (not Sold)." />
         <StatCard icon={DollarSign} label="Capital Deployed" value={fmtK(totalDeployed)}        sub={isFiltered ? "Filtered" : "Purchase + rehab"}   color="var(--c-blue)" tip="Total Purchase Price + Rehab Budget across active rehabs." />
@@ -1376,7 +1374,7 @@ export function DealAnalytics() {
                       <stop offset="95%" stopColor="#e95e00" stopOpacity={0} />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" />
                   <XAxis dataKey="date" tick={{ fontSize: 11, fill: "var(--text-muted)" }} axisLine={false} tickLine={false} />
                   <YAxis tick={{ fontSize: 12, fill: "var(--text-muted)" }} axisLine={false} tickLine={false} tickFormatter={v => `$${(v/1000).toFixed(0)}K`} />
                   <Tooltip formatter={v => fmt(v)} cursor={{ fill: "transparent" }} contentStyle={{ borderRadius: 10, border: "1px solid var(--tooltip-border)", fontSize: 12, background: "var(--tooltip-bg)", color: "var(--tooltip-text)" }} itemStyle={{ color: "var(--tooltip-text)" }} />
@@ -1627,7 +1625,7 @@ export function DealAnalytics() {
           {monthlyTrend.length > 0 ? (
             <ResponsiveContainer width="100%" height={200}>
               <LineChart data={monthlyTrend}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" />
                 <XAxis dataKey="month" tick={{ fontSize: 11, fill: "var(--text-muted)" }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fontSize: 12, fill: "var(--text-muted)" }} axisLine={false} tickLine={false} tickFormatter={v => `$${(v/1000).toFixed(0)}K`} />
                 <Tooltip formatter={v => [fmt(v), "Spent"]} cursor={{ fill: "transparent" }} contentStyle={{ borderRadius: 10, border: "1px solid var(--tooltip-border)", fontSize: 12, background: "var(--tooltip-bg)", color: "var(--tooltip-text)" }} itemStyle={{ color: "var(--tooltip-text)" }} />
